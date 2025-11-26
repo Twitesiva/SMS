@@ -1107,6 +1107,10 @@ main > h3 {
   text-transform: uppercase;
 
   color: #6c7a89;
+
+  text-align: left;
+
+  padding: 1rem;
 }
 
 .table tbody tr {

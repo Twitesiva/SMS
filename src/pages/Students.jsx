@@ -357,14 +357,25 @@ export default function Students() {
           "id, fee_type, amount_paid, payment_status, payment_type, created_at"
         )
         .in("exam_registration_id", registrationIds)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: true });
       if (error) throw error;
-      const totalPaid = (payments || [])
+      const orderedPayments = (payments || [])
+        .map((payment) => payment || {})
+        .sort((a, b) => {
+          const dateA = new Date(a.created_at || 0).getTime();
+          const dateB = new Date(b.created_at || 0).getTime();
+          return dateA - dateB;
+        })
+        .map((payment, index) => ({
+          ...payment,
+          sequence: index + 1,
+        }));
+      const totalPaid = orderedPayments
         .filter((payment) => payment.payment_status === "success")
         .reduce((sum, payment) => sum + Number(payment.amount_paid || 0), 0);
       setPaymentHistoryModal((prev) => ({
         ...prev,
-        payments: payments || [],
+        payments: orderedPayments,
         loading: false,
         balance: Math.max(registrationTotalFee - totalPaid, 0),
         totalFee: registrationTotalFee,
@@ -1148,24 +1159,26 @@ export default function Students() {
                       )}
                     </td>
                     <td>
-                      <button
-                        className="btn btn-sm btn-outline-primary me-2"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleEdit(student);
-                        }}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="btn btn-sm btn-outline-danger"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleDelete(student.id);
-                        }}
-                      >
-                        Delete
-                      </button>
+                      <div className="d-flex gap-2">
+                        <button
+                          className="btn btn-sm btn-outline-primary"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleEdit(student);
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDelete(student.id);
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -1952,6 +1965,7 @@ export default function Students() {
                     <table className="table table-sm mb-0">
                       <thead className="table-light">
                         <tr>
+                          <th>#</th>
                           <th>Date</th>
                           <th>Amount</th>
                           <th>Type</th>
@@ -1967,6 +1981,7 @@ export default function Students() {
                                   `${payment.payment_type}-${payment.created_at}`
                                 }
                               >
+                                <td>{payment.sequence || "?"}</td>
                                 <td>{formatPaymentDate(payment.created_at)}</td>
                                 <td>
                                   {payment.amount_paid
