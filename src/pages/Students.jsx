@@ -168,6 +168,36 @@ export default function Students() {
     return (firstInitial + lastInitial).toUpperCase();
   };
 
+  const parseAcademicYearStart = (academicYear) => {
+    if (!academicYear) return null;
+    const normalized = academicYear.toString().trim();
+    if (!normalized) return null;
+    const [startValue] = normalized.split("-").map((segment) => segment.trim());
+    const year = Number(startValue);
+    if (Number.isNaN(year)) return null;
+    return year;
+  };
+
+  const deriveSemesterFromAcademicYear = (academicYear, referenceDate = new Date()) => {
+    const startYear = parseAcademicYearStart(academicYear);
+    if (!Number.isFinite(startYear)) return null;
+    const semStartMonth = 6; // July (0-based index)
+    const monthsSinceStart =
+      (referenceDate.getFullYear() - startYear) * 12 +
+      referenceDate.getMonth() -
+      semStartMonth;
+    const computedSemester = Math.floor(monthsSinceStart / 6) + 1;
+    if (monthsSinceStart < 0) return 1;
+    if (computedSemester > 6) return 6;
+    if (computedSemester < 1) return 1;
+    return computedSemester;
+  };
+
+  const formatDerivedSemesterLabel = (academicYear) => {
+    const semester = deriveSemesterFromAcademicYear(academicYear);
+    return semester ? `Semester ${semester}` : "Semester N/A";
+  };
+
   const loadPaymentStatuses = async (studentRows, semesterFilter) => {
     const studentsWithId = (studentRows || []).filter(
       (student) => student && student.id
@@ -1065,17 +1095,18 @@ export default function Students() {
         <div className="table-responsive">
           <table className="table table-hover mb-0">
             <thead className="table-light">
-              <tr>
-                <th>Student ID</th>
-                <th>Name</th>
-                <th>Hall Ticket No</th>
-                <th>Group</th>
-                <th>Course</th>
-                <th>Academic Year</th>
-                <th>Academic Status</th>
-                <th>Payment Status</th>
-                <th>Edit Details</th>
-              </tr>
+                <tr>
+                  <th>Student ID</th>
+                  <th>Name</th>
+                  <th>Hall Ticket No</th>
+                  <th>Group</th>
+                  <th>Course</th>
+                  <th>Academic Year</th>
+                  <th>Current Semester</th>
+                  <th>Academic Status</th>
+                  <th>Payment Status</th>
+                  <th>Edit Details</th>
+                </tr>
             </thead>
             <tbody>
               {loading ? (
@@ -1100,6 +1131,7 @@ export default function Students() {
                     <td>{student.group?.group_name || student.group_name}</td>
                     <td>{student.course?.course_name || student.course_name}</td>
                     <td>{student.academic_year}</td>
+                    <td>{formatDerivedSemesterLabel(student.academic_year)}</td>
                     <td>
                       <button
                         className={`btn btn-sm ${
@@ -1317,6 +1349,10 @@ export default function Students() {
                         {
                           label: "Academic Year",
                           value: viewingStudent.academic_year,
+                        },
+                        {
+                          label: "Current Semester",
+                          value: formatDerivedSemesterLabel(viewingStudent.academic_year),
                         },
                         {
                           label: "Course",
