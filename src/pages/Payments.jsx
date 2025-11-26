@@ -603,12 +603,19 @@ export default function Payments() {
         !s.semester ||
         String(s.semester) === String(form.semester);
       const matchesCategory = matchesCategoryForStudent(s);
+      const matchesStudentId =
+        !form.student_id ||
+        (s.student_id &&
+          String(s.student_id)
+            .toLowerCase()
+            .includes(String(form.student_id).trim().toLowerCase()));
       return (
         matchesYear &&
         matchesGroup &&
         matchesCourse &&
         matchesSemester &&
-        matchesCategory
+        matchesCategory &&
+        matchesStudentId
       );
     });
   }, [
@@ -618,6 +625,7 @@ export default function Payments() {
     form.courseCode,
     form.semester,
     form.category,
+    form.student_id,
   ]);
 
   const navigate = useNavigate();
@@ -1326,8 +1334,25 @@ export default function Payments() {
         <h4 className="fw-bold mb-3">Filter Students</h4>
 
         <div className="row g-3">
+          {/* Student ID */}
+          <div className="col-md-3">
+            <label className="form-label fw-bold">Student ID</label>
+            <input
+              type="text"
+              className="form-control"
+              value={form.student_id}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  student_id: e.target.value,
+                })
+              }
+              placeholder="Enter Student ID"
+            />
+          </div>
+
           {/* Category */}
-    <div className="col-md-3">
+          <div className="col-md-3">
             <label className="form-label fw-bold">Category</label>
             <select
               className="form-select"
