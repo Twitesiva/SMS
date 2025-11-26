@@ -69,7 +69,8 @@ export default function Payments() {
       form.year ||
       form.group_code ||
       form.courseCode ||
-      form.semester
+      form.semester ||
+      form.student_id
   );
 
   const firstDefined = (...values) =>
@@ -582,6 +583,57 @@ export default function Payments() {
         c.courseName === student.courseCode
     );
 
+  const getStudentIdentifier = (student) =>
+    firstDefined(
+      student?.student_id,
+      student?.studentId,
+      student?.id,
+      student?.student_id_number
+    );
+  const selectedStudent = useMemo(() => {
+    if (!form.student_id) return null;
+    const normalizedTarget = String(form.student_id).toLowerCase().trim();
+    if (!normalizedTarget) return null;
+    return students.find((student) => {
+      const candidate = getStudentIdentifier(student);
+      if (!candidate) return false;
+      return String(candidate).toLowerCase().trim() === normalizedTarget;
+    });
+  }, [form.student_id, students]);
+  const buildFormDefaultsFromStudent = (student) => {
+    if (!student) return {};
+    const matchedGroup = getMatchedGroup(student);
+    const matchedCourse = getMatchedCourse(student);
+    const categoryCandidate =
+      student.category ??
+      student.Category ??
+      matchedGroup?.category ??
+      "";
+    const normalizedCategory = normalizeCategoryValue(categoryCandidate);
+    return {
+      category: normalizedCategory || "",
+      year:
+        student.academic_year ||
+        student.academicYear ||
+        student.year?.academic_year ||
+        "",
+      group: matchedGroup?.name || student.group_name || student.group || "",
+      group_code:
+        matchedGroup?.code ||
+        matchedGroup?.group_code ||
+        student.group_code ||
+        student.group ||
+        "",
+      courseCode:
+        matchedCourse?.courseCode ||
+        matchedCourse?.course_code ||
+        student.course_code ||
+        student.course ||
+        student.courseCode ||
+        "",
+    };
+  };
+
   const matchesCategoryForStudent = (student) => {
     if (!form.category) return true;
     const targetCategory = normalizeCategoryValue(form.category);
@@ -746,6 +798,71 @@ export default function Payments() {
       // ignore navigation replace failures
     }
   }, [location, students, navigate]);
+
+  useEffect(() => {
+    if (!students.length) {
+      setAppliedRegistrations(new Set());
+      return;
+    }
+    const validStudents = students.filter(
+      (student) => student?.id !== undefined && student?.id !== null
+    );
+    if (!validStudents.length) {
+      setAppliedRegistrations(new Set());
+      return;
+    }
+    const studentLookup = new Map(
+      validStudents.map((student) => [student.id, student])
+    );
+    const studentIds = Array.from(studentLookup.keys());
+    let cancelled = false;
+    const loadAppliedRegistrations = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("exam_registrations")
+          .select(
+            "student_id, semester, payments(fee_type, amount_paid, payment_status)"
+          )
+          .in("student_id", studentIds)
+          .limit(1000);
+        if (error) throw error;
+        const nextSet = new Set();
+        (data || []).forEach((registration) => {
+          if (!registration) return;
+          const hasSuccessfulPayment = (registration.payments || []).some(
+            (payment) => payment?.payment_status === "success"
+          );
+          if (!hasSuccessfulPayment) return;
+          const studentRecord = studentLookup.get(registration.student_id);
+          const studentIdSource =
+            studentRecord?.student_id ??
+            studentRecord?.studentId ??
+            studentRecord?.id ??
+            studentRecord?.student_id_number ??
+            "";
+          const studentExternalId = studentIdSource
+            ? String(studentIdSource)
+            : "";
+          if (!studentExternalId) return;
+          const semesterValue =
+            registration.semester === undefined || registration.semester === null
+              ? ""
+              : String(registration.semester);
+          if (!semesterValue) return;
+          nextSet.add(`${studentExternalId}-${semesterValue}`);
+        });
+        if (!cancelled) {
+          setAppliedRegistrations(nextSet);
+        }
+      } catch (error) {
+        console.error("Failed to load applied registrations:", error);
+      }
+    };
+    loadAppliedRegistrations();
+    return () => {
+      cancelled = true;
+    };
+  }, [students]);
 
   useEffect(() => {
     const loadFeeInfo = async () => {
@@ -1309,6 +1426,21 @@ export default function Payments() {
     setDisplayCount(String(Math.floor(numeric)));
   };
 
+  const handleSemesterChange = (value) => {
+    setForm((prev) => {
+      const next = { ...prev, semester: value };
+      if (selectedStudent) {
+        const defaults = buildFormDefaultsFromStudent(selectedStudent);
+        Object.entries(defaults).forEach(([key, defaultValue]) => {
+          if (!defaultValue) return;
+          if (next[key]) return;
+          next[key] = defaultValue;
+        });
+      }
+      return next;
+    });
+  };
+
   const getInitials = (name) => {
     if (!name) return "S";
     const parts = name.trim().split(" ");
@@ -1481,8 +1613,8 @@ export default function Payments() {
             <select
               className="form-select"
               value={form.semester}
-              disabled={!form.courseCode}
-              onChange={(e) => setForm({ ...form, semester: e.target.value })}
+              disabled={!form.courseCode && !selectedStudent}
+              onChange={(e) => handleSemesterChange(e.target.value)}
             >
               <option value="">Select Semester</option>
               {[1, 2, 3, 4, 5, 6].map((n) => (
@@ -1494,39 +1626,6 @@ export default function Payments() {
           </div>
         </div>
         <div className="mt-4">
-          {hasActiveFilters && (
-            <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-2">
-              <div className="d-flex align-items-center gap-2">
-                <span className="fw-semibold">Matched students</span>
-                <span className="text-muted small">Show</span>
-                <input
-                  type="number"
-                  className="form-control form-control-sm"
-                  min="1"
-                  placeholder={matchedStudentCount || "0"}
-                  value={displayCount}
-                  style={{ width: "90px" }}
-                  onChange={(event) =>
-                    handleDisplayCountChange(event.target.value)
-                  }
-                  aria-label="Rows to show"
-                />
-                <span className="text-muted small">entries</span>
-              </div>
-              <div className="d-flex align-items-center gap-2 ms-auto">
-                <span className="text-muted small">Search</span>
-                <input
-                  type="search"
-                  className="form-control form-control-sm"
-                  placeholder="Student ID / Name"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  style={{ width: "200px" }}
-                  aria-label="Search students"
-                />
-              </div>
-            </div>
-          )}
           {!hasActiveFilters ? (
             <div className="text-muted small">
               Select Category, Academic Year, Group, Course, or Semester to see
