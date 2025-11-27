@@ -22,28 +22,27 @@ export default function PublicResults() {
 
   return (
     <div className="container py-5">
+      <div className="row mb-4">
+        <div className="col-12 text-center fw-bold">
+          This page should be updated
+        </div>
+      </div>
       <div className="row justify-content-center">
         <div className="col-lg-8">
           <div className="card card-soft p-4">
             <h4 className="mb-3">Exam Results</h4>
-            <div className="row g-2 align-items-end">
-              <div className="col-md-4">
-                <label className="form-label">Student</label>
-                <select className="form-select" value={studentId} onChange={e=>setStudentId(e.target.value)}>
-                  <option value="">Select Student</option>
-                  {students.map(s=> (<option key={s.student_id} value={s.student_id}>{s.student_id} - {s.full_name}</option>))}
-                </select>
-              </div>
-              <div className="col-md-4">
-                <label className="form-label">Exam</label>
-                <select className="form-select" value={examId} onChange={e=>setExamId(e.target.value)}>
-                  <option value="">Select Exam</option>
-                  {exams.map(x=> (<option key={x.id} value={x.id}>{x.title} ({x.date})</option>))}
-                </select>
-              </div>
-              <div className="col-md-4 text-end">
-                <button className="btn btn-brand" onClick={search}>View Result</button>
-              </div>
+            <div className="mb-3">
+              <label className="form-label">Student ID</label>
+              <input
+                type="text"
+                className="form-control"
+                value={studentId}
+                onChange={e=>setStudentId(e.target.value)}
+                placeholder="Enter Student ID"
+              />
+            </div>
+            <div className="text-start">
+              <button className="btn btn-brand" onClick={search}>View Result</button>
             </div>
             {found && (
               <div className="mt-4">
