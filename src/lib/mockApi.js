@@ -17,6 +17,7 @@ const TABLES = {
   feeDefinitions: "fee_structure",
   feeCategories: "fee_categories",
   adminUsers: "admin_users",
+  examSchedules: "exam_schedule",
 };
 
 const runQuery = async (query, label) => {
@@ -286,12 +287,13 @@ const toSubCategoryRow = ({ name, subjects }) => ({
 const mapSubject = (row = {}) => {
   const semesterValue = row.semester_number ?? row.semester ?? "";
   const feeAmountValue = row.amount ?? row.fee_amount;
-  const subjectCodeSource =
-    row.subject_code ||
-    row.subjectCode ||
-    row.subject_name ||
-    row.subjectName ||
+  const subjectCodeRaw =
+    row.subject_code ??
+    row.subjectCode ??
+    row.subject_name ??
+    row.subjectName ??
     "";
+  const subjectCodeSource = subjectCodeRaw;
   const subjectCodes = parseSubjectList(subjectCodeSource);
   const subjectCode =
     subjectCodes.length > 0 ? subjectCodes[0] : subjectCodeSource;
@@ -317,6 +319,7 @@ const mapSubject = (row = {}) => {
       row.category_name ||
       row.subject_category?.category_name ||
       "",
+    subjectCodeRaw,
     subjectCode,
     subjectCodes,
     subjectName,
@@ -519,6 +522,23 @@ const toExamRow = ({ title, date, time, venue, course_id }) => ({
   exam_time: time,
   venue,
   course_id: course_id || null,
+});
+
+const mapExamSchedule = (row = {}) => ({
+  id: row.schedule_id ?? row.id,
+  academic_year: row.academic_year ?? '',
+  group_code: row.group_code ?? '',
+  course_code: row.course_code ?? '',
+  semester_number:
+    row.semester_number === undefined || row.semester_number === null
+      ? null
+      : Number(row.semester_number),
+  subject_code: row.subject_code ?? '',
+  exam_date: row.exam_date ?? '',
+  exam_start_time: row.exam_start_time ?? '',
+  exam_end_time: row.exam_end_time ?? '',
+  category: row.category ?? '',
+  created_at: row.created_at,
 });
 
 const mapFeeDefinition = (row = {}) => {
@@ -977,6 +997,44 @@ export const api = {
     await runQuery(
       supabase.from(TABLES.exams).insert(toExamRow(exam)),
       "Unable to add exam"
+    );
+  },
+  listExamSchedules: async (filters = {}) => {
+    let query = supabase
+      .from(TABLES.examSchedules)
+      .select(
+        "schedule_id, academic_year, group_code, course_code, semester_number, subject_code, exam_date, exam_start_time, exam_end_time, category"
+      );
+    if (filters.academic_year) query = query.eq("academic_year", filters.academic_year);
+    if (filters.group_code) query = query.eq("group_code", filters.group_code);
+    if (filters.course_code) query = query.eq("course_code", filters.course_code);
+    if (filters.semester_number !== undefined && filters.semester_number !== null) {
+      query = query.eq("semester_number", filters.semester_number);
+    }
+    if (filters.category) query = query.eq("category", filters.category);
+    query = query.order("exam_date", { ascending: true });
+    const rows = await runQuery(query, "Unable to fetch exam schedules");
+    return (rows || []).map(mapExamSchedule);
+  },
+  getCurrentSemesterNumber: async () => {
+    const row = await runMaybeSingle(
+      supabase
+        .from(TABLES.examSchedules)
+        .select("semester_number")
+        .order("schedule_id", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      "Unable to determine current semester"
+    );
+    if (!row) return null;
+    return row.semester_number ?? null;
+  },
+  saveExamSchedule: async (entries = []) => {
+    const payload = (entries || []).filter(Boolean);
+    if (!payload.length) return;
+    await runQuery(
+      supabase.from(TABLES.examSchedules).insert(payload),
+      "Unable to save exam schedule"
     );
   },
 

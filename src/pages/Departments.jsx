@@ -75,6 +75,7 @@ export default function Departments() {
   const [paper2, setPaper2] = useState("");
   const [paper3Plus, setPaper3Plus] = useState("");
   const [editingFeeId, setEditingFeeId] = useState(null);
+  const canSubmitSupplementary = editingFeeId || supplementaryFees.length === 0;
 
   // ---------------- LOAD MASTER DATA ----------------
   useEffect(() => {
@@ -297,14 +298,19 @@ export default function Departments() {
 
   // Delete fee category
   const deleteFeeCategory = async (id) => {
+    const category = feeCats.find((c) => c.id === id);
+    if (!category) {
+      showToast("Unable to delete category: not found.", { type: "warning" });
+      return;
+    }
+
     showToast("Deleting category...", { type: "info", title: "Deleting" });
 
     try {
-      // First check if this category is in use
       const { data: inUse, error: checkError } = await supabase
         .from("fee_structure")
         .select("id")
-        .ilike("fee_cat", `%${feeCats.find((c) => c.id === id)?.name}%`)
+        .contains("fee_categories", [category.name])
         .limit(1);
 
       if (checkError) throw checkError;
@@ -314,7 +320,6 @@ export default function Departments() {
         return;
       }
 
-      // Delete the category
       const { error } = await supabase
         .from("fee_categories")
         .delete()
@@ -592,6 +597,13 @@ export default function Departments() {
   };
 
   const deleteCategoryFee = async (id) => {
+    if (id === undefined || id === null) {
+      showToast("Unable to delete category fee: missing identifier.", {
+        type: "warning",
+        title: "Category fees",
+      });
+      return;
+    }
     showToast("Deleting category fee...", { type: "info", title: "Deleting" });
     try {
       const { error } = await supabase
@@ -768,6 +780,14 @@ export default function Departments() {
         type: "warning",
         title: "Supplementary fees",
       });
+      return;
+    }
+
+    if (!editingFeeId && supplementaryFees.length > 0) {
+      showToast(
+        "Only one supplementary fee entry is allowed. Please edit or delete the existing record instead.",
+        { type: "warning", title: "Supplementary fees" }
+      );
       return;
     }
 
@@ -1351,16 +1371,21 @@ export default function Departments() {
                           <button
                             className="btn btn-sm btn-danger"
                             onClick={() => {
+                              if (!fees.id) {
+                                showToast(
+                                  "Unable to delete fee record: missing id.",
+                                  { type: "warning", title: "Delete categories" }
+                                );
+                                return;
+                              }
                               showToast(
-                                "Deleting all fee categories for this semester.",
+                                "Deleting fee category record for this semester.",
                                 {
                                   type: "warning",
                                   title: "Delete categories",
                                 }
                               );
-                              fees.feeCategories?.forEach((cat) =>
-                                deleteCategoryFee(cat.id)
-                              );
+                              deleteCategoryFee(fees.id);
                             }}
                           >
                             Delete
@@ -1381,42 +1406,55 @@ export default function Departments() {
 
         <form onSubmit={handleSupplementarySubmit} className="mb-4">
           <div className="row g-3">
-            <div className="col-md-3">
-              <label className="form-label">1 Paper Fee (₹)</label>
-              <input
-                type="number"
-                value={paper1}
-                onChange={(e) => setPaper1(e.target.value)}
-                className="form-control"
-                required
-              />
-            </div>
-            <div className="col-md-3">
-              <label className="form-label">2 Papers Fee (₹)</label>
-              <input
-                type="number"
-                value={paper2}
-                onChange={(e) => setPaper2(e.target.value)}
-                className="form-control"
-                required
-              />
-            </div>
-            <div className="col-md-3">
-              <label className="form-label">3 and above Papers Fee (₹)</label>
-              <input
-                type="number"
-                value={paper3Plus}
-                onChange={(e) => setPaper3Plus(e.target.value)}
-                className="form-control"
-                required
-              />
-            </div>
-            <div className="col-md-3 d-flex align-items-end">
+              <div className="col-md-3">
+                <label className="form-label">1 Paper Fee (₹)</label>
+                <input
+                  type="number"
+                  value={paper1}
+                  onChange={(e) => setPaper1(e.target.value)}
+                  className="form-control"
+                  required
+                  disabled={!canSubmitSupplementary}
+                />
+              </div>
+              <div className="col-md-3">
+                <label className="form-label">2 Papers Fee (₹)</label>
+                <input
+                  type="number"
+                  value={paper2}
+                  onChange={(e) => setPaper2(e.target.value)}
+                  className="form-control"
+                  required
+                  disabled={!canSubmitSupplementary}
+                />
+              </div>
+              <div className="col-md-3">
+                <label className="form-label">3 and above Papers Fee (₹)</label>
+                <input
+                  type="number"
+                  value={paper3Plus}
+                  onChange={(e) => setPaper3Plus(e.target.value)}
+                  className="form-control"
+                  required
+                  disabled={!canSubmitSupplementary}
+                />
+              </div>
+            <div className="col-md-3 d-flex flex-column justify-content-end">
               <div className="d-flex gap-2">
-                <button type="submit" className="btn btn-primary flex-grow-1">
+                <button
+                  type="submit"
+                  className="btn btn-primary flex-grow-1"
+                  disabled={!canSubmitSupplementary}
+                >
                   {editingFeeId ? "Update Fee" : "Add Supplementary Fee"}
                 </button>
               </div>
+              {!canSubmitSupplementary && (
+                <small className="text-muted mt-2">
+                  Only one supplementary fee entry is allowed; edit or delete the
+                  existing record to replace it.
+                </small>
+              )}
             </div>
           </div>
         </form>
