@@ -12,6 +12,7 @@ export default function PaymentsOverview() {
   const [subjects, setSubjects] = useState([]);
   const [loadingSubjects, setLoadingSubjects] = useState(false);
   const [subjectsError, setSubjectsError] = useState("");
+  const [visibleDecodeRows, setVisibleDecodeRows] = useState({});
 
   const handleSearchStudent = async () => {
     const trimmed = studentIdInput.trim();
@@ -288,13 +289,41 @@ export default function PaymentsOverview() {
                   </tr>
                 </thead>
                 <tbody>
-                  {subjects.map((row, index) => (
-                    <tr key={`${row.subject_code || row.subject_name || ""}-${row.decode_no || "none"}-${index}`}>
-                      <td>{row.subject_name || "-"}</td>
-                      <td>{row.subject_code || "-"}</td>
-                      <td>{row.decode_no || "-"}</td>
-                    </tr>
-                  ))}
+                  {subjects.map((row, index) => {
+                    const key = `${row.subject_code || row.subject_name || ""}-${row.decode_no || "none"}-${index}`;
+                    const isVisible = !!visibleDecodeRows[key];
+                    return (
+                      <tr key={key}>
+                        <td>{row.subject_name || "-"}</td>
+                        <td>{row.subject_code || "-"}</td>
+                        <td>
+                          <div className="d-flex align-items-center gap-2">
+                            {row.decode_no && (
+                              <div className="position-relative d-inline-block">
+                                {isVisible && (
+                                  <div className="position-absolute bottom-100 start-50 translate-middle-x mb-1 px-2 py-1 bg-light border rounded shadow-sm small">
+                                    <strong>{row.decode_no}</strong>
+                                  </div>
+                                )}
+                                <button
+                                  type="button"
+                                  className="btn btn-primary btn-sm"
+                                  onClick={() =>
+                                    setVisibleDecodeRows((prev) => ({
+                                      ...prev,
+                                      [key]: !prev[key],
+                                    }))
+                                  }
+                                >
+                                  {isVisible ? "Hide" : "View"}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

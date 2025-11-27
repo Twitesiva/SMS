@@ -1,19 +1,229 @@
 import AdminShell from '../components/AdminShell'
 import { useEffect, useState } from 'react'
 import { api } from '../lib/mockApi'
+import { supabase } from '../../supabaseClient'
+
 export default function Results(){
   const [students,setStudents]=useState([])
   const [exams,setExams]=useState([])
   const [form,setForm]=useState({student_id:'',exam_id:'',total:'',grade:''})
   const [saving,setSaving]=useState(false)
+
+  const [decodeNo, setDecodeNo] = useState('')
+  const [decodeLoading, setDecodeLoading] = useState(false)
+  const [decodeError, setDecodeError] = useState('')
+  const [subject, setSubject] = useState(null)
+  const [marksForm, setMarksForm] = useState({ marks_obtained: '' })
+  const [savingMarks, setSavingMarks] = useState(false)
+  const [marksSuccess, setMarksSuccess] = useState('')
+  const [marksError, setMarksError] = useState('')
+
   useEffect(()=>{(async()=>{setStudents(await api.listStudents()); setExams(await api.listExams())})()},[])
   const save=async()=>{ if(!form.student_id||!form.exam_id||!form.total||!form.grade) return; setSaving(true); await api.addResult({ student_id:form.student_id, exam_id:form.exam_id, total:Number(form.total), grade:form.grade }); setForm({student_id:'',exam_id:'',total:'',grade:''}); setSaving(false) }
+
+  const fetchDecodeDetails = async () => {
+    const trimmed = decodeNo.trim()
+    setSubject(null)
+    setMarksSuccess('')
+    setMarksError('')
+
+    if (!trimmed) {
+      setDecodeError('Please enter a decode number')
+      return
+    }
+    setDecodeError('')
+    setDecodeLoading(true)
+    try {
+      const { data: decodeRow, error: decodeErr } = await supabase
+        .from('decode_numbers')
+        .select('id, exam_registration_subject_id, decode_no')
+        .eq('decode_no', trimmed)
+        .single()
+
+      if (decodeErr) throw decodeErr
+      if (!decodeRow) {
+        setDecodeError('Decode number not found')
+        return
+      }
+
+      const { data: subjectRow, error: subjectErr } = await supabase
+        .from('exam_registration_subjects')
+        .select('id, subject_name, subject_code')
+        .eq('id', decodeRow.exam_registration_subject_id)
+        .single()
+
+      if (subjectErr) throw subjectErr
+      if (!subjectRow) {
+        setDecodeError('No subject found for this decode number')
+        return
+      }
+
+      setSubject(subjectRow)
+    } catch (err) {
+      console.error('Error fetching decode details', err)
+      setDecodeError('Failed to load details for this decode number')
+    } finally {
+      setDecodeLoading(false)
+    }
+  }
+
+  const saveMarks = async () => {
+    const trimmed = decodeNo.trim()
+    if (!trimmed) {
+      setDecodeError('Please enter a decode number')
+      return
+    }
+    if (!marksForm.marks_obtained) {
+      return
+    }
+    const obtained = Number(marksForm.marks_obtained)
+    const max = 100
+    if (Number.isNaN(obtained)) {
+      return
+    }
+    if (obtained >= 100) {
+      setMarksError('please enter valid marks')
+      return
+    }
+    setSavingMarks(true)
+    setMarksSuccess('')
+    setMarksError('')
+    try {
+      const { data: existingMarks, error: existingErr } = await supabase
+        .from('marks')
+        .select('id')
+        .eq('decode_no', trimmed)
+
+      if (existingErr) throw existingErr
+      if (existingMarks && existingMarks.length > 0) {
+        setDecodeError('Marks already entered for this decode number')
+        return
+      }
+
+      const { error } = await supabase.from('marks').insert({
+        decode_no: trimmed,
+        marks_obtained: obtained,
+        max_marks: max
+      })
+      if (error) throw error
+      setMarksSuccess('Marks saved successfully')
+      setDecodeNo('')
+      setSubject(null)
+      setMarksForm({ marks_obtained: '' })
+      setMarksError('')
+      setDecodeError('')
+    } catch (err) {
+      console.error('Error saving marks', err)
+      setDecodeError('Failed to save marks')
+    } finally {
+      setSavingMarks(false)
+    }
+  }
   return (
     <AdminShell>
-      <div className="d-flex flex-column align-items-center justify-content-center" style={{ minHeight: '70vh' }}>
-        <h2 className="fw-bold mb-3">Results Management</h2>
-        <p className="h4 text-muted">This page should be updated</p>
+      <div className="card card-soft p-3" style={{ maxWidth: '600px', margin: '0 auto' }}>
+        <h5 className="mb-3">Enter Decode Number</h5>
+        <div className="row g-2 align-items-end">
+          <div className="col-md-8">
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Decode Number"
+              value={decodeNo}
+              onChange={e => {
+                setDecodeNo(e.target.value)
+                setDecodeError('')
+                setSubject(null)
+                setMarksSuccess('')
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  fetchDecodeDetails()
+                }
+              }}
+            />
+          </div>
+          <div className="col-md-4 d-grid">
+            <button
+              type="button"
+              className="btn btn-brand"
+              onClick={fetchDecodeDetails}
+              disabled={decodeLoading}
+            >
+              {decodeLoading ? 'Loading...' : 'Submit'}
+            </button>
+          </div>
+        </div>
+        {decodeError && (
+          <div className="alert alert-danger mt-3 mb-0 py-2">
+            {decodeError}
+          </div>
+        )}
       </div>
+
+      {subject && (
+        <div className="card card-soft p-3 mt-4" style={{ maxWidth: '600px', margin: '0 auto' }}>
+          <h5 className="mb-2">Subject Details</h5>
+          <p className="mb-1">
+            <strong>{subject.subject_name}</strong>
+          </p>
+          <p className="text-muted mb-3">
+            Code: {subject.subject_code || '-'}
+          </p>
+
+          <div className="row g-2 align-items-end">
+            <div className="col-md-6">
+              <label className="form-label">Marks Obtained</label>
+              <input
+                type="number"
+                className="form-control"
+                value={marksForm.marks_obtained}
+                onChange={e => {
+                  const value = e.target.value
+                  setMarksForm(prev => ({ ...prev, marks_obtained: value }))
+                  if (value === '') {
+                    setMarksError('')
+                  } else if (Number(value) >= 100) {
+                    setMarksError('please enter valid marks')
+                  } else {
+                    setMarksError('')
+                  }
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    saveMarks()
+                  }
+                }}
+              />
+            </div>
+          </div>
+
+          {marksError && (
+            <div className="text-danger mt-2">
+              {marksError}
+            </div>
+          )}
+
+          <div className="mt-3 d-flex justify-content-end">
+            <button
+              type="button"
+              className="btn btn-success"
+              onClick={saveMarks}
+              disabled={savingMarks || !marksForm.marks_obtained || !!marksError}
+            >
+              {savingMarks ? 'Saving...' : 'Save Marks'}
+            </button>
+          </div>
+
+          {marksSuccess && (
+            <div className="alert alert-success mt-3 mb-0 py-2">
+              {marksSuccess}
+            </div>
+          )}
+        </div>
+      )}
       {/* Original functionality preserved but commented out
       <h2 className="fw-bold mb-3">Publish Results</h2>
       <div className="card card-soft p-3">
@@ -41,6 +251,3 @@ export default function Results(){
     </AdminShell>
   )
 }
- 
- 
- 

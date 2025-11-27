@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import crestPrimary from '../assets/media/images.png'
 import crestAccent from '../assets/media/EMS2.jpg'
 import heroTexture from '../assets/media/EMS.jpg'
+import examPdf from '../assets/EXAM.pdf'
 
 const statHighlights = [
   { value: '38+', label: 'UG & PG programmes' },
@@ -9,6 +10,16 @@ const statHighlights = [
 ]
 
 export default function Home() {
+  const handleApplicationDownload = (event) => {
+    event.preventDefault()
+    const link = document.createElement('a')
+    link.href = examPdf
+    link.download = 'EXAM.pdf'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   return (
     <div className="home-shell">
       <header className="home-hero home-hero--modern">
@@ -27,12 +38,13 @@ export default function Home() {
               </p>
 
               <div className="home-hero__actions home-hero__actions--triple">
-                <Link
-                  to="/application"
+                <a
+                  href={examPdf}
+                  onClick={handleApplicationDownload}
                   className="btn btn-hero-primary home-hero__action-btn home-hero__action-btn--apply"
                 >
                   Application
-                </Link>
+                </a>
                 <Link
                   to="/public/results"
                   className="btn btn-hero-secondary home-hero__action-btn home-hero__action-btn--results"

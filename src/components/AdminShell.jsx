@@ -42,7 +42,7 @@ const nav = [
     label: "Create Exam timetable",
     icon: "bi-journal-check",
   },
-  { to: "/admin/results", label: "Result", icon: "bi-award" },
+  { to: "/admin/results", label: "Marks Entry and Result", icon: "bi-award" },
 ];
 
 export default function AdminShell({ children, onSignOut }) {
@@ -90,7 +90,7 @@ export default function AdminShell({ children, onSignOut }) {
                 className="sidebar-brand-subtitle fw-semibold"
                 style={{ fontSize: "0.85rem", letterSpacing: "0.18em" }}
               >
-                Arts & Science<span style={{ padding: "0 0.4rem" }}>&middot;</span>Chittor
+                Arts & Science<span style={{ padding: "0 0.4rem" }}>&middot;</span>Chittoor
               </div>
             </div>
           </div>
