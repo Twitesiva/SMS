@@ -164,6 +164,11 @@ export default function PublicTimeTable() {
 
   return (
     <div className="container py-5">
+      <div className="row mb-4">
+        <div className="col-12 text-center fw-bold">
+          This page should be updated
+        </div>
+      </div>
       <div className="row justify-content-center">
         <div className="col-lg-10">
           <div className="card card-soft p-4">
