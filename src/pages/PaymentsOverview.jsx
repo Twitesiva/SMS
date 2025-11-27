@@ -3,255 +3,309 @@ import AdminShell from "../components/AdminShell";
 import { supabase } from "../../supabaseClient";
 
 export default function PaymentsOverview() {
-  const [filters, setFilters] = useState({
-    category: "",
-    academic_year: "",
-    group_name: "",
-    course_name: "",
-    semester: "",
-  });
-  const [students, setStudents] = useState([]);
-  const [years, setYears] = useState([]);
-  const [groups, setGroups] = useState([]);
-  const [courses, setCourses] = useState([]);
-  const [loadingFilters, setLoadingFilters] = useState(false);
-  const baseCategoryOptions = ["UG", "PG"];
+  const [studentIdInput, setStudentIdInput] = useState("");
+  const [searchingStudent, setSearchingStudent] = useState(false);
+  const [studentError, setStudentError] = useState("");
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [availableSemesters, setAvailableSemesters] = useState([]);
+  const [selectedSemester, setSelectedSemester] = useState("");
+  const [subjects, setSubjects] = useState([]);
+  const [loadingSubjects, setLoadingSubjects] = useState(false);
+  const [subjectsError, setSubjectsError] = useState("");
 
-  useEffect(() => {
-    let isMounted = true;
-    const loadFilters = async () => {
-      try {
-        setLoadingFilters(true);
-        const { data: studentsData, error: studentsError } = await supabase
-          .from("students")
-          .select(
-            "id, academic_year, Category, category, semester, semester_number, semesterNo, semesterNumber"
-          );
-
-        if (studentsError) throw studentsError;
-
-        const { data: groupsData, error: groupsError } = await supabase
-          .from("groups")
-          .select("group_id, group_code, group_name");
-        if (groupsError) throw groupsError;
-
-        const { data: coursesData, error: coursesError } = await supabase
-          .from("courses")
-          .select("course_id, course_code, course_name");
-        if (coursesError) throw coursesError;
-
-        const { data: yearsData, error: yearsError } = await supabase
-          .from("academic_year")
-          .select("id, academic_year, status, category")
-          .order("academic_year", { ascending: false });
-        if (yearsError) throw yearsError;
-
-        const activeYears =
-          (yearsData || []).filter(
-            (year) =>
-              year.status === undefined ? true : Boolean(year.status)
-          );
-
-        if (!isMounted) return;
-        setStudents(studentsData || []);
-        setGroups(groupsData || []);
-        setCourses(coursesData || []);
-        setYears(activeYears);
-      } catch (error) {
-        console.error("Error loading payment filters:", error);
-      } finally {
-        if (isMounted) {
-          setLoadingFilters(false);
-        }
-      }
-    };
-    loadFilters();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  const normalizeCategoryValue = (value) =>
-    value ? value.toString().trim().toUpperCase() : "";
-
-  const categoryOptions = useMemo(() => {
-    const options = [...baseCategoryOptions];
-    const seen = new Set(options.map((val) => normalizeCategoryValue(val)));
-    const addOption = (value) => {
-      const normalized = normalizeCategoryValue(value);
-      if (normalized && !seen.has(normalized)) {
-        seen.add(normalized);
-        options.push(normalized);
-      }
-    };
-
-    students.forEach((student) => {
-      addOption(student.Category || student.category);
-    });
-
-    groups.forEach((group) => {
-      addOption(group.category || group.Category);
-    });
-
-    years.forEach((year) => {
-      addOption(year.category);
-      addOption(year.year_category);
-      addOption(year.yearCategory);
-    });
-
-    return options;
-  }, [students, groups, years]);
-
-  const academicYearOptions = useMemo(() => {
-    const values = new Set();
-    years.forEach((year) => {
-      if (year.academic_year) {
-        values.add(year.academic_year);
-      }
-    });
-    students.forEach((student) => {
-      if (student.academic_year) {
-        values.add(student.academic_year);
-      }
-    });
-    return Array.from(values).sort((a, b) =>
-      a.localeCompare(b, undefined, { numeric: true })
-    );
-  }, [years, students]);
-
-  const semesterOptions = useMemo(() => {
-    const values = new Set();
-    students.forEach((student) => {
-      const rawSemester =
-        student.semester ??
-        student.semester_number ??
-        student.semesterNo ??
-        student.semesterNumber;
-      if (rawSemester === undefined || rawSemester === null || rawSemester === "")
-        return;
-      values.add(String(rawSemester));
-    });
-    if (values.size === 0) {
-      [1, 2, 3, 4, 5, 6].forEach((sem) => values.add(String(sem)));
+  const handleSearchStudent = async () => {
+    const trimmed = studentIdInput.trim();
+    if (!trimmed) {
+      setStudentError("Enter a student ID.");
+      setSelectedStudent(null);
+      setAvailableSemesters([]);
+      setSelectedSemester("");
+      setSubjects([]);
+      return;
     }
-    return Array.from(values).sort((a, b) => {
-      const numA = Number(a);
-      const numB = Number(b);
-      if (!Number.isNaN(numA) && !Number.isNaN(numB)) {
-        return numA - numB;
-      }
-      return a.localeCompare(b, undefined, { numeric: true });
-    });
-  }, [students]);
 
-  const handleFilterChange = (field, value) => {
-    setFilters((prev) => ({ ...prev, [field]: value }));
+    setSearchingStudent(true);
+    setStudentError("");
+    setSelectedStudent(null);
+    setAvailableSemesters([]);
+    setSelectedSemester("");
+    setSubjects([]);
+
+    try {
+      const { data: student, error } = await supabase
+        .from("students")
+        .select("*")
+        .eq("student_id", trimmed)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!student) {
+        setStudentError("No student found for this ID.");
+        return;
+      }
+
+      setSelectedStudent(student);
+      await loadSemestersForStudent(student.id);
+    } catch (e) {
+      console.error("Error searching student:", e);
+      setStudentError("Failed to search student. Please try again.");
+    } finally {
+      setSearchingStudent(false);
+    }
+  };
+
+  const loadSemestersForStudent = async (studentInternalId) => {
+    try {
+      const { data, error } = await supabase
+        .from("exam_registrations")
+        .select("semester")
+        .eq("student_id", studentInternalId);
+
+      if (error) throw error;
+
+      const values = new Set();
+      (data || []).forEach((row) => {
+        if (row && row.semester !== null && row.semester !== undefined) {
+          values.add(String(row.semester));
+        }
+      });
+      const sorted = Array.from(values).sort((a, b) => {
+        const numA = Number(a);
+        const numB = Number(b);
+        if (!Number.isNaN(numA) && !Number.isNaN(numB)) return numA - numB;
+        return a.localeCompare(b, undefined, { numeric: true });
+      });
+      setAvailableSemesters(sorted);
+    } catch (e) {
+      console.error("Error loading semesters:", e);
+      setStudentError("Failed to load semesters for this student.");
+    }
+  };
+
+  const handleSemesterChange = async (value) => {
+    setSelectedSemester(value);
+    setSubjects([]);
+    setSubjectsError("");
+    if (!value || !selectedStudent) return;
+    await loadSubjectsForStudentAndSemester(selectedStudent.id, value);
+  };
+
+  const loadSubjectsForStudentAndSemester = async (studentInternalId, semesterValue) => {
+    setLoadingSubjects(true);
+    setSubjectsError("");
+    try {
+      const { data, error } = await supabase
+        .from("exam_registrations")
+        .select("id, semester, exam_registration_subjects(id, subject_name, subject_code)")
+        .eq("student_id", studentInternalId)
+        .eq("semester", Number(semesterValue));
+
+      if (error) throw error;
+
+      const baseSubjectRows = [];
+      const subjectIds = new Set();
+
+      (data || []).forEach((registration) => {
+        (registration.exam_registration_subjects || []).forEach((subj) => {
+          if (!subj || subj.id === undefined || subj.id === null) return;
+          baseSubjectRows.push({
+            exam_registration_subject_id: subj.id,
+            subject_name: subj.subject_name,
+            subject_code: subj.subject_code,
+          });
+          subjectIds.add(subj.id);
+        });
+      });
+
+      let decodeMap = new Map();
+      if (subjectIds.size > 0) {
+        const { data: decodeData, error: decodeError } = await supabase
+          .from("decode_numbers")
+          .select("exam_registration_subject_id, decode_no")
+          .in("exam_registration_subject_id", Array.from(subjectIds));
+
+        if (decodeError) throw decodeError;
+
+        decodeMap = new Map();
+        (decodeData || []).forEach((row) => {
+          if (!row) return;
+          const key = row.exam_registration_subject_id;
+          if (!decodeMap.has(key)) {
+            decodeMap.set(key, []);
+          }
+          decodeMap.get(key).push(row.decode_no);
+        });
+      }
+
+      const subjectRows = [];
+      baseSubjectRows.forEach((row) => {
+        const decodes = decodeMap.get(row.exam_registration_subject_id) || [null];
+        decodes.forEach((decode_no) => {
+          subjectRows.push({
+            subject_name: row.subject_name,
+            subject_code: row.subject_code,
+            decode_no,
+          });
+        });
+      });
+
+      const seen = new Set();
+      const uniqueSubjects = subjectRows.filter((row) => {
+        const key = `${row.subject_name || ""}|${row.subject_code || ""}|${row.decode_no || ""}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      setSubjects(uniqueSubjects);
+    } catch (e) {
+      console.error("Error loading subjects/decode numbers:", e);
+      setSubjectsError("Failed to load subjects and decode numbers.");
+    } finally {
+      setLoadingSubjects(false);
+    }
+  };
+
+  const handleStudentIdKeyDown = (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      handleSearchStudent();
+    }
   };
 
   return (
     <AdminShell>
       <div className="card card-soft p-3 mb-4">
-        <h5 className="mb-3">Filter Students</h5>
-        <div className="row g-3">
-          <div className="col-6 col-sm-4 col-md-3 col-lg-2">
-            <label className="form-label">Category</label>
-            <select
-              className="form-select"
-              value={filters.category}
-              onChange={(e) => handleFilterChange("category", e.target.value)}
-            >
-              <option value="">All Categories</option>
-              {categoryOptions.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
+        <h5 className="mb-3">Search by Student ID</h5>
+        <div className="row g-3 align-items-end">
+          <div className="col-12 col-sm-6 col-md-4 col-lg-3">
+            <label className="form-label">Student ID</label>
+            <input
+              type="text"
+              className="form-control"
+              value={studentIdInput}
+              onChange={(e) => setStudentIdInput(e.target.value)}
+              onKeyDown={handleStudentIdKeyDown}
+              placeholder="Enter student ID"
+            />
           </div>
-          <div className="col-6 col-sm-4 col-md-3 col-lg-2">
-            <label className="form-label">Academic Year</label>
-            <select
-              className="form-select"
-              value={filters.academic_year}
-              onChange={(e) =>
-                handleFilterChange("academic_year", e.target.value)
-              }
+          <div className="col-auto">
+            <button
+              type="button"
+              className="btn btn-primary mt-2"
+              onClick={handleSearchStudent}
+              disabled={searchingStudent}
             >
-              <option value="">All Years</option>
-              {academicYearOptions.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="col-6 col-sm-4 col-md-3 col-lg-2">
-            <label className="form-label">Group</label>
-            <select
-              className="form-select"
-              value={filters.group_name}
-              onChange={(e) => handleFilterChange("group_name", e.target.value)}
-            >
-              <option value="">All Groups</option>
-              {groups.map((group) => (
-                <option
-                  key={group.group_id}
-                  value={group.group_code || group.group_name}
-                >
-                  {group.group_name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="col-6 col-sm-4 col-md-3 col-lg-2">
-            <label className="form-label">Course</label>
-            <select
-              className="form-select"
-              value={filters.course_name}
-              onChange={(e) =>
-                handleFilterChange("course_name", e.target.value)
-              }
-            >
-              <option value="">All Courses</option>
-              {courses.map((course) => (
-                <option
-                  key={course.course_id}
-                  value={course.course_code || course.course_name}
-                >
-                  {course.course_name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="col-6 col-sm-4 col-md-3 col-lg-2">
-            <label className="form-label">Semester</label>
-            <select
-              className="form-select"
-              value={filters.semester}
-              onChange={(e) => handleFilterChange("semester", e.target.value)}
-            >
-              <option value="">All Semesters</option>
-              {semesterOptions.map((sem) => (
-                <option key={sem} value={sem}>
-                  {sem}
-                </option>
-              ))}
-            </select>
+              {searchingStudent ? "Searching..." : "Search"}
+            </button>
           </div>
         </div>
-        {loadingFilters && (
-          <p className="text-muted small mt-2 mb-0">
-            Loading filter data…
-          </p>
+        {studentError && (
+          <p className="text-danger small mt-2 mb-0">{studentError}</p>
         )}
       </div>
 
-      <div className="d-flex flex-column align-items-center justify-content-center h-100">
-        <div className="text-center">
-          <h2 className="fw-bold mb-3">Payments Overview</h2>
-          <p className="text-muted mb-0">Coming soon.</p>
+      {selectedStudent && (
+        <div className="card card-soft p-3 mb-4">
+          <h5 className="mb-3">Student Details</h5>
+          <div className="row g-3">
+            <div className="col-12 col-md-6">
+              <div className="fw-semibold">
+                {selectedStudent.full_name || "Unnamed Student"}
+              </div>
+              <div className="text-muted small">
+                ID: {selectedStudent.student_id}
+              </div>
+            </div>
+            <div className="col-12 col-md-6">
+              <div className="text-muted small">
+                Academic Year: {selectedStudent.academic_year || "-"}
+              </div>
+              <div className="text-muted small">
+                Group: {selectedStudent.group_name || selectedStudent.group_code || "-"}
+              </div>
+              <div className="text-muted small">
+                Course: {selectedStudent.course_name || "-"}
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+
+      {selectedStudent && (
+        <div className="card card-soft p-3 mb-4">
+          <h5 className="mb-3">Select Semester</h5>
+          <div className="row g-3 align-items-end">
+            <div className="col-12 col-sm-4 col-md-3 col-lg-2">
+              <label className="form-label">Semester</label>
+              <select
+                className="form-select"
+                value={selectedSemester}
+                onChange={(e) => handleSemesterChange(e.target.value)}
+              >
+                <option value="">Select semester</option>
+                {availableSemesters.map((sem) => (
+                  <option key={sem} value={sem}>
+                    {sem}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {!availableSemesters.length && (
+            <p className="text-muted small mt-2 mb-0">
+              No exam registrations found for this student.
+            </p>
+          )}
+        </div>
+      )}
+
+      {selectedStudent && selectedSemester && (
+        <div className="card card-soft p-3 mb-4">
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h5 className="mb-0">Subjects &amp; Decode Numbers</h5>
+            <span className="text-muted small">
+              Semester {selectedSemester}
+            </span>
+          </div>
+          {subjectsError && (
+            <p className="text-danger small mb-2">{subjectsError}</p>
+          )}
+          {loadingSubjects ? (
+            <p className="text-muted small mb-0">Loading subjects…</p>
+          ) : subjects.length === 0 ? (
+            <p className="text-muted small mb-0">
+              No subjects or decode numbers found for this semester.
+            </p>
+          ) : (
+            <div className="table-responsive">
+              <table className="table table-sm align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>Subject Name</th>
+                    <th>Subject Code</th>
+                    <th>Decode No</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {subjects.map((row, index) => (
+                    <tr key={`${row.subject_code || row.subject_name || ""}-${row.decode_no || "none"}-${index}`}>
+                      <td>{row.subject_name || "-"}</td>
+                      <td>{row.subject_code || "-"}</td>
+                      <td>{row.decode_no || "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {!selectedStudent && (
+        <div className="d-flex flex-column align-items-center justify-content-center h-100">
+        </div>
+      )}
     </AdminShell>
   );
 }

@@ -1348,6 +1348,15 @@ export default function Payments() {
     });
     setShowPaymentModal(true);
   };
+  const generateDecodeNo = () => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let code = "";
+    for (let i = 0; i < 5; i += 1) {
+      const index = Math.floor(Math.random() * chars.length);
+      code += chars.charAt(index);
+    }
+    return code;
+  };
   const persistExamRegistrationSubjects = async (
     examRegistrationId,
     subjectEntries
@@ -1363,10 +1372,22 @@ export default function Payments() {
       .delete()
       .eq("exam_registration_id", examRegistrationId);
     if (deleteError) throw deleteError;
-    const { error: insertError } = await supabase
+    const { data: insertedSubjects, error: insertError } = await supabase
       .from("exam_registration_subjects")
-      .insert(payload);
+      .insert(payload)
+      .select("id");
     if (insertError) throw insertError;
+    const subjectsWithIds = insertedSubjects || [];
+    if (!subjectsWithIds.length) return;
+    const decodePayload = subjectsWithIds.map((subject) => ({
+      exam_registration_subject_id: subject.id,
+      decode_no: generateDecodeNo(),
+      is_valid: true,
+    }));
+    const { error: decodeInsertError } = await supabase
+      .from("decode_numbers")
+      .insert(decodePayload);
+    if (decodeInsertError) throw decodeInsertError;
   };
 
   const handlePaymentModalConfirm = async () => {

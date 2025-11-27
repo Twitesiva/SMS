@@ -28,7 +28,7 @@ const nav = [
   { to: "/admin/payments", label: "Payments", icon: "bi-credit-card" },
   {
     to: "/admin/payments-overview",
-    label: "Payments Overview",
+    label: "Decode",
     icon: "bi-bar-chart",
   },
   { to: "/admin/courses", label: "View Courses", icon: "bi-book" },
