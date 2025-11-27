@@ -6,6 +6,19 @@ import { api } from "../lib/mockApi";
 import { validateRequiredFields } from "../lib/validation";
 import { showToast } from "../store/ui";
 
+const EXAM_RELEVANT_FEE_TYPES = new Set(["exam", "full", "partial"]);
+const isExamCoveragePayment = (feeType = "") =>
+  EXAM_RELEVANT_FEE_TYPES.has((feeType || "").toLowerCase());
+const sumExamCoverageFromPayments = (payments = []) =>
+  (payments || []).reduce((sum, payment) => {
+    if (!payment) return sum;
+    const amount = Number(payment.amount_paid || 0);
+    if (isExamCoveragePayment(payment.fee_type)) {
+      return sum + amount;
+    }
+    return sum;
+  }, 0);
+
 const normalizeCategoryValue = (value) =>
   value === undefined || value === null ? "" : String(value).trim().toUpperCase();
 
@@ -40,6 +53,7 @@ export default function Payments() {
     useState([]);
   const [selectedSubjectKeys, setSelectedSubjectKeys] = useState(() => new Set());
   const [modalFeeInfo, setModalFeeInfo] = useState(null);
+  const [modalPaymentRecords, setModalPaymentRecords] = useState([]);
   const [loadingModalFee, setLoadingModalFee] = useState(false);
   const [modalStep, setModalStep] = useState(1);
   const [supplementaryFeeRates, setSupplementaryFeeRates] = useState(null);
@@ -53,6 +67,10 @@ export default function Payments() {
   const [loadingModalPayments, setLoadingModalPayments] = useState(false);
   const [quickPaymentModalOpen, setQuickPaymentModalOpen] = useState(false);
   const [quickPaymentStudentId, setQuickPaymentStudentId] = useState("");
+  const [quickPaymentStudent, setQuickPaymentStudent] = useState(null);
+  const [quickPaymentHistory, setQuickPaymentHistory] = useState([]);
+  const [quickPaymentHistoryLoading, setQuickPaymentHistoryLoading] = useState(false);
+  const [quickPaymentHistoryError, setQuickPaymentHistoryError] = useState("");
   const [appliedRegistrations, setAppliedRegistrations] = useState(() => new Set());
   const examFeeData = useMemo(() => {
     if (!modalFeeInfo?.categories?.length) return null;
@@ -198,6 +216,36 @@ export default function Payments() {
     : modalSemester
       ? `Sem ${modalSemester}`
       : "the selected semester";
+
+  const calculateRecordOutstanding = (record) => {
+    if (!record) return 0;
+    const totalFee = Number(record.total_fee || 0);
+    const payments = Array.isArray(record.payments) ? record.payments : [];
+    const paidTotal = payments.reduce((sum, payment) => {
+      if (!payment) return sum;
+      if (payment.payment_status === "success") {
+        return sum + Number(payment.amount_paid || 0);
+      }
+      return sum;
+    }, 0);
+    return Math.max(totalFee - paidTotal, 0);
+  };
+
+  const modalPaymentSemesterOptions = useMemo(() => {
+    const seen = new Map();
+    modalPaymentRecords.forEach((record) => {
+      const semester = record.semester;
+      if (semester === undefined || semester === null) return;
+      const normalized = String(semester);
+      if (seen.has(normalized)) return;
+      const outstanding = calculateRecordOutstanding(record);
+      seen.set(normalized, {
+        semester: normalized,
+        outstanding,
+      });
+    });
+    return Array.from(seen.values());
+  }, [modalPaymentRecords]);
 
   const resolveModalSubjectNames = (subject) => {
     const fromList = subject.subjectNames?.filter(Boolean) || [];
@@ -363,12 +411,13 @@ export default function Payments() {
   const totalFeeBreakdownAmount =
     examSubtotal + otherFeeTotal;
   const alreadyPaidTotal = modalPaymentSummary?.alreadyPaidTotal || 0;
-  const alreadyPaidExam = modalPaymentSummary?.alreadyPaidExam || 0;
+  const examCoverageAmount = modalPaymentSummary?.examCoverageAmount || 0;
+  const alreadyPaidExam = Math.min(examOnlyAmount, examCoverageAmount);
   const outstandingTotal = Math.max(
     totalFeeBreakdownAmount - alreadyPaidTotal,
     0
   );
-  const outstandingExam = Math.max(examSubtotal - alreadyPaidExam, 0);
+  const outstandingExam = Math.max(examOnlyAmount - alreadyPaidExam, 0);
   const paymentIntentAmount = useMemo(() => {
     if (paymentOption === "exam") return outstandingExam;
     if (paymentOption === "full") return outstandingTotal;
@@ -381,6 +430,11 @@ export default function Payments() {
       Math.max(outstandingTotal, 0)
     );
   }, [paymentOption, partialAmount, outstandingExam, outstandingTotal]);
+  useEffect(() => {
+    if (outstandingExam <= 0 && paymentOption === "exam") {
+      setPaymentOption("full");
+    }
+  }, [outstandingExam, paymentOption]);
   const selectedSubjectCount =
     currentSelectedCount + supplementarySelectedCount;
   const totalModalSubjectCount = uniqueModalSubjectKeys.length;
@@ -519,6 +573,16 @@ export default function Payments() {
   const formatCurrency = (value) => {
     const num = Number(value || 0);
     return `₹${num.toLocaleString("en-IN")}`;
+  };
+
+  const formatQuickPaymentDate = (value) => {
+    if (!value) return "-";
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return "-";
+    return `${parsed.toLocaleDateString()} ${parsed.toLocaleTimeString("en-IN", {
+      hour: "numeric",
+      minute: "2-digit",
+    })}`;
   };
 
   const getAppliedRegistrationKey = (student, semesterValue) => {
@@ -1007,19 +1071,14 @@ export default function Payments() {
           (sum, payment) => sum + Number(payment.amount_paid || 0),
           0
         );
-        const alreadyPaidExam = successfulPayments.reduce(
-          (sum, payment) =>
-            sum +
-            (payment.fee_type === "exam"
-              ? Number(payment.amount_paid || 0)
-              : 0),
-          0
-        );
+        const examCoverageAmount = sumExamCoverageFromPayments(successfulPayments);
+        const alreadyPaidExam = Math.min(examSubtotal, examCoverageAmount);
         setModalPaymentSummary({
           registrationId: registration.id,
           successfulPayments,
           alreadyPaidTotal,
           alreadyPaidExam,
+          examCoverageAmount,
         });
       } catch (error) {
         if (!cancelled) {
@@ -1037,6 +1096,55 @@ export default function Payments() {
       cancelled = true;
     };
   }, [modalStudent, modalCourseCode, modalSemester, groups, courses]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!quickPaymentStudent?.id) {
+      setQuickPaymentHistory([]);
+      setQuickPaymentHistoryError("");
+      setQuickPaymentHistoryLoading(false);
+      return;
+    }
+    const loadQuickHistory = async () => {
+      setQuickPaymentHistoryLoading(true);
+      setQuickPaymentHistoryError("");
+      try {
+        const { data, error } = await supabase
+          .from("exam_registrations")
+          .select(
+            "semester, total_fee, payments(id, fee_type, amount_paid, payment_status, payment_type, created_at)"
+          )
+          .eq("student_id", quickPaymentStudent.id)
+          .order("semester", { ascending: true });
+        if (error) throw error;
+        if (cancelled) return;
+        const enriched = (data || []).map((record) => ({
+          ...record,
+          payments: (record.payments || []).sort(
+            (a, b) =>
+              new Date(a.created_at || 0).getTime() -
+              new Date(b.created_at || 0).getTime()
+          ),
+        }));
+        setQuickPaymentHistory(enriched);
+      } catch (error) {
+        if (cancelled) return;
+        console.error("Failed to load quick payment history:", error);
+        setQuickPaymentHistory([]);
+        setQuickPaymentHistoryError(
+          error?.message || "Unable to load payment history."
+        );
+      } finally {
+        if (!cancelled) {
+          setQuickPaymentHistoryLoading(false);
+        }
+      }
+    };
+    loadQuickHistory();
+    return () => {
+      cancelled = true;
+    };
+  }, [quickPaymentStudent]);
 
   useEffect(() => {
     let isMounted = true;
@@ -1094,17 +1202,53 @@ export default function Payments() {
     return false;
   };
 
-  const openStudentModal = (student) => {
+  const prepareStudentPaymentContext = (student, options = {}) => {
     setActivePaymentStudent(student);
     setModalStudent(student);
-    const semesterValue = form.semester || student.semester || "";
+    const semesterValue =
+      options.semester ??
+      firstDefined(
+        form.semester,
+        student.semester,
+        student.semester_number,
+        student.semesterNo,
+        student.semesterNumber
+      ) ??
+      "";
     const courseValue =
-      form.courseCode || student.courseCode || student.course_code || "";
+      options.courseCode ??
+      firstDefined(
+        form.courseCode,
+        student.courseCode,
+        student.course_code,
+        student.course_name,
+        student.courseCode
+      ) ??
+      "";
     setModalSemester(semesterValue);
     setModalCourseCode(courseValue);
-    setModalOpen(true);
     setModalFeeInfo(null);
+    setModalPaymentSummary(null);
     setSelectedSubjectKeys(new Set());
+    setSelectedSupplementarySemesters([]);
+    setModalStep(1);
+    setModalPaymentRecords(options.records || []);
+    setPaymentOption("full");
+    setPartialAmount("");
+    setPaymentMethod("");
+  };
+
+  const openStudentModal = (student, options = {}) => {
+    prepareStudentPaymentContext(student, options);
+    setModalOpen(true);
+  };
+
+  const handleModalSemesterChange = (semesterValue) => {
+    setModalSemester(semesterValue);
+    setModalFeeInfo(null);
+    setModalPaymentSummary(null);
+    setSelectedSubjectKeys(new Set());
+    setSelectedSupplementarySemesters([]);
     setModalStep(1);
   };
 
@@ -1112,9 +1256,9 @@ export default function Payments() {
     setModalOpen(false);
     setModalStudent(null);
     setModalStep(1);
-    setShowFeeBreakdownModal(false);
     setModalPaymentSummary(null);
     setLoadingModalPayments(false);
+    setModalPaymentRecords([]);
   };
   const closePaymentModal = ({ notifyCancellation = false } = {}) => {
     setShowPaymentModal(false);
@@ -1134,6 +1278,7 @@ export default function Payments() {
   const closeQuickPaymentModal = () => {
     setQuickPaymentModalOpen(false);
     setQuickPaymentStudentId("");
+    setQuickPaymentStudent(null);
   };
   const handleQuickPaymentSearch = () => {
     const trimmedId = (quickPaymentStudentId || "").trim();
@@ -1156,8 +1301,52 @@ export default function Payments() {
       showToast("No student found with that ID.", { type: "warning" });
       return;
     }
+    setQuickPaymentStudent(foundStudent);
+    showToast("Loaded student payment info. Scroll down to view history.", {
+      type: "info",
+    });
+  };
+  const handleQuickPaymentFlow = () => {
+    if (!quickPaymentStudent) return;
+    const student = quickPaymentStudent;
+    const historyRecords = [...quickPaymentHistory];
+    const targetRecord =
+      historyRecords.find(
+        (record) => calculateRecordOutstanding(record) > 0
+      ) || historyRecords[0];
+    const targetSemester =
+      targetRecord && targetRecord.semester !== undefined
+        ? String(targetRecord.semester)
+        : "";
     closeQuickPaymentModal();
-    openStudentModal(foundStudent);
+    openStudentModal(student, {
+      semester: targetSemester,
+      courseCode:
+        student.course_code ||
+        student.courseCode ||
+        student.course_name ||
+        "",
+      records: historyRecords,
+    });
+  };
+  const handleQuickPaymentForRecord = (record) => {
+    if (!quickPaymentStudent) return;
+    const student = quickPaymentStudent;
+    const semesterValue =
+      record?.semester !== undefined && record?.semester !== null
+        ? String(record.semester)
+        : "";
+    closeQuickPaymentModal();
+    prepareStudentPaymentContext(student, {
+      semester: semesterValue,
+      courseCode:
+        student.course_code ||
+        student.courseCode ||
+        student.course_name ||
+        "",
+      records: [...quickPaymentHistory],
+    });
+    setShowPaymentModal(true);
   };
   const persistExamRegistrationSubjects = async (
     examRegistrationId,
@@ -1189,6 +1378,18 @@ export default function Payments() {
       showToast("Student information is missing.", { type: "danger" });
       return;
     }
+    const examFullyPaid =
+      examOnlyAmount > 0 &&
+      (modalPaymentSummary?.alreadyPaidExam || 0) >= examOnlyAmount;
+    if (paymentOption === "exam" && examFullyPaid) {
+      showToast("Exam fees already paid for this student.", {
+        type: "warning",
+        title: "Payment",
+      });
+      setPaymentMethod("");
+      setPaymentOption("full");
+      return;
+    }
 
     const selectedSubjectEntries = combinedSubjectEntries.filter((entry) =>
       selectedSubjectKeys.has(entry.key)
@@ -1197,7 +1398,9 @@ export default function Payments() {
     const trackedSubjectKeys = new Set();
     selectedSubjectEntries.forEach((entry) => {
       const identity =
-        entry.dedupKey ?? `${entry.subjectId}:${entry.contextKey ?? "regular"}`;
+        entry.key ??
+        entry.dedupKey ??
+        `${entry.subjectId}:${entry.contextKey ?? "regular"}`;
       if (trackedSubjectKeys.has(identity)) return;
       trackedSubjectKeys.add(identity);
       uniqueSubjectEntries.push(entry);
@@ -1279,28 +1482,26 @@ export default function Payments() {
         (sum, payment) => sum + Number(payment.amount_paid || 0),
         0
       );
-      const alreadyPaidExam = successfulPayments.reduce(
-        (sum, payment) =>
-          sum + (payment.fee_type === "exam" ? Number(payment.amount_paid || 0) : 0),
-        0
-      );
+      const examCoverageAmount = sumExamCoverageFromPayments(successfulPayments);
+      const alreadyPaidExam = Math.min(examSubtotal, examCoverageAmount);
       const outstandingTotal = Math.max(
         totalFeeBreakdownAmount - alreadyPaidTotal,
         0
       );
       const outstandingExam = Math.max(examSubtotal - alreadyPaidExam, 0);
 
-      if (paymentOption === "exam") {
-        if (outstandingExam <= 0) {
-          showToast("Exam fees already paid for this student.", {
-            type: "warning",
-            title: "Payment",
-          });
-          setPaymentMethod("");
-          return;
-        }
+      const effectivePaymentOption =
+        paymentOption === "exam" && outstandingExam <= 0 ? "full" : paymentOption;
+      if (
+        effectivePaymentOption !== paymentOption &&
+        paymentOption === "exam" &&
+        outstandingExam <= 0
+      ) {
+        setPaymentOption("full");
+      }
+      if (effectivePaymentOption === "exam") {
         amount = outstandingExam;
-      } else if (paymentOption === "full") {
+      } else if (effectivePaymentOption === "full") {
         if (outstandingTotal <= 0) {
           showToast("All fees have already been paid for this semester.", {
             type: "warning",
@@ -1339,6 +1540,7 @@ export default function Payments() {
         }
         amount = parsed;
       }
+      const normalizedPaymentOption = effectivePaymentOption;
 
       const { data: duplicateEntry, error: duplicateError } = await supabase
         .from("payments")
@@ -1346,7 +1548,7 @@ export default function Payments() {
         .match({
           exam_registration_id: examRegistrationId,
           payment_type: paymentMethod,
-          fee_type: paymentOption,
+          fee_type: normalizedPaymentOption,
           amount_paid: amount,
           payment_status: "success",
         })
@@ -1370,7 +1572,7 @@ export default function Payments() {
         exam_registration_id: examRegistrationId,
         amount_paid: amount,
         payment_type: paymentMethod,
-        fee_type: paymentOption,
+        fee_type: normalizedPaymentOption,
         payment_status: "success",
       });
       if (paymentError) throw paymentError;
@@ -1761,7 +1963,7 @@ export default function Payments() {
           aria-modal="true"
           style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
         >
-          <div className="modal-dialog modal-sm modal-dialog-centered">
+          <div className="modal-dialog modal-lg modal-dialog-centered">
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">Quick payment lookup</h5>
@@ -1780,7 +1982,9 @@ export default function Payments() {
                     className="form-control"
                     placeholder="Enter student ID"
                     value={quickPaymentStudentId}
-                    onChange={(event) => setQuickPaymentStudentId(event.target.value)}
+                    onChange={(event) =>
+                      setQuickPaymentStudentId(event.target.value)
+                    }
                   />
                   <button
                     type="button"
@@ -1791,8 +1995,149 @@ export default function Payments() {
                   </button>
                 </div>
                 <p className="text-muted small mt-2 mb-0">
-                  Click search to open the payment flow for that student.
+                  Use this lookup to see recent payments and move straight into the
+                  payment flow.
                 </p>
+                {quickPaymentStudent && (
+                  <div className="mt-4">
+                    <div className="d-flex justify-content-between align-items-start gap-3">
+                      <div>
+                        <div className="fw-semibold">
+                          {quickPaymentStudent.full_name ||
+                            quickPaymentStudent.name ||
+                            "Student found"}
+                        </div>
+                        <div className="text-muted small">
+                          ID:{" "}
+                          {quickPaymentStudent.student_id ||
+                            quickPaymentStudent.studentId ||
+                            quickPaymentStudent.id ||
+                            "N/A"}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-primary"
+                        onClick={handleQuickPaymentFlow}
+                      >
+                        Open payment flow
+                      </button>
+                    </div>
+                    <div className="mt-3 border rounded p-3 bg-light">
+                      <div className="fw-semibold mb-2">Payment history</div>
+                      {quickPaymentHistoryLoading ? (
+                        <div className="text-center py-3">
+                          <div className="spinner-border text-primary" role="status">
+                            <span className="visually-hidden">Loading...</span>
+                          </div>
+                        </div>
+                      ) : quickPaymentHistoryError ? (
+                        <div className="alert alert-warning mb-0">
+                          {quickPaymentHistoryError}
+                        </div>
+                      ) : quickPaymentHistory.length === 0 ? (
+                        <div className="text-muted small">
+                          No registrations or payments found yet.
+                        </div>
+                      ) : (
+                        quickPaymentHistory.map((record, index) => {
+                          const payments = Array.isArray(record.payments)
+                            ? record.payments
+                            : [];
+                          const outstanding = calculateRecordOutstanding(record);
+                          const semesterLabel = record.semester
+                            ? `Semester ${record.semester}`
+                            : "Semester not set";
+                          return (
+                            <div
+                              key={`quick-history-${record.semester ?? index}`}
+                              className="border-top pt-3"
+                            >
+                              <div className="d-flex justify-content-between align-items-center">
+                                <div>
+                                  <div className="fw-semibold">{semesterLabel}</div>
+                                <div className="text-muted small">
+                                    {payments.length
+                                      ? `${payments.length} payment${
+                                          payments.length === 1 ? "" : "s"
+                                        }`
+                                      : "No payments yet"}
+                                  </div>
+                                </div>
+                                <div className="text-end">
+                                  <div className="fw-semibold">
+                                    {record.total_fee
+                                      ? formatCurrency(record.total_fee)
+                                      : "Fee not set"}
+                                  </div>
+                                  <div className="text-muted small">
+                                    {outstanding > 0
+                                      ? `Balance ${formatCurrency(outstanding)}`
+                                      : "Paid in full"}
+                                  </div>
+                                  {outstanding > 0 && (
+                                    <button
+                                      type="button"
+                                      className="btn btn-sm btn-outline-primary mt-2"
+                                      onClick={() => handleQuickPaymentForRecord(record)}
+                                    >
+                                      Pay this balance
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                              {payments.length ? (
+                                <div className="table-responsive mt-2">
+                                  <table className="table table-sm mb-0">
+                                    <thead className="table-light">
+                                      <tr>
+                                        <th>Date</th>
+                                        <th>Amount</th>
+                                        <th>Type</th>
+                                        <th>Fee type</th>
+                                        <th>Status</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {payments.map((payment) => (
+                                        <tr
+                                          key={
+                                            payment.id ||
+                                            `${payment.payment_type}-${
+                                              payment.created_at
+                                            }`
+                                          }
+                                        >
+                                          <td>
+                                            {formatQuickPaymentDate(
+                                              payment.created_at
+                                            )}
+                                          </td>
+                                          <td>
+                                            {payment.amount_paid
+                                              ? formatCurrency(payment.amount_paid)
+                                              : "-"}
+                                          </td>
+                                          <td>{payment.payment_type || "-"}</td>
+                                          <td className="text-capitalize">
+                                            {payment.fee_type || "-"}
+                                          </td>
+                                          <td className="text-capitalize">
+                                            {payment.payment_status || "-"}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              ) : null}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="modal-footer d-flex justify-content-end gap-2">
                 <button
@@ -1879,6 +2224,35 @@ export default function Payments() {
                       </div>
                     </div>
                   </div>
+              {modalPaymentSemesterOptions.length > 0 && (
+                <div className="mt-3 d-flex flex-wrap align-items-center gap-3">
+                  <label className="mb-0 small fw-semibold">
+                    Choose semester
+                  </label>
+                    <select
+                      className="form-select form-select-sm"
+                      style={{ width: "240px" }}
+                      value={modalSemester}
+                      onChange={(event) =>
+                        handleModalSemesterChange(event.target.value)
+                      }
+                    >
+                      <option value="">Select semester</option>
+                      {modalPaymentSemesterOptions.map(({ semester, outstanding }) => (
+                        <option
+                          key={semester}
+                          value={semester}
+                          disabled={outstanding <= 0}
+                        >
+                          {`Semester ${semester}`}
+                          {outstanding <= 0
+                            ? " (Fully paid)"
+                            : ` (Balance ${formatCurrency(outstanding)})`}
+                        </option>
+                      ))}
+                    </select>
+                </div>
+              )}
                     <div className="mt-4">
                     {modalStep === 1 && availableSupplementarySemesters.length > 0 && (
                       <div className="d-flex align-items-center justify-content-end gap-2 mb-3">
@@ -2112,12 +2486,20 @@ export default function Payments() {
                       value="exam"
                       checked={paymentOption === "exam"}
                       onChange={() => setPaymentOption("exam")}
+                      disabled={outstandingExam <= 0}
                     />
                     <label
                       className="form-check-label d-flex justify-content-between align-items-center"
                       htmlFor="paymentOptionExam"
                     >
-                      <span>Exam fee only</span>
+                      <div className="d-flex align-items-center gap-2">
+                        <span>Exam fee only</span>
+                        {outstandingExam <= 0 && (
+                          <span className="text-danger small">
+                            Already covered
+                          </span>
+                        )}
+                      </div>
                       <span className="text-muted small">
                         {formatCurrency(examSubtotal)}
                         {modalPaymentSummary && (
