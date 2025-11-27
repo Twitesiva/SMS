@@ -22,6 +22,11 @@ export default function Students() {
   const [loading, setLoading] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
   const [viewingStudent, setViewingStudent] = useState(null);
+  const [viewingPaymentRecords, setViewingPaymentRecords] = useState({
+    loading: false,
+    data: [],
+    error: null,
+  });
   const [statusModal, setStatusModal] = useState({
     show: false,
     student: null,
@@ -147,9 +152,7 @@ export default function Students() {
     const minutes = shifted.getMinutes();
     const period = hours >= 12 ? "PM" : "AM";
     hours = hours % 12 === 0 ? 12 : hours % 12;
-    const formattedTime = `${String(hours).padStart(2, "0")}.${String(
-      minutes
-    ).padStart(2, "0")}`;
+    const formattedTime = `${String(hours)}:${String(minutes).padStart(2, "0")}`;
     return `${datePart}, ${formattedTime} ${period}`;
   };
 
@@ -988,6 +991,69 @@ export default function Students() {
       }
     : { photoUrl: null, initials: "ST" };
 
+  useEffect(() => {
+    if (!viewingStudent?.id) {
+      setViewingPaymentRecords({
+        loading: false,
+        data: [],
+        error: null,
+      });
+      return;
+    }
+
+    let cancelled = false;
+    const loadPaymentRecords = async () => {
+      setViewingPaymentRecords({
+        loading: true,
+        data: [],
+        error: null,
+      });
+
+      try {
+        const { data, error } = await supabase
+          .from("exam_registrations")
+          .select(
+            "semester, total_fee, total_exam_fee, other_fee, payments(id, fee_type, amount_paid, payment_status, payment_type, created_at)"
+          )
+          .eq("student_id", viewingStudent.id)
+          .order("semester", { ascending: true });
+
+        if (error) throw error;
+
+        const enriched = (data || []).map((record) => ({
+          ...record,
+          payments: (record.payments || []).sort(
+            (a, b) =>
+              new Date(a.created_at || 0).getTime() -
+              new Date(b.created_at || 0).getTime()
+          ),
+        }));
+
+        if (!cancelled) {
+          setViewingPaymentRecords({
+            loading: false,
+            data: enriched,
+            error: null,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to load viewing payment records:", error);
+        if (!cancelled) {
+          setViewingPaymentRecords({
+            loading: false,
+            data: [],
+            error: error?.message || "Unable to load payment history.",
+          });
+        }
+      }
+    };
+
+    loadPaymentRecords();
+    return () => {
+      cancelled = true;
+    };
+  }, [viewingStudent]);
+
   return (
     <AdminShell>
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -1482,6 +1548,124 @@ export default function Students() {
                       </div>
                     </div>
                   </div>
+                </div>
+                <div className="bg-white rounded-4 shadow-sm p-4 mt-4">
+                  <div className="d-flex align-items-center justify-content-between mb-3">
+              <p className="text-uppercase small text-muted mb-0">
+                Payment History
+              </p>
+              <span className="text-muted small">
+                {viewingPaymentRecords.data.length
+                  ? `${viewingPaymentRecords.data.length} semester${
+                      viewingPaymentRecords.data.length === 1 ? "" : "s"
+                    }`
+                  : "No registrations yet"}
+              </span>
+            </div>
+            {viewingPaymentRecords.loading ? (
+              <div className="text-center py-3">
+                <div className="spinner-border text-primary" role="status">
+                  <span className="visually-hidden">Loading...</span>
+                </div>
+              </div>
+            ) : viewingPaymentRecords.error ? (
+              <div className="alert alert-warning mb-0">
+                {viewingPaymentRecords.error}
+              </div>
+            ) : viewingPaymentRecords.data.length === 0 ? (
+              <div className="text-muted small">
+                No payments recorded yet.
+              </div>
+            ) : (
+              viewingPaymentRecords.data.map((record, index) => {
+                const totalFee = Number(record.total_fee || 0);
+                const payments = Array.isArray(record.payments)
+                  ? record.payments
+                  : [];
+                const paidTotal = payments
+                  .filter((payment) => payment.payment_status === "success")
+                  .reduce(
+                    (sum, payment) => sum + Number(payment.amount_paid || 0),
+                    0
+                  );
+                const outstanding = Math.max(totalFee - paidTotal, 0);
+                const semesterLabel = record.semester
+                  ? `Semester ${record.semester}`
+                  : "Semester not set";
+                return (
+                  <div
+                    key={`payment-history-${record.semester ?? index}`}
+                    className="border-top pt-3"
+                  >
+                    <div className="d-flex justify-content-between align-items-center">
+                      <div>
+                        <strong>{semesterLabel}</strong>
+                        <div className="text-muted small">
+                          {payments.length
+                            ? `${payments.length} payment${
+                                payments.length === 1 ? "" : "s"
+                              }`
+                            : "No payments yet"}
+                        </div>
+                      </div>
+                      <div className="text-end">
+                        <div className="fw-semibold">
+                          {totalFee
+                            ? formatCurrency(totalFee)
+                            : "Total fee not set"}
+                        </div>
+                            <div className="text-muted small">
+                              <strong>
+                                {outstanding > 0
+                                  ? `Balance ${formatCurrency(outstanding)}`
+                                  : "Paid in full"}
+                              </strong>
+                            </div>
+                      </div>
+                    </div>
+                    {payments.length ? (
+                      <div className="table-responsive mt-2">
+                        <table className="table table-sm mb-0 align-middle">
+                          <thead className="table-light">
+                            <tr>
+                              <th>Date</th>
+                              <th>Amount</th>
+                              <th>Type</th>
+                              <th>Fee Type</th>
+                              <th>Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {payments.map((payment) => (
+                              <tr
+                                key={
+                                  payment.id ||
+                                  `${payment.payment_type}-${payment.created_at}`
+                                }
+                              >
+                                <td className="text-nowrap">
+                                  {formatPaymentDate(payment.created_at)}
+                                </td>
+                                <td>
+                                  {payment.amount_paid
+                                    ? formatCurrency(payment.amount_paid)
+                                    : "-"}
+                                </td>
+                                <td>{payment.payment_type || "-"}</td>
+                                <td>{payment.fee_type || "-"}</td>
+                                <td className="text-capitalize">
+                                  {payment.payment_status || "-"}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })
+            )}
                 </div>
               </div>
               <div className="modal-footer border-0 pt-0">
