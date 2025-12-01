@@ -40,6 +40,7 @@ export default function Departments() {
   const categoryDropdownRef = useRef(null);
 
   const [appliedFilter, setAppliedFilter] = useState(null);
+  const [categorySearch, setCategorySearch] = useState("");
 
   const normalizeCategory = (value) => (value || "").trim().toLowerCase();
 
@@ -67,15 +68,60 @@ export default function Departments() {
       .map(([, value]) => value);
   }, [groups, years]);
 
-  const categoryFilterValue = normalizeCategory(form.category);
+  const filteredFeeCategories = useMemo(() => {
+    const filter = categorySearch.trim().toLowerCase();
+    if (!filter) return feeCats;
+    return (feeCats || []).filter((category) => {
+      const name = (category?.name || "").toString().toLowerCase();
+      return name.includes(filter);
+    });
+  }, [feeCats, categorySearch]);
 
-  // Supplementary Fees State
   const [supplementaryFees, setSupplementaryFees] = useState([]);
   const [paper1, setPaper1] = useState("");
   const [paper2, setPaper2] = useState("");
   const [paper3Plus, setPaper3Plus] = useState("");
   const [editingFeeId, setEditingFeeId] = useState(null);
   const canSubmitSupplementary = editingFeeId || supplementaryFees.length === 0;
+
+  const matchingCategoriesCount = filteredFeeCategories.length;
+  const storedStructuresCount = categoryFees.length;
+  const outstandingSupplementaryCount = supplementaryFees.length;
+  const fullyConfiguredStructures = useMemo(
+    () =>
+      categoryFees.filter((entry) => Number(entry.amount || 0) > 0).length,
+    [categoryFees]
+  );
+  const departmentHeroStats = [
+    {
+      label: "Matching categories",
+      value: matchingCategoriesCount,
+      meta: appliedFilter ? "Filters active" : "All categories",
+    },
+    {
+      label: "Visible rows",
+      value: storedStructuresCount,
+      meta: "Display limit All",
+    },
+    {
+      label: "Outstanding balances",
+      value: outstandingSupplementaryCount,
+      meta: "Needs attention",
+    },
+    {
+      label: "Fully configured",
+      value: fullyConfiguredStructures,
+      meta: "Registration settled",
+    },
+  ];
+
+  const handleQuickPayments = () => {
+    showToast("Use the Payments screen for quick payment actions.", {
+      type: "info",
+    });
+  };
+
+  const categoryFilterValue = normalizeCategory(form.category);
 
   // ---------------- LOAD MASTER DATA ----------------
   useEffect(() => {
@@ -971,7 +1017,48 @@ export default function Departments() {
 
   return (
     <AdminShell>
-      <h2 className="fw-bold mb-4">Fees Management</h2>
+      <div className="students-hero mb-4">
+        <div className="px-3 pt-3">
+          <p className="students-hero-eyebrow text-uppercase mb-1">Departments</p>
+          <h2 className="students-hero-title">Fees Management</h2>
+          <p className="students-hero-copy mb-0">
+            Manage fee categories, structures, and supplements with the same payments-style surface.
+          </p>
+        </div>
+        <div className="d-flex flex-wrap align-items-center gap-2 px-3 pb-3">
+          <input
+            type="text"
+            className="form-control students-hero-search"
+            placeholder="Search category"
+            value={categorySearch}
+            onChange={(event) => setCategorySearch(event.target.value)}
+          />
+          <button
+            type="button"
+            className="btn btn-primary btn-sm students-button"
+            onClick={handleQuickPayments}
+          >
+            Quick payments
+          </button>
+        </div>
+        <div className="students-stats-grid row g-3 px-3 pb-3">
+          {departmentHeroStats.map((stat) => (
+            <div className="col-6 col-md-3" key={stat.label}>
+              <div className="students-hero-card h-100 p-3">
+                <div className="students-hero-stat-label small mb-1 text-white">
+                  {stat.label}
+                </div>
+                <div className="fs-3 fw-bold students-hero-stat-value text-white">
+                  {stat.value ?? 0}
+                </div>
+                <div className="students-hero-stat-meta small text-white">
+                  {stat.meta}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* ---------------- MAIN FILTER PANEL ---------------- */}
       <div
@@ -979,17 +1066,23 @@ export default function Departments() {
         id="fee-structure"
         role="tabpanel"
       >
-        <div className="card mb-4">
-          <div className="card-header">
-            <h5 className="mb-0">Fee Categories</h5>
+        <div className="students-table-panel card card-soft mb-4">
+          <div className="students-table-panel-header mb-3">
+            <div>
+              <p className="students-table-panel-title mb-1">Fee Categories</p>
+              <p className="students-table-panel-copy small mb-0">
+                Manage the categories that can be applied to any fee structure.
+              </p>
+            </div>
           </div>
           <div className="card-body">
-            <div className="row g-2 align-items-end mb-3">
-              <div className="col-md-5 col-lg-4">
-                <label className="form-label text-muted fw-600">
-                  {editingFeeCategoryId
-                    ? "Edit fee category"
-                    : "Add a fee category"}
+            <div className="students-category-form-panel mb-4">
+              <div className="row g-2 align-items-end">
+                <div className="col-md-5 col-lg-4">
+                  <label className="form-label text-muted fw-600">
+                    {editingFeeCategoryId
+                      ? "Edit fee category"
+                      : "Add a fee category"}
                 </label>
                 <input
                   className="form-control"
@@ -1007,7 +1100,7 @@ export default function Departments() {
               <div className="col-md-3 col-lg-2">
                 <button
                   type="button"
-                  className="btn btn-primary w-100 mt-md-4"
+                  className="btn btn-primary students-button w-100 mt-md-4"
                   onClick={saveFeeCategory}
                 >
                   {editingFeeCategoryId ? "Update Category" : "Add Category"}
@@ -1017,7 +1110,7 @@ export default function Departments() {
                 <div className="col-md-3 col-lg-2">
                   <button
                     type="button"
-                    className="btn btn-outline-secondary w-100 mt-md-4"
+                    className="btn btn-outline-secondary students-button w-100 mt-md-4"
                     onClick={() => {
                       setFeeCategoryName("");
                       setEditingFeeCategoryId(null);
@@ -1027,12 +1120,13 @@ export default function Departments() {
                   </button>
                 </div>
               )}
-            </div>
+          </div>
+        </div>
 
-            <div className="row g-3">
-              {feeCats.map((cat) => (
+        <div className="row g-3">
+            {filteredFeeCategories.map((cat) => (
                 <div key={cat.id} className="col-md-6 col-lg-4">
-                  <div className="card h-100">
+                  <div className="card h-100 students-category-card">
                     <div className="card-body">
                       <div className="d-flex justify-content-between align-items-center">
                         <div>
@@ -1041,14 +1135,14 @@ export default function Departments() {
                         <div className="btn-group">
                           <button
                             type="button"
-                            className="btn btn-sm btn-outline-primary"
+                            className="btn btn-sm btn-outline-primary students-button students-button-sm"
                             onClick={() => editFeeCategory(cat)}
                           >
                             Edit
                           </button>
                           <button
                             type="button"
-                            className="btn btn-sm btn-outline-danger"
+                            className="btn btn-sm btn-outline-danger students-button students-button-sm"
                             onClick={() => deleteFeeCategory(cat.id)}
                           >
                             Delete
@@ -1060,10 +1154,12 @@ export default function Departments() {
                 </div>
               ))}
 
-              {feeCats.length === 0 && (
+              {filteredFeeCategories.length === 0 && (
                 <div className="col-12">
                   <div className="alert alert-info mb-0">
-                    No fee categories found. Add one to get started.
+                    {feeCats.length === 0
+                      ? "No fee categories found. Add one to get started."
+                      : "No fee categories match the current search/filter."}
                   </div>
                 </div>
               )}
@@ -1072,16 +1168,21 @@ export default function Departments() {
         </div>
 
         {/* Existing fee structure content */}
-        <div className="card">
-          <div className="card-header">
-            <h5 className="mb-0"> Fee Structure</h5>
+        <div className="students-table-panel card card-soft mb-4">
+          <div className="students-table-panel-header mb-3">
+            <div>
+              <p className="students-table-panel-title mb-1">Fee Structure</p>
+              <p className="students-table-panel-copy small mb-0">
+                Review the current fee structure and assign categories to academic groups.
+              </p>
+            </div>
           </div>
           <div className="card-body">
             {/* Existing fee structure content */}
           </div>
         </div>
       </div>
-      <div className="card card-soft p-3 mb-4">
+      <div className="students-filter-control-panel card card-soft mb-4">
         <div className="row g-3">
         {/* Category */}
         <div className="col-md-3">
@@ -1193,7 +1294,7 @@ export default function Departments() {
           <label className="form-label fw-bold">Fee Categories</label>
           <button
             type="button"
-            className="btn btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center"
+            className="btn btn-outline-secondary students-button w-100 text-start d-flex justify-content-between align-items-center"
             disabled={!canOpenCategoryDropdown}
             aria-disabled={!canOpenCategoryDropdown}
             onClick={(e) => {
@@ -1279,7 +1380,7 @@ export default function Departments() {
             </div>
             <div className="mt-auto d-flex gap-2">
               <button
-                className="btn btn-primary flex-grow-1"
+                className="btn btn-primary students-button flex-grow-1"
                 onClick={handleCategoryOK}
               >
                 Submit
@@ -1287,7 +1388,7 @@ export default function Departments() {
               {isEditingCategoryEntry && (
                 <button
                   type="button"
-                  className="btn btn-outline-secondary flex-grow-1"
+                  className="btn btn-outline-secondary students-button flex-grow-1"
                   onClick={cancelCategoryEdit}
                 >
                   Cancel
@@ -1300,10 +1401,17 @@ export default function Departments() {
 
       {/* ---------------- CATEGORY FEE TABLE ---------------- */}
       {filteredCategoryFees.length > 0 && (
-        <div className="card card-soft p-4 mb-4">
-          <h4 className="fw-bold mb-3">Fee Category Records</h4>
-          <div className="table-responsive">
-            <table className="table mb-0">
+      <div className="students-table-panel card card-soft mb-4 p-4">
+        <div className="students-table-panel-header mb-3">
+          <div>
+            <p className="students-table-panel-title mb-1">Fee Category Records</p>
+            <p className="students-table-panel-copy small mb-0">
+              Recently saved fee combinations and their totals.
+            </p>
+          </div>
+        </div>
+          <div className="table-responsive students-table-panel-table-wrapper">
+            <table className="table mb-0 students-table-panel-table">
               <thead>
                 <tr>
                   <th>YEAR</th>
@@ -1363,13 +1471,13 @@ export default function Departments() {
                       <td>
                         <div className="d-flex gap-2">
                           <button
-                            className="btn btn-sm btn-warning"
+                            className="btn btn-sm btn-outline-primary students-button students-button-sm"
                             onClick={() => handleEditCategoryFee(fees)}
                           >
                             Edit
                           </button>
                           <button
-                            className="btn btn-sm btn-danger"
+                            className="btn btn-sm btn-outline-danger students-button students-button-sm"
                             onClick={() => {
                               if (!fees.id) {
                                 showToast(
@@ -1401,49 +1509,62 @@ export default function Departments() {
         </div>
       )}
       {/* Supplementary Fees Section */}
-      <div className="card card-soft p-3 mb-4">
-        <h4 className="fw-bold mb-3">Supplementary Fees</h4>
+      <div className="students-table-panel card card-soft mb-4 p-4">
+        <div className="students-table-panel-header mb-3">
+          <div>
+            <p className="students-table-panel-title mb-1">Supplementary Fees</p>
+            <p className="students-table-panel-copy small mb-0">
+              Configure fees for supplementary examinations by paper count.
+            </p>
+          </div>
+        </div>
 
         <form onSubmit={handleSupplementarySubmit} className="mb-4">
-          <div className="row g-3">
+          <div className="row g-3 students-supplementary-grid">
               <div className="col-md-3">
-                <label className="form-label">1 Paper Fee (₹)</label>
-                <input
-                  type="number"
-                  value={paper1}
-                  onChange={(e) => setPaper1(e.target.value)}
-                  className="form-control"
-                  required
-                  disabled={!canSubmitSupplementary}
-                />
+                <div className="students-supplementary-field">
+                  <label className="form-label">1 Paper Fee (₹)</label>
+                  <input
+                    type="number"
+                    value={paper1}
+                    onChange={(e) => setPaper1(e.target.value)}
+                    className="form-control"
+                    required
+                    disabled={!canSubmitSupplementary}
+                  />
+                </div>
               </div>
               <div className="col-md-3">
-                <label className="form-label">2 Papers Fee (₹)</label>
-                <input
-                  type="number"
-                  value={paper2}
-                  onChange={(e) => setPaper2(e.target.value)}
-                  className="form-control"
-                  required
-                  disabled={!canSubmitSupplementary}
-                />
+                <div className="students-supplementary-field">
+                  <label className="form-label">2 Papers Fee (₹)</label>
+                  <input
+                    type="number"
+                    value={paper2}
+                    onChange={(e) => setPaper2(e.target.value)}
+                    className="form-control"
+                    required
+                    disabled={!canSubmitSupplementary}
+                  />
+                </div>
               </div>
               <div className="col-md-3">
-                <label className="form-label">3 and above Papers Fee (₹)</label>
-                <input
-                  type="number"
-                  value={paper3Plus}
-                  onChange={(e) => setPaper3Plus(e.target.value)}
-                  className="form-control"
-                  required
-                  disabled={!canSubmitSupplementary}
-                />
+                <div className="students-supplementary-field">
+                  <label className="form-label">3 & above Papers Fee (₹)</label>
+                  <input
+                    type="number"
+                    value={paper3Plus}
+                    onChange={(e) => setPaper3Plus(e.target.value)}
+                    className="form-control"
+                    required
+                    disabled={!canSubmitSupplementary}
+                  />
+                </div>
               </div>
             <div className="col-md-3 d-flex flex-column justify-content-end">
               <div className="d-flex gap-2">
                 <button
                   type="submit"
-                  className="btn btn-primary flex-grow-1"
+                  className="btn btn-primary students-button flex-grow-1"
                   disabled={!canSubmitSupplementary}
                 >
                   {editingFeeId ? "Update Fee" : "Add Supplementary Fee"}
@@ -1460,8 +1581,8 @@ export default function Departments() {
         </form>
 
         {supplementaryFees.length > 0 && (
-          <div className="overflow-x-auto">
-            <table className="table table-bordered align-middle">
+          <div className="overflow-x-auto students-table-panel-table-wrapper">
+            <table className="table table-bordered align-middle students-table-panel-table students-supplementary-table">
               <thead>
                 <tr>
                   <th>1 PAPER (₹)</th>
@@ -1473,21 +1594,33 @@ export default function Departments() {
               <tbody>
                 {supplementaryFees.map((fee) => (
                   <tr key={fee.id}>
-                    <td>₹{fee["Paper-1"]}</td>
-                    <td>₹{fee["Paper-2"]}</td>
-                    <td>₹{fee["Paper-3"]}</td>
+                    <td>
+                      <div className="students-supplementary-cell">
+                        <span className="fw-semibold">₹{fee["Paper-1"]}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="students-supplementary-cell">
+                        <span className="fw-semibold">₹{fee["Paper-2"]}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="students-supplementary-cell">
+                        <span className="fw-semibold">₹{fee["Paper-3"]}</span>
+                      </div>
+                    </td>
                     <td>
                       <div className="d-flex gap-2">
                         <button
                           type="button"
                           onClick={() => handleEditFee(fee)}
-                          className="btn btn-sm btn-primary"
+                          className="btn btn-sm btn-outline-primary students-button students-button-sm"
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => deleteSupplementaryFee(fee.id)}
-                          className="btn btn-sm btn-danger"
+                          className="btn btn-sm btn-outline-danger students-button students-button-sm"
                         >
                           Delete
                         </button>
@@ -1499,6 +1632,8 @@ export default function Departments() {
             </table>
           </div>
         )}
+
+
       </div>
     </AdminShell>
   );

@@ -22,6 +22,11 @@ const sumExamCoverageFromPayments = (payments = []) =>
 const normalizeCategoryValue = (value) =>
   value === undefined || value === null ? "" : String(value).trim().toUpperCase();
 
+const formatCurrency = (value) => {
+  const num = Number(value || 0);
+  return `₹${num.toLocaleString("en-IN")}`;
+};
+
 export default function Payments() {
   // Master data
   const [years, setYears] = useState([]);
@@ -71,7 +76,8 @@ export default function Payments() {
   const [quickPaymentHistory, setQuickPaymentHistory] = useState([]);
   const [quickPaymentHistoryLoading, setQuickPaymentHistoryLoading] = useState(false);
   const [quickPaymentHistoryError, setQuickPaymentHistoryError] = useState("");
-  const [appliedRegistrations, setAppliedRegistrations] = useState(() => new Set());
+  const [appliedRegistrationDetails, setAppliedRegistrationDetails] = useState({});
+  const [allowPaymentWithoutSelection, setAllowPaymentWithoutSelection] = useState(false);
   const examFeeData = useMemo(() => {
     if (!modalFeeInfo?.categories?.length) return null;
     const categories = modalFeeInfo.categories.filter((cat) =>
@@ -374,8 +380,8 @@ export default function Payments() {
       const next = new Set([...prev].filter((key) => available.has(key)));
       return next;
     });
-    setModalStep(1);
-  }, [uniqueModalSubjectKeys]);
+    setModalStep(allowPaymentWithoutSelection ? 2 : 1);
+  }, [uniqueModalSubjectKeys, allowPaymentWithoutSelection]);
   const currentSelectedCount = currentSelectedEntries.length;
   const supplementarySelectedCount = supplementarySelectedEntries.length;
   const supplementaryFeeAmount = useMemo(() => {
@@ -404,12 +410,23 @@ export default function Payments() {
       ),
     [otherFeeCategories]
   );
+  const fallbackExamFeeAmount = modalPaymentSummary?.totalExamFee || 0;
+  const regularExamFeeAmount = examFeeData?.total ?? fallbackExamFeeAmount;
+  const regularExamFeeDisplay =
+    examFeeData || fallbackExamFeeAmount > 0
+      ? formatCurrency(regularExamFeeAmount)
+      : "Not configured";
   const hasExamFees = Boolean(examFeeData?.categories?.length);
   const hasOtherFees = otherFeeCategories.length > 0;
-  const examOnlyAmount = examFeeData?.total || 0;
+  const examOnlyAmount = regularExamFeeAmount;
   const examSubtotal = examOnlyAmount + supplementaryFeeAmount;
+  const fallbackOtherFeeTotal = modalPaymentSummary?.otherFeeTotal || 0;
+  const appliedOtherFeeTotal = otherFeeTotal || fallbackOtherFeeTotal;
+  const computedTotalFeeBreakdown = examSubtotal + appliedOtherFeeTotal;
   const totalFeeBreakdownAmount =
-    examSubtotal + otherFeeTotal;
+    computedTotalFeeBreakdown > 0
+      ? computedTotalFeeBreakdown
+      : modalPaymentSummary?.totalFee || 0;
   const alreadyPaidTotal = modalPaymentSummary?.alreadyPaidTotal || 0;
   const examCoverageAmount = modalPaymentSummary?.examCoverageAmount || 0;
   const alreadyPaidExam = Math.min(examOnlyAmount, examCoverageAmount);
@@ -443,6 +460,8 @@ export default function Payments() {
   const allModalSubjectsSelected =
     totalModalSubjectCount > 0 &&
     selectedSubjectCount === totalModalSubjectCount;
+  const showPendingBalanceOnly =
+    allowPaymentWithoutSelection && selectedSubjectCount === 0;
   const toggleSubjectSelection = (key) => {
     setSelectedSubjectKeys((prev) => {
       const next = new Set(prev);
@@ -470,7 +489,7 @@ export default function Payments() {
   };
 
   const handlePaySubjects = () => {
-    if (!selectedSubjectKeys.size) {
+    if (!selectedSubjectKeys.size && !allowPaymentWithoutSelection) {
       showToast("Select at least one subject before continuing.", {
         type: "warning",
       });
@@ -570,9 +589,41 @@ export default function Payments() {
     );
   };
 
-  const formatCurrency = (value) => {
-    const num = Number(value || 0);
-    return `₹${num.toLocaleString("en-IN")}`;
+  const renderPaymentStatusCell = (detail) => {
+    if (!detail) {
+      return <span className="text-muted small">No payment recorded</span>;
+    }
+
+    if (detail.fullyPaid) {
+      return (
+        <>
+          <span className="badge bg-success text-white">Paid fully</span>
+          <div className="text-muted small mt-1">
+            {`Total paid ${formatCurrency(detail.paidTotal)}`}
+          </div>
+        </>
+      );
+    }
+
+    if (detail.hasExamPaid) {
+      return (
+        <>
+          <span className="badge bg-info text-dark">Exam paid</span>
+          <div className="text-muted small mt-1">
+            {`Covered ${formatCurrency(detail.examCoverageAmount)}`}
+          </div>
+        </>
+      );
+    }
+
+    return (
+      <>
+        <span className="badge bg-warning text-dark">Partial payment</span>
+        <div className="text-muted small mt-1">
+          {`Paid ${formatCurrency(detail.paidTotal)}`}
+        </div>
+      </>
+    );
   };
 
   const formatQuickPaymentDate = (value) => {
@@ -602,21 +653,84 @@ export default function Payments() {
     return `${studentId}-${semester}`;
   };
 
-  const recordAppliedRegistration = () => {
-    if (!modalStudent) return;
-    const key = getAppliedRegistrationKey(modalStudent, modalSemester);
-    if (!key) return;
-    setAppliedRegistrations((prev) => {
-      const next = new Set(prev);
-      next.add(key);
-      return next;
-    });
-  };
+  const buildAppliedRegistrationDetails = useCallback(async () => {
+    if (!students.length) return {};
+    const validStudents = students.filter(
+      (student) => student?.id !== undefined && student?.id !== null
+    );
+    if (!validStudents.length) return {};
 
-  const regularExamFeeAmount = examFeeData?.total || 0;
-  const regularExamFeeDisplay = examFeeData
-    ? formatCurrency(regularExamFeeAmount)
-    : "Not configured";
+    const studentLookup = new Map(
+      validStudents.map((student) => [student.id, student])
+    );
+
+    const studentIds = Array.from(studentLookup.keys());
+    if (!studentIds.length) return {};
+
+    const { data, error } = await supabase
+      .from("exam_registrations")
+      .select(
+        "student_id, semester, total_fee, total_exam_fee, payments(fee_type, amount_paid, payment_status)"
+      )
+      .in("student_id", studentIds)
+      .limit(1000);
+
+    if (error) throw error;
+
+    const nextDetails = {};
+    (data || []).forEach((registration) => {
+      if (!registration) return;
+      const studentRecord = studentLookup.get(registration.student_id);
+      if (!studentRecord) return;
+
+      const studentIdSource =
+        studentRecord.student_id ??
+        studentRecord.studentId ??
+        studentRecord.id ??
+        studentRecord.student_id_number ??
+        "";
+      if (!studentIdSource) return;
+
+      const semesterValue =
+        registration.semester === undefined || registration.semester === null
+          ? ""
+          : String(registration.semester);
+      if (!semesterValue) return;
+
+      const successfulPayments = (registration.payments || []).filter(
+        (payment) => payment?.payment_status === "success"
+      );
+      if (!successfulPayments.length) return;
+
+      const paidTotal = successfulPayments.reduce(
+        (sum, payment) => sum + Number(payment.amount_paid || 0),
+        0
+      );
+      const totalFee = Number(registration.total_fee || 0);
+      const totalExamFee = Number(registration.total_exam_fee || 0);
+      const examCoverageAmount = sumExamCoverageFromPayments(successfulPayments);
+      const hasExamPaid =
+        totalExamFee > 0 ? examCoverageAmount >= totalExamFee : examCoverageAmount > 0;
+      const fullyPaid = totalFee > 0 ? paidTotal >= totalFee : hasExamPaid;
+
+      const status = fullyPaid
+        ? "fully-paid"
+        : hasExamPaid
+        ? "exam-paid"
+        : "partial-paid-without-exam";
+
+      nextDetails[`${studentIdSource}-${semesterValue}`] = {
+        fullyPaid,
+        hasExamPaid,
+        status,
+        paidTotal,
+        examCoverageAmount,
+        totalFee,
+      };
+    });
+
+    return nextDetails;
+  }, [students]);
 
   const getMatchedGroup = (student) =>
     groups.find(
@@ -864,69 +978,22 @@ export default function Payments() {
   }, [location, students, navigate]);
 
   useEffect(() => {
-    if (!students.length) {
-      setAppliedRegistrations(new Set());
-      return;
-    }
-    const validStudents = students.filter(
-      (student) => student?.id !== undefined && student?.id !== null
-    );
-    if (!validStudents.length) {
-      setAppliedRegistrations(new Set());
-      return;
-    }
-    const studentLookup = new Map(
-      validStudents.map((student) => [student.id, student])
-    );
-    const studentIds = Array.from(studentLookup.keys());
     let cancelled = false;
-    const loadAppliedRegistrations = async () => {
+    const refreshAppliedRegistrations = async () => {
       try {
-        const { data, error } = await supabase
-          .from("exam_registrations")
-          .select(
-            "student_id, semester, payments(fee_type, amount_paid, payment_status)"
-          )
-          .in("student_id", studentIds)
-          .limit(1000);
-        if (error) throw error;
-        const nextSet = new Set();
-        (data || []).forEach((registration) => {
-          if (!registration) return;
-          const hasSuccessfulPayment = (registration.payments || []).some(
-            (payment) => payment?.payment_status === "success"
-          );
-          if (!hasSuccessfulPayment) return;
-          const studentRecord = studentLookup.get(registration.student_id);
-          const studentIdSource =
-            studentRecord?.student_id ??
-            studentRecord?.studentId ??
-            studentRecord?.id ??
-            studentRecord?.student_id_number ??
-            "";
-          const studentExternalId = studentIdSource
-            ? String(studentIdSource)
-            : "";
-          if (!studentExternalId) return;
-          const semesterValue =
-            registration.semester === undefined || registration.semester === null
-              ? ""
-              : String(registration.semester);
-          if (!semesterValue) return;
-          nextSet.add(`${studentExternalId}-${semesterValue}`);
-        });
+        const nextDetails = await buildAppliedRegistrationDetails();
         if (!cancelled) {
-          setAppliedRegistrations(nextSet);
+          setAppliedRegistrationDetails(nextDetails);
         }
       } catch (error) {
         console.error("Failed to load applied registrations:", error);
       }
     };
-    loadAppliedRegistrations();
+    refreshAppliedRegistrations();
     return () => {
       cancelled = true;
     };
-  }, [students]);
+  }, [buildAppliedRegistrationDetails]);
 
   useEffect(() => {
     const loadFeeInfo = async () => {
@@ -1046,7 +1113,7 @@ export default function Payments() {
       try {
         const { data: registration, error: registrationError } = await supabase
           .from("exam_registrations")
-          .select("id")
+          .select("id, total_fee, total_exam_fee, other_fee")
           .eq("student_id", modalStudent.id)
           .eq("academic_year", academicYear)
           .eq("group_name", groupLabel)
@@ -1079,6 +1146,9 @@ export default function Payments() {
           alreadyPaidTotal,
           alreadyPaidExam,
           examCoverageAmount,
+          totalFee: Number(registration.total_fee || 0),
+          totalExamFee: Number(registration.total_exam_fee || 0),
+          otherFeeTotal: Number(registration.other_fee || 0),
         });
       } catch (error) {
         if (!cancelled) {
@@ -1231,11 +1301,12 @@ export default function Payments() {
     setModalPaymentSummary(null);
     setSelectedSubjectKeys(new Set());
     setSelectedSupplementarySemesters([]);
-    setModalStep(1);
+    setModalStep(options.skipSubjectSelection ? 2 : 1);
     setModalPaymentRecords(options.records || []);
     setPaymentOption("full");
     setPartialAmount("");
     setPaymentMethod("");
+    setAllowPaymentWithoutSelection(Boolean(options.skipSubjectSelection));
   };
 
   const openStudentModal = (student, options = {}) => {
@@ -1250,6 +1321,7 @@ export default function Payments() {
     setSelectedSubjectKeys(new Set());
     setSelectedSupplementarySemesters([]);
     setModalStep(1);
+    setAllowPaymentWithoutSelection(false);
   };
 
   const closeStudentModal = () => {
@@ -1259,6 +1331,7 @@ export default function Payments() {
     setModalPaymentSummary(null);
     setLoadingModalPayments(false);
     setModalPaymentRecords([]);
+    setAllowPaymentWithoutSelection(false);
   };
   const closePaymentModal = ({ notifyCancellation = false } = {}) => {
     setShowPaymentModal(false);
@@ -1524,7 +1597,22 @@ export default function Payments() {
         amount = outstandingExam;
       } else if (effectivePaymentOption === "full") {
         if (outstandingTotal <= 0) {
-          showToast("All fees have already been paid for this semester.", {
+          const detailKey = getAppliedRegistrationKey(activePaymentStudent);
+          if (detailKey) {
+            setAppliedRegistrationDetails((prev) => ({
+              ...prev,
+              [detailKey]: {
+                ...(prev[detailKey] || {}),
+                fullyPaid: true,
+                hasExamPaid: true,
+                status: "fully-paid",
+                paidTotal: Math.max(paidTotal, totalFeeBreakdownAmount),
+                examCoverageAmount,
+                totalFee: totalFeeBreakdownAmount,
+              },
+            }));
+          }
+          showToast("Semester fees are already fully paid.", {
             type: "warning",
             title: "Payment",
           });
@@ -1613,7 +1701,14 @@ export default function Payments() {
         title: "Payment",
       }
     );
-    recordAppliedRegistration();
+
+    try {
+      const nextDetails = await buildAppliedRegistrationDetails();
+      setAppliedRegistrationDetails(nextDetails);
+    } catch (error) {
+      console.error("Failed to refresh applied registrations:", error);
+    }
+
     closePaymentModal();
     closeStudentModal();
   };
@@ -1635,6 +1730,61 @@ export default function Payments() {
         Math.min(Number(displayCount), filteredBySearch.length)
       )
     : filteredBySearch;
+
+  const outstandingStudentsCount = useMemo(() => {
+    return limitedStudents.reduce((count, student) => {
+      const key = getAppliedRegistrationKey(student);
+      const detail = key ? appliedRegistrationDetails[key] : null;
+      if (detail && !detail.fullyPaid) {
+        return count + 1;
+      }
+      return count;
+    }, 0);
+  }, [limitedStudents, appliedRegistrationDetails]);
+
+  const fullyPaidCount = useMemo(() => {
+    return limitedStudents.reduce((count, student) => {
+      const key = getAppliedRegistrationKey(student);
+      const detail = key ? appliedRegistrationDetails[key] : null;
+      if (detail?.fullyPaid) {
+        return count + 1;
+      }
+      return count;
+    }, 0);
+  }, [limitedStudents, appliedRegistrationDetails]);
+
+  const paymentStats = useMemo(() => {
+    const displayLabel = displayCount || "All";
+    return [
+      {
+        label: "Matching students",
+        value: filteredBySearch.length,
+        meta: hasActiveFilters ? "Filters active" : "All students",
+      },
+      {
+        label: "Visible rows",
+        value: limitedStudents.length,
+        meta: `Display limit ${displayLabel}`,
+      },
+      {
+        label: "Outstanding balances",
+        value: outstandingStudentsCount,
+        meta: "Needs attention",
+      },
+      {
+        label: "Fully paid",
+        value: fullyPaidCount,
+        meta: "Registration settled",
+      },
+    ];
+  }, [
+    filteredBySearch.length,
+    limitedStudents.length,
+    displayCount,
+    hasActiveFilters,
+    outstandingStudentsCount,
+    fullyPaidCount,
+  ]);
 
   const handleDisplayCountChange = (value) => {
     if (value === "") {
@@ -1674,7 +1824,12 @@ export default function Payments() {
   return (
     <AdminShell>
       <div className="d-flex flex-wrap align-items-center justify-content-between mb-3">
-        <h2 className="fw-bold mb-0">Record Payment</h2>
+        <div>
+          <h2 className="fw-bold mb-0">Record Payment</h2>
+          <p className="text-muted small mb-0">
+            Manage student payments and keep fee records synchronized, just like the Students tab.
+          </p>
+        </div>
         <button
           type="button"
           className="btn btn-sm btn-primary"
@@ -1683,9 +1838,45 @@ export default function Payments() {
           Quick payments
         </button>
       </div>
+      <div className="students-hero mb-4">
+        <div className="px-3 pt-3">
+          <p className="students-hero-eyebrow text-uppercase mb-1">Payments</p>
+          <h2 className="students-hero-title">Record payments</h2>
+          <p className="students-hero-copy mb-0">
+            Filter, search, and select a student to settle outstanding fees in one clean flow.
+          </p>
+        </div>
+        <div className="d-flex flex-wrap align-items-center gap-2 px-3 pb-3">
+          <input
+            type="text"
+            className="form-control students-hero-search"
+            placeholder="Search student or ID"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={openQuickPaymentModal}
+          >
+            Quick payments
+          </button>
+        </div>
+        <div className="students-stats-grid row g-3 px-3 pb-3">
+          {paymentStats.map((stat) => (
+            <div className="col-6 col-md-3" key={stat.label}>
+            <div className="students-hero-card h-100 p-3">
+              <div className="students-hero-stat-label small mb-1 text-white">{stat.label}</div>
+              <div className="fs-3 fw-bold students-hero-stat-value text-white">{stat.value}</div>
+              <div className="students-hero-stat-meta small text-white">{stat.meta}</div>
+            </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Filter Section */}
-      <div className="card card-soft p-3 mb-4">
+      <div className="students-filter-panel payments-filter-panel card card-soft mb-4 p-4">
         <h4 className="fw-bold mb-3">Filter Students</h4>
 
         <div className="row g-3">
@@ -1848,7 +2039,51 @@ export default function Payments() {
             </select>
           </div>
         </div>
-        <div className="mt-4">
+        <div className="row g-3 mt-3 align-items-end">
+          <div className="col-md-3">
+            <label className="form-label fw-bold">Display rows</label>
+            <input
+              type="number"
+              min={1}
+              className="form-control"
+              placeholder="All"
+              value={displayCount}
+              onChange={(e) => handleDisplayCountChange(e.target.value)}
+            />
+          </div>
+          <div className="col-md-9">
+            <p className="text-muted small mb-1">
+              {hasActiveFilters
+                ? `${limitedStudents.length} students match the filters`
+                : "Apply filters to surface students"}
+            </p>
+            <p className="text-muted small mb-0">
+              {displayCount
+                ? `Showing ${limitedStudents.length} of ${filteredBySearch.length}`
+                : `Showing ${limitedStudents.length} entries`}
+            </p>
+          </div>
+        </div>
+        <div className="payments-filter-panel-footer mt-3 text-muted small">
+          {displayCount
+            ? `Limited to ${displayCount} rows`
+            : "No row limit"}
+        </div>
+      </div>
+      <div className="students-table-panel payments-table-panel card card-soft p-4 mb-4">
+        <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+          <div>
+            <h5 className="fw-bold mb-1">Filtered students</h5>
+            <p className="text-muted small mb-0">
+              Select a student to review or apply payments.
+            </p>
+          </div>
+          <span className="text-muted small">
+            {hasActiveFilters
+              ? `Displaying ${limitedStudents.length} of ${filteredBySearch.length}`
+              : "Apply filters to load students"}
+          </span>
+        </div>
           {!hasActiveFilters ? (
             <div className="text-muted small">
               Select Category, Academic Year, Group, Course, or Semester to see
@@ -1859,8 +2094,8 @@ export default function Payments() {
               No students match the selected filters yet.
             </div>
           ) : (
-            <div className="table-responsive">
-              <table className="table table-hover align-middle mb-0">
+              <div className="table-responsive">
+                <table className="table table-borderless table-hover align-middle mb-0 payments-student-table">
                 <thead className="table-light">
                   <tr>
                     <th scope="col">Photo</th>
@@ -1944,25 +2179,44 @@ export default function Payments() {
                       <td className="text-end">
                         {(() => {
                           const key = getAppliedRegistrationKey(s);
-                          const isApplied = key && appliedRegistrations.has(key);
+                          const detail = key ? appliedRegistrationDetails[key] : null;
+                          const isApplied = detail?.fullyPaid;
                           if (isApplied) {
                             return (
-                              <span className="badge bg-success text-white">
-                                Applied
-                              </span>
+                              <div className="text-end">
+                                <span className="badge bg-success text-white">
+                                  Applied
+                                </span>
+                                <div className="mt-2">
+                                  {renderPaymentStatusCell(detail)}
+                                </div>
+                              </div>
                             );
                           }
+                          const buttonLabel =
+                            detail && detail.paidTotal > 0
+                              ? "Pay balance"
+                              : "Apply for Exam";
+                          const shouldSkipSelection =
+                            detail && detail.paidTotal > 0 && !detail.fullyPaid;
                           return (
-                            <button
-                              className={`btn btn-sm ${
-                                isActive
-                                  ? "btn-outline-secondary"
-                                  : "btn-outline-primary"
-                              }`}
-                              onClick={() => openStudentModal(s)}
-                            >
-                              Apply for Exam
-                            </button>
+                            <div className="text-end">
+                              <button
+                                className={`btn btn-sm ${
+                                  isActive
+                                    ? "btn-outline-secondary"
+                                    : "btn-outline-primary"
+                                }`}
+                                onClick={() =>
+                                  openStudentModal(s, shouldSkipSelection ? { skipSubjectSelection: true } : {})
+                                }
+                              >
+                                {buttonLabel}
+                              </button>
+                              <div className="mt-2">
+                                {renderPaymentStatusCell(detail)}
+                              </div>
+                            </div>
                           );
                         })()}
                       </td>
@@ -1974,8 +2228,7 @@ export default function Payments() {
               </table>
             </div>
           )}
-       </div>
-     </div>
+      </div>
       {quickPaymentModalOpen && (
         <div
           className="modal d-block"
@@ -2170,7 +2423,7 @@ export default function Payments() {
                 </button>
                 <button
                   type="button"
-                  className="btn btn-secondary"
+                  className="btn btn-outline-secondary"
                   onClick={closeQuickPaymentModal}
                 >
                   Close
@@ -2372,76 +2625,92 @@ export default function Payments() {
                         </>
                       )
                     ) : (
-                      <div className="card border border-primary shadow-sm mb-3">
-                        <div className="card-body">
-                          <div className="d-flex align-items-center justify-content-between mb-3">
-                            <div>
-                              <h6 className="fw-semibold mb-1">Review selections</h6>
-                              <p className="text-muted small mb-0">
-                                {selectedSubjectCount} subjects selected
-                              </p>
-                            </div>
-                          </div>
-                          {currentSelectedEntries.length > 0 && (
-                            <div className="mb-3">
-                              <div className="text-muted small mb-1 fw-semibold">
-                                Current semester
+                        <div className="card border border-primary shadow-sm mb-3">
+                          <div className="card-body">
+                            <div className="d-flex align-items-center justify-content-between mb-3">
+                              <div>
+                                <h6 className="fw-semibold mb-1">
+                                  {showPendingBalanceOnly ? "Pending balance" : "Review selections"}
+                                </h6>
+                                <p className="text-muted small mb-0">
+                                  {showPendingBalanceOnly
+                                    ? "Outstanding dues will be charged automatically."
+                                    : `${selectedSubjectCount} subjects selected`}
+                                </p>
                               </div>
-                              {currentSelectedEntries.map(renderSelectionLine)}
                             </div>
-                          )}
-                        {supplementarySelectedBySemester.length > 0 && (
-                          <div>
-                            {supplementarySelectedBySemester.map((group) => (
-                              <div className="mb-3" key={`review-suppl-${group.semester}`}>
+                            {!showPendingBalanceOnly && currentSelectedEntries.length > 0 && (
+                              <div className="mb-3">
                                 <div className="text-muted small mb-1 fw-semibold">
-                                  Supplementary Semester {group.semester} — {group.entries.length} selected
+                                  Current semester
                                 </div>
-                                {group.entries.map(renderSelectionLine)}
+                                {currentSelectedEntries.map(renderSelectionLine)}
                               </div>
-                            ))}
-                          </div>
-                        )}
-                        {supplementarySelectedCount > 0 && (
-                          <div className="mt-3 border-top pt-3">
-                            <div className="d-flex justify-content-between align-items-center mb-1">
-                              <span className="fw-semibold">
-                                Supplementary fee (
-                                {supplementarySelectedCount}{" "}
-                                {supplementarySelectedCount === 1 ? "paper" : "papers"})
-                              </span>
-                              <span className="fw-semibold">
-                                {formatCurrency(supplementaryFeeAmount)}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                        <div className="mt-3">
-                          <div className="card border rounded shadow-sm">
-                            <div className="card-body p-3">
-                              <div className="d-flex justify-content-between mb-1 small text-muted">
-                                <span>Regular exam fees</span>
-                                <span>{regularExamFeeDisplay}</span>
+                            )}
+                          {!showPendingBalanceOnly &&
+                            supplementarySelectedBySemester.length > 0 && (
+                              <div>
+                                {supplementarySelectedBySemester.map((group) => (
+                                  <div className="mb-3" key={`review-suppl-${group.semester}`}>
+                                    <div className="text-muted small mb-1 fw-semibold">
+                                      Supplementary Semester {group.semester} - {group.entries.length} selected
+                                    </div>
+                                    {group.entries.map(renderSelectionLine)}
+                                  </div>
+                                ))}
                               </div>
-                              {supplementarySelectedCount > 0 && (
-                                <div className="d-flex justify-content-between mb-1 small text-muted">
-                                  <span>Supplementary fee</span>
-                                  <span>{formatCurrency(supplementaryFeeAmount)}</span>
+                            )}
+                            {!showPendingBalanceOnly && supplementarySelectedCount > 0 && (
+                              <div className="mt-3 border-top pt-3">
+                                <div className="d-flex justify-content-between align-items-center mb-1">
+                                  <span className="fw-semibold">
+                                    Supplementary fee (
+                                    {supplementarySelectedCount}{" "}
+                                    {supplementarySelectedCount === 1 ? "paper" : "papers"})
+                                  </span>
+                                  <span className="fw-semibold">
+                                    {formatCurrency(supplementaryFeeAmount)}
+                                  </span>
                                 </div>
-                              )}
-                              <div className="d-flex justify-content-between fw-semibold">
-                                <span>Total payable</span>
-                                <span>
-                                  {formatCurrency(
-                                    regularExamFeeAmount + supplementaryFeeAmount
+                              </div>
+                            )}
+                            <div className="mt-3">
+                              <div className="card border rounded shadow-sm">
+                                <div className="card-body p-3">
+                                  {showPendingBalanceOnly ? (
+                                    <div className="d-flex justify-content-between mb-1 small text-muted">
+                                      <span>Outstanding balance</span>
+                                      <span>{formatCurrency(Math.max(outstandingTotal, 0))}</span>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <div className="d-flex justify-content-between mb-1 small text-muted">
+                                        <span>Regular exam fees</span>
+                                        <span>{regularExamFeeDisplay}</span>
+                                      </div>
+                                      {supplementarySelectedCount > 0 && (
+                                        <div className="d-flex justify-content-between mb-1 small text-muted">
+                                          <span>Supplementary fee</span>
+                                          <span>{formatCurrency(supplementaryFeeAmount)}</span>
+                                        </div>
+                                      )}
+                                    </>
                                   )}
-                                </span>
+                                  <div className="d-flex justify-content-between fw-semibold">
+                                    <span>Total payable</span>
+                                    <span>
+                                      {formatCurrency(
+                                        showPendingBalanceOnly
+                                          ? Math.max(outstandingTotal, 0)
+                                          : regularExamFeeAmount + supplementaryFeeAmount
+                                      )}
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
                             </div>
-                          </div>
+                            </div>
                         </div>
-                        </div>
-                      </div>
                     )}
                   </div>
                 </div>
@@ -2462,13 +2731,13 @@ export default function Payments() {
                   >
                     {modalStep === 1 ? "Next" : "Confirm"}
                   </button>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={closeStudentModal}
-                  >
-                    Close
-                  </button>
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary"
+                  onClick={closeStudentModal}
+                >
+                  Close
+                </button>
                 </div>
               </div>
             </div>

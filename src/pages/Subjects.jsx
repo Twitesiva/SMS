@@ -219,323 +219,376 @@ export default function SubjectsSection({
   )
   return (
     <>
-      {/* Sub-categories Section */}
       <section className="setup-section mb-4">
-        <h5 className="section-title">Sub-categories</h5>
-        <div className="subcat-input-panel">
-          <div className="flex-grow-1">
-            <label className="form-label fw-bold mb-1">
-              Sub-category Name <span className="text-danger">*</span>
-            </label>
-            <p className="text-uppercase text-muted small mb-1">{editingCategory ? 'Update existing sub-category' : 'Add a new sub-category'}</p>
-            <div className="d-flex gap-2 flex-wrap">
-              <input
-                className="form-control flex-grow-1"
-                placeholder="e.g., English"
-                required
-                value={categoryName}
-                onChange={e => setCategoryName(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    saveCategory()
-                  }
-                }}
-              />
-              <button type="button" className="btn btn-brand" onClick={saveCategory}>
-                {editingCategory ? 'Update' : 'Add'}
-              </button>
-              {editingCategory && (
-                <button type="button" className="btn btn-outline-secondary" onClick={() => { setCategoryName(''); setEditingCategory('') }}>
-                  Cancel
-                </button>
-              )}
+        <div className="students-section-shell card card-soft mb-4">
+          <div className="students-section-shell-header mb-3">
+            <div>
+              <h5 className="section-title mb-1">Sub-categories</h5>
+              <p className="students-section-copy small mb-0">
+                Organise subjects into meaningful buckets to keep assignments consistent.
+              </p>
             </div>
           </div>
-          <div className="subcat-input-copy text-muted">
-            <div className="fw-semibold text-dark">Organise subjects into sub-categories</div>
-            <div className="small">Create descriptive buckets (e.g., Languages, Labs) to streamline subject assignment.</div>
+          <div className="students-section-form row g-3 align-items-start">
+            <div className="col-md-6">
+              <label className="form-label fw-bold mb-1">
+                Sub-category Name <span className="text-danger">*</span>
+              </label>
+              <p className="text-uppercase text-muted small mb-1">
+                {editingCategory ? 'Update existing sub-category' : 'Add a new sub-category'}
+              </p>
+              <div className="d-flex gap-2 flex-wrap">
+                <input
+                  className="form-control flex-grow-1"
+                  placeholder="e.g., Languages"
+                  required
+                  value={categoryName}
+                  onChange={e => setCategoryName(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      saveCategory()
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className="btn btn-primary students-button"
+                  onClick={saveCategory}
+                >
+                  {editingCategory ? 'Update' : 'Add'}
+                </button>
+                {editingCategory && (
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary students-button"
+                    onClick={() => { setCategoryName(''); setEditingCategory('') }}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="col-md-6">
+              <div>
+                <p className="students-section-copy small mb-1 text-dark fw-semibold">
+                  Add
+                </p>
+                <p className="text-muted small">
+                  Organise subjects into sub-categories (e.g., Languages, Labs) for efficient allocation.
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
-
-        {subCategories.length === 0 && <div className="alert alert-info mb-0">Add a sub-category to begin creating subjects.</div>}
-        <div className="subcat-grid">
-          {subCategories.map(cat => {
-            const subjectCount = (catItems[cat] || []).length
-            return (
-              <div key={cat} className="subcat-panel">
-                <div className="subcat-panel-header">
-                  <div>
-                    <div className="subcat-panel-title">{cat}</div>
-                   
+          <div className="row g-3 mt-3">
+            {subCategories.map(cat => (
+              <div key={cat} className="col-md-4">
+                <div className="card h-100 students-category-card">
+                  <div className="card-body d-flex flex-column gap-3">
+                    <div>
+                      <p className="fw-bold mb-1">{cat}</p>
+                    </div>
+                    <div className="mt-auto d-flex gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-primary students-button students-button-sm flex-fill"
+                        onClick={() => { setCategoryName(cat); setEditingCategory(cat) }}
+                      >
+                        Rename
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-danger students-button students-button-sm flex-fill"
+                        onClick={() => deleteCategory(cat)}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
-                  <div className="subcat-panel-actions">
-                    <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => { setCategoryName(cat); setEditingCategory(cat) }}>Rename</button>
-                    <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => deleteCategory(cat)}>Delete</button>
-                  </div>
-                </div>
-                <div className="mt-3 text-muted small">
-                  Subjects for this category can be added directly from the Subjects tab.
                 </div>
               </div>
-            )
-          })}
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* Subjects Section */}
       <section className="setup-section mb-4">
-      <h5 className="section-title">Subjects</h5>
-      <div className="row g-3">
-        <div className="col-12 col-sm-6 col-xl-3">
-          <label className="form-label fw-bold mb-1">Category <span className="text-danger">*</span></label>
-          <select
-            className="form-select"
-            value={programmeCategory}
-            onChange={(e) => {
-              const value = e.target.value
-              setProgrammeCategory(value)
-              setSubjectForm({
-                ...subjectForm,
-                programmeCategory: value,
-                academicYearId: "",
-                academicYearName: "",
-                groupCode: "",
-                courseCode: "",
-                semester: ""
-              })
-            }}
-          >
-            <option value="">Select category</option>
-            <option value="UG">UG</option>
-            <option value="PG">PG</option>
-          </select>
-        </div>
-        <div className="col-12 col-sm-6 col-xl-3">
-              <label className="form-label fw-bold mb-1">Academic Year <span className="text-danger">*</span></label>
-          <select
-            className="form-select"
-            required
-            value={subjectForm.academicYearId}
-            disabled={!programmeCategory}
-            onChange={e => {
-              const value = e.target.value
-              const selected = academicYears.find(y => String(y.id) === String(value))
-              setSubjectForm({ ...subjectForm, academicYearId: value, academicYearName: selected?.name || '' })
-            }}
-          >
-                <option value="">Select Year</option>
-            {filteredYearOptions.map(y => (
-              <option key={y.id} value={y.id}>{y.name}</option>
-            ))}
-          </select>
-        </div>
-        <div className="col-12 col-sm-6 col-xl-3">
-          <label className="form-label fw-bold mb-1">Group <span className="text-danger">*</span></label>
-          <select
-            className="form-select"
-            required
-            value={subjectForm.groupCode}
-            disabled={!programmeCategory}
-            onChange={e => setSubjectForm({ ...subjectForm, groupCode: e.target.value, courseCode: '', semester: '' })}
-          >
-            <option value="">Select Group</option>
-            {filteredGroupOptions.map(g => <option key={g.id} value={g.code}>{g.name || g.code}</option>)}
-          </select>
-        </div>
-        <div className="col-12 col-sm-6 col-xl-3">
-          <label className="form-label fw-bold mb-1">Course <span className="text-danger">*</span></label>
-          <select
-            className="form-select"
-            required
-            disabled={!subjectForm.groupCode}
-            value={subjectForm.courseCode}
-            onChange={e => {
-              const value = e.target.value
-              const selected = coursesForGroup.find(c => c.courseCode === value)
-              setSubjectForm({
-                ...subjectForm,
-                courseCode: value,
-                courseName: selected?.courseName || value,
-                semester: ''
-              })
-            }}
-          >
-            <option value="">Select Course</option>
-            {coursesForGroup.map(c => (
-              <option key={c.id} value={c.courseCode}>
-                {c.courseName || c.name || c.courseCode}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="col-12 col-sm-6 col-xl-3">
-          <label className="form-label fw-bold mb-1">Semester <span className="text-danger">*</span></label>
-          <select
-            className="form-select"
-            required
-            disabled={!subjectForm.courseCode}
-            value={subjectForm.semester}
-            onChange={e => setSubjectForm({ ...subjectForm, semester: e.target.value })}
-          >
-            <option value="">Select Semester</option>
-            {semForCourse.map(s => (
-              <option key={s.id} value={s.number}>Semester {s.number}</option>
-            ))}
-          </select>
-        </div>
-        <div className="col-12 col-sm-6 col-xl-3">
-          <label className="form-label fw-bold mb-1">Sub-category <span className="text-danger">*</span></label>
-          <select className="form-select" required value={subjectForm.category} onChange={e => setSubjectForm({ ...subjectForm, category: e.target.value, subjectSelections: [], subjectName: '' })}>
-            <option value="">Select Sub-category</option>
-            {subCategories.map(o => <option key={o} value={o}>{o}</option>)}
-          </select>
-        </div>
-        <div className="col-12 col-sm-6 col-xl-3">
-          <div className="d-flex justify-content-between align-items-baseline mb-1">
-            <label className="form-label fw-bold mb-0">
-              Subject Title <span className="text-danger">*</span>
-            </label>
-            <label className="form-label fw-bold mb-0">
-              Subject code <span className="text-danger">*</span>
-            </label>
-          </div>
-          {(catItems[subjectForm.category] || []).length ? (
-            <div className="subject-checkbox-group">
-              {catItems[subjectForm.category].map(item => {
-                const id = `subject-${item.id}`
-                return (
-                  <div className="form-check" key={item.id}>
-                    <input
-                      className="form-check-input"
-                      type="checkbox"
-                      id={id}
-                      checked={subjectForm.subjectSelections?.includes(item.name)}
-                      onChange={() => setSubjectForm(prev => {
-                        const selections = new Set(prev.subjectSelections || [])
-                        if (selections.has(item.name)) selections.delete(item.name)
-                        else selections.add(item.name)
-                        return { ...prev, subjectSelections: Array.from(selections), subjectName: '' }
-                      })}
-                    />
-                    <label className="form-check-label" htmlFor={id}>{item.name}</label>
-                  </div>
-                )
-              })}
-              <div className="mt-2">
-                {renderSubjectRow({
-                  titleValue: subjectForm.subjectName,
-                  onTitleChange: (e) =>
-                    setSubjectForm({
-                      ...subjectForm,
-                      subjectName: e.target.value,
-                      subjectSelections: [],
-                    }),
-                  codeValue: subjectForm.subjectCode,
-                  onCodeChange: (e) =>
-                    setSubjectForm({ ...subjectForm, subjectCode: e.target.value }),
-                  titlePlaceholder: "Or type custom subject",
-                })}
-              </div>
-              {extraInputFields}
+        <div className="students-section-shell card card-soft mb-4">
+          <div className="students-section-shell-header mb-3">
+            <div>
+              <h5 className="section-title mb-1">Subjects</h5>
+              <p className="students-section-copy small mb-0">
+                Flow from academic category and group to individual subject entries.
+              </p>
             </div>
-          ) : (
-            <>
-              <div className="mt-2">
-                {renderSubjectRow({
-                  titleValue: subjectForm.subjectName,
-                  onTitleChange: (e) =>
-                    setSubjectForm({ ...subjectForm, subjectName: e.target.value }),
-                  codeValue: subjectForm.subjectCode,
-                  onCodeChange: (e) =>
-                    setSubjectForm({ ...subjectForm, subjectCode: e.target.value }),
-                })}
+          </div>
+
+          <div className="students-section-form row g-3">
+            <div className="col-md-3">
+              <label className="form-label fw-bold mb-1">Category *</label>
+              <select
+                className="form-select"
+                value={programmeCategory}
+                onChange={(e) => {
+                  const value = e.target.value
+                  setProgrammeCategory(value)
+                  setSubjectForm({
+                    ...subjectForm,
+                    programmeCategory: value,
+                    academicYearId: "",
+                    academicYearName: "",
+                    groupCode: "",
+                    courseCode: "",
+                    semester: ""
+                  })
+                }}
+              >
+                <option value="">Select category</option>
+                <option value="UG">UG</option>
+                <option value="PG">PG</option>
+              </select>
+            </div>
+            <div className="col-md-3">
+              <label className="form-label fw-bold mb-1">Academic Year *</label>
+              <select
+                className="form-select"
+                required
+                value={subjectForm.academicYearId}
+                disabled={!programmeCategory}
+                onChange={e => {
+                  const value = e.target.value
+                  const selected = academicYears.find(y => String(y.id) === String(value))
+                  setSubjectForm({ ...subjectForm, academicYearId: value, academicYearName: selected?.name || '' })
+                }}
+              >
+                <option value="">Select Year</option>
+                {filteredYearOptions.map(y => (
+                  <option key={y.id} value={y.id}>{y.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="col-md-3">
+              <label className="form-label fw-bold mb-1">Group *</label>
+              <select
+                className="form-select"
+                required
+                value={subjectForm.groupCode}
+                disabled={!programmeCategory}
+                onChange={e => setSubjectForm({ ...subjectForm, groupCode: e.target.value, courseCode: '', semester: '' })}
+              >
+                <option value="">Select Group</option>
+                {filteredGroupOptions.map(g => <option key={g.id} value={g.code}>{g.name || g.code}</option>)}
+              </select>
+            </div>
+            <div className="col-md-3">
+              <label className="form-label fw-bold mb-1">Course *</label>
+              <select
+                className="form-select"
+                required
+                disabled={!subjectForm.groupCode}
+                value={subjectForm.courseCode}
+                onChange={e => {
+                  const value = e.target.value
+                  const selected = coursesForGroup.find(c => c.courseCode === value)
+                  setSubjectForm({
+                    ...subjectForm,
+                    courseCode: value,
+                    courseName: selected?.courseName || value,
+                    semester: ''
+                  })
+                }}
+              >
+                <option value="">Select Course</option>
+                {coursesForGroup.map(c => (
+                  <option key={c.id} value={c.courseCode}>
+                    {c.courseName || c.name || c.courseCode}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col-md-3">
+              <label className="form-label fw-bold mb-1">Semester *</label>
+              <select
+                className="form-select"
+                required
+                disabled={!subjectForm.courseCode}
+                value={subjectForm.semester}
+                onChange={e => setSubjectForm({ ...subjectForm, semester: e.target.value })}
+              >
+                <option value="">Select Semester</option>
+                {semForCourse.map(s => (
+                  <option key={s.id} value={s.number}>Semester {s.number}</option>
+                ))}
+              </select>
+            </div>
+            <div className="col-md-3">
+              <label className="form-label fw-bold mb-1">Sub-category *</label>
+              <select className="form-select" required value={subjectForm.category} onChange={e => setSubjectForm({ ...subjectForm, category: e.target.value, subjectSelections: [], subjectName: '' })}>
+                <option value="">Select Sub-category</option>
+                {subCategories.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+            <div className="col-md-9">
+              <div className="mb-2">
+                <label className="form-label fw-bold mb-1">Subject Title *</label>
+                <label className="form-label fw-bold mb-1">Subject code *</label>
               </div>
-              {extraInputFields}
-            </>
+              {(catItems[subjectForm.category] || []).length ? (
+                <div className="subject-checkbox-group d-flex flex-column gap-3">
+                  {catItems[subjectForm.category].map(item => {
+                    const id = `subject-${item.id}`
+                    return (
+                      <div className="form-check d-flex justify-content-between align-items-center" key={item.id}>
+                        <div>
+                          <input
+                            className="form-check-input me-2"
+                            type="checkbox"
+                            id={id}
+                            checked={subjectForm.subjectSelections?.includes(item.name)}
+                            onChange={() => setSubjectForm(prev => {
+                              const selections = new Set(prev.subjectSelections || [])
+                              if (selections.has(item.name)) selections.delete(item.name)
+                              else selections.add(item.name)
+                              return { ...prev, subjectSelections: Array.from(selections), subjectName: '' }
+                            })}
+                          />
+                          <label className="form-check-label" htmlFor={id}>{item.name}</label>
+                        </div>
+                        <span className="text-muted small">{item.subjectCode || ''}</span>
+                      </div>
+                    )
+                  })}
+                  <div>
+                    {renderSubjectRow({
+                      titleValue: subjectForm.subjectName,
+                      onTitleChange: (e) =>
+                        setSubjectForm({
+                          ...subjectForm,
+                          subjectName: e.target.value,
+                          subjectSelections: [],
+                        }),
+                      codeValue: subjectForm.subjectCode,
+                      onCodeChange: (e) =>
+                        setSubjectForm({ ...subjectForm, subjectCode: e.target.value }),
+                      titlePlaceholder: "Or type custom subject",
+                    })}
+                  </div>
+                  {extraInputFields}
+                </div>
+              ) : (
+                <>
+                  <div>
+                    {renderSubjectRow({
+                      titleValue: subjectForm.subjectName,
+                      onTitleChange: (e) =>
+                        setSubjectForm({ ...subjectForm, subjectName: e.target.value }),
+                      codeValue: subjectForm.subjectCode,
+                      onCodeChange: (e) =>
+                        setSubjectForm({ ...subjectForm, subjectCode: e.target.value }),
+                    })}
+                  </div>
+                  {extraInputFields}
+                </>
+              )}
+            </div>
+          </div>
+          <div className="mt-2 text-end">
+            <button type="button" className="btn btn-primary students-button" onClick={saveSubject}>
+              {editingSubjectId ? 'Update Entry' : 'Add Entry'}
+            </button>
+            {editingSubjectId && (
+              <button type="button" className="btn btn-outline-secondary students-button ms-2" onClick={onCancelSubjectEdit}>Cancel</button>
+            )}
+          </div>
+
+          {(pendingCombos.length > 0 || savedCombos.length > 0) && (
+            <div className="students-section-list mt-4">
+              {pendingCombos.length > 0 && (
+                <div className="students-section-card card card-soft mb-3">
+                  <div className="card-body">
+                    <div className="d-flex justify-content-between align-items-center mb-2">
+                      <h6 className="mb-0">Pending Subjects ({pendingCombos.length})</h6>
+                      <button type="button" className="btn btn-primary students-button" onClick={submitPendingSubjects}>Submit All</button>
+                    </div>
+                    <div className="row g-3">
+                      {pendingCombos.map(combo => (
+                        <div className="col-12" key={combo.comboKey}>
+                          <div className="card card-soft students-section-card">
+                            <div className="card-body">
+                            <div className="subjects-combo-header mb-3">
+                              <div>
+                                <strong>{combo.academicYear}</strong>
+                              </div>
+                              <div className="text-muted small">
+                                {displayGroupName(combo.groupCode)} · {combo.courseName || combo.courseCode || '-'} · Sem {combo.semester}
+                              </div>
+                            </div>
+                            {combo.categories.map(cat => (
+                              <div key={`${combo.comboKey}-${cat.name}`} className="subjects-combo-category p-3 mb-2">
+                                <div className="d-flex justify-content-between align-items-center mb-2">
+                                  <span className="fw-semibold">{cat.name}</span>
+                                  <div className="d-flex gap-2">
+                                    <button type="button" className="btn btn-sm btn-outline-primary students-button students-button-sm" onClick={() => editPendingSubject(cat.source)}>Edit</button>
+                                    <button type="button" className="btn btn-sm btn-outline-danger students-button students-button-sm" onClick={() => deletePendingSubject(cat.source)}>Remove</button>
+                                  </div>
+                                </div>
+                                <div className="subjects-combo-subjects text-muted small">
+                                  <span className="text-uppercase small me-1">Subjects:</span>
+                                  <span>{cat.subjects.filter(Boolean).join(', ') || '-'}</span>
+                                </div>
+                              </div>
+                            ))}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+              {savedCombos.length > 0 && (
+                <div className="students-section-card card card-soft">
+                  <div className="card-body">
+                    <h6 className="mb-3">Saved Subjects</h6>
+                    <div className="row g-3">
+                      {savedCombos.map(combo => (
+                        <div className="col-12" key={combo.comboKey}>
+                          <div className="card card-soft students-section-card">
+                            <div className="card-body">
+                            <div className="subjects-combo-header mb-3">
+                              <div>
+                                <strong>{combo.academicYear}</strong>
+                              </div>
+                              <div className="text-muted small">
+                                {displayGroupName(combo.groupCode)} · {combo.courseName || combo.courseCode || '-'} · Sem {combo.semester}
+                              </div>
+                            </div>
+                            {combo.categories.map(cat => (
+                              <div key={`${combo.comboKey}-${cat.name}`} className="subjects-combo-category p-3 mb-2">
+                                <div className="d-flex justify-content-between align-items-center mb-2">
+                                  <span className="fw-semibold">{cat.name}</span>
+                                  <div className="d-flex gap-2">
+                                    <button className="btn btn-sm btn-outline-primary students-button students-button-sm" onClick={() => editSubject(cat.source)}>Edit</button>
+                                    <button className="btn btn-sm btn-outline-danger students-button students-button-sm" onClick={() => deleteSubject(cat.source)}>Delete</button>
+                                  </div>
+                                </div>
+                                <div className="subjects-combo-subjects text-muted small">
+                                  <span className="text-uppercase small me-1">Subjects:</span>
+                                  <span>{cat.subjects.filter(Boolean).join(', ') || '-'}</span>
+                                </div>
+                              </div>
+                            ))}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
-      </div>
-      <div className="mt-2 text-end">
-        <button type="button" className="btn btn-accent" onClick={saveSubject}>{editingSubjectId ? 'Update Entry' : 'Add Entry'}</button>
-        {editingSubjectId && (
-          <button type="button" className="btn btn-outline-secondary ms-2" onClick={onCancelSubjectEdit}>Cancel</button>
-        )}
-      </div>
-      {pendingCombos.length > 0 && (
-        <div className="card card-soft p-3 mt-3">
-          <div className="d-flex justify-content-between align-items-center mb-2">
-            <h6 className="section-title mb-0">Pending Subjects ({pendingCombos.length})</h6>
-            <button type="button" className="btn btn-brand" onClick={submitPendingSubjects}>Submit All</button>
-          </div>
-          <div className="table-responsive">
-            <table className="table mb-0">
-              <thead><tr><th>Year</th><th>Group</th><th>Course</th><th>Sem</th><th>Details</th></tr></thead>
-              <tbody>
-                {pendingCombos.map(combo => (
-                  <tr key={combo.comboKey}>
-                    <td>{combo.academicYear}</td>
-                    <td>{displayGroupName(combo.groupCode)}</td>
-                    <td>{combo.courseName || combo.courseCode || '-'}</td>
-                    <td>{combo.semester}</td>
-                    <td>
-                      {combo.categories.map(cat => {
-                        const subjectText = cat.subjects.filter(Boolean).join(', ') || '-'
-                        return (
-                          <div key={`${combo.comboKey}-${cat.name}`} className="mb-2">
-                            <div className="d-flex justify-content-between align-items-center">
-                              <span className="fw-semibold">{cat.name}</span>
-                              <div className="d-flex gap-2">
-                                <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => editPendingSubject(cat.source)}>Edit</button>
-                                <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => deletePendingSubject(cat.source)}>Remove</button>
-                              </div>
-                            </div>
-                            <div className="small text-muted">{subjectText}</div>
-                          </div>
-                        )
-                      })}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-      {savedCombos.length > 0 && (
-        <div className="table-responsive mt-3">
-          <table className="table mb-0">
-            <thead><tr><th>Year</th><th>Group</th><th>Course</th><th>Sem</th><th>Details</th></tr></thead>
-            <tbody>
-              {savedCombos.map(combo => (
-                <tr key={combo.comboKey}>
-                  <td>{combo.academicYear}</td>
-                  <td>{displayGroupName(combo.groupCode)}</td>
-                  <td>{combo.courseName || combo.courseCode || '-'}</td>
-                  <td>{combo.semester}</td>
-                    <td>
-                      {combo.categories.map(cat => {
-                        const subjectText = cat.subjects.filter(Boolean).join(', ') || '-'
-                        return (
-                          <div key={`${combo.comboKey}-${cat.name}`} className="mb-2">
-                            <div className="d-flex justify-content-between align-items-center">
-                              <span className="fw-semibold">{cat.name}</span>
-                              <div className="d-flex gap-2">
-                                <button className="btn btn-sm btn-outline-primary" onClick={() => editSubject(cat.source)}>Edit</button>
-                                <button className="btn btn-sm btn-outline-danger" onClick={() => deleteSubject(cat.source)}>Delete</button>
-                              </div>
-                            </div>
-                            <div className="small text-muted">{subjectText}</div>
-                          </div>
-                        )
-                      })}
-                    </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
       </section>
     </>
   )

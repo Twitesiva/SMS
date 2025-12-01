@@ -717,11 +717,41 @@ export default function Students() {
         matchesYear &&
         matchesGroup &&
         matchesCourse &&
-        matchesCategory
-        && matchesStudentId
+        matchesCategory &&
+        matchesStudentId
       );
     });
   }, [students, filters, normalizedCategoryFilter, studentIdSearch]);
+
+  const studentStats = useMemo(() => {
+    const summary = {
+      total: filteredStudents.length,
+      active: 0,
+      onHold: 0,
+      discontinued: 0,
+      flagged: 0,
+    };
+
+    filteredStudents.forEach((student) => {
+      const normalizedStatus = (student.status || "ACTIVE").toString().trim().toUpperCase();
+      if (normalizedStatus === "HOLD") {
+        summary.onHold += 1;
+      } else if (normalizedStatus === "DISCONTINUE") {
+        summary.discontinued += 1;
+      } else {
+        summary.active += 1;
+      }
+
+      if (paymentSemester) {
+        const info = paymentStatuses[student.id];
+        if (info && info.variant !== "success") {
+          summary.flagged += 1;
+        }
+      }
+    });
+
+    return summary;
+  }, [filteredStudents, paymentSemester, paymentStatuses]);
 
   useEffect(() => {
     if (!paymentSemester) {
@@ -1054,27 +1084,115 @@ export default function Students() {
     };
   }, [viewingStudent]);
 
+  const matchingStudentsCount = filteredStudents.length;
+  const fullyPaidCount = useMemo(
+    () =>
+      filteredStudents.reduce((count, student) => {
+        const status = paymentStatuses[student.id];
+        if (status?.variant === "success") {
+          return count + 1;
+        }
+        return count;
+      }, 0),
+    [filteredStudents, paymentStatuses]
+  );
+  const heroStats = [
+    {
+      label: "Matching students",
+      value: matchingStudentsCount,
+      meta: "All students",
+    },
+    {
+      label: "Visible rows",
+      value: matchingStudentsCount,
+      meta: "Display limit All",
+    },
+    {
+      label: "Outstanding balances",
+      value: studentStats.flagged || 0,
+      meta: "Needs attention",
+    },
+    {
+      label: "Fully paid",
+      value: fullyPaidCount,
+      meta: "Registration settled",
+    },
+  ];
+
+  const handleQuickPayments = () => {
+    showToast("Use the Payments screen to record quick payments.", {
+      type: "info",
+    });
+  };
+
   return (
     <AdminShell>
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="fw-bold mb-0">Student Management</h2>
-      </div>
- 
-      {/* Filters */}
-      <div className="card card-soft p-3 mb-4">
-        <h5 className="mb-3">Filter Students</h5>
-        <div className="row g-3">
-          <div className="col-6 col-sm-4 col-md-3 col-lg-2">
-            <label className="form-label">Student ID</label>
+      <div className="students-page-shell">
+        <div className="students-hero mb-4">
+          <div className="px-3 pt-3">
+            <p className="students-hero-eyebrow text-uppercase mb-1">Students</p>
+            <h2 className="students-hero-title">Student Management</h2>
+            <p className="students-hero-copy mb-0">
+              Monitor academic statuses and payments in one polished workspace.
+            </p>
+          </div>
+          <div className="d-flex flex-wrap align-items-center gap-2 px-3 pb-3">
             <input
               type="text"
-              className="form-control"
+              className="form-control students-hero-search"
+              placeholder="Search student or ID"
               value={studentIdSearch}
               onChange={(e) => setStudentIdSearch(e.target.value)}
-              placeholder="Enter Student ID"
             />
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={handleQuickPayments}
+            >
+              Quick payments
+            </button>
           </div>
-          <div className="col-6 col-sm-4 col-md-3 col-lg-2">
+          <div className="students-stats-grid row g-3 px-3 pb-3">
+            {heroStats.map((stat) => (
+              <div className="col-6 col-md-3" key={stat.label}>
+                <div className="students-hero-card h-100 p-3">
+                  <div className="students-hero-stat-label small mb-1 text-white">
+                    {stat.label}
+                  </div>
+                  <div className="fs-3 fw-bold students-hero-stat-value text-white">
+                    {stat.value}
+                  </div>
+                  <div className="students-hero-stat-meta small text-white">
+                    {stat.meta}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="students-filter-panel card card-soft mb-4 p-4">
+          <div className="d-flex flex-wrap justify-content-between gap-3 mb-4">
+            <div>
+              <p className="text-muted mb-1">Filters</p>
+              <h5 className="fw-bold mb-1">Refine the student roster</h5>
+              <p className="text-muted mb-0">
+                Use academic, group and payment filters to quickly surface the right record.
+              </p>
+            </div>
+          <div className="text-end small text-muted">
+            <div>
+              Showing <strong>{filteredStudents.length}</strong> of {students.length}
+            </div>
+            <div>
+              {paymentSemester
+                ? `Payment semester: ${paymentSemester}`
+                : "Select payment semester for payment insights"}
+            </div>
+          </div>
+        </div>
+        <div className="row g-3">
+          <div className="col-12 col-sm-6 col-md-4 col-lg-2">
             <label className="form-label">Category</label>
             <select
               className="form-select"
@@ -1089,7 +1207,7 @@ export default function Students() {
               ))}
             </select>
           </div>
-          <div className="col-6 col-sm-4 col-md-3 col-lg-2">
+          <div className="col-12 col-sm-6 col-md-4 col-lg-2">
             <label className="form-label">Academic Year</label>
             <select
               className="form-select"
@@ -1106,7 +1224,7 @@ export default function Students() {
               ))}
             </select>
           </div>
-          <div className="col-6 col-sm-4 col-md-3 col-lg-2">
+          <div className="col-12 col-sm-6 col-md-4 col-lg-2">
             <label className="form-label">Group</label>
             <select
               className="form-select"
@@ -1121,7 +1239,7 @@ export default function Students() {
               ))}
             </select>
           </div>
-          <div className="col-6 col-sm-4 col-md-3 col-lg-2">
+          <div className="col-12 col-sm-6 col-md-4 col-lg-2">
             <label className="form-label">Course</label>
             <select
               className="form-select"
@@ -1138,7 +1256,7 @@ export default function Students() {
               ))}
             </select>
           </div>
-          <div className="col-6 col-sm-4 col-md-3 col-lg-2">
+          <div className="col-12 col-sm-6 col-md-4 col-lg-3">
             <label className="form-label">Payment Semester</label>
             <select
               className="form-select"
@@ -1154,30 +1272,62 @@ export default function Students() {
             </select>
           </div>
         </div>
+        {paymentSemester && (
+          <div className="mt-4 border-top pt-3">
+            <div className="d-flex flex-wrap justify-content-between align-items-center gap-3">
+              <span className="small text-muted">
+                Payment insights are scoped to Semester {paymentSemester}.
+              </span>
+              <span
+                className={`badge rounded-pill px-3 py-2 ${
+                  studentStats.flagged
+                    ? "bg-warning text-dark"
+                    : "bg-success text-white"
+                }`}
+              >
+                {studentStats.flagged
+                  ? `${studentStats.flagged} flagged accounts`
+                  : "No payment flags"}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
- 
-      {/* Students Table */}
-      <div className="card card-soft p-0">
+
+      <div className="students-table-panel card card-soft p-4">
+        <div className="students-table-panel-header mb-3">
+          <div>
+            <h5 className="students-table-panel-title fw-bold mb-1">
+              Student roster
+            </h5>
+            <p className="students-table-panel-copy mb-0">
+              Tap any row to review details, edit records or inspect payments.
+            </p>
+          </div>
+          <div className="students-table-panel-meta text-end">
+            {loading ? "Refreshing data..." : `${filteredStudents.length} students listed`}
+          </div>
+        </div>
         <div className="table-responsive">
-          <table className="table table-hover mb-0">
+          <table className="table table-borderless table-hover align-middle mb-0">
             <thead className="table-light">
-                <tr>
-                  <th>Student ID</th>
-                  <th>Name</th>
-                  <th>Hall Ticket No</th>
-                  <th>Group</th>
-                  <th>Course</th>
-                  <th>Academic Year</th>
-                  <th>Current Semester</th>
-                  <th>Academic Status</th>
-                  <th>Payment Status</th>
-                  <th>Edit Details</th>
-                </tr>
+              <tr>
+                <th>Student ID</th>
+                <th>Name</th>
+                <th>Hall Ticket</th>
+                <th>Group</th>
+                <th>Course</th>
+                <th>Academic Year</th>
+                <th>Semester</th>
+                <th>Status</th>
+                <th>Payment</th>
+                <th className="text-end">Actions</th>
+              </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="9" className="text-center py-4">
+                  <td colSpan="10" className="text-center py-4">
                     <div className="spinner-border text-primary" role="status">
                       <span className="visually-hidden">Loading...</span>
                     </div>
@@ -1211,7 +1361,7 @@ export default function Students() {
                           event.stopPropagation();
                           openStatusModal(student);
                         }}
-                        style={{ minWidth: "100px" }}
+                        style={{ minWidth: "110px" }}
                       >
                         {student.status === "DISCONTINUE"
                           ? "Discontinued"
@@ -1223,43 +1373,50 @@ export default function Students() {
                     <td>
                       {paymentSemester ? (
                         paymentStatuses[student.id] ? (
-                          <div className="d-flex flex-wrap gap-1">
-                            {paymentStatuses[student.id]?.detailLines?.map(
-                              (line, index) => (
-                                <button
-                                  key={`payment-detail-${student.id}-${index}`}
-                                  type="button"
-                                  className={`btn btn-sm ${
-                                    line.paid
-                                      ? "btn-status-paid"
-                                      : "btn-status-unpaid"
-                                  }`}
-                                  style={{ minWidth: "160px" }}
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    openPaymentHistoryModal(student);
-                                  }}
-                                >
-                                  {line.paid
-                                    ? `${line.label} paid`
-                                    : `${line.label} unpaid`}
-                                </button>
-                              )
-                            )}
+                          <div className="d-flex flex-column gap-2">
+                            <span className="text-muted small mb-1">
+                              {paymentStatuses[student.id].label}
+                            </span>
+                            <div className="d-flex flex-wrap gap-2">
+                              {paymentStatuses[student.id]?.detailLines?.map(
+                                (line, index) => (
+                                  <button
+                                    key={`payment-detail-${student.id}-${index}`}
+                                    type="button"
+                                    className={`btn btn-sm ${
+                                      line.paid
+                                        ? "btn-status-paid"
+                                        : "btn-status-unpaid"
+                                    }`}
+                                    style={{ minWidth: "140px" }}
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      openPaymentHistoryModal(student);
+                                    }}
+                                  >
+                                    {line.paid
+                                      ? `${line.label} paid`
+                                      : `${line.label} unpaid`}
+                                  </button>
+                                )
+                              )}
+                            </div>
                           </div>
                         ) : (
-                          <span className="text-muted">Loading...</span>
+                          <span className="text-muted small">
+                            Loading payment status...
+                          </span>
                         )
                       ) : (
-                        <span className="text-muted">
+                        <span className="text-muted small">
                           Select payment semester
                         </span>
                       )}
                     </td>
-                    <td>
-                      <div className="d-flex gap-2">
+                    <td className="text-end">
+                      <div className="d-flex justify-content-end flex-wrap gap-2">
                         <button
-                          className="btn btn-sm btn-outline-primary"
+                          className="students-action-button students-action-button--edit"
                           onClick={(event) => {
                             event.stopPropagation();
                             handleEdit(student);
@@ -1268,7 +1425,7 @@ export default function Students() {
                           Edit
                         </button>
                         <button
-                          className="btn btn-sm btn-outline-danger"
+                          className="students-action-button students-action-button--delete"
                           onClick={(event) => {
                             event.stopPropagation();
                             handleDelete(student.id);
@@ -1282,7 +1439,7 @@ export default function Students() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="9" className="text-center py-4">
+                  <td colSpan="10" className="text-center py-4">
                     No students found matching the selected filters.
                   </td>
                 </tr>
@@ -1291,40 +1448,28 @@ export default function Students() {
           </table>
         </div>
       </div>
- 
+    </div>
+
       {viewingStudent && (
-        <div
-          className="modal d-block"
-          tabIndex="-1"
-          style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
-        >
-          <div className="modal-dialog modal-dialog-centered modal-xl">
-            <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-              <div
-                className="modal-header border-0 pb-0"
-                style={{
-                  background:
-                    "linear-gradient(135deg, #1d4d9f 0%, #2d9cdb 55%, #38b6ff 100%)",
-                  color: "#fff",
-                  boxShadow: "0 10px 25px rgba(29, 77, 159, 0.35)",
-                }}
-              >
+        <div className="students-modal-overlay" tabIndex="-1">
+          <div className="students-modal-dialog">
+            <div className="students-modal-content">
+              <div className="students-modal-header">
                 <div>
-                  <p
-                    className="text-uppercase small mb-1"
-                    style={{ letterSpacing: "0.2em" }}
-                  >
-                    Student Overview
+                  <p className="students-modal-header-eyebrow text-uppercase mb-1">
+                    Student overview
                   </p>
-                  <h5 className="modal-title fw-semibold mb-1">
+                  <h5 className="students-modal-header-title fw-semibold mb-1">
                     {viewingStudent.full_name || "Student Details"}
                   </h5>
-                  <div className="d-flex flex-wrap gap-2 align-items-center text-white-50 small">
+                  <div className="students-modal-header-meta text-white-50 small">
                     <span>{viewingStudent.student_id || "-"}</span>
                     {(viewingStudent.course?.course_name ||
                       viewingStudent.course_name ||
                       viewingStudent.group?.group_name ||
-                      viewingStudent.group_name) && <span>•</span>}
+                      viewingStudent.group_name) && (
+                      <span className="mx-2">•</span>
+                    )}
                     <span>
                       {viewingStudent.course?.course_name ||
                         viewingStudent.course_name ||
@@ -1336,35 +1481,30 @@ export default function Students() {
                 </div>
                 <button
                   type="button"
-                  className="btn btn-light btn-sm"
+                  className="students-modal-close btn btn-sm"
                   aria-label="Close"
                   onClick={closeStudentDetails}
                 >
                   Close
                 </button>
               </div>
-              <div className="modal-body bg-light p-4">
-                <div className="d-flex flex-column flex-lg-row gap-4">
-                  <div className="text-center flex-shrink-0">
-                    <div
-                      className="rounded-4 bg-white border border-2 border-white overflow-hidden shadow"
-                      style={{ width: 150, height: 150 }}
-                    >
+              <div className="students-modal-body">
+                <div className="students-modal-summary">
+                  <div className="students-modal-avatar">
+                    <div className="students-modal-avatar-inner">
                       {viewingMedia.photoUrl ? (
                         <img
                           src={viewingMedia.photoUrl}
                           alt={viewingStudent.full_name || "Student photo"}
-                          className="w-100 h-100"
-                          style={{ objectFit: "cover" }}
                         />
                       ) : (
-                        <div className="w-100 h-100 d-flex align-items-center justify-content-center fs-2 text-primary">
+                        <div className="students-modal-avatar-initials">
                           {viewingMedia.initials}
                         </div>
                       )}
                     </div>
-                    <div className="mt-3">
-                      <p className="text-uppercase small text-muted mb-0">
+                    <div className="students-modal-avatar-meta">
+                      <p className="students-modal-avatar-status text-uppercase small mb-0">
                         {viewingStudent.status === "DISCONTINUE"
                           ? "Discontinued"
                           : viewingStudent.status === "HOLD"
@@ -1376,25 +1516,22 @@ export default function Students() {
                       </h6>
                     </div>
                   </div>
-                  <div className="flex-grow-1">
-                    <div className="d-flex flex-wrap gap-2 align-items-center mb-3">
+                  <div className="students-modal-details">
+                    <div className="students-modal-statuses">
                       <span
-                        className={`badge rounded-pill px-3 py-2 fs-7 text-uppercase ${
-                          viewingPaymentStatus
-                            ? `bg-${viewingPaymentStatus.variant || "secondary"}`
-                            : "bg-secondary"
-                        }`}
+                        className={`students-modal-badge students-modal-badge--${viewingPaymentStatus?.variant ||
+                          "secondary"}`}
                       >
                         {viewingPaymentStatus?.label ||
                           "Payment info pending"}
                       </span>
                       <span
-                        className={`badge rounded-pill px-3 py-2 fs-7 text-uppercase ${
+                        className={`students-modal-badge students-modal-badge--${
                           viewingStudent.status === "DISCONTINUE"
-                            ? "bg-danger"
+                            ? "danger"
                             : viewingStudent.status === "HOLD"
-                            ? "bg-warning text-dark"
-                            : "bg-success"
+                            ? "warning"
+                            : "success"
                         }`}
                       >
                         {viewingStudent.status === "DISCONTINUE"
@@ -1404,7 +1541,7 @@ export default function Students() {
                           : "Active"}
                       </span>
                     </div>
-                    <div className="row g-3">
+                    <div className="students-modal-info-grid row g-3">
                       {[
                         {
                           label: "Category",
@@ -1417,7 +1554,7 @@ export default function Students() {
                           value: viewingStudent.academic_year,
                         },
                         {
-                          label: "Current Semester",
+                          label: "Semester",
                           value: formatDerivedSemesterLabel(viewingStudent.academic_year),
                         },
                         {
@@ -1447,235 +1584,216 @@ export default function Students() {
                         },
                       ].map((field) => (
                         <div key={field.label} className="col-6 col-md-4">
-                          <small className="text-uppercase text-muted">
+                          <small className="students-modal-field-label">
                             {field.label}
                           </small>
-                          <div className="fw-semibold">{field.value || "-"}</div>
+                          <div className="students-modal-field-value">
+                            {field.value || "-"}
+                          </div>
                         </div>
                       ))}
                     </div>
                   </div>
                 </div>
-                <div className="row g-3 mt-4">
+                <div className="students-modal-card-grid row g-3 mt-4">
                   <div className="col-lg-6">
-                    <div className="bg-white rounded-4 shadow-sm p-4 h-100">
-                      <div className="d-flex align-items-center justify-content-between mb-2">
-                        <p className="text-uppercase small text-muted mb-0">
-                          Contact
-                        </p>
-                        <span className="text-muted small">Primary</span>
+                    <div className="students-modal-card">
+                      <div className="students-modal-card-header">
+                        <p className="students-modal-card-title">Contact</p>
+                        <span className="students-modal-card-meta">Primary</span>
                       </div>
-                      <div className="fw-semibold">{viewingStudent.phone_number || "-"}</div>
-                      <div className="text-muted small">
-                        {viewingStudent.email || "-"}
+                      <div className="students-modal-card-body">
+                        <div className="fw-semibold">
+                          {viewingStudent.phone_number || "-"}
+                        </div>
+                        <div className="text-muted small">
+                          {viewingStudent.email || "-"}
+                        </div>
                       </div>
                     </div>
                   </div>
                   <div className="col-lg-6">
-                    <div className="bg-white rounded-4 shadow-sm p-4 h-100">
-                      <div className="d-flex align-items-center justify-content-between mb-2">
-                        <p className="text-uppercase small text-muted mb-0">
-                          Residence
-                        </p>
-                        <span className="text-muted small">
+                    <div className="students-modal-card">
+                      <div className="students-modal-card-header">
+                        <p className="students-modal-card-title">Residence</p>
+                        <span className="students-modal-card-meta">
                           {viewingStudent.pincode ? `PIN ${viewingStudent.pincode}` : ""}
                         </span>
                       </div>
-                      <div className="fw-semibold text-capitalize">
-                        {viewingStudent.address || "-"}
-                      </div>
-                      <div className="text-muted small mt-2">
-                        {viewingStudent.state || "-"}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="row g-3 mt-3">
-                  <div className="col-lg-6">
-                    <div className="bg-white rounded-4 shadow-sm p-4 h-100">
-                      <div className="d-flex align-items-center justify-content-between mb-2">
-                        <p className="text-uppercase small text-muted mb-0">
-                          Parents
-                        </p>
-                        <span className="text-muted small">
-                          Family Info
-                        </span>
-                      </div>
-                      <div className="fw-semibold">
-                        {viewingStudent.father_name || "-"}
-                      </div>
-                      <div className="text-muted small">
-                        Father
-                      </div>
-                      <div className="fw-semibold mt-3">
-                        {viewingStudent.mother_name || "-"}
-                      </div>
-                      <div className="text-muted small">
-                        Mother
-                      </div>
-                    </div>
-                  </div>
-                  <div className="col-lg-6">
-                    <div className="bg-white rounded-4 shadow-sm p-4 h-100">
-                      <div className="d-flex align-items-center justify-content-between mb-2">
-                        <p className="text-uppercase small text-muted mb-0">
-                          Identity
-                        </p>
-                        <span className="text-muted small">
-                          Core details
-                        </span>
-                      </div>
-                      <div className="fw-semibold">
-                        {viewingStudent.aadhar_number || "-"}
-                      </div>
-                      <div className="text-muted small">
-                        Aadhar
-                      </div>
-                      <div className="fw-semibold mt-3">
-                        {viewingStudent.religion || "-"}
-                      </div>
-                      <div className="text-muted small">
-                        Religion
-                      </div>
-                      <div className="fw-semibold mt-3 text-capitalize">
-                        {viewingStudent.caste || "-"}
-                        {viewingStudent.sub_caste
-                          ? ` • ${viewingStudent.sub_caste}`
-                          : ""}
-                      </div>
-                      <div className="text-muted small">
-                        Caste / Sub Caste
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-white rounded-4 shadow-sm p-4 mt-4">
-                  <div className="d-flex align-items-center justify-content-between mb-3">
-              <p className="text-uppercase small text-muted mb-0">
-                Payment History
-              </p>
-              <span className="text-muted small">
-                {viewingPaymentRecords.data.length
-                  ? `${viewingPaymentRecords.data.length} semester${
-                      viewingPaymentRecords.data.length === 1 ? "" : "s"
-                    }`
-                  : "No registrations yet"}
-              </span>
-            </div>
-            {viewingPaymentRecords.loading ? (
-              <div className="text-center py-3">
-                <div className="spinner-border text-primary" role="status">
-                  <span className="visually-hidden">Loading...</span>
-                </div>
-              </div>
-            ) : viewingPaymentRecords.error ? (
-              <div className="alert alert-warning mb-0">
-                {viewingPaymentRecords.error}
-              </div>
-            ) : viewingPaymentRecords.data.length === 0 ? (
-              <div className="text-muted small">
-                No payments recorded yet.
-              </div>
-            ) : (
-              viewingPaymentRecords.data.map((record, index) => {
-                const totalFee = Number(record.total_fee || 0);
-                const payments = Array.isArray(record.payments)
-                  ? record.payments
-                  : [];
-                const paidTotal = payments
-                  .filter((payment) => payment.payment_status === "success")
-                  .reduce(
-                    (sum, payment) => sum + Number(payment.amount_paid || 0),
-                    0
-                  );
-                const outstanding = Math.max(totalFee - paidTotal, 0);
-                const semesterLabel = record.semester
-                  ? `Semester ${record.semester}`
-                  : "Semester not set";
-                return (
-                  <div
-                    key={`payment-history-${record.semester ?? index}`}
-                    className="border-top pt-3"
-                  >
-                    <div className="d-flex justify-content-between align-items-center">
-                      <div>
-                        <strong>{semesterLabel}</strong>
-                        <div className="text-muted small">
-                          {payments.length
-                            ? `${payments.length} payment${
-                                payments.length === 1 ? "" : "s"
-                              }`
-                            : "No payments yet"}
+                      <div className="students-modal-card-body">
+                        <div className="students-modal-card-value text-capitalize">
+                          {viewingStudent.address || "-"}
+                        </div>
+                        <div className="text-muted small mt-2">
+                          {viewingStudent.state || "-"}
                         </div>
                       </div>
-                      <div className="text-end">
+                    </div>
+                  </div>
+                  <div className="col-lg-6">
+                    <div className="students-modal-card">
+                      <div className="students-modal-card-header">
+                        <p className="students-modal-card-title">Parents</p>
+                        <span className="students-modal-card-meta">Family Info</span>
+                      </div>
+                      <div className="students-modal-card-body">
                         <div className="fw-semibold">
-                          {totalFee
-                            ? formatCurrency(totalFee)
-                            : "Total fee not set"}
+                          {viewingStudent.father_name || "-"}
                         </div>
-                            <div className="text-muted small">
-                              <strong>
-                                {outstanding > 0
-                                  ? `Balance ${formatCurrency(outstanding)}`
-                                  : "Paid in full"}
-                              </strong>
-                            </div>
+                        <div className="text-muted small">Father</div>
+                        <div className="fw-semibold mt-3">
+                          {viewingStudent.mother_name || "-"}
+                        </div>
+                        <div className="text-muted small">Mother</div>
                       </div>
                     </div>
-                    {payments.length ? (
-                      <div className="table-responsive mt-2">
-                        <table className="table table-sm mb-0 align-middle">
-                          <thead className="table-light">
-                            <tr>
-                              <th>Date</th>
-                              <th>Amount</th>
-                              <th>Type</th>
-                              <th>Fee Type</th>
-                              <th>Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {payments.map((payment) => (
-                              <tr
-                                key={
-                                  payment.id ||
-                                  `${payment.payment_type}-${payment.created_at}`
-                                }
-                              >
-                                <td className="text-nowrap">
-                                  {formatPaymentDate(payment.created_at)}
-                                </td>
-                                <td>
-                                  {payment.amount_paid
-                                    ? formatCurrency(payment.amount_paid)
-                                    : "-"}
-                                </td>
-                                <td>{payment.payment_type || "-"}</td>
-                                <td>{payment.fee_type || "-"}</td>
-                                <td className="text-capitalize">
-                                  {payment.payment_status || "-"}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    ) : null}
                   </div>
-                );
-              })
-            )}
+                  <div className="col-lg-6">
+                    <div className="students-modal-card">
+                      <div className="students-modal-card-header">
+                        <p className="students-modal-card-title">Identity</p>
+                        <span className="students-modal-card-meta">Core details</span>
+                      </div>
+                      <div className="students-modal-card-body">
+                        <div className="fw-semibold">
+                          {viewingStudent.aadhar_number || "-"}
+                        </div>
+                        <div className="text-muted small">Aadhar</div>
+                        <div className="fw-semibold mt-3">
+                          {viewingStudent.religion || "-"}
+                        </div>
+                        <div className="text-muted small">Religion</div>
+                        <div className="fw-semibold mt-3 text-capitalize">
+                          {viewingStudent.caste || "-"}
+                          {viewingStudent.sub_caste
+                            ? ` • ${viewingStudent.sub_caste}`
+                            : ""}
+                        </div>
+                        <div className="text-muted small">Caste / Sub Caste</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="students-modal-card students-modal-card--full mt-4">
+                  <div className="students-modal-card-header">
+                    <p className="students-modal-card-title mb-0">
+                      Payment History
+                    </p>
+                    <span className="students-modal-card-meta">
+                      {viewingPaymentRecords.data.length
+                        ? `${viewingPaymentRecords.data.length} semester${
+                            viewingPaymentRecords.data.length === 1 ? "" : "s"
+                          }`
+                        : "No registrations yet"}
+                    </span>
+                  </div>
+                  <div className="students-modal-card-body">
+                    {viewingPaymentRecords.loading ? (
+                      <div className="text-center py-3">
+                        <div className="spinner-border text-primary" role="status">
+                          <span className="visually-hidden">Loading...</span>
+                        </div>
+                      </div>
+                    ) : viewingPaymentRecords.error ? (
+                      <div className="alert alert-warning mb-0">
+                        {viewingPaymentRecords.error}
+                      </div>
+                    ) : viewingPaymentRecords.data.length === 0 ? (
+                      <div className="text-muted small">
+                        No payments recorded yet.
+                      </div>
+                    ) : (
+                      viewingPaymentRecords.data.map((record, index) => {
+                        const totalFee = Number(record.total_fee || 0);
+                        const payments = Array.isArray(record.payments)
+                          ? record.payments
+                          : [];
+                        const paidTotal = payments
+                          .filter((payment) => payment.payment_status === "success")
+                          .reduce(
+                            (sum, payment) => sum + Number(payment.amount_paid || 0),
+                            0
+                          );
+                        const outstanding = Math.max(totalFee - paidTotal, 0);
+                        const semesterLabel = record.semester
+                          ? `Semester ${record.semester}`
+                          : "Semester not set";
+                        return (
+                          <div
+                            key={`payment-history-${record.semester ?? index}`}
+                            className="students-payment-record"
+                          >
+                            <div className="students-payment-record-header">
+                              <div>
+                                <strong>{semesterLabel}</strong>
+                                <div className="text-muted small">
+                                  {payments.length
+                                    ? `${payments.length} payment${
+                                        payments.length === 1 ? "" : "s"
+                                      }`
+                                    : "No payments yet"}
+                                </div>
+                              </div>
+                              <div className="text-end">
+                                <div className="fw-semibold">
+                                  {totalFee
+                                    ? formatCurrency(totalFee)
+                                    : "Total fee not set"}
+                                </div>
+                                <div className="text-muted small">
+                                  <strong>
+                                    {outstanding > 0
+                                      ? `Balance ${formatCurrency(outstanding)}`
+                                      : "Paid in full"}
+                                  </strong>
+                                </div>
+                              </div>
+                            </div>
+                            {payments.length ? (
+                              <div className="table-responsive mt-2">
+                                <table className="table table-sm mb-0 align-middle">
+                                  <thead className="table-light">
+                                    <tr>
+                                      <th>Date</th>
+                                      <th>Amount</th>
+                                      <th>Type</th>
+                                      <th>Fee Type</th>
+                                      <th>Status</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {payments.map((payment) => (
+                                      <tr
+                                        key={
+                                          payment.id ||
+                                          `${payment.payment_type}-${payment.created_at}`
+                                        }
+                                      >
+                                        <td className="text-nowrap">
+                                          {formatPaymentDate(payment.created_at)}
+                                        </td>
+                                        <td>
+                                          {payment.amount_paid
+                                            ? formatCurrency(payment.amount_paid)
+                                            : "-"}
+                                        </td>
+                                        <td>{payment.payment_type || "-"}</td>
+                                        <td>{payment.fee_type || "-"}</td>
+                                        <td className="text-capitalize">
+                                          {payment.payment_status || "-"}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })
+                    )}
                 </div>
               </div>
-              <div className="modal-footer border-0 pt-0">
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary rounded-pill px-4"
-                  onClick={closeStudentDetails}
-                >
-                  Close
-                </button>
               </div>
             </div>
           </div>

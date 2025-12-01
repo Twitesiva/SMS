@@ -135,160 +135,176 @@ export default function AcademicYearsSection({
   };
   return (
     <section className="setup-section mb-4">
-      <h5 className="section-title">Academic Years</h5>
-      <div className="row g-2">
-        <div className="col-md-2">
-          <label className="form-label fw-bold mb-1">Category</label>
-          <select
-            className="form-select"
-            value={yearForm.category || ''}
-            onChange={(e) => {
-              setYearForm({ ...yearForm, category: e.target.value, name: '' });
-              setError('');
-            }}
-            required
-          >
-            <option value="">Select Category</option>
-            <option value="UG">UG</option>
-            <option value="PG">PG</option>
-          </select>
+      <div className="students-section-shell card card-soft mb-4">
+        <div className="students-section-shell-header mb-3">
+          <div>
+            <h5 className="section-title mb-1">Academic Years</h5>
+            <p className="students-section-copy small mb-0">
+              Define and organize academic spans by category so groups and fees stay aligned.
+            </p>
+          </div>
         </div>
-        <div className="col-md-3">
-          <label className="form-label fw-bold mb-1">Academic Year</label>
-          {yearForm.category ? (
+
+        <div className="students-section-form row g-2 align-items-end">
+          <div className="col-md-2">
+            <label className="form-label fw-bold mb-1">Category</label>
             <select
-              className={`form-select ${error && 'is-invalid'}`}
-              value={yearForm.name}
+              className="form-select"
+              value={yearForm.category || ''}
               onChange={(e) => {
-                setYearForm(prev => ({ ...prev, name: e.target.value }));
+                setYearForm({ ...yearForm, category: e.target.value, name: '' });
                 setError('');
               }}
               required
             >
-              <option value="">Select Academic Year</option>
-              {Array.from({ length: 11 }, (_, i) => {
-                const startYear = 2020 + i;
-                const endYear = yearForm.category === 'UG' ? startYear + 3 : startYear + 2;
-                const yearRange = `${startYear}-${endYear}`;
-                return (
-                  <option key={yearRange} value={yearRange}>
-                    {yearRange}
-                  </option>
-                );
-              })}
+              <option value="">Select Category</option>
+              <option value="UG">UG</option>
+              <option value="PG">PG</option>
             </select>
-          ) : (
-            <input
-              className="form-control"
-              placeholder="Select category first"
-              disabled
-            />
-          )}
-          {error && <div className="invalid-feedback d-block">{error}</div>}
-        </div>
-        <div className="col-md-4 text-end">
-          <button className="btn btn-brand me-2" onClick={handleAddYear}>
-            {editingYearId ? "Update Year" : "Add Year"}
-          </button>
-          {editingYearId && (
+          </div>
+          <div className="col-md-5">
+            <label className="form-label fw-bold mb-1">Academic Year</label>
+            {yearForm.category ? (
+              <select
+                className={`form-select ${error && 'is-invalid'}`}
+                value={yearForm.name}
+                onChange={(e) => {
+                  setYearForm(prev => ({ ...prev, name: e.target.value }));
+                  setError('');
+                }}
+                required
+              >
+                <option value="">Select Academic Year</option>
+                {Array.from({ length: 11 }, (_, i) => {
+                  const startYear = 2020 + i;
+                  const endYear = yearForm.category === 'UG' ? startYear + 3 : startYear + 2;
+                  const yearRange = `${startYear}-${endYear}`;
+                  return (
+                    <option key={yearRange} value={yearRange}>
+                      {yearRange}
+                    </option>
+                  );
+                })}
+              </select>
+            ) : (
+              <input
+                className="form-control"
+                placeholder="Select category first"
+                disabled
+              />
+            )}
+            {error && <div className="invalid-feedback d-block">{error}</div>}
+          </div>
+          <div className="col-md-5 d-flex flex-wrap gap-2 justify-content-end">
             <button
-              className="btn btn-outline-secondary"
-              onClick={onCancelEdit}
+              className="btn btn-primary students-button"
+              onClick={handleAddYear}
             >
-              Cancel
+              {editingYearId ? "Update Year" : "Add Year"}
             </button>
-          )}
+            {editingYearId && (
+              <button
+                className="btn btn-outline-secondary students-button"
+                onClick={onCancelEdit}
+              >
+                Cancel
+              </button>
+            )}
+          </div>
         </div>
-      </div>
-      {(ugYears.length > 0 || pgYears.length > 0) && (
-        <div className="row mt-4">
-          {/* UG Years Column */}
-          <div className="col-md-6">
-            {ugYears.length > 0 && (
-              <>
-                <h6 className="fw-bold mb-3">UG Years</h6>
-                <div className="setup-list">
-                  {ugYears.map((y) => (
-                  <div
-                    className="setup-list-item"
-                    key={y.id || y.academic_year || y.name}
-                  >
-                    <div>
-                      <div className="setup-list-title">
-                        {y.name || y.academic_year}
-                        <span className="badge bg-secondary ms-2">{getCategory(y)}</span>
-                      </div>
-                      <div className="setup-list-meta">
-                        {getCategory(y)} Academic Year
-                      </div>
-                    </div>
-                    <div className="d-flex gap-2 align-items-center">
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-outline-primary"
-                        onClick={() => handleEditYear(y)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-outline-danger"
-                        onClick={() => handleDeleteYear(y.id)}
-                      >
-                        Delete
-                      </button>
-                    </div>
+
+        {(ugYears.length > 0 || pgYears.length > 0) && (
+          <div className="students-section-list mt-4">
+            <div className="row g-4">
+              {ugYears.length > 0 && (
+                <div className="col-12">
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <h6 className="fw-bold mb-0">UG Years</h6>
                   </div>
-                ))}
-                </div>
-              </>
-            )}
-          </div>
-         
-          {/* PG Years Column */}
-          <div className="col-md-6">
-            {groupedYears['PG'] && (
-              <>
-                <h6 className="fw-bold mb-3">PG Years</h6>
-                <div className="setup-list">
-                  {pgYears.map((y) => (
-                    <div
-                      className="setup-list-item"
-                      key={y.id || y.academic_year || y.name}
-                    >
-                      <div>
-                        <div className="setup-list-title">
-                          {y.name || y.academic_year}
-                          <span className="badge bg-secondary ms-2">{getCategory(y)}</span>
-                        </div>
-                        <div className="setup-list-meta">
-                          {getCategory(y)} Academic Year
+                  <div className="row g-3">
+                    {ugYears.map((y) => (
+                      <div className="col-md-4" key={y.id || y.academic_year || y.name}>
+                        <div className="card h-100 students-category-card">
+                          <div className="card-body d-flex flex-column gap-3">
+                            <div>
+                              <p className="fw-bold mb-1">{y.name || y.academic_year}</p>
+                              <p className="text-muted mb-2 text-uppercase small">
+                                {getCategory(y)} Academic Year
+                              </p>
+                              <span className="students-section-badge students-section-badge-category">
+                                {getCategory(y)}
+                              </span>
+                            </div>
+                            <div className="mt-auto d-flex gap-2">
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-primary students-button students-button-sm flex-fill"
+                                onClick={() => handleEditYear(y)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-danger students-button students-button-sm flex-fill"
+                                onClick={() => handleDeleteYear(y.id)}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <div className="d-flex gap-2 align-items-center">
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-primary"
-                          onClick={() => handleEditYear(y)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-danger"
-                          onClick={() => handleDeleteYear(y.id)}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </>
-            )}
+              )}
+
+              {pgYears.length > 0 && (
+                <div className="col-12">
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <h6 className="fw-bold mb-0">PG Years</h6>
+                  </div>
+                  <div className="row g-3">
+                    {pgYears.map((y) => (
+                      <div className="col-md-4" key={y.id || y.academic_year || y.name}>
+                        <div className="card h-100 students-category-card">
+                          <div className="card-body d-flex flex-column gap-3">
+                            <div>
+                              <p className="fw-bold mb-1">{y.name || y.academic_year}</p>
+                              <p className="text-muted mb-2 text-uppercase small">
+                                {getCategory(y)} Academic Year
+                              </p>
+                              <span className="students-section-badge students-section-badge-course">
+                                {getCategory(y)}
+                              </span>
+                            </div>
+                            <div className="mt-auto d-flex gap-2">
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-primary students-button students-button-sm flex-fill"
+                                onClick={() => handleEditYear(y)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-danger students-button students-button-sm flex-fill"
+                                onClick={() => handleDeleteYear(y.id)}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </section>
   );
 }

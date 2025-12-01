@@ -85,11 +85,20 @@ export default function PublicTimeTable() {
           : subject.subjectCode
           ? [subject.subjectCode]
           : []
-      const label = subject.subjectName || subject.subjectCode || ''
-      const trimmedLabel = String(label || '').trim()
-      codes.forEach((code) => {
+      const names =
+        Array.isArray(subject.subjectNames) && subject.subjectNames.length
+          ? subject.subjectNames
+          : subject.subjectName
+          ? [subject.subjectName]
+          : []
+      codes.forEach((code, index) => {
         if (!code) return
-        map[String(code).trim()] = trimmedLabel || map[String(code).trim()] || ''
+        const labelSource =
+          names[index] || names[0] || subject.subjectName || subject.subjectCode || ''
+        const trimmedLabel = String(labelSource || '').trim()
+        const trimmedCode = String(code).trim()
+        if (!trimmedCode) return
+        map[trimmedCode] = trimmedLabel || map[trimmedCode] || ''
       })
     })
     return map
@@ -129,8 +138,21 @@ export default function PublicTimeTable() {
     return expanded
   }, [examSchedule, subjectNameMap])
 
+  const hasFilters =
+    Boolean(filters.academic_year) ||
+    Boolean(filters.group_code) ||
+    Boolean(filters.course_code)
+
   useEffect(() => {
     let isActive = true
+    if (!hasFilters) {
+      setExamSchedule([])
+      setError('')
+      setLoading(false)
+      return () => {
+        isActive = false
+      }
+    }
     setLoading(true)
     setError('')
     const query = {}
@@ -153,7 +175,7 @@ export default function PublicTimeTable() {
     return () => {
       isActive = false
     }
-  }, [filters])
+  }, [filters, hasFilters])
 
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({
@@ -165,9 +187,7 @@ export default function PublicTimeTable() {
   return (
     <div className="container py-5">
       <div className="row mb-4">
-        <div className="col-12 text-center fw-bold">
-          This page should be updated
-        </div>
+      
       </div>
       <div className="row justify-content-center">
         <div className="col-lg-10">
@@ -220,8 +240,12 @@ export default function PublicTimeTable() {
                 </select>
               </div>
             </div>
-            {loading ? (
-              <p className="text-muted">Loading timetable…</p>
+            {!hasFilters ? (
+              <div className="text-muted">
+                Select a year, group, or course above to load the timetable.
+              </div>
+            ) : loading ? (
+              <p className="text-muted">Loading timetable...</p>
             ) : error ? (
               <div className="alert alert-danger mb-0">{error}</div>
             ) : examSchedule.length === 0 ? (
