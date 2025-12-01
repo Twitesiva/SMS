@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../store/auth";
 import logo from "../assets/media/images.png";
 const nav = [
@@ -45,11 +45,14 @@ const nav = [
   { to: "/admin/results", label: "Marks Entry and Result", icon: "bi-award" },
 ];
 
+const SIDEBAR_SCROLL_KEY = "admin-shell-sidebar-scroll";
+
 export default function AdminShell({ children, onSignOut }) {
   const { pathname } = useLocation();
   const navTo = useNavigate();
   const { signOut } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const sidebarRef = useRef(null);
   const handleSignOut = () => {
     if (typeof onSignOut === "function") {
       onSignOut();
@@ -60,6 +63,42 @@ export default function AdminShell({ children, onSignOut }) {
     }
     navTo("/");
   };
+
+  // Restore the sidebar scroll position after navigation changes.
+  useEffect(() => {
+    const navElement = sidebarRef.current;
+    if (!navElement) {
+      return;
+    }
+    if (typeof window === "undefined" || !window.sessionStorage) {
+      return;
+    }
+    const storedValue = window.sessionStorage.getItem(SIDEBAR_SCROLL_KEY);
+    if (storedValue !== null) {
+      const scrollTop = Number(storedValue);
+      if (!Number.isNaN(scrollTop)) {
+        navElement.scrollTop = scrollTop;
+      }
+    }
+  }, []);
+
+  // Save the scroll offsets so the same section stays visible on the next page.
+  useEffect(() => {
+    const navElement = sidebarRef.current;
+    if (!navElement) {
+      return;
+    }
+    if (typeof window === "undefined" || !window.sessionStorage) {
+      return;
+    }
+    const handleScroll = () => {
+      window.sessionStorage.setItem(SIDEBAR_SCROLL_KEY, String(navElement.scrollTop));
+    };
+    navElement.addEventListener("scroll", handleScroll);
+    return () => {
+      navElement.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
 
   return (
     <div
@@ -109,7 +148,10 @@ export default function AdminShell({ children, onSignOut }) {
 
         <div className="sidebar-divider" />
 
-        <nav className="sidebar-nav flex-grow-1 d-flex flex-column gap-1">
+        <nav
+          ref={sidebarRef}
+          className="sidebar-nav flex-grow-1 d-flex flex-column gap-1"
+        >
           {nav.map((item) => (
             <Link
               key={item.to}

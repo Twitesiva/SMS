@@ -4362,7 +4362,17 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 }
 
 .sidebar-nav {
-  flex-grow: 1;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.4rem;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.sidebar-nav::-webkit-scrollbar {
+  width: 0;
+  background: transparent;
 }
 
 .nav-item-modern {
