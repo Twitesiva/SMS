@@ -13,6 +13,10 @@ export default function PaymentsOverview() {
   const [loadingSubjects, setLoadingSubjects] = useState(false);
   const [subjectsError, setSubjectsError] = useState("");
   const [visibleDecodeRows, setVisibleDecodeRows] = useState({});
+  const [subjectCodeInput, setSubjectCodeInput] = useState("");
+  const [subjectSearchLoading, setSubjectSearchLoading] = useState(false);
+  const [subjectSearchError, setSubjectSearchError] = useState("");
+  const [subjectStudents, setSubjectStudents] = useState([]);
 
   const handleSearchStudent = async () => {
     const trimmed = studentIdInput.trim();
@@ -167,6 +171,193 @@ export default function PaymentsOverview() {
     }
   };
 
+  const handleSearchBySubjectCode = async () => {
+    const trimmed = subjectCodeInput.trim();
+    if (!trimmed) {
+      setSubjectSearchError("Enter a subject code.");
+      setSubjectStudents([]);
+      return;
+    }
+
+    setSubjectSearchLoading(true);
+    setSubjectSearchError("");
+    setSubjectStudents([]);
+
+    try {
+      const { data: subjectRows, error: subjectError } = await supabase
+        .from("exam_registration_subjects")
+        .select("id, exam_registration_id, subject_name, subject_code")
+        .eq("subject_code", trimmed);
+
+      if (subjectError) throw subjectError;
+
+      const examRegistrationIds = Array.from(
+        new Set((subjectRows || []).map((row) => row.exam_registration_id).filter(Boolean))
+      );
+
+      if (!examRegistrationIds.length) {
+        setSubjectSearchError("No students found for this subject code.");
+        return;
+      }
+
+      const { data: registrations, error: registrationsError } = await supabase
+        .from("exam_registrations")
+        .select("id, student_id, academic_year, group_name, course_name")
+        .in("id", examRegistrationIds);
+
+      if (registrationsError) throw registrationsError;
+
+      const studentInternalIds = Array.from(
+        new Set((registrations || []).map((row) => row.student_id).filter(Boolean))
+      );
+
+      if (!studentInternalIds.length) {
+        setSubjectSearchError("No students found for this subject code.");
+        return;
+      }
+
+      const { data: studentsData, error: studentsError } = await supabase
+        .from("students")
+        .select("id, student_id, full_name, academic_year, group_name, course_name")
+        .in("id", studentInternalIds);
+
+      if (studentsError) throw studentsError;
+
+      const studentMap = new Map();
+      (studentsData || []).forEach((student) => {
+        if (!student) return;
+        studentMap.set(student.id, student);
+      });
+
+      const groupCodeSet = new Set(
+        (studentsData || [])
+          .map((s) => s.group_name)
+          .filter((code) => code !== null && code !== undefined)
+      );
+      const courseCodeSet = new Set(
+        (studentsData || [])
+          .map((s) => s.course_name)
+          .filter((code) => code !== null && code !== undefined)
+      );
+
+      const groupNameMap = new Map();
+      if (groupCodeSet.size > 0) {
+        const { data: groupsData, error: groupsError } = await supabase
+          .from("groups")
+          .select("group_code, group_name");
+
+        if (groupsError) throw groupsError;
+
+        (groupsData || []).forEach((g) => {
+          if (!g || g.group_code === null || g.group_code === undefined) return;
+          groupNameMap.set(g.group_code, g.group_name);
+        });
+      }
+
+      const courseNameMap = new Map();
+      if (courseCodeSet.size > 0) {
+        const { data: coursesData, error: coursesError } = await supabase
+          .from("courses")
+          .select("course_code, course_name");
+
+        if (coursesError) throw coursesError;
+
+        (coursesData || []).forEach((c) => {
+          if (!c || c.course_code === null || c.course_code === undefined) return;
+          courseNameMap.set(c.course_code, c.course_name);
+        });
+      }
+
+      const registrationMap = new Map();
+      (registrations || []).forEach((reg) => {
+        if (!reg) return;
+        registrationMap.set(reg.id, reg);
+      });
+
+      const subjectIds = new Set(
+        (subjectRows || [])
+          .map((row) => row.id)
+          .filter((id) => id !== null && id !== undefined)
+      );
+
+      let decodeMap = new Map();
+      if (subjectIds.size > 0) {
+        const { data: decodeRows, error: decodeError } = await supabase
+          .from("decode_numbers")
+          .select("exam_registration_subject_id, decode_no")
+          .in("exam_registration_subject_id", Array.from(subjectIds));
+
+        if (decodeError) throw decodeError;
+
+        decodeMap = new Map();
+        (decodeRows || []).forEach((row) => {
+          if (!row) return;
+          const key = row.exam_registration_subject_id;
+          if (!decodeMap.has(key)) {
+            decodeMap.set(key, []);
+          }
+          decodeMap.get(key).push(row.decode_no);
+        });
+      }
+
+      const subjectStudentRows = [];
+      (subjectRows || []).forEach((subj) => {
+        if (!subj) return;
+        const reg = registrationMap.get(subj.exam_registration_id);
+        if (!reg) return;
+        const student = studentMap.get(reg.student_id);
+        if (!student) return;
+
+        const decodes = decodeMap.get(subj.id) || [null];
+        const groupDisplayName = groupNameMap.get(student.group_name) || student.group_name;
+        const courseDisplayName = courseNameMap.get(student.course_name) || student.course_name;
+
+        decodes.forEach((decode_no) => {
+          subjectStudentRows.push({
+            registration_id: reg.id,
+            subject_code: trimmed,
+            decode_no,
+            student_id: student.student_id,
+            full_name: student.full_name,
+            academic_year: student.academic_year,
+            group_name: groupDisplayName,
+            course_name: courseDisplayName,
+          });
+        });
+      });
+
+      const seenStudentRows = new Map();
+      subjectStudentRows.forEach((row) => {
+        const key = row.student_id;
+        if (!key) return;
+        if (!seenStudentRows.has(key)) {
+          seenStudentRows.set(key, row);
+        }
+      });
+
+      const uniqueStudents = Array.from(seenStudentRows.values());
+
+      if (!uniqueStudents.length) {
+        setSubjectSearchError("No students found for this subject code.");
+        return;
+      }
+
+      setSubjectStudents(uniqueStudents);
+    } catch (e) {
+      console.error("Error searching by subject code:", e);
+      setSubjectSearchError("Failed to search students for this subject code. Please try again.");
+    } finally {
+      setSubjectSearchLoading(false);
+    }
+  };
+
+  const handleSubjectCodeKeyDown = (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      handleSearchBySubjectCode();
+    }
+  };
+
   const handleStudentIdKeyDown = (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
@@ -177,34 +368,71 @@ export default function PaymentsOverview() {
   return (
     <AdminShell>
       <div className="card card-soft p-3 mb-4">
-        <h5 className="mb-3">Search by Student ID</h5>
+        <h5 className="mb-3">Search by Subject Code</h5>
         <div className="row g-3 align-items-end">
           <div className="col-12 col-sm-6 col-md-4 col-lg-3">
-            <label className="form-label">Student ID</label>
+            <label className="form-label">Subject Code</label>
             <input
               type="text"
               className="form-control"
-              value={studentIdInput}
-              onChange={(e) => setStudentIdInput(e.target.value)}
-              onKeyDown={handleStudentIdKeyDown}
-              placeholder="Enter student ID"
+              value={subjectCodeInput}
+              onChange={(e) => setSubjectCodeInput(e.target.value)}
+              onKeyDown={handleSubjectCodeKeyDown}
+              placeholder="Enter subject code"
             />
           </div>
           <div className="col-auto">
             <button
               type="button"
               className="btn btn-primary mt-2"
-              onClick={handleSearchStudent}
-              disabled={searchingStudent}
+              onClick={handleSearchBySubjectCode}
+              disabled={subjectSearchLoading}
             >
-              {searchingStudent ? "Searching..." : "Search"}
+              {subjectSearchLoading ? "Searching..." : "Search"}
             </button>
           </div>
         </div>
-        {studentError && (
-          <p className="text-danger small mt-2 mb-0">{studentError}</p>
+        {subjectSearchError && (
+          <p className="text-danger small mt-2 mb-0">{subjectSearchError}</p>
         )}
       </div>
+
+      {subjectStudents.length > 0 && (
+        <div className="card card-soft p-3 mb-4">
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h5 className="mb-0">Students Applied for Subject</h5>
+            <span className="text-muted fw-bold" style={{ fontSize: '1.05rem' }}>
+              Total Students: {subjectStudents.length}
+            </span>
+          </div>
+          <div className="table-responsive">
+            <table className="table table-sm align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Student ID</th>
+                  <th>Student Name</th>
+                  <th>Academic Year</th>
+                  <th>Group Name</th>
+                  <th>Course Name</th>
+                  <th>Decode</th>
+                </tr>
+              </thead>
+              <tbody>
+                {subjectStudents.map((row) => (
+                  <tr key={row.student_id}>
+                    <td>{row.student_id || "-"}</td>
+                    <td>{row.full_name || "-"}</td>
+                    <td>{row.academic_year || "-"}</td>
+                    <td>{row.group_name || "-"}</td>
+                    <td>{row.course_name || "-"}</td>
+                    <td>{row.decode_no || "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {selectedStudent && (
         <div className="card card-soft p-3 mb-4">
