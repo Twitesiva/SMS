@@ -1447,15 +1447,9 @@ export default function Departments() {
                           categoryDisplays.map((cat) => (
                             <div
                               key={cat.id}
-                              className="mb-2 d-flex justify-content-between align-items-center"
+                              className="mb-1 d-flex align-items-center"
                             >
                               <span className="fw-semibold">{cat.name}</span>
-                              <span className="text-muted">
-                                &#8377;
-                                {parseInt(cat.amount || 0).toLocaleString(
-                                  "en-IN"
-                                )}
-                              </span>
                             </div>
                           ))
                         )}
