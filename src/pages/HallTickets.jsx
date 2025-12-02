@@ -63,6 +63,26 @@ export default function HallTickets() {
     });
   };
 
+  const formatTimeTo12Hour = (value) => {
+    if (!value) return "";
+    const [hours, minutes] = value.split(":");
+    if (hours === undefined || minutes === undefined) return value;
+    const parsedHours = Number(hours);
+    if (Number.isNaN(parsedHours)) return value;
+    const period = parsedHours >= 12 ? "PM" : "AM";
+    const normalizedHour = parsedHours % 12 === 0 ? 12 : parsedHours % 12;
+    return `${normalizedHour}:${minutes.padStart(2, "0")} ${period}`;
+  };
+
+  const formatScheduleTimeRange = (startTime, endTime) => {
+    const formattedStart = formatTimeTo12Hour(startTime);
+    const formattedEnd = formatTimeTo12Hour(endTime);
+    if (formattedStart && formattedEnd) {
+      return `${formattedStart} - ${formattedEnd}`;
+    }
+    return formattedStart || formattedEnd || "";
+  };
+
   const formatExamLabel = (exam) =>
     exam?.title ?? exam?.name ?? exam?.exam_name ?? "Exam";
   const formatGroupLabel = (group) =>
@@ -213,16 +233,17 @@ export default function HallTickets() {
           const code = subject?.subject_code?.toString().toUpperCase();
           const schedule = scheduleMap.get(code);
           return {
-            seatNumber: row.seat_number ?? "â€”",
-            date: schedule?.exam_date ?? "â€”",
-              time:
-                schedule?.exam_start_time && schedule?.exam_end_time
-                  ? `${schedule.exam_start_time} - ${schedule.exam_end_time}`
-                  : "â€”",
-              subjectCode: subject?.subject_code ?? "â€”",
-              subjectName: subject?.subject_name ?? "â€”",
-            };
-          });
+            seatNumber: row.seat_number ?? "—",
+            date: schedule?.exam_date ?? "—",
+            time:
+              formatScheduleTimeRange(
+                schedule?.exam_start_time,
+                schedule?.exam_end_time
+              ) || "—",
+            subjectCode: subject?.subject_code ?? "—",
+            subjectName: subject?.subject_name ?? "—",
+          };
+        });
         setAppearingPapers(papers);
       } catch (error) {
         console.error("Unable to load appearing papers", error);

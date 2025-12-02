@@ -432,7 +432,7 @@ export default function PaymentsOverview() {
       // Get student details
       const { data: students, error: studentsError } = await supabase
         .from("students")
-        .select("id, student_id, full_name, academic_year, group_name, course_name")
+      .select("id, student_id, full_name, academic_year, group_name, course_name, hall_ticket_no")
         .in("id", studentIds);
 
       if (studentsError) throw studentsError;
@@ -473,6 +473,7 @@ export default function PaymentsOverview() {
           group_name: reg.exam_registrations.group_name || student?.group_name || 'N/A',
           course_name: reg.exam_registrations.course_name || student?.course_name || 'N/A',
           semester: reg.exam_registrations.semester || subjectRecord.semester_number || 'N/A',
+          hall_ticket: student?.hall_ticket_no || 'N/A',
           all_decode_numbers: decodes
         };
       });
@@ -604,27 +605,30 @@ export default function PaymentsOverview() {
               <table className="table table-sm align-middle mb-0">
                 <thead>
                   <tr>
-                    <th>Student ID</th>
-                    <th>Name</th>
-                    <th>Group</th>
-                    <th>Course</th>
+                    <th>Subject Name</th>
+                    <th>Hall Ticket No.</th>
                     <th>Decode No</th>
                   </tr>
                 </thead>
                 <tbody>
                   {subjectStudents.map((student) => (
                     <tr key={student.student_id}>
-                      <td>{student.student_id}</td>
-                      <td>{student.full_name}</td>
-                      <td>{student.group_name}</td>
-                      <td>{student.course_name}</td>
+                      <td>
+                        <div className="fw-semibold">
+                          {student.subject_name || "-"}
+                        </div>
+                        <div className="text-muted small">
+                          {student.subject_code || "-"}
+                        </div>
+                      </td>
+                      <td>{student.hall_ticket || "N/A"}</td>
                       <td>
                         {student.decode_no ? (
                           <div className="position-relative d-inline-block">
                             {visibleDecodeNumbers[student.student_id] ? (
                               <span className="badge bg-primary">{student.decode_no}</span>
                             ) : (
-                              <button 
+                              <button
                                 className="btn btn-sm btn-outline-primary"
                                 onClick={() => toggleDecodeNumber(student.student_id)}
                               >
