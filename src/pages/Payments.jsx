@@ -729,7 +729,6 @@ export default function Payments() {
       const successfulPayments = (registration.payments || []).filter(
         (payment) => payment?.payment_status === "success"
       );
-      if (!successfulPayments.length) return;
 
       const paidTotal = successfulPayments.reduce(
         (sum, payment) => sum + Number(payment.amount_paid || 0),
