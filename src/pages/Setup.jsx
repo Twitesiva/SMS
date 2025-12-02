@@ -1049,6 +1049,7 @@ export default function Setup() {
   );
 
   const saveSubject = () => {
+    try {
     const {
       academicYearId,
       groupCode,
@@ -1105,10 +1106,7 @@ export default function Setup() {
       return;
     }
 
-    if (
-      hasSelection &&
-      (!subjectCode || !subjectCode.trim())
-    ) {
+    if (hasSelection && !subjectCode?.trim()) {
       showToast("Enter a subject code for your selected subject(s).", {
         type: "warning",
         title: "Subject code required",
@@ -1116,7 +1114,7 @@ export default function Setup() {
       return;
     }
 
-    if (!hasSelection && manualEntries.length > 0 && manualEntries.some((entry) => !entry.code)) {
+    if (!hasSelection && manualEntries.some((entry) => !entry.code)) {
       showToast("Enter a subject code for every typed subject.", {
         type: "warning",
         title: "Subject code required",
@@ -1136,65 +1134,96 @@ export default function Setup() {
       ? selectedNames
       : manualEntries.map((entry) => entry.name);
     const codes = hasSelection
-      ? Array(names.length).fill((subjectCode || "").trim())
+      ? Array(names.length).fill(subjectCode.trim())
       : manualEntries.map((entry) => entry.code);
+
     const academicYearName = resolveYearName(academicYearId);
     const categoryId = categoryIdMap[category] || "";
     const courseMeta = courses.find(
       (c) => c.courseCode === courseCode || c.code === courseCode
     );
-
     const courseName = courseMeta?.courseName || courseCode;
-    const batchId = editingBatchId || randomId();
 
-    const entries = names.map((name, idx) => ({
-      id: editingSubjectId && idx === 0 ? editingSubjectId : randomId(),
-      subjectId: editingSubjectId && idx === 0 ? editingSubjectId : "",
-      batchId,
-      academicYearId,
-      academicYearName,
-      groupCode,
-      courseCode,
-      courseName,
-      semester: Number(semester),
-      category,
-      categoryId,
-      subject_code: (codes[idx] || "").trim(),
-      subjectCode: (codes[idx] || "").trim(),
-      subject_name: name,
-      subjectName: name,
-      feeCategory,
-      feeAmount: feeAmount ? Number(feeAmount) : "",
-      course_name: courseName,
-    }));
+    try {
+      console.log('Starting to save subjects...');
 
-    if (editingSubjectId) {
-      setPendingSubjects((prev) => [
-        ...prev.filter((s) => s.id !== editingSubjectId),
-        ...entries,
-      ]);
-      setEditingSubjectId("");
-    } else {
-      setPendingSubjects((prev) => [...prev, ...entries]);
+      // Create local subject entries without saving to Supabase
+      const newEntries = names.map((name, idx) => ({
+        id: editingSubjectId || randomId(),
+        subjectId: editingSubjectId || randomId(),
+        batchId: editingBatchId || randomId(),
+        academicYearId,
+        academicYearName,
+        groupCode,
+        courseCode,
+        courseName,
+        semester: Number(semester),
+        category,
+        categoryId,
+        subjectCode: codes[idx] || "",
+        subjectName: name,
+        feeCategory: feeCategory || null,
+        feeAmount: feeAmount ? Number(feeAmount) : null,
+      }));
+
+      // Update the pending subjects state
+      setPendingSubjects((prev) => {
+        if (editingSubjectId) {
+          // For updates, filter out the old version and add the updated one
+          return [
+            ...prev.filter(s => s.id !== editingSubjectId && s.id !== editingSubjectId.toString()),
+            ...newEntries
+          ];
+        } else {
+          // For new subjects, just append them
+          return [...prev, ...newEntries];
+        }
+      });
+
+      // Clear editing state if we were editing
+      if (editingSubjectId) {
+        setEditingSubjectId("");
+      }
+
+      showToast(
+        `${names.length} subject${names.length === 1 ? "" : "s"} added to pending list. Click 'Submit All' to save to database.`,
+        { type: "info" }
+      );
+
+      // Reset form
+      setSubjectForm({
+        ...subjectForm,
+        subjectName: "",
+        subjectCode: "",
+        extraSubjectNames: [],
+        extraSubjectCodes: [],
+        subjectSelections: [],
+        feeCategory: "",
+        feeAmount: "",
+      });
+
+      // Clear editing state if we were editing
+      if (editingSubjectId) {
+        setEditingSubjectId("");
+        setEditingBatchId("");
+      }
+    } catch (error) {
+      console.error("Error preparing subjects:", error);
+
+      let errorMessage = "Failed to prepare subjects. Please try again.";
+      if (error.message) {
+        errorMessage = error.message;
+      }
+
+      showToast(errorMessage, {
+        type: "danger",
+        title: "Error",
+      });
     }
-
-    showToast(
-      `${names.length} subject${
-        names.length === 1 ? "" : "s"
-      } added to pending list.`,
-      { type: "success" }
-    );
-
-    setSubjectForm((prev) => ({
-      ...prev,
-      subjectName: "",
-      subjectCode: "",
-      extraSubjectNames: [],
-      extraSubjectCodes: [],
-      subjectSelections: [],
-      feeCategory: "",
-      feeAmount: "",
-    }));
+    } catch (error) {
+      console.error("Error in saveSubject:", error);
+      showToast("Failed to save subject. Please try again.", { type: "danger" });
+    }
   };
 
   // 🔥🔥🔥 IMPORTANT — PATCHED FUNCTION BELOW 🔥🔥🔥
@@ -1276,125 +1305,123 @@ export default function Setup() {
     setEditingBatchId(batchRef || "");
   };
   const submitPendingSubjects = async () => {
-    if (!pendingSubjects.length) return;
-
-    const pendingSnapshot = pendingSubjects.map((item) => ({ ...item }));
-
-    const grouped = {};
-    for (const item of pendingSnapshot) {
-      const key = buildSubjectBatchKey(item) || randomId();
-
-      if (!grouped[key]) {
-        const academicYearName =
-          item.academicYearName || resolveYearName(item.academicYearId);
-
-        const courseMeta =
-          courseLookup[item.courseCode] || courseLookup[item.courseName] || {};
-
-        const categoryId =
-          item.categoryId || categoryIdMap[item.category] || null;
-
-        const courseCodeValue =
-          courseMeta.courseCode || item.courseCode || item.courseName || null;
-
-        // ensure subject_id is numeric (DB identity). ignore UUID/client ids.
-        const rawSubjectId = item.subjectId || item.id || null;
-        const numericSubjectId =
-          rawSubjectId !== null &&
-          rawSubjectId !== undefined &&
-          rawSubjectId !== ""
-            ? Number(rawSubjectId)
-            : null;
-
-        grouped[key] = {
-          rep: item,
-          academic_year: academicYearName || null,
-          course_name: courseCodeValue,
-          semester_number: item.semester ? Number(item.semester) : null,
-          category_id: categoryId,
-          amount:
-            item.feeAmount === "" ||
-            item.feeAmount === undefined ||
-            item.feeAmount === null
-              ? null
-              : Number(item.feeAmount),
-          names: [],
-          codes: [],
-          subject_id: Number.isFinite(numericSubjectId)
-            ? numericSubjectId
-            : null,
-        };
-      }
-
-      const name = (item.subjectName || item.subjectCode || "").toString();
-      if (name) grouped[key].names.push(name);
-
-      const codeValue = (item.subjectCode || item.subject_code || "").toString();
-      grouped[key].codes = grouped[key].codes || [];
-      grouped[key].codes.push(codeValue);
-
-      if (!grouped[key].subject_id && (item.subjectId || item.id)) {
-        grouped[key].subject_id = item.subjectId || item.id;
-      }
-    }
-
-    const payload = Object.values(grouped).map((g) => {
-      const row = {
-        academic_year: g.academic_year,
-        course_name: g.course_name,
-        semester_number: g.semester_number,
-        category_id: g.category_id,
-        subject_name: JSON.stringify(g.names || []),
-        subject_code: JSON.stringify(g.codes || []),
-        amount: g.amount,
-      };
-      if (g.subject_id) row.subject_id = g.subject_id;
-      return { grouped: g, row };
-    });
-
-    const existingCombos = new Set(subjects.map(buildComboKey));
-
-    // If any pending group (without subject_id) collides with existing saved combos, block
-    for (const item of payload) {
-      const key = buildComboKey(item.grouped.rep);
-      if (item.grouped.subject_id) continue; // allow updates to existing rows
-      if (existingCombos.has(key)) {
-        showToast(
-          "These subjects already exist for the selected combination.",
-          { type: "warning", title: "Duplicate combination" }
-        );
-        return;
-      }
+    if (!pendingSubjects.length) {
+      showToast("No pending subjects to save.", { type: "warning" });
+      return;
     }
 
     try {
-      // Separate updates (have numeric subject_id) and inserts (new rows)
-      const toUpdate = payload.filter((p) =>
-        Number.isFinite(p.grouped.subject_id)
+      showToast("Saving subjects to database...", { type: "info" });
+      
+      const payload = [];
+      
+      // Process each pending subject
+      for (const item of pendingSubjects) {
+        const academicYearName = item.academicYearName || resolveYearName(item.academicYearId);
+        const courseMeta = courseLookup[item.courseCode] || courseLookup[item.courseName] || {};
+        const categoryId = item.categoryId || categoryIdMap[item.category] || null;
+        const courseCodeValue = courseMeta.courseCode || item.courseCode || item.courseName || null;
+
+        // Handle main subject
+        if (item.subjectName && item.subjectCode) {
+          const subjectData = {
+            academic_year: academicYearName,
+            course_name: courseCodeValue,
+            semester_number: item.semester ? Number(item.semester) : null,
+            category_id: categoryId,
+            subject_code: item.subjectCode,
+            subject_name: item.subjectName,
+            amount: item.feeAmount ? Number(item.feeAmount) : null,
+            fees_categories: null,
+            created_at: new Date().toISOString()
+          };
+          
+          // Only add if all required fields are present
+          if (subjectData.subject_code && subjectData.subject_name) {
+            payload.push(subjectData);
+          }
+        }
+
+        // Handle extra subjects
+        const extraNames = item.extraSubjectNames || [];
+        const extraCodes = item.extraSubjectCodes || [];
+        
+        for (let i = 0; i < Math.max(extraNames.length, extraCodes.length); i++) {
+          const name = extraNames[i];
+          const code = extraCodes[i] || '';
+          
+          if (name) {
+            payload.push({
+              academic_year: academicYearName,
+              course_name: courseCodeValue,
+              semester_number: item.semester ? Number(item.semester) : null,
+              category_id: categoryId,
+              subject_code: code,
+              subject_name: name,
+              amount: item.feeAmount ? Number(item.feeAmount) : null,
+              fees_categories: null,
+              created_at: new Date().toISOString()
+            });
+          }
+        }
+      }
+
+      // Check for duplicate subjects before saving
+      const existingSubjects = await api.listSubjects?.() || [];
+      const existingSubjectKeys = new Set(
+        existingSubjects.map(sub => 
+          `${sub.academic_year}|${sub.course_name}|${sub.semester_number}|${sub.subject_code}`.toLowerCase()
+        )
       );
-      const toInsert = payload
-        .filter((p) => !Number.isFinite(p.grouped.subject_id))
-        .map((p) => p.row);
 
-      // Perform updates first (coerce id to Number)
-      if (toUpdate.length) {
-        await Promise.all(
-          toUpdate.map((p) =>
-            api.updateSubject?.(Number(p.grouped.subject_id), p.row)
-          )
-        );
+      // Filter out duplicates and validate required fields
+      const newSubjects = payload.filter(subject => {
+        // Check for required fields
+        if (!subject.subject_code || !subject.subject_name) {
+          console.warn('Skipping subject with missing required fields:', subject);
+          return false;
+        }
+        
+        const key = `${subject.academic_year}|${subject.course_name}|${subject.semester_number}|${subject.subject_code}`.toLowerCase();
+        const isNew = !existingSubjectKeys.has(key);
+        
+        if (!isNew) {
+          console.log('Skipping duplicate subject:', key);
+        }
+        
+        return isNew;
+      });
+
+      if (newSubjects.length === 0) {
+        showToast("All subjects already exist in the database.", { 
+          type: "warning",
+          title: "No new subjects to add"
+        });
+        return;
       }
 
-      if (toInsert.length) {
-        await api.addSubjects?.(toInsert);
+      // Insert new subjects in batches to avoid hitting any request size limits
+      const BATCH_SIZE = 50;
+      for (let i = 0; i < newSubjects.length; i += BATCH_SIZE) {
+        const batch = newSubjects.slice(i, i + BATCH_SIZE);
+        try {
+          await api.addSubjects?.(batch);
+        } catch (error) {
+          console.error("Error adding subjects batch:", error);
+          throw error; // Re-throw to be caught by the outer try-catch
+        }
       }
 
+      // Clear pending subjects and refresh the list
       setPendingSubjects([]);
       await loadSubjects();
-      showToast("Subjects submitted.", { type: "success" });
-      // Clear the main subject selection fields after successful submit
-      setSubjectForm((prev) => ({
-        ...prev,
+      
+      showToast(`Successfully added ${newSubjects.length} subject(s) to the database.`, { 
+        type: "success" 
+      });
+      
+      // Reset the form
+      setSubjectForm({
         academicYearId: "",
         academicYearName: "",
         groupCode: "",
@@ -1408,13 +1435,14 @@ export default function Setup() {
         extraSubjectNames: [],
         extraSubjectCodes: [],
         subjectSelections: [],
-      }));
+        feeAmount: "",
+      });
       setEditingSubjectId("");
       setEditingBatchId("");
     } catch (error) {
       console.error("Failed to save subjects", error);
-      showToast(error?.message || "Failed to save subjects", {
-        type: "danger",
+      showToast(error?.message || "Failed to save subjects. Please try again.", {
+        type: "danger"
       });
     }
   };

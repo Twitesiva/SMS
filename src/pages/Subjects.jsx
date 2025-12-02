@@ -97,20 +97,43 @@ export default function SubjectsSection({
     const comboMap = new Map()
     items.forEach(item => {
       const comboKey = [
-        item.academicYearId || item.academicYearName || '',
-        item.groupCode || '',
-        item.courseCode || '',
+        item.academicYearId || item.academic_year || '',
+        item.groupCode || item.group_code || '',
+        item.courseCode || item.course_name || '',
         item.semester === undefined || item.semester === null ? '' : item.semester
       ].join('::')
+      
       const base = comboMap.get(comboKey) || {
         comboKey,
-        academicYear: getDisplayYear(item),
-        groupCode: item.groupCode,
-        courseCode: item.courseCode,
-        courseName: item.courseName,
-        semester: getSemesterLabel(item),
-        categories: []
+        academicYearId: item.academicYearId || item.academic_year,
+        academicYearName: item.academicYearName || item.academic_year,
+        groupCode: item.groupCode || item.group_code,
+        courseCode: item.courseCode || item.course_name,
+        semester: item.semester,
+        subjectIds: [],
+        subjectNames: [],
+        subjectCodes: [],
+        subjectSelections: [],
+        subjectId: item.subject_id || item.id,
+        category: item.category,
+        categoryId: item.category_id,
+        feeCategory: item.feeCategory || item.fee_category,
+        feeAmount: item.amount || item.feeAmount,
+        categories: [] // Initialize categories array
       }
+
+      // Add subject information
+      if (item.subject_name) {
+        base.subjectNames.push(item.subject_name)
+      }
+      if (item.subject_code) {
+        base.subjectCodes.push(item.subject_code)
+      }
+      if (item.subject_id) {
+        base.subjectIds.push(item.subject_id)
+      }
+
+      // Handle categories
       const categoryName = item.category || 'Uncategorised'
       let catEntry = base.categories.find(cat => cat.name === categoryName)
       if (!catEntry) {
@@ -121,8 +144,10 @@ export default function SubjectsSection({
         }
         base.categories.push(catEntry)
       }
+      
       const itemSubjects = item.subjectNames?.length ? item.subjectNames : [item.subjectName].filter(Boolean)
       catEntry.subjects.push(...itemSubjects)
+
       comboMap.set(comboKey, base)
     })
     return Array.from(comboMap.values())
