@@ -4,7 +4,6 @@ import { supabase } from '../../supabaseClient'
 export default function SubjectsSection({
   subjectForm,
   setSubjectForm,
-  academicYears,
   groups,
   coursesForGroup,
   semForCourse,
@@ -32,21 +31,52 @@ export default function SubjectsSection({
   onCancelSubjectEdit
 }) {
   const [programmeCategory, setProgrammeCategory] = useState('')
+  const [academicYears, setAcademicYears] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  
+  // Fetch academic years from Supabase
+  useEffect(() => {
+    const fetchAcademicYears = async () => {
+      try {
+        setLoading(true)
+        const { data, error } = await supabase
+          .from('academic_year')
+          .select('*')
+          .order('academic_year', { ascending: false })
 
-  const yearNameById = academicYears.reduce((acc, year) => {
-    if (year?.id !== undefined) acc[year.id] = year.name
+        if (error) throw error
+        
+        setAcademicYears(data || [])
+      } catch (err) {
+        console.error('Error fetching academic years:', err)
+        setError('Failed to load academic years')
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchAcademicYears()
+  }, [])
+
+  const yearNameById = useMemo(() => (academicYears || []).reduce((acc, year) => {
+    if (year?.academic_year) acc[year.id] = year.academic_year
     return acc
-  }, {})
+  }, {}), [academicYears])
   const selectedYearName = yearNameById[subjectForm.academicYearId] || ''
   const getDisplayYear = (subject) => subject.academicYearName || yearNameById[subject.academicYearId] || subject.academicYearId || '-'
-  const yearOptions = (() => {
-    const activeList = academicYears.filter(year => year?.active !== false)
+  const yearOptions = useMemo(() => {
+    const activeList = (academicYears || []).filter(year => year?.active !== false)
     if (!subjectForm.academicYearId) return activeList
+    
     const hasSelected = activeList.some(year => String(year.id) === String(subjectForm.academicYearId))
     if (hasSelected) return activeList
-    const selectedYear = academicYears.find(year => String(year.id) === String(subjectForm.academicYearId))
+    
+    const selectedYear = (academicYears || []).find(year => 
+      String(year.id) === String(subjectForm.academicYearId)
+    )
     return selectedYear ? [...activeList, selectedYear] : activeList
-  })()
+  }, [academicYears, subjectForm.academicYearId])
   const selectedYear = academicYears.find(
     (year) => String(year.id) === String(subjectForm.academicYearId)
   )
@@ -57,8 +87,10 @@ export default function SubjectsSection({
   }, [selectedYear])
 
   const filteredYearOptions = yearOptions.filter(
-    (year) =>
-      !year.category || year.category.toUpperCase() === programmeCategory
+    (year) => {
+      const yearCategory = year.category || year.Category || '';
+      return !programmeCategory || !yearCategory || yearCategory.toUpperCase() === programmeCategory;
+    }
   )
   if (
     selectedYear &&
@@ -373,25 +405,44 @@ export default function SubjectsSection({
                 <option value="PG">PG</option>
               </select>
             </div>
+
             <div className="col-md-3">
               <label className="form-label fw-bold mb-1">Academic Year *</label>
-              <select
-                className="form-select"
-                required
-                value={subjectForm.academicYearId}
-                disabled={!programmeCategory}
-                onChange={e => {
-                  const value = e.target.value
-                  const selected = academicYears.find(y => String(y.id) === String(value))
-                  setSubjectForm({ ...subjectForm, academicYearId: value, academicYearName: selected?.name || '' })
-                }}
-              >
-                <option value="">Select Year</option>
-                {filteredYearOptions.map(y => (
-                  <option key={y.id} value={y.id}>{y.name}</option>
-                ))}
-              </select>
+              {loading ? (
+                <div className="form-control">Loading academic years...</div>
+              ) : error ? (
+                <div className="text-danger small">{error}</div>
+              ) : (
+                <>
+                  <select
+                    className="form-select"
+                    required
+                    value={subjectForm.academicYearId}
+                    disabled={!programmeCategory || loading}
+                    onChange={e => {
+                      const value = e.target.value
+                      const selected = academicYears.find(y => String(y.id) === String(value))
+                      setSubjectForm({ 
+                        ...subjectForm, 
+                        academicYearId: value, 
+                        academicYearName: selected?.academic_year || '' 
+                      })
+                    }}
+                  >
+                    <option value="">Select Year</option>
+                    {yearOptions.map(year => (
+                      <option key={year.id} value={year.id}>
+                        {year.academic_year}
+                      </option>
+                    ))}
+                  </select>
+                  {!loading && academicYears.length === 0 && (
+                    <div className="form-text text-muted">No academic years available</div>
+                  )}
+                </>
+              )}
             </div>
+
             <div className="col-md-3">
               <label className="form-label fw-bold mb-1">Group *</label>
               <select
@@ -402,7 +453,11 @@ export default function SubjectsSection({
                 onChange={e => setSubjectForm({ ...subjectForm, groupCode: e.target.value, courseCode: '', semester: '' })}
               >
                 <option value="">Select Group</option>
-                {filteredGroupOptions.map(g => <option key={g.id} value={g.code}>{g.name || g.code}</option>)}
+                {filteredGroupOptions.map(g => (
+                  <option key={g.id} value={g.code}>
+                    {g.name || g.code}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="col-md-3">
@@ -572,41 +627,82 @@ export default function SubjectsSection({
                 </div>
               )}
               {savedCombos.length > 0 && (
-                <div className="students-section-card card card-soft">
+                <div className="students-table-panel card card-soft mb-4">
+                  <div className="students-table-panel-header mb-3">
+                    <div>
+                      <p className="students-table-panel-title mb-1">Saved Subjects</p>
+                      <p className="students-table-panel-copy small mb-0">
+                        Review and manage the saved subject allocations for each academic group.
+                      </p>
+                    </div>
+                  </div>
                   <div className="card-body">
-                    <h6 className="mb-3">Saved Subjects</h6>
-                    <div className="row g-3">
-                      {savedCombos.map(combo => (
-                        <div className="col-12" key={combo.comboKey}>
-                          <div className="card card-soft students-section-card">
-                            <div className="card-body">
-                            <div className="subjects-combo-header mb-3">
-                              <div>
-                                <strong>{combo.academicYear}</strong>
-                              </div>
-                              <div className="text-muted small">
-                                {displayGroupName(combo.groupCode)} · {combo.courseName || combo.courseCode || '-'} · Sem {combo.semester}
-                              </div>
-                            </div>
-                            {combo.categories.map(cat => (
-                              <div key={`${combo.comboKey}-${cat.name}`} className="subjects-combo-category p-3 mb-2">
-                                <div className="d-flex justify-content-between align-items-center mb-2">
-                                  <span className="fw-semibold">{cat.name}</span>
-                                  <div className="d-flex gap-2">
-                                    <button className="btn btn-sm btn-outline-primary students-button students-button-sm" onClick={() => editSubject(cat.source)}>Edit</button>
-                                    <button className="btn btn-sm btn-outline-danger students-button students-button-sm" onClick={() => deleteSubject(cat.source)}>Delete</button>
+                    <div className="table-responsive">
+                      <table className="table table-hover align-middle">
+                        <thead>
+                          <tr>
+                            <th>Academic Year</th>
+                            <th>Group</th>
+                            <th>Course</th>
+                            <th>Semester</th>
+                            <th>Categories & Subjects</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {savedCombos.map((combo, index) => {
+                            // Group categories by semester
+                            const categoriesByType = {};
+                            combo.categories.forEach(cat => {
+                              if (!categoriesByType[cat.name]) {
+                                categoriesByType[cat.name] = [];
+                              }
+                              categoriesByType[cat.name].push(cat);
+                            });
+                            
+                            return (
+                              <tr key={`${combo.comboKey}-${index}`}>
+                                <td>{combo.academicYear}</td>
+                                <td>{displayGroupName(combo.groupCode)}</td>
+                                <td>{combo.courseName || combo.courseCode || '-'}</td>
+                                <td>Sem {combo.semester}</td>
+                                <td>
+                                  <div className="d-flex flex-column gap-3">
+                                    {Object.entries(categoriesByType).map(([category, cats]) => (
+                                      <div key={category} className="mb-2">
+                                        <div className="fw-semibold mb-1">{category}</div>
+                                        <div className="text-muted small">
+                                          {cats.flatMap(cat => cat.subjects.filter(Boolean)).join(', ') || '-'}
+                                        </div>
+                                      </div>
+                                    ))}
                                   </div>
-                                </div>
-                                <div className="subjects-combo-subjects text-muted small">
-                                  <span className="text-uppercase small me-1">Subjects:</span>
-                                  <span>{cat.subjects.filter(Boolean).join(', ') || '-'}</span>
-                                </div>
-                              </div>
-                            ))}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                                </td>
+                                <td>
+                                  <div className="d-flex flex-column gap-2">
+                                    {Object.entries(categoriesByType).map(([category, cats]) => (
+                                      <div key={category} className="d-flex gap-2">
+                                        <button 
+                                          className="btn btn-sm btn-outline-primary students-button students-button-sm"
+                                          onClick={() => editSubject(cats[0].source)}
+                                        >
+                                          Edit {category}
+                                        </button>
+                                        <button 
+                                          className="btn btn-sm btn-outline-danger students-button students-button-sm"
+                                          onClick={() => deleteSubject(cats[0].source)}
+                                        >
+                                          Delete
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 </div>
