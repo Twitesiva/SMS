@@ -1577,19 +1577,32 @@ export default function Payments() {
     }
   };
 
-  const [completeRegistrationModalOpen, setCompleteRegistrationModalOpen] = useState(false);
+  const [completeRegistrationModalOpen, setCompleteRegistrationModalOpen] = useState(
+    false
+  );
+  const [completionTargetExam, setCompletionTargetExam] = useState(null);
+  const [completedExamIds, setCompletedExamIds] = useState([]);
 
-  const openCompleteRegistrationModal = () => {
+  const openCompleteRegistrationModal = (exam) => {
     setCompleteRegistrationModalOpen(true);
+    setCompletionTargetExam(exam);
   };
 
   const closeCompleteRegistrationModal = () => {
     setCompleteRegistrationModalOpen(false);
+    setCompletionTargetExam(null);
   };
 
   const handleCompleteRegistrationConfirm = () => {
     closeCompleteRegistrationModal();
-    showToast("Registration process marked complete.", {
+    if (completionTargetExam?.id) {
+      setCompletedExamIds((prev) =>
+        prev.includes(completionTargetExam.id)
+          ? prev
+          : [...prev, completionTargetExam.id]
+      );
+    }
+    showToast("Registration completed.", {
       type: "success",
       title: "Registration",
     });
@@ -2079,11 +2092,18 @@ export default function Payments() {
                   </button>
                   <button
                     type="button"
-                    className="btn btn-sm btn-outline-success rounded-pill px-3"
-                    onClick={openCompleteRegistrationModal}
+                    className={`btn btn-sm rounded-pill px-3 ${
+                      completedExamIds.includes(entry.id)
+                        ? "btn-outline-secondary"
+                        : "btn-outline-success"
+                    }`}
+                    onClick={() => openCompleteRegistrationModal(entry)}
                     title="Mark students for this exam as fully registered"
+                    disabled={completedExamIds.includes(entry.id)}
                   >
-                    Complete Registration
+                    {completedExamIds.includes(entry.id)
+                      ? "Completed"
+                      : "Complete Registration"}
                   </button>
                 </div>
               </div>
@@ -2481,20 +2501,19 @@ export default function Payments() {
               <div className="modal-body">
                 <div className="p-3 rounded-3 border border-success bg-light">
                   <div className="fw-semibold text-success mb-2">
-                    <span role="img" aria-label="check">
-                      ✅
-                    </span>{" "}
                     Registration record
                   </div>
                   <p className="mb-1 text-muted small">
-                    Students that have an active payment context will be locked for
-                    further exam edits until the next cycle.
+                    Students tied to{" "}
+                    <strong>
+                      {completionTargetExam?.exam_name || form.examName || "this"}
+                    </strong>{" "}
+                    exam will be marked completed.
                   </p>
                   <ul className="list-unstyled mb-0 small text-muted">
-                    <li>- Exam name: {form.examName || "Not set"}</li>
+                    <li>- Students filtered: {displayCount || "All"}</li>
                     <li>
-                      - Students filtered:{" "}
-                      {displayCount || "All"} ({filteredBySearch.length})
+                      - Visible after filters: {filteredBySearch.length}
                     </li>
                   </ul>
                 </div>
