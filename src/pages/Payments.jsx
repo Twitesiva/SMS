@@ -700,7 +700,7 @@ export default function Payments() {
     );
 
     const studentIds = Array.from(studentLookup.keys());
-    if (!studentIds.length) return {};
+    if (!studentIds.length || !selectedExamId) return {};
 
     const { data, error } = await supabase
       .from("exam_registrations")
