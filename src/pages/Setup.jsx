@@ -1049,7 +1049,6 @@ export default function Setup() {
   );
 
   const saveSubject = () => {
-    try {
     const {
       academicYearId,
       groupCode,
@@ -1145,9 +1144,8 @@ export default function Setup() {
     const courseName = courseMeta?.courseName || courseCode;
 
     try {
-      console.log('Starting to save subjects...');
+      console.log("Starting to save subjects...");
 
-      // Create local subject entries without saving to Supabase
       const newEntries = names.map((name, idx) => ({
         id: editingSubjectId || randomId(),
         subjectId: editingSubjectId || randomId(),
@@ -1166,31 +1164,25 @@ export default function Setup() {
         feeAmount: feeAmount ? Number(feeAmount) : null,
       }));
 
-      // Update the pending subjects state
       setPendingSubjects((prev) => {
         if (editingSubjectId) {
-          // For updates, filter out the old version and add the updated one
           return [
-            ...prev.filter(s => s.id !== editingSubjectId && s.id !== editingSubjectId.toString()),
-            ...newEntries
+            ...prev.filter(
+              (s) =>
+                s.id !== editingSubjectId &&
+                s.id !== editingSubjectId.toString()
+            ),
+            ...newEntries,
           ];
-        } else {
-          // For new subjects, just append them
-          return [...prev, ...newEntries];
         }
+        return [...prev, ...newEntries];
       });
-
-      // Clear editing state if we were editing
-      if (editingSubjectId) {
-        setEditingSubjectId("");
-      }
 
       showToast(
         `${names.length} subject${names.length === 1 ? "" : "s"} added to pending list. Click 'Submit All' to save to database.`,
         { type: "info" }
       );
 
-      // Reset form
       setSubjectForm({
         ...subjectForm,
         subjectName: "",
@@ -1202,7 +1194,6 @@ export default function Setup() {
         feeAmount: "",
       });
 
-      // Clear editing state if we were editing
       if (editingSubjectId) {
         setEditingSubjectId("");
         setEditingBatchId("");
@@ -1211,7 +1202,7 @@ export default function Setup() {
       console.error("Error preparing subjects:", error);
 
       let errorMessage = "Failed to prepare subjects. Please try again.";
-      if (error.message) {
+      if (error?.message) {
         errorMessage = error.message;
       }
 
@@ -1219,10 +1210,6 @@ export default function Setup() {
         type: "danger",
         title: "Error",
       });
-    }
-    } catch (error) {
-      console.error("Error in saveSubject:", error);
-      showToast("Failed to save subject. Please try again.", { type: "danger" });
     }
   };
 
