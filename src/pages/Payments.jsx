@@ -2045,25 +2045,14 @@ export default function Payments() {
           </div>
         </div>
         <div className="mt-3">
-          <div className="d-flex align-items-start justify-content-between gap-3 mb-2">
-            <div>
-              <div className="text-muted small mb-1">Saved exams</div>
-            </div>
-            <button
-              type="button"
-              className="btn btn-sm btn-success"
-              onClick={openCompleteRegistrationModal}
-            >
-              Complete Registration
-            </button>
-          </div>
+          <div className="text-muted small mb-1">Saved exams</div>
           <div className="list-group list-group-flush">
             {storedExamList.map((entry) => (
               <div
                 key={entry.id}
-                className="list-group-item d-flex justify-content-between align-items-center gap-3"
+                className="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2"
               >
-                <div>
+                <div className="w-100 w-md-auto">
                   <div className="fw-semibold">{entry.exam_name}</div>
                   <div className="text-muted small">
                     {editingExam?.id === entry.id
@@ -2071,20 +2060,27 @@ export default function Payments() {
                       : "Tap edit to change the name"}
                   </div>
                 </div>
-                <div className="d-flex gap-2">
+                <div className="btn-group btn-group-sm">
                   <button
                     type="button"
-                    className="btn btn-sm btn-outline-primary"
+                    className="btn btn-outline-primary"
                     onClick={() => handleSelectSavedExam(entry)}
                   >
                     Edit
                   </button>
                   <button
                     type="button"
-                    className="btn btn-sm btn-outline-danger"
+                    className="btn btn-outline-danger"
                     onClick={() => handleDeleteExamName(entry)}
                   >
                     Delete
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline-success"
+                    onClick={openCompleteRegistrationModal}
+                  >
+                    Complete Registration
                   </button>
                 </div>
               </div>
