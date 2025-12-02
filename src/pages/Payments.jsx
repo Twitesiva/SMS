@@ -73,12 +73,6 @@ export default function Payments() {
   const [paymentMethod, setPaymentMethod] = useState("");
   const [modalPaymentSummary, setModalPaymentSummary] = useState(null);
   const [loadingModalPayments, setLoadingModalPayments] = useState(false);
-  const [quickPaymentModalOpen, setQuickPaymentModalOpen] = useState(false);
-  const [quickPaymentStudentId, setQuickPaymentStudentId] = useState("");
-  const [quickPaymentStudent, setQuickPaymentStudent] = useState(null);
-  const [quickPaymentHistory, setQuickPaymentHistory] = useState([]);
-  const [quickPaymentHistoryLoading, setQuickPaymentHistoryLoading] = useState(false);
-  const [quickPaymentHistoryError, setQuickPaymentHistoryError] = useState("");
   const [appliedRegistrationDetails, setAppliedRegistrationDetails] = useState({});
   const [allowPaymentWithoutSelection, setAllowPaymentWithoutSelection] = useState(false);
   const examFeeData = useMemo(() => {
@@ -722,16 +716,6 @@ export default function Payments() {
     );
   };
 
-  const formatQuickPaymentDate = (value) => {
-    if (!value) return "-";
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) return "-";
-    return `${parsed.toLocaleDateString()} ${parsed.toLocaleTimeString("en-IN", {
-      hour: "numeric",
-      minute: "2-digit",
-    })}`;
-  };
-
   const getAppliedRegistrationKey = (student, semesterValue) => {
     const semester =
       semesterValue ||
@@ -1312,55 +1296,6 @@ export default function Payments() {
   }, [modalStudent, modalCourseCode, modalSemester, groups, courses]);
 
   useEffect(() => {
-    let cancelled = false;
-    if (!quickPaymentStudent?.id) {
-      setQuickPaymentHistory([]);
-      setQuickPaymentHistoryError("");
-      setQuickPaymentHistoryLoading(false);
-      return;
-    }
-    const loadQuickHistory = async () => {
-      setQuickPaymentHistoryLoading(true);
-      setQuickPaymentHistoryError("");
-      try {
-        const { data, error } = await supabase
-          .from("exam_registrations")
-          .select(
-            "semester, total_fee, payments(id, fee_type, amount_paid, payment_status, payment_type, created_at)"
-          )
-          .eq("student_id", quickPaymentStudent.id)
-          .order("semester", { ascending: true });
-        if (error) throw error;
-        if (cancelled) return;
-        const enriched = (data || []).map((record) => ({
-          ...record,
-          payments: (record.payments || []).sort(
-            (a, b) =>
-              new Date(a.created_at || 0).getTime() -
-              new Date(b.created_at || 0).getTime()
-          ),
-        }));
-        setQuickPaymentHistory(enriched);
-      } catch (error) {
-        if (cancelled) return;
-        console.error("Failed to load quick payment history:", error);
-        setQuickPaymentHistory([]);
-        setQuickPaymentHistoryError(
-          error?.message || "Unable to load payment history."
-        );
-      } finally {
-        if (!cancelled) {
-          setQuickPaymentHistoryLoading(false);
-        }
-      }
-    };
-    loadQuickHistory();
-    return () => {
-      cancelled = true;
-    };
-  }, [quickPaymentStudent]);
-
-  useEffect(() => {
     let isMounted = true;
     const loadSupplementaryFees = async () => {
       setLoadingSupplementaryFeeRates(true);
@@ -1488,82 +1423,6 @@ export default function Payments() {
         title: "Payment",
       });
     }
-  };
-  const openQuickPaymentModal = () => {
-    setQuickPaymentModalOpen(true);
-  };
-  const closeQuickPaymentModal = () => {
-    setQuickPaymentModalOpen(false);
-    setQuickPaymentStudentId("");
-    setQuickPaymentStudent(null);
-  };
-  const handleQuickPaymentSearch = () => {
-    const trimmedId = (quickPaymentStudentId || "").trim();
-    if (!trimmedId) {
-      showToast("Enter a student ID to search.", { type: "warning" });
-      return;
-    }
-    const normalizedTarget = trimmedId.toLowerCase();
-    const foundStudent = students.find((student) => {
-      const candidateId =
-        student.student_id ??
-        student.studentId ??
-        student.id ??
-        student.student_id_number ??
-        "";
-      if (candidateId === undefined || candidateId === null) return false;
-      return String(candidateId).toLowerCase() === normalizedTarget;
-    });
-    if (!foundStudent) {
-      showToast("No student found with that ID.", { type: "warning" });
-      return;
-    }
-    setQuickPaymentStudent(foundStudent);
-    showToast("Loaded student payment info. Scroll down to view history.", {
-      type: "info",
-    });
-  };
-  const handleQuickPaymentFlow = () => {
-    if (!quickPaymentStudent) return;
-    const student = quickPaymentStudent;
-    const historyRecords = [...quickPaymentHistory];
-    const targetRecord =
-      historyRecords.find(
-        (record) => calculateRecordOutstanding(record) > 0
-      ) || historyRecords[0];
-    const targetSemester =
-      targetRecord && targetRecord.semester !== undefined
-        ? String(targetRecord.semester)
-        : "";
-    closeQuickPaymentModal();
-    openStudentModal(student, {
-      semester: targetSemester,
-      courseCode:
-        student.course_code ||
-        student.courseCode ||
-        student.course_name ||
-        "",
-      records: historyRecords,
-    });
-  };
-  const handleQuickPaymentForRecord = (record) => {
-    if (!quickPaymentStudent) return;
-    const student = quickPaymentStudent;
-    const semesterValue =
-      record?.semester !== undefined && record?.semester !== null
-        ? String(record.semester)
-        : "";
-    closeQuickPaymentModal();
-    prepareStudentPaymentContext(student, {
-      semester: semesterValue,
-      courseCode:
-        student.course_code ||
-        student.courseCode ||
-        student.course_name ||
-        "",
-      records: [...quickPaymentHistory],
-    });
-    setShowPaymentModal(true);
   };
   const generateDecodeNo = () => {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -2111,13 +1970,6 @@ export default function Payments() {
             Manage student payments and keep fee records synchronized, just like the Students tab.
           </p>
         </div>
-        <button
-          type="button"
-          className="btn btn-sm btn-primary"
-          onClick={openQuickPaymentModal}
-        >
-          Quick payments
-        </button>
       </div>
       <div className="students-hero mb-4">
         <div className="px-3 pt-3">
@@ -2135,13 +1987,6 @@ export default function Payments() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            onClick={openQuickPaymentModal}
-          >
-            Quick payments
-          </button>
         </div>
         <div className="students-stats-grid row g-3 px-3 pb-3">
           {paymentStats.map((stat) => (
@@ -2580,210 +2425,6 @@ export default function Payments() {
             </div>
           )}
       </div>
-      {quickPaymentModalOpen && (
-        <div
-          className="modal d-block"
-          tabIndex="-1"
-          role="dialog"
-          aria-modal="true"
-          style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
-        >
-          <div className="modal-dialog modal-lg modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Quick payment lookup</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  aria-label="Close"
-                  onClick={closeQuickPaymentModal}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <label className="form-label fw-semibold mb-2">Student ID</label>
-                <div className="input-group">
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Enter student ID"
-                    value={quickPaymentStudentId}
-                    onChange={(event) =>
-                      setQuickPaymentStudentId(event.target.value)
-                    }
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={handleQuickPaymentSearch}
-                  >
-                    Search
-                  </button>
-                </div>
-                <p className="text-muted small mt-2 mb-0">
-                  Use this lookup to see recent payments and move straight into the
-                  payment flow.
-                </p>
-                {quickPaymentStudent && (
-                  <div className="mt-4">
-                    <div className="d-flex justify-content-between align-items-start gap-3">
-                      <div>
-                        <div className="fw-semibold">
-                          {quickPaymentStudent.full_name ||
-                            quickPaymentStudent.name ||
-                            "Student found"}
-                        </div>
-                        <div className="text-muted small">
-                          ID:{" "}
-                          {quickPaymentStudent.student_id ||
-                            quickPaymentStudent.studentId ||
-                            quickPaymentStudent.id ||
-                            "N/A"}
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-outline-primary"
-                        onClick={handleQuickPaymentFlow}
-                      >
-                        Open payment flow
-                      </button>
-                    </div>
-                    <div className="mt-3 border rounded p-3 bg-light">
-                      <div className="fw-semibold mb-2">Payment history</div>
-                      {quickPaymentHistoryLoading ? (
-                        <div className="text-center py-3">
-                          <div className="spinner-border text-primary" role="status">
-                            <span className="visually-hidden">Loading...</span>
-                          </div>
-                        </div>
-                      ) : quickPaymentHistoryError ? (
-                        <div className="alert alert-warning mb-0">
-                          {quickPaymentHistoryError}
-                        </div>
-                      ) : quickPaymentHistory.length === 0 ? (
-                        <div className="text-muted small">
-                          No registrations or payments found yet.
-                        </div>
-                      ) : (
-                        quickPaymentHistory.map((record, index) => {
-                          const payments = Array.isArray(record.payments)
-                            ? record.payments
-                            : [];
-                          const outstanding = calculateRecordOutstanding(record);
-                          const semesterLabel = record.semester
-                            ? `Semester ${record.semester}`
-                            : "Semester not set";
-                          return (
-                            <div
-                              key={`quick-history-${record.semester ?? index}`}
-                              className="border-top pt-3"
-                            >
-                              <div className="d-flex justify-content-between align-items-center">
-                                <div>
-                                  <div className="fw-semibold">{semesterLabel}</div>
-                                <div className="text-muted small">
-                                    {payments.length
-                                      ? `${payments.length} payment${
-                                          payments.length === 1 ? "" : "s"
-                                        }`
-                                      : "No payments yet"}
-                                  </div>
-                                </div>
-                                <div className="text-end">
-                                  <div className="fw-semibold">
-                                    {record.total_fee
-                                      ? formatCurrency(record.total_fee)
-                                      : "Fee not set"}
-                                  </div>
-                                  <div className="text-muted small">
-                                    {outstanding > 0
-                                      ? `Balance ${formatCurrency(outstanding)}`
-                                      : "Paid in full"}
-                                  </div>
-                                  {outstanding > 0 && (
-                                    <button
-                                      type="button"
-                                      className="btn btn-sm btn-outline-primary mt-2"
-                                      onClick={() => handleQuickPaymentForRecord(record)}
-                                    >
-                                      Pay this balance
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                              {payments.length ? (
-                                <div className="table-responsive mt-2">
-                                  <table className="table table-sm mb-0">
-                                    <thead className="table-light">
-                                      <tr>
-                                        <th>Date</th>
-                                        <th>Amount</th>
-                                        <th>Type</th>
-                                        <th>Fee type</th>
-                                        <th>Status</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {payments.map((payment) => (
-                                        <tr
-                                          key={
-                                            payment.id ||
-                                            `${payment.payment_type}-${
-                                              payment.created_at
-                                            }`
-                                          }
-                                        >
-                                          <td>
-                                            {formatQuickPaymentDate(
-                                              payment.created_at
-                                            )}
-                                          </td>
-                                          <td>
-                                            {payment.amount_paid
-                                              ? formatCurrency(payment.amount_paid)
-                                              : "-"}
-                                          </td>
-                                          <td>{payment.payment_type || "-"}</td>
-                                          <td className="text-capitalize">
-                                            {payment.fee_type || "-"}
-                                          </td>
-                                          <td className="text-capitalize">
-                                            {payment.payment_status || "-"}
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              ) : null}
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="modal-footer d-flex justify-content-end gap-2">
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary"
-                  onClick={closeQuickPaymentModal}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary"
-                  onClick={closeQuickPaymentModal}
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
       {modalOpen && modalStudent && (
         <>
           <div className="modal-backdrop show"></div>
