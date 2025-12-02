@@ -74,6 +74,18 @@ export default function Payments() {
   const [modalPaymentSummary, setModalPaymentSummary] = useState(null);
   const [loadingModalPayments, setLoadingModalPayments] = useState(false);
   const [appliedRegistrationDetails, setAppliedRegistrationDetails] = useState({});
+  const [appliedKeys, setAppliedKeys] = useState([]);
+  const applyAppliedFlags = (details = {}) => {
+    const merged = { ...details };
+    appliedKeys.forEach((key) => {
+      if (!key) return;
+      merged[key] = {
+        ...(merged[key] || {}),
+        applied: true,
+      };
+    });
+    return merged;
+  };
   const [allowPaymentWithoutSelection, setAllowPaymentWithoutSelection] = useState(false);
   const examFeeData = useMemo(() => {
     if (!modalFeeInfo?.categories?.length) return null;
@@ -521,6 +533,11 @@ export default function Payments() {
     setModalStep(2);
   };
 
+  const markAppliedKey = (key) => {
+    if (!key) return;
+    setAppliedKeys((prev) => (prev.includes(key) ? prev : [...prev, key]));
+  };
+
   const handleStoreSelectedSubjects = async () => {
     if (!selectedSubjectKeys.size && !allowPaymentWithoutSelection) {
       showToast("Select at least one subject before continuing.", {
@@ -541,6 +558,11 @@ export default function Payments() {
       return;
     }
 
+    const detailKeyForModal = getAppliedRegistrationKey(
+      activePaymentStudent,
+      modalSemester || form.semester || ""
+    );
+
     const uniqueSubjectEntries = getUniqueSelectedSubjectEntries();
     try {
       const { examRegistrationId, examMasterId } =
@@ -556,7 +578,15 @@ export default function Payments() {
       });
       try {
         const nextDetails = await buildAppliedRegistrationDetails();
-        setAppliedRegistrationDetails(nextDetails);
+        const merged = { ...nextDetails };
+        if (detailKeyForModal) {
+          merged[detailKeyForModal] = {
+            ...(merged[detailKeyForModal] || {}),
+            applied: true,
+          };
+        }
+        setAppliedRegistrationDetails(merged);
+        markAppliedKey(detailKeyForModal);
       } catch (error) {
         console.error("Failed to refresh applied registrations:", error);
       }
@@ -695,21 +725,30 @@ export default function Payments() {
       );
     }
 
-    if (detail.hasExamPaid) {
-      return (
-        <>
-          <span className="badge bg-info text-dark">Exam paid</span>
-          <div className="text-muted small mt-1">
-            {`Covered ${formatCurrency(detail.examCoverageAmount)}`}
-          </div>
-        </>
-      );
-    }
-
+  if (detail.hasExamPaid) {
     return (
       <>
-        <span className="badge bg-warning text-dark">Partial payment</span>
+        <span className="badge bg-info text-dark">Exam paid</span>
         <div className="text-muted small mt-1">
+          {`Covered ${formatCurrency(detail.examCoverageAmount)}`}
+        </div>
+      </>
+    );
+  }
+
+  if (detail.applied) {
+    return (
+      <>
+        <span className="badge bg-secondary text-white">Applied</span>
+        <div className="text-muted small mt-1">Subjects already stored</div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <span className="badge bg-warning text-dark">Partial payment</span>
+      <div className="text-muted small mt-1">
           {`Paid ${formatCurrency(detail.paidTotal)}`}
         </div>
       </>
@@ -809,8 +848,8 @@ export default function Payments() {
       };
     });
 
-    return nextDetails;
-  }, [students]);
+    return applyAppliedFlags(nextDetails);
+  }, [students, appliedKeys]);
 
   const getMatchedGroup = (student) =>
     groups.find(
