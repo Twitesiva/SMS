@@ -80,6 +80,10 @@ export default function Payments() {
     );
     return match?.id ?? null;
   }, [form.examName, storedExamList]);
+  const normalizedSelectedExamName = useMemo(
+    () => (form.examName || "").trim().toLowerCase() || null,
+    [form.examName]
+  );
   const [allowPaymentWithoutSelection, setAllowPaymentWithoutSelection] = useState(false);
   const examFeeData = useMemo(() => {
     if (!modalFeeInfo?.categories?.length) return null;
