@@ -72,6 +72,14 @@ export default function Payments() {
   const [modalPaymentSummary, setModalPaymentSummary] = useState(null);
   const [loadingModalPayments, setLoadingModalPayments] = useState(false);
   const [appliedRegistrationDetails, setAppliedRegistrationDetails] = useState({});
+  const selectedExamId = useMemo(() => {
+    const normalized = (form.examName || "").trim().toLowerCase();
+    if (!normalized) return null;
+    const match = storedExamList.find(
+      (exam) => (exam.exam_name || "").toLowerCase() === normalized
+    );
+    return match?.id ?? null;
+  }, [form.examName, storedExamList]);
   const [allowPaymentWithoutSelection, setAllowPaymentWithoutSelection] = useState(false);
   const examFeeData = useMemo(() => {
     if (!modalFeeInfo?.categories?.length) return null;
@@ -720,6 +728,7 @@ export default function Payments() {
         "";
       if (!studentIdSource) return;
 
+      if (selectedExamId && registration.exam_id !== selectedExamId) return;
       const semesterValue =
         registration.semester === undefined || registration.semester === null
           ? ""
@@ -768,7 +777,7 @@ export default function Payments() {
     });
 
     return nextDetails;
-  }, [students]);
+  }, [students, selectedExamId]);
 
   const getMatchedGroup = (student) =>
     groups.find(
