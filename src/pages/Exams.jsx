@@ -2,11 +2,7 @@ import AdminShell from '../components/AdminShell'
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../lib/mockApi'
 import { showToast } from '../store/ui.js'
-
-const EXAM_PARITIES = [
-  { value: 'ODD', label: 'Odd Semester Exams' },
-  { value: 'EVEN', label: 'Even Semester Exams' },
-]
+import { supabase } from '../../supabaseClient'
 
 const DEFAULT_CATEGORY_ORDER = ['UG', 'PG']
 
@@ -46,7 +42,6 @@ export default function Exams() {
   const [courses, setCourses] = useState([])
   const [subjects, setSubjects] = useState([])
   const [category, setCategory] = useState('')
-  const [examParity, setExamParity] = useState(EXAM_PARITIES[0].value)
   const [currentSemesterNumber, setCurrentSemesterNumber] = useState(null)
   const [academicYear, setAcademicYear] = useState('')
   const [groupCode, setGroupCode] = useState('')
@@ -56,6 +51,49 @@ export default function Exams() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [feedback, setFeedback] = useState({ message: '', type: '' })
+  const [exams, setExams] = useState([])
+  const [selectedExam, setSelectedExam] = useState('')
+  const [examParity, setExamParity] = useState('')
+
+  // Fetch exams from exam_master table
+  useEffect(() => {
+    const fetchExams = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('exam_master')
+          .select('id, exam_name, created_at')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Database error:', error);
+          throw new Error('Failed to fetch exams from database');
+        }
+        
+        if (!data || data.length === 0) {
+          console.warn('No exams found in the database');
+          setFeedback({
+            message: 'No exams found. Please create an exam first.',
+            type: 'warning'
+          });
+          return;
+        }
+        
+        setExams(data);
+        setFeedback({ message: '', type: '' });
+      } catch (error) {
+        console.error('Error fetching exams:', error);
+        setFeedback({
+          message: error.message || 'Failed to load exams. Please try again later.',
+          type: 'error'
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchExams();
+  }, []);
 
   useEffect(() => {
     let isMounted = true
@@ -127,28 +165,75 @@ export default function Exams() {
     [groups, groupCode]
   )
 
+  // Filter courses based on selected group
+  const filteredCourses = useMemo(() => {
+    if (!groupCode) return [];
+    console.log('Selected Group Code:', groupCode);
+    console.log('Available Groups:', groups);
+    console.log('All Courses:', courses);
+    
+    const selectedGroup = groups.find(g => g.code === groupCode || g.group_code === groupCode);
+    if (!selectedGroup) {
+      console.log('No matching group found for code:', groupCode);
+      return [];
+    }
+    
+    const groupName = selectedGroup.name || selectedGroup.group_name;
+    console.log('Filtering courses for group:', groupName);
+    
+    const filtered = courses.filter(course => {
+      const matches = (course.group_name === groupName || course.group_name === groupCode);
+      console.log(`Course: ${course.name} (${course.code}), Group: ${course.group_name}, Matches: ${matches}`);
+      return matches;
+    });
+    
+    console.log('Filtered Courses:', filtered);
+    return filtered;
+  }, [courses, groupCode, groups]);
+
   const selectedCourse = useMemo(
-    () => courses.find((course) => course.code === courseCode) ?? null,
-    [courses, courseCode]
+    () => filteredCourses.find((course) => course.code === courseCode) ?? null,
+    [filteredCourses, courseCode]
   )
 
   const courseSemesterCount = selectedCourse ? Number(selectedCourse.semesters) || 0 : 0
 
-  const parityLabel = examParity === 'EVEN' ? 'even' : 'odd'
-
   const availableSemesters = useMemo(() => {
-    if (!courseSemesterCount) return []
-    const parity = examParity === 'EVEN' ? 0 : 1
-    const semesters = []
+    if (!courseSemesterCount) return [];
+    const semesters = [];
     for (let i = 1; i <= courseSemesterCount; i += 1) {
-      if (i % 2 === parity) semesters.push(i)
+      semesters.push(i);
     }
-    return semesters
-  }, [courseSemesterCount, examParity])
+    return semesters;
+  }, [courseSemesterCount])
+
+  // Filter semesters to show only even or odd based on selection, with selected semester first
+  const sortedSemesters = useMemo(() => {
+    if (!availableSemesters.length) return [];
+    
+    if (!semesterFocus) return availableSemesters;
+    
+    const selectedSem = Number(semesterFocus);
+    const isEvenSelected = selectedSem % 2 === 0;
+    
+    // Filter semesters to only include those with the same parity as selected
+    const filteredSemesters = availableSemesters
+      .filter(sem => isEvenSelected ? sem % 2 === 0 : sem % 2 !== 0)
+      .sort((a, b) => b - a); // Sort in descending order
+    
+    // Move selected semester to the front
+    const selectedIndex = filteredSemesters.indexOf(selectedSem);
+    if (selectedIndex > -1) {
+      filteredSemesters.splice(selectedIndex, 1);
+      filteredSemesters.unshift(selectedSem);
+    }
+    
+    return filteredSemesters;
+  }, [availableSemesters, semesterFocus]);
 
   useEffect(() => {
     setSchedules({})
-  }, [category, academicYear, groupCode, courseCode, examParity])
+  }, [category, academicYear, groupCode, courseCode])
 
   useEffect(() => {
     if (!semesterFocus) return
@@ -254,6 +339,13 @@ export default function Exams() {
       })
       return
     }
+    if (!selectedExam) {
+      setFeedback({
+        type: 'error',
+        message: 'Please select an exam from the dropdown.',
+      })
+      return
+    }
     const entries = []
     for (const [id, entry] of Object.entries(schedules)) {
       if (!entry.selected) continue
@@ -284,6 +376,7 @@ export default function Exams() {
         exam_start_time: entry.startTime,
         exam_end_time: entry.endTime,
         category,
+        exam_master_id: selectedExam, // Add the selected exam ID as a reference to exam_master
       })
     }
     if (!entries.length) {
@@ -296,7 +389,17 @@ export default function Exams() {
       const successMessage = 'Exam schedule saved successfully.'
       setFeedback({ message: successMessage, type: 'success' })
       showToast(successMessage, { type: 'success' })
+      
+      // Reset form fields
       setSchedules({})
+      setSelectedExam('')
+      setSemesterFocus('')
+      setCourseCode('')
+      setGroupCode('')
+      setAcademicYear('')
+      setCategory('')
+      setExamParity('')
+      setCurrentSemesterNumber(null)
     } catch (err) {
       console.error(err)
       const errorMessage = err.message || 'Unable to save exam schedule.'
@@ -347,18 +450,29 @@ export default function Exams() {
                 ))}
               </select>
             </div>
-            <div className="col-md-2">
-              <label className="form-label">Exam Cycle</label>
-              <input
-                className="form-control"
-                value={`Semester ${currentSemesterNumber || '—'} · ${parityLabel.toUpperCase()} cycle`}
-                readOnly
-              />
-              <small className="text-muted">
-                Auto-derived from the most recent semester entry.
-              </small>
+            <div className="col-md-3">
+              <label className="form-label">Exam Name</label>
+              <select
+                className="form-select"
+                value={selectedExam}
+                onChange={(e) => setSelectedExam(e.target.value)}
+                disabled={loading || exams.length === 0}
+              >
+                <option value="">
+                  {loading ? 'Loading exams...' : (exams.length === 0 ? 'No exams available' : 'Select exam')}
+                </option>
+                {exams.map((exam) => (
+                  <option key={exam.id} value={exam.id}>
+                    {exam.exam_name}
+                  </option>
+                ))}
+              </select>
+              {loading && <div className="form-text">Loading exam data...</div>}
+              {!loading && exams.length === 0 && (
+                <div className="form-text text-warning">No exams found. Please create an exam first.</div>
+              )}
             </div>
-            <div className="col-md-4">
+            <div className="col-md-3">
               <label className="form-label">Academic Year</label>
               <select
                 className="form-select"
@@ -388,9 +502,16 @@ export default function Exams() {
           <div className="row g-3 mt-1">
             <div className="col-md-6">
               <label className="form-label">Course</label>
-              <select className="form-select" value={courseCode} onChange={(e) => setCourseCode(e.target.value)}>
-                <option value="">Select course</option>
-                {courses.map((course) => (
+              <select 
+                className="form-select" 
+                value={courseCode} 
+                onChange={(e) => setCourseCode(e.target.value)}
+                disabled={!groupCode}
+              >
+                <option value="">
+                  {groupCode ? 'Select course' : 'Select a group first'}
+                </option>
+                {filteredCourses.map((course) => (
                   <option key={course.id} value={course.code}>
                     {course.name} ({course.code})
                   </option>
@@ -406,7 +527,7 @@ export default function Exams() {
               >
                 <option value="">
                   {availableSemesters.length
-                    ? `All ${examParity.toLowerCase()} semesters`
+                    ? 'All semesters'
                     : 'Select course first'}
                 </option>
                 {availableSemesters.map((sem) => (
@@ -421,26 +542,26 @@ export default function Exams() {
         {loading && <p className="text-muted mb-3">Loading exam metadata...</p>}
         {!loading && !filtersReady && (
           <p className="text-muted mb-3">
-            Select the academic year, group and course to load subjects for the selected category and {parityLabel} cycle.
+            Select the academic year, group and course to load subjects.
           </p>
         )}
         {filtersReady && !availableSemesters.length && (
           <p className="text-muted mb-3">
-            This course does not define any {parityLabel} semesters yet.
+            This course does not define any semesters yet.
           </p>
         )}
         {filtersReady && availableSemesters.length > 0 && (
           <div className="mb-3">
             <small className="text-muted">
               {semesterFocus
-                ? `Focusing on semester ${semesterFocus} while showing all ${parityLabel} semesters.`
-                : `Showing all ${parityLabel} semesters.`}
+                ? `Focusing on semester ${semesterFocus}`
+                : 'Showing all semesters'}
             </small>
           </div>
         )}
         {filtersReady && availableSemesters.length > 0 && (
           <>
-            {availableSemesters.map((semesterNumber) => {
+            {sortedSemesters.map((semesterNumber) => {
               const semesterSubjects = subjectsBySemester[semesterNumber] || []
               return (
                 <div className="card card-soft mb-3" key={semesterNumber}>

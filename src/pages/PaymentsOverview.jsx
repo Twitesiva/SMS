@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import AdminShell from "../components/AdminShell";
 import { supabase } from "../../supabaseClient";
 
@@ -17,6 +17,100 @@ export default function PaymentsOverview() {
   const [subjectSearchLoading, setSubjectSearchLoading] = useState(false);
   const [subjectSearchError, setSubjectSearchError] = useState("");
   const [subjectStudents, setSubjectStudents] = useState([]);
+  const [exams, setExams] = useState([]);
+  const [selectedExam, setSelectedExam] = useState("");
+  const [loadingExams, setLoadingExams] = useState(false);
+  const [examSubjects, setExamSubjects] = useState([]);
+  const [loadingExamSubjects, setLoadingExamSubjects] = useState(false);
+
+  // Fetch exams from exam_master table
+  useEffect(() => {
+    const fetchExams = async () => {
+      setLoadingExams(true);
+      try {
+        const { data, error } = await supabase
+          .from('exam_master')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        setExams(data || []);
+        console.log('Fetched exams:', data); // Debug log
+      } catch (error) {
+        console.error('Error fetching exams:', error);
+      } finally {
+        setLoadingExams(false);
+      }
+    };
+
+    fetchExams();
+  }, []);
+
+  // Fetch subjects for selected exam
+  useEffect(() => {
+    const fetchExamSubjects = async () => {
+      if (!selectedExam) {
+        setExamSubjects([]);
+        return;
+      }
+
+      setLoadingExamSubjects(true);
+      try {
+        // First, get all exam registrations for this exam
+        const { data: registrations, error: regError } = await supabase
+          .from('exam_registrations')
+          .select('id')
+          .eq('exam_id', selectedExam);
+
+        if (regError) throw regError;
+
+        const registrationIds = registrations?.map(r => r.id) || [];
+        
+        if (registrationIds.length === 0) {
+          setExamSubjects([]);
+          return;
+        }
+
+        // Then get all subjects for these registrations
+        const { data: subjectData, error: subjectError } = await supabase
+          .from('exam_registration_subjects')
+          .select(`
+            id,
+            subject_id,
+            subjects!inner(subject_id, subject_code, subject_name)
+          `)
+          .in('exam_registration_id', registrationIds);
+
+        if (subjectError) throw subjectError;
+
+        // Get unique subjects with counts
+        const subjectMap = new Map();
+        subjectData?.forEach(item => {
+          if (!item.subjects) return;
+          const subj = item.subjects;
+          const key = `${subj.subject_code}-${subj.subject_name}`;
+          if (!subjectMap.has(key)) {
+            subjectMap.set(key, {
+              subject_id: subj.subject_id,
+              subject_code: subj.subject_code,
+              subject_name: subj.subject_name,
+              count: 0
+            });
+          }
+          subjectMap.get(key).count++;
+        });
+
+        setExamSubjects(Array.from(subjectMap.values()));
+      } catch (error) {
+        console.error('Error fetching exam subjects:', error);
+        setExamSubjects([]);
+      } finally {
+        setLoadingExamSubjects(false);
+      }
+    };
+
+    fetchExamSubjects();
+  }, [selectedExam]);
 
   const handleSearchStudent = async () => {
     const trimmed = studentIdInput.trim();
@@ -188,6 +282,19 @@ export default function PaymentsOverview() {
       setSubjectSearchError("Enter a subject code.");
       setSubjectStudents([]);
       return;
+    }
+
+    // If an exam is selected, use the subject from examSubjects to ensure we're only searching within that exam
+    if (selectedExam) {
+      const selectedSubject = examSubjects.find(
+        subj => subj.subject_code.toLowerCase() === trimmed.toLowerCase()
+      );
+
+      if (!selectedSubject) {
+        setSubjectSearchError("No matching subject found for the selected exam.");
+        setSubjectStudents([]);
+        return;
+      }
     }
 
     setSubjectSearchLoading(true);
@@ -377,13 +484,6 @@ export default function PaymentsOverview() {
     }
   };
 
-  const handleSubjectCodeKeyDown = (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      handleSearchBySubjectCode();
-    }
-  };
-
   const handleStudentIdKeyDown = (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
@@ -391,31 +491,133 @@ export default function PaymentsOverview() {
     }
   };
 
+  const handleSubjectCodeKeyDown = (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      handleSearchBySubjectCode();
+    }
+  };
+
   return (
     <AdminShell>
       <div className="card card-soft p-3 mb-4">
-        <h5 className="mb-3">Search by Subject Code</h5>
-        <div className="row g-3 align-items-end">
-          <div className="col-12 col-sm-6 col-md-4 col-lg-3">
-            <label className="form-label">Subject Code</label>
-            <input
-              type="text"
-              className="form-control"
-              value={subjectCodeInput}
-              onChange={(e) => setSubjectCodeInput(e.target.value)}
-              onKeyDown={handleSubjectCodeKeyDown}
-              placeholder="Enter subject code"
-            />
-          </div>
-          <div className="col-auto">
-            <button
-              type="button"
-              className="btn btn-primary mt-2"
-              onClick={handleSearchBySubjectCode}
-              disabled={subjectSearchLoading}
+        <h5 className="mb-3">Search by Exam</h5>
+        <div className="row g-3 align-items-end mb-4">
+          <div className="col-12 col-sm-6 col-md-4">
+            <label className="form-label">Exam Name</label>
+            <select
+              className="form-select"
+              value={selectedExam}
+              onChange={(e) => setSelectedExam(e.target.value)}
+              disabled={loadingExams}
             >
-              {subjectSearchLoading ? "Searching..." : "Search"}
-            </button>
+              <option value="">Select Exam</option>
+              {exams.map((exam) => (
+                <option key={exam.id} value={exam.id}>
+                  {exam.exam_name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Show loading indicator when searching */}
+        {loadingExamSubjects && (
+          <div className="text-center py-3">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading subjects...</span>
+            </div>
+          </div>
+        )}
+        
+        {/* Show subjects after search */}
+        {!loadingExamSubjects && subjectCodeInput && subjectStudents.length > 0 && (
+          <div className="mb-4">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h6 className="mb-0">Search Results</h6>
+              <span className="badge bg-primary">
+                {subjectStudents.length} student{subjectStudents.length !== 1 ? 's' : ''} found
+              </span>
+            </div>
+            
+            {/* Show subject details */}
+            {subjectStudents[0]?.subject_name && (
+              <div className="mb-3 p-3 bg-light rounded">
+                <div className="fw-bold">
+                  {subjectStudents[0].subject_name} ({subjectStudents[0].subject_code})
+                </div>
+                <div className="text-muted small">
+                  {subjectStudents.length} student{subjectStudents.length !== 1 ? 's' : ''} registered for this subject
+                </div>
+              </div>
+            )}
+            
+            {/* Students list */}
+            <div className="table-responsive">
+              <table className="table table-sm align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>Student ID</th>
+                    <th>Name</th>
+                    <th>Group</th>
+                    <th>Course</th>
+                    <th>Decode</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {subjectStudents.map((student) => (
+                    <tr key={student.student_id}>
+                      <td>{student.student_id}</td>
+                      <td>{student.full_name}</td>
+                      <td>{student.group_name}</td>
+                      <td>{student.course_name}</td>
+                      <td>{student.decode_no || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+        
+        {/* Show no results message only after search */}
+        {!loadingExamSubjects && subjectCodeInput && subjectStudents.length === 0 && (
+          <div className="alert alert-info mb-4">
+            No students found for the selected subject code.
+          </div>
+        )}
+
+        <div className="row g-3 align-items-end">
+          <div className="col-12 col-sm-6 col-md-4">
+            <label className="form-label">Subject Code</label>
+            <div className="input-group">
+              <input
+                type="text"
+                className="form-control"
+                value={subjectCodeInput}
+                onChange={(e) => setSubjectCodeInput(e.target.value)}
+                onKeyDown={handleSubjectCodeKeyDown}
+                placeholder="Enter subject code"
+                disabled={!selectedExam}
+              />
+              <button
+                className="btn btn-primary"
+                type="button"
+                onClick={handleSearchBySubjectCode}
+                disabled={subjectSearchLoading || !selectedExam || !subjectCodeInput.trim()}
+              >
+                {subjectSearchLoading ? 'Searching...' : 'Search'}
+              </button>
+            </div>
+            {selectedExam ? (
+              <div className="form-text text-muted">
+                Enter a subject code to search for students
+              </div>
+            ) : (
+              <div className="form-text text-muted">
+                Please select an exam first
+              </div>
+            )}
           </div>
         </div>
         {subjectSearchError && (
