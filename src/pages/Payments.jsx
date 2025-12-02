@@ -760,25 +760,12 @@ export default function Payments() {
       };
     });
 
-    const registrationIds = (data || [])
-      .map((registration) => registration?.id)
-      .filter(Boolean);
-    if (registrationIds.length) {
-      const { data: subjectRows, error: subjectError } = await supabase
-        .from("exam_registration_subjects")
-        .select("exam_registration_id")
-        .in("exam_registration_id", registrationIds);
-      if (subjectError) throw subjectError;
-      const appliedMap = new Set(
-        (subjectRows || []).map((row) => row.exam_registration_id)
-      );
-      appliedMap.forEach((registrationId) => {
-        const key = registrationKeyById.get(registrationId);
-        if (key && nextDetails[key]) {
-          nextDetails[key].applied = true;
-        }
-      });
-    }
+    (data || []).forEach((registration) => {
+      const key = registrationKeyById.get(registration?.id);
+      if (key && nextDetails[key]) {
+        nextDetails[key].applied = true;
+      }
+    });
 
     return nextDetails;
   }, [students]);
