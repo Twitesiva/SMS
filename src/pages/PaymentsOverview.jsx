@@ -101,25 +101,36 @@ export default function PaymentsOverview() {
     try {
       const { data, error } = await supabase
         .from("exam_registrations")
-        .select("id, semester, exam_registration_subjects(id, subject_name, subject_code)")
+        .select("id, semester")
         .eq("student_id", studentInternalId)
         .eq("semester", Number(semesterValue));
 
       if (error) throw error;
 
+      const examRegistrationIds = (data || [])
+        .map((registration) => registration.id)
+        .filter(Boolean);
+      if (!examRegistrationIds.length) {
+        setSubjectsError("No subjects found for this semester.");
+        return;
+      }
+
+      const { data: examSubjectRows, error: subjectError } = await supabase
+        .from("exam_registration_subjects")
+        .select("id, exam_registration_id, subject_id, subjects(subject_name, subject_code)")
+        .in("exam_registration_id", examRegistrationIds);
+      if (subjectError) throw subjectError;
+
       const baseSubjectRows = [];
       const subjectIds = new Set();
-
-      (data || []).forEach((registration) => {
-        (registration.exam_registration_subjects || []).forEach((subj) => {
-          if (!subj || subj.id === undefined || subj.id === null) return;
-          baseSubjectRows.push({
-            exam_registration_subject_id: subj.id,
-            subject_name: subj.subject_name,
-            subject_code: subj.subject_code,
-          });
-          subjectIds.add(subj.id);
+      (examSubjectRows || []).forEach((subj) => {
+        if (!subj || subj.id === undefined || subj.id === null) return;
+        baseSubjectRows.push({
+          exam_registration_subject_id: subj.id,
+          subject_name: subj.subjects?.subject_name || "",
+          subject_code: subj.subjects?.subject_code || "",
         });
+        subjectIds.add(subj.id);
       });
 
       let decodeMap = new Map();
@@ -184,15 +195,30 @@ export default function PaymentsOverview() {
     setSubjectStudents([]);
 
     try {
-      const { data: subjectRows, error: subjectError } = await supabase
-        .from("exam_registration_subjects")
-        .select("id, exam_registration_id, subject_name, subject_code")
-        .eq("subject_code", trimmed);
+      const { data: subjectRecord, error: subjectError } = await supabase
+        .from("subjects")
+        .select("subject_id, subject_name, subject_code")
+        .eq("subject_code", trimmed)
+        .maybeSingle();
 
       if (subjectError) throw subjectError;
+      if (!subjectRecord?.subject_id) {
+        setSubjectSearchError("No subject found with that code.");
+        return;
+      }
+
+      const { data: subjectRows, error: subjectRowsError } = await supabase
+        .from("exam_registration_subjects")
+        .select("id, exam_registration_id, subject_id, subjects(subject_name, subject_code)")
+        .eq("subject_id", subjectRecord.subject_id);
+      if (subjectRowsError) throw subjectRowsError;
 
       const examRegistrationIds = Array.from(
-        new Set((subjectRows || []).map((row) => row.exam_registration_id).filter(Boolean))
+        new Set(
+          (subjectRows || [])
+            .map((row) => row.exam_registration_id)
+            .filter(Boolean)
+        )
       );
 
       if (!examRegistrationIds.length) {

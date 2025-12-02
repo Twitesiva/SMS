@@ -44,9 +44,12 @@ export default function Payments() {
     courseCode: "",
     semester: "",
     student_id: "",
+    examName: "",
   });
   const [displayCount, setDisplayCount] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [storedExamList, setStoredExamList] = useState([]);
+  const [editingExam, setEditingExam] = useState(null);
 
   const [activePaymentStudent, setActivePaymentStudent] = useState(null);
 
@@ -282,7 +285,7 @@ export default function Payments() {
 
   const buildSubjectEntries = (
     subjectList,
-    { contextKey = "current" } = {}
+    { contextKey = "current", subjectIdLookup } = {}
   ) =>
     subjectList.flatMap((subject) => {
       const names = resolveModalSubjectNames(subject);
@@ -292,6 +295,21 @@ export default function Payments() {
         subject.code ||
         "";
       const subjectIdentifier = deriveSubjectIdentifier(subject);
+      const codeKey =
+        (subject.subjectCode ||
+          subject.subject_code ||
+          subject.code ||
+          "")
+          .toString()
+          .trim()
+          .toLowerCase();
+      const lookupId = subjectIdLookup?.get(codeKey);
+      const referenceId =
+        lookupId ??
+        subject.subject_id ??
+        subject.id ??
+        subject.subjectId ??
+        null;
       const dedupKey =
         `${subjectIdentifier}-${contextKey || "current"}`;
       return names.map((name, index) => ({
@@ -299,14 +317,39 @@ export default function Payments() {
         name,
         code: code || undefined,
         subjectId: subjectIdentifier,
+        subjectReferenceId: referenceId,
         dedupKey,
         contextKey,
       }));
     });
 
+  const subjectIdLookup = useMemo(() => {
+    const map = new Map();
+    subjects.forEach((subject) => {
+      const code =
+        (subject.subjectCode ||
+          subject.subject_code ||
+          subject.code ||
+          "")
+          .toString()
+          .trim()
+          .toLowerCase();
+      const referenceId =
+        subject.subject_id ?? subject.id ?? subject.subjectId ?? null;
+      if (code && referenceId) {
+        map.set(code, referenceId);
+      }
+    });
+    return map;
+  }, [subjects]);
+
   const currentSubjectEntries = useMemo(
-    () => buildSubjectEntries(subjectsForCurrentSemester, { contextKey: "current" }),
-    [subjectsForCurrentSemester]
+    () =>
+      buildSubjectEntries(subjectsForCurrentSemester, {
+        contextKey: "current",
+        subjectIdLookup,
+      }),
+    [subjectsForCurrentSemester, subjectIdLookup]
   );
   const supplementarySubjectsBySemester = useMemo(() => {
     if (!subjectsForSupplementarySemester.length || !selectedSupplementarySemesters.length) {
@@ -332,6 +375,7 @@ export default function Payments() {
       semester,
       entries: buildSubjectEntries(semesterMap.get(semester) || [], {
         contextKey: `supp-${semester}`,
+        subjectIdLookup,
       }),
     }));
   }, [subjectsForSupplementarySemester, selectedSupplementarySemesters]);
@@ -454,14 +498,9 @@ export default function Payments() {
   }, [outstandingExam, paymentOption]);
   const selectedSubjectCount =
     currentSelectedCount + supplementarySelectedCount;
-  const totalModalSubjectCount = uniqueModalSubjectKeys.length;
+  const totalModalSubjectCount =
+    currentSubjectEntries.length + supplementarySubjectEntries.length;
   const currentTotalCount = currentSubjectEntries.length;
-  const supplementaryTotalCount = supplementarySubjectEntries.length;
-  const allModalSubjectsSelected =
-    totalModalSubjectCount > 0 &&
-    selectedSubjectCount === totalModalSubjectCount;
-  const showPendingBalanceOnly =
-    allowPaymentWithoutSelection && selectedSubjectCount === 0;
   const toggleSubjectSelection = (key) => {
     setSelectedSubjectKeys((prev) => {
       const next = new Set(prev);
@@ -488,14 +527,53 @@ export default function Payments() {
     setModalStep(2);
   };
 
-  const handlePaySubjects = () => {
+  const handleStoreSelectedSubjects = async () => {
     if (!selectedSubjectKeys.size && !allowPaymentWithoutSelection) {
       showToast("Select at least one subject before continuing.", {
         type: "warning",
       });
       return;
     }
-    setShowPaymentModal(true);
+    if (!activePaymentStudent) {
+      showToast("Student information is missing.", { type: "danger" });
+      return;
+    }
+
+    const examNameValue = (form.examName || "").trim();
+    if (!examNameValue) {
+      showToast("Enter an exam name before storing subjects.", {
+        type: "warning",
+      });
+      return;
+    }
+
+    const uniqueSubjectEntries = getUniqueSelectedSubjectEntries();
+    try {
+      const { examRegistrationId, examMasterId } =
+        await createOrFetchExamRegistration(examNameValue);
+      await persistExamRegistrationSubjects(
+        examRegistrationId,
+        uniqueSubjectEntries,
+        examMasterId
+      );
+      showToast("Selected subjects stored successfully.", {
+        type: "success",
+        title: "Exam",
+      });
+      try {
+        const nextDetails = await buildAppliedRegistrationDetails();
+        setAppliedRegistrationDetails(nextDetails);
+      } catch (error) {
+        console.error("Failed to refresh applied registrations:", error);
+      }
+      closeStudentModal();
+    } catch (error) {
+      console.error("Unable to store selected subjects", error);
+      showToast("Unable to store selected subjects. Please try again.", {
+        type: "danger",
+        title: "Exam",
+      });
+    }
   };
 
   const renderSelectionLine = (entry) => (
@@ -535,6 +613,24 @@ export default function Payments() {
       </td>
     </tr>
   );
+
+  const getUniqueSelectedSubjectEntries = useCallback(() => {
+    const selectedSubjectEntries = combinedSubjectEntries.filter((entry) =>
+      selectedSubjectKeys.has(entry.key)
+    );
+    const next = [];
+    const tracked = new Set();
+    selectedSubjectEntries.forEach((entry) => {
+      const identity =
+        entry.key ??
+        entry.dedupKey ??
+        `${entry.subjectId}:${entry.contextKey ?? "regular"}`;
+      if (tracked.has(identity)) return;
+      tracked.add(identity);
+      next.push(entry);
+    });
+    return next;
+  }, [combinedSubjectEntries, selectedSubjectKeys]);
 
   const renderStudentProfileCard = (student) => {
     if (!student) return null;
@@ -591,7 +687,7 @@ export default function Payments() {
 
   const renderPaymentStatusCell = (detail) => {
     if (!detail) {
-      return <span className="text-muted small">No payment recorded</span>;
+      return null;
     }
 
     if (detail.fullyPaid) {
@@ -768,14 +864,28 @@ export default function Payments() {
       student?.id,
       student?.student_id_number
     );
+  const getStudentHallTickets = (student) => [
+    student?.hall_ticket_number,
+    student?.hall_ticket,
+    student?.hallTicketNo,
+    student?.hall_ticket_no,
+  ].filter(Boolean);
   const selectedStudent = useMemo(() => {
     if (!form.student_id) return null;
     const normalizedTarget = String(form.student_id).toLowerCase().trim();
     if (!normalizedTarget) return null;
     return students.find((student) => {
       const candidate = getStudentIdentifier(student);
-      if (!candidate) return false;
-      return String(candidate).toLowerCase().trim() === normalizedTarget;
+      if (candidate) {
+        if (String(candidate).toLowerCase().trim() === normalizedTarget) {
+          return true;
+        }
+      }
+      const hallTickets = getStudentHallTickets(student);
+      return hallTickets.some(
+        (ticket) =>
+          String(ticket).toLowerCase().trim() === normalizedTarget
+      );
     });
   }, [form.student_id, students]);
   const buildFormDefaultsFromStudent = (student) => {
@@ -833,19 +943,29 @@ export default function Payments() {
         !s.semester ||
         String(s.semester) === String(form.semester);
       const matchesCategory = matchesCategoryForStudent(s);
+      const hallTicketSearch = form.student_id
+        ? String(form.student_id).toLowerCase().trim()
+        : "";
       const matchesStudentId =
         !form.student_id ||
         (s.student_id &&
           String(s.student_id)
             .toLowerCase()
             .includes(String(form.student_id).trim().toLowerCase()));
+      const matchesHallTicket =
+        !hallTicketSearch ||
+        getStudentHallTickets(s).some((ticket) =>
+          String(ticket).toLowerCase().includes(hallTicketSearch)
+        );
+      const passesStudentFilter =
+        !form.student_id || matchesStudentId || matchesHallTicket;
       return (
         matchesYear &&
         matchesGroup &&
         matchesCourse &&
         matchesSemester &&
         matchesCategory &&
-        matchesStudentId
+        passesStudentFilter
       );
     });
   }, [
@@ -951,6 +1071,30 @@ export default function Payments() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const refreshStoredExamList = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("exam_master")
+        .select("id, exam_name")
+        .order("exam_name", { ascending: true })
+        .limit(500);
+      if (error) throw error;
+      const names = (data || [])
+        .map((entry) => ({
+          id: entry.id,
+          exam_name: (entry.exam_name || "").trim(),
+        }))
+        .filter((entry) => entry.exam_name);
+      setStoredExamList(names);
+    } catch (error) {
+      console.error("Failed to load exam names:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshStoredExamList();
+  }, [refreshStoredExamList]);
 
   // Restore filters and selected student when navigated back with state
   useEffect(() => {
@@ -1432,14 +1576,22 @@ export default function Payments() {
   };
   const persistExamRegistrationSubjects = async (
     examRegistrationId,
-    subjectEntries
+    subjectEntries,
+    examMasterId
   ) => {
     if (!subjectEntries?.length) return;
-    const payload = subjectEntries.map((entry) => ({
-      exam_registration_id: examRegistrationId,
-      subject_name: entry.name,
-      subject_code: entry.code || null,
-    }));
+    const payload = [];
+    const seenBySubjectId = new Set();
+    subjectEntries.forEach((entry) => {
+      const subjectId =
+        entry.subjectReferenceId ?? entry.subjectId ?? null;
+      if (subjectId && seenBySubjectId.has(subjectId)) return;
+      if (subjectId) seenBySubjectId.add(subjectId);
+      payload.push({
+        exam_registration_id: examRegistrationId,
+        subject_id: subjectId,
+      });
+    });
     const { error: deleteError } = await supabase
       .from("exam_registration_subjects")
       .delete()
@@ -1456,11 +1608,218 @@ export default function Payments() {
       exam_registration_subject_id: subject.id,
       decode_no: generateDecodeNo(),
       is_valid: true,
+      exam_id: examMasterId,
     }));
     const { error: decodeInsertError } = await supabase
       .from("decode_numbers")
       .insert(decodePayload);
     if (decodeInsertError) throw decodeInsertError;
+  };
+
+  const ensureExamMaster = useCallback(
+    async (examName) => {
+      const normalized = (examName || "").trim();
+      if (!normalized) return null;
+
+      const { data: existing, error: existingError } = await supabase
+        .from("exam_master")
+        .select("id")
+        .eq("exam_name", normalized)
+        .limit(1)
+        .maybeSingle();
+      if (existingError) throw existingError;
+      if (existing?.id) return existing.id;
+
+      const { data: inserted, error: insertError } = await supabase
+        .from("exam_master")
+        .insert({ exam_name: normalized })
+        .select("id")
+        .maybeSingle();
+      if (insertError) throw insertError;
+      await refreshStoredExamList();
+      return inserted?.id ?? null;
+    },
+    [refreshStoredExamList]
+  );
+
+  const handleSelectSavedExam = (exam) => {
+    setForm((prev) => ({ ...prev, examName: exam.exam_name }));
+    setEditingExam(exam);
+  };
+
+  const handleSaveExamName = async () => {
+    const value = (form.examName || "").trim();
+    if (!value) {
+      showToast("Enter an exam name before saving.", { type: "warning" });
+      return;
+    }
+    if (editingExam) {
+      showToast("Finish editing or cancel before saving a new exam name.", {
+        type: "warning",
+      });
+      return;
+    }
+    const exists = storedExamList.some(
+      (entry) => entry.exam_name.toLowerCase() === value.toLowerCase()
+    );
+    if (exists) {
+      showToast("This exam name already exists.", { type: "warning" });
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from("exam_master")
+        .insert({ exam_name: value });
+      if (error) throw error;
+      await refreshStoredExamList();
+      showToast("Exam name saved.", { type: "success" });
+      setEditingExam(null);
+    } catch (error) {
+      console.error("Failed to save exam name:", error);
+      showToast("Unable to save exam name.", { type: "danger" });
+    }
+  };
+
+  const handleUpdateExamName = async () => {
+    if (!editingExam) {
+      showToast("Select an exam name to edit.", { type: "warning" });
+      return;
+    }
+    const value = (form.examName || "").trim();
+    if (!value) {
+      showToast("Exam name cannot be empty.", { type: "warning" });
+      return;
+    }
+    if (value === editingExam.exam_name) {
+      showToast("No changes to save.", { type: "info" });
+      return;
+    }
+    const duplicate = storedExamList.some(
+      (entry) =>
+        entry.id !== editingExam.id &&
+        entry.exam_name.toLowerCase() === value.toLowerCase()
+    );
+    if (duplicate) {
+      showToast("Another exam already uses this name.", { type: "warning" });
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from("exam_master")
+        .update({ exam_name: value })
+        .eq("id", editingExam.id);
+      if (error) throw error;
+      await refreshStoredExamList();
+      showToast("Exam name updated.", { type: "success" });
+      setEditingExam(null);
+    } catch (error) {
+      console.error("Failed to update exam name:", error);
+      showToast("Unable to update exam name.", { type: "danger" });
+    }
+  };
+
+  const handleDeleteExamName = async (examEntry) => {
+    const target = examEntry ?? editingExam;
+    if (!target) {
+      showToast("Select an exam to delete.", { type: "warning" });
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from("exam_master")
+        .delete()
+        .eq("id", target.id);
+      if (error) throw error;
+      await refreshStoredExamList();
+      setForm((prev) => ({ ...prev, examName: "" }));
+      setEditingExam(null);
+      showToast("Exam name removed.", { type: "success" });
+    } catch (error) {
+      console.error("Failed to delete exam name:", error);
+      showToast("Unable to delete exam name.", { type: "danger" });
+    }
+  };
+
+  const createOrFetchExamRegistration = async (examName) => {
+    if (!activePaymentStudent) {
+      throw new Error("Student information is missing.");
+    }
+    const semesterNumber =
+      modalSemester === "" ||
+      modalSemester === undefined ||
+      modalSemester === null
+        ? null
+        : Number(modalSemester);
+    const academicYear =
+      activePaymentStudent.academic_year ||
+      activePaymentStudent.academicYear ||
+      null;
+    const groupLabel = formatGroupLabel(
+      activePaymentStudent,
+      getMatchedGroup(activePaymentStudent)
+    );
+    const courseName =
+      getMatchedCourse(activePaymentStudent)?.courseName ||
+      activePaymentStudent.course_name ||
+      activePaymentStudent.course_code ||
+      null;
+
+    const examMasterId = await ensureExamMaster(examName);
+    let query = supabase
+      .from("exam_registrations")
+      .select("id, exam_id")
+      .eq("student_id", activePaymentStudent.id);
+    if (semesterNumber !== null && !Number.isNaN(semesterNumber)) {
+      query = query.eq("semester", semesterNumber);
+    }
+    if (academicYear) {
+      query = query.eq("academic_year", academicYear);
+    }
+    if (groupLabel) {
+      query = query.eq("group_name", groupLabel);
+    }
+    if (courseName) {
+      query = query.eq("course_name", courseName);
+    }
+    if (examMasterId) {
+      query = query.eq("exam_id", examMasterId);
+    }
+
+    const { data: existingReg, error: existingRegError } = await query.maybeSingle();
+    if (existingRegError) throw existingRegError;
+    if (existingReg?.id) {
+      return {
+        examRegistrationId: existingReg.id,
+        examMasterId: existingReg.exam_id || examMasterId,
+      };
+    }
+
+    const payload = {
+      student_id: activePaymentStudent.id,
+      academic_year: academicYear,
+      group_name: groupLabel,
+      course_name: courseName,
+      semester: semesterNumber,
+      total_exam_fee: examSubtotal,
+      other_fee: otherFeeTotal,
+      total_fee: totalFeeBreakdownAmount,
+      status: "pending",
+      exam_id: examMasterId,
+    };
+
+    const { data: insertedReg, error: insertError } = await supabase
+      .from("exam_registrations")
+      .insert(payload)
+      .select("id")
+      .maybeSingle();
+    if (insertError) throw insertError;
+    if (!insertedReg?.id) {
+      throw new Error("Unable to establish exam registration");
+    }
+    return {
+      examRegistrationId: insertedReg.id,
+      examMasterId,
+    };
   };
 
   const handlePaymentModalConfirm = async () => {
@@ -1470,6 +1829,13 @@ export default function Payments() {
     }
     if (!activePaymentStudent) {
       showToast("Student information is missing.", { type: "danger" });
+      return;
+    }
+    const examNameValue = (form.examName || "").trim();
+    if (!examNameValue) {
+      showToast("Enter an exam name before recording payments.", {
+        type: "warning",
+      });
       return;
     }
     const examFullyPaid =
@@ -1485,86 +1851,13 @@ export default function Payments() {
       return;
     }
 
-    const selectedSubjectEntries = combinedSubjectEntries.filter((entry) =>
-      selectedSubjectKeys.has(entry.key)
-    );
-    const uniqueSubjectEntries = [];
-    const trackedSubjectKeys = new Set();
-    selectedSubjectEntries.forEach((entry) => {
-      const identity =
-        entry.key ??
-        entry.dedupKey ??
-        `${entry.subjectId}:${entry.contextKey ?? "regular"}`;
-      if (trackedSubjectKeys.has(identity)) return;
-      trackedSubjectKeys.add(identity);
-      uniqueSubjectEntries.push(entry);
-    });
+    const uniqueSubjectEntries = getUniqueSelectedSubjectEntries();
 
     let amount = 0;
 
-    const semesterNumber =
-      modalSemester === "" || modalSemester === undefined || modalSemester === null
-        ? null
-        : Number(modalSemester);
-
-    const ensureExamRegistration = async () => {
-      const academicYear =
-        activePaymentStudent.academic_year || activePaymentStudent.academicYear || null;
-      const groupLabel = formatGroupLabel(
-        activePaymentStudent,
-        getMatchedGroup(activePaymentStudent)
-      );
-      const courseName =
-        getMatchedCourse(activePaymentStudent)?.courseName ||
-        activePaymentStudent.course_name ||
-        activePaymentStudent.course_code ||
-        null;
-
-      let query = supabase
-        .from("exam_registrations")
-        .select("id")
-        .eq("student_id", activePaymentStudent.id);
-      if (semesterNumber !== null && !Number.isNaN(semesterNumber)) {
-        query = query.eq("semester", semesterNumber);
-      }
-      if (academicYear) {
-        query = query.eq("academic_year", academicYear);
-      }
-      if (groupLabel) {
-        query = query.eq("group_name", groupLabel);
-      }
-      if (courseName) {
-        query = query.eq("course_name", courseName);
-      }
-
-      const { data: existingReg, error: existingRegError } = await query.maybeSingle();
-      if (existingRegError) throw existingRegError;
-      if (existingReg?.id) return existingReg.id;
-
-      const payload = {
-        student_id: activePaymentStudent.id,
-        academic_year: academicYear,
-        group_name: groupLabel,
-        course_name: courseName,
-        semester: semesterNumber,
-        total_exam_fee: examSubtotal,
-        other_fee: otherFeeTotal,
-        total_fee: totalFeeBreakdownAmount,
-        status: "pending",
-      };
-
-      const { data: insertedReg, error: insertError } = await supabase
-        .from("exam_registrations")
-        .insert(payload)
-        .select("id")
-        .maybeSingle();
-      if (insertError) throw insertError;
-      if (!insertedReg?.id) throw new Error("Unable to establish exam registration");
-      return insertedReg.id;
-    };
-
     try {
-      const examRegistrationId = await ensureExamRegistration();
+      const { examRegistrationId, examMasterId } =
+        await createOrFetchExamRegistration(examNameValue);
       const { data: existingPayments, error: paymentsError } = await supabase
         .from("payments")
         .select("fee_type, amount_paid, payment_status, payment_type")
@@ -1675,7 +1968,8 @@ export default function Payments() {
 
       await persistExamRegistrationSubjects(
         examRegistrationId,
-        uniqueSubjectEntries
+        uniqueSubjectEntries,
+        examMasterId
       );
       const { error: paymentError } = await supabase.from("payments").insert({
         exam_registration_id: examRegistrationId,
@@ -1786,19 +2080,6 @@ export default function Payments() {
     fullyPaidCount,
   ]);
 
-  const handleDisplayCountChange = (value) => {
-    if (value === "") {
-      setDisplayCount("");
-      return;
-    }
-    const numeric = Number(value);
-    if (Number.isNaN(numeric) || numeric <= 0) {
-      setDisplayCount("");
-      return;
-    }
-    setDisplayCount(String(Math.floor(numeric)));
-  };
-
   const handleSemesterChange = (value) => {
     setForm((prev) => {
       const next = { ...prev, semester: value };
@@ -1875,14 +2156,93 @@ export default function Payments() {
         </div>
       </div>
 
-      {/* Filter Section */}
+      <div className="students-filter-panel payments-filter-panel card card-soft mb-4 p-4">
+        <h4 className="fw-bold mb-3">Exam details</h4>
+        <p className="text-muted small mb-0">
+          Enter the exam name that should be associated with the selected students.
+        </p>
+        <div className="row g-3 mt-3">
+          <div className="col-md-8">
+            <label className="form-label fw-bold">Exam name</label>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Enter exam name"
+              value={form.examName}
+              onChange={(e) => {
+                setForm((prev) => ({ ...prev, examName: e.target.value }));
+              }}
+              list="exam-name-options"
+            />
+            <datalist id="exam-name-options">
+              {storedExamList.map((exam) => (
+                <option key={exam.id} value={exam.exam_name} />
+              ))}
+            </datalist>
+          </div>
+        </div>
+        <div className="mt-3">
+          <div className="text-muted small mb-1">Saved exams</div>
+          <div className="list-group list-group-flush">
+            {storedExamList.map((entry) => (
+              <div
+                key={entry.id}
+                className="list-group-item d-flex justify-content-between align-items-center gap-3"
+              >
+                <div>
+                  <div className="fw-semibold">{entry.exam_name}</div>
+                  <div className="text-muted small">
+                    {editingExam?.id === entry.id
+                      ? "Selected for editing"
+                      : "Tap edit to change the name"}
+                  </div>
+                </div>
+                <div className="d-flex gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-primary"
+                    onClick={() => handleSelectSavedExam(entry)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-danger"
+                    onClick={() => handleDeleteExamName(entry)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="mt-3 d-flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="btn btn-sm btn-primary"
+            onClick={handleSaveExamName}
+            disabled={Boolean(editingExam)}
+          >
+            Save
+          </button>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-primary"
+            onClick={handleUpdateExamName}
+            disabled={!editingExam}
+          >
+            Edit
+          </button>
+        </div>
+      </div>
       <div className="students-filter-panel payments-filter-panel card card-soft mb-4 p-4">
         <h4 className="fw-bold mb-3">Filter Students</h4>
 
         <div className="row g-3">
           {/* Student ID */}
           <div className="col-md-3">
-            <label className="form-label fw-bold">Student ID</label>
+            <label className="form-label fw-bold">Hall ticket number</label>
             <input
               type="text"
               className="form-control"
@@ -1893,7 +2253,7 @@ export default function Payments() {
                   student_id: e.target.value,
                 })
               }
-              placeholder="Enter Student ID"
+              placeholder="Enter Hall ticket"
             />
           </div>
 
@@ -2038,36 +2398,23 @@ export default function Payments() {
               ))}
             </select>
           </div>
-        </div>
-        <div className="row g-3 mt-3 align-items-end">
           <div className="col-md-3">
-            <label className="form-label fw-bold">Display rows</label>
-            <input
-              type="number"
-              min={1}
-              className="form-control"
-              placeholder="All"
-              value={displayCount}
-              onChange={(e) => handleDisplayCountChange(e.target.value)}
-            />
+            <label className="form-label fw-bold">Exam name</label>
+            <select
+              className="form-select"
+              value={form.examName}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, examName: e.target.value }))
+              }
+            >
+              <option value="">Select exam</option>
+              {storedExamList.map((entry) => (
+                <option key={entry.id} value={entry.exam_name}>
+                  {entry.exam_name}
+                </option>
+              ))}
+            </select>
           </div>
-          <div className="col-md-9">
-            <p className="text-muted small mb-1">
-              {hasActiveFilters
-                ? `${limitedStudents.length} students match the filters`
-                : "Apply filters to surface students"}
-            </p>
-            <p className="text-muted small mb-0">
-              {displayCount
-                ? `Showing ${limitedStudents.length} of ${filteredBySearch.length}`
-                : `Showing ${limitedStudents.length} entries`}
-            </p>
-          </div>
-        </div>
-        <div className="payments-filter-panel-footer mt-3 text-muted small">
-          {displayCount
-            ? `Limited to ${displayCount} rows`
-            : "No row limit"}
         </div>
       </div>
       <div className="students-table-panel payments-table-panel card card-soft p-4 mb-4">
@@ -2105,6 +2452,7 @@ export default function Payments() {
                     <th scope="col">Name</th>
                     <th scope="col">Group</th>
                     <th scope="col">Course</th>
+                    <th scope="col">Payment status</th>
                     <th scope="col" className="text-end">
                       Action
                     </th>
@@ -2176,52 +2524,55 @@ export default function Payments() {
                           <td>{studentName}</td>
                           <td>{groupLabel}</td>
                           <td>{courseLabel}</td>
-                      <td className="text-end">
-                        {(() => {
-                          const key = getAppliedRegistrationKey(s);
-                          const detail = key ? appliedRegistrationDetails[key] : null;
-                          const isApplied = detail?.fullyPaid;
-                          if (isApplied) {
+                          {(() => {
+                            const key = getAppliedRegistrationKey(s);
+                            const detail = key ? appliedRegistrationDetails[key] : null;
+                            const isApplied = detail?.fullyPaid;
+                            const buttonLabel =
+                              detail && detail.paidTotal > 0
+                                ? "Pay balance"
+                                : "Apply for Exam";
+                            const shouldSkipSelection =
+                              detail && detail.paidTotal > 0 && !detail.fullyPaid;
+                            const openModal = () =>
+                              openStudentModal(
+                                s,
+                                shouldSkipSelection ? { skipSubjectSelection: true } : {}
+                              );
                             return (
-                              <div className="text-end">
-                                <span className="badge bg-success text-white">
-                                  Applied
-                                </span>
-                                <div className="mt-2">
-                                  {renderPaymentStatusCell(detail)}
-                                </div>
-                              </div>
+                              <Fragment key={`${s.student_id}-payment`}>
+                                <td>
+                                  <div className="d-flex flex-column gap-2">
+                                    {renderPaymentStatusCell(detail)}
+                                    <button
+                                      type="button"
+                                      className="btn btn-sm btn-outline-success"
+                                      onClick={openModal}
+                                      disabled={isApplied}
+                                    >
+                                      Pay now
+                                    </button>
+                                  </div>
+                                </td>
+                                <td className="text-end">
+                                  <div className="text-end">
+                                    <button
+                                      className={`btn btn-sm ${
+                                        isActive
+                                          ? "btn-outline-secondary"
+                                          : "btn-outline-primary"
+                                      }`}
+                                      onClick={openModal}
+                                    >
+                                      {buttonLabel}
+                                    </button>
+                                  </div>
+                                </td>
+                              </Fragment>
                             );
-                          }
-                          const buttonLabel =
-                            detail && detail.paidTotal > 0
-                              ? "Pay balance"
-                              : "Apply for Exam";
-                          const shouldSkipSelection =
-                            detail && detail.paidTotal > 0 && !detail.fullyPaid;
-                          return (
-                            <div className="text-end">
-                              <button
-                                className={`btn btn-sm ${
-                                  isActive
-                                    ? "btn-outline-secondary"
-                                    : "btn-outline-primary"
-                                }`}
-                                onClick={() =>
-                                  openStudentModal(s, shouldSkipSelection ? { skipSubjectSelection: true } : {})
-                                }
-                              >
-                                {buttonLabel}
-                              </button>
-                              <div className="mt-2">
-                                {renderPaymentStatusCell(detail)}
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </td>
-                </tr>
-                      </Fragment>
+                          })()}
+                          </tr>
+                        </Fragment>
                     );
                   })}
                 </tbody>
@@ -2528,6 +2879,34 @@ export default function Payments() {
                 </div>
               )}
                     <div className="mt-4">
+                    {modalStep === 1 && (
+                      <div className="mb-4">
+                          <div className="d-flex align-items-start justify-content-between flex-wrap gap-3">
+                            <div>
+                              <h5 className="fw-semibold mb-1">Step 1: Pick subjects</h5>
+                              <p className="text-muted small mb-0">
+                                Tap each subject you want to store for the exam, then continue to review before confirming.
+                              </p>
+                            </div>
+                            <div className="text-end small text-muted">
+                              Selected {selectedSubjectCount} / Available {totalModalSubjectCount || "-"}
+                            </div>
+                          </div>
+                          <div className="mt-2 d-flex flex-wrap gap-2">
+                            <span className="badge bg-light text-dark border">
+                              Current semester {currentTotalCount} subjects
+                            </span>
+                            {supplementarySubjectsBySemester.map((group) => (
+                              <span
+                                key={`suppl-badge-${group.semester}`}
+                                className="badge bg-light text-dark border"
+                              >
+                                Supplementary Sem {group.semester} ({group.entries.length})
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     {modalStep === 1 && availableSupplementarySemesters.length > 0 && (
                       <div className="d-flex align-items-center justify-content-end gap-2 mb-3">
                         <span className="fw-semibold">Select Supplementary:</span>
@@ -2625,93 +3004,72 @@ export default function Payments() {
                         </>
                       )
                     ) : (
-                        <div className="card border border-primary shadow-sm mb-3">
-                          <div className="card-body">
-                            <div className="d-flex align-items-center justify-content-between mb-3">
+                      <>
+                          <div className="mb-3">
+                            <div className="d-flex align-items-start justify-content-between flex-wrap gap-3">
                               <div>
-                                <h6 className="fw-semibold mb-1">
-                                  {showPendingBalanceOnly ? "Pending balance" : "Review selections"}
-                                </h6>
+                                <h5 className="fw-semibold mb-1">Step 2: Review selections</h5>
                                 <p className="text-muted small mb-0">
-                                  {showPendingBalanceOnly
-                                    ? "Outstanding dues will be charged automatically."
-                                    : `${selectedSubjectCount} subjects selected`}
+                                  Confirm the subjects you picked - no payment amounts are shown here so you can focus on the papers themselves.
                                 </p>
                               </div>
-                            </div>
-                            {!showPendingBalanceOnly && currentSelectedEntries.length > 0 && (
-                              <div className="mb-3">
-                                <div className="text-muted small mb-1 fw-semibold">
-                                  Current semester
-                                </div>
-                                {currentSelectedEntries.map(renderSelectionLine)}
+                              <div className="text-end small text-muted">
+                                {selectedSubjectCount} subjects ready to store
                               </div>
-                            )}
-                          {!showPendingBalanceOnly &&
-                            supplementarySelectedBySemester.length > 0 && (
-                              <div>
-                                {supplementarySelectedBySemester.map((group) => (
-                                  <div className="mb-3" key={`review-suppl-${group.semester}`}>
-                                    <div className="text-muted small mb-1 fw-semibold">
-                                      Supplementary Semester {group.semester} - {group.entries.length} selected
+                            </div>
+                          </div>
+                      <div className="card border border-primary shadow-sm mb-3">
+                        <div className="card-body">
+                          <div className="mb-3">
+                            <h6 className="fw-semibold mb-1">Review selections</h6>
+                            <p className="text-muted small mb-0">
+                              {selectedSubjectCount
+                                ? `${selectedSubjectCount} subjects selected`
+                                : "Select at least one subject before confirming."}
+                          </p>
+                          </div>
+                          {currentSelectedEntries.length > 0 && (
+                            <div className="mb-3">
+                              <div className="text-muted small mb-2 fw-semibold">
+                                Current semester
+                              </div>
+                              <div className="d-flex flex-column gap-2">
+                                {currentSelectedEntries.map((entry) => (
+                                  <div key={`review-current-${entry.key}`} className="border-bottom pb-2">
+                                    <div className="fw-semibold">{entry.name}</div>
+                                    <div className="text-muted small">
+                                      {entry.code || "Code unavailable"}
                                     </div>
-                                    {group.entries.map(renderSelectionLine)}
                                   </div>
                                 ))}
                               </div>
-                            )}
-                            {!showPendingBalanceOnly && supplementarySelectedCount > 0 && (
-                              <div className="mt-3 border-top pt-3">
-                                <div className="d-flex justify-content-between align-items-center mb-1">
-                                  <span className="fw-semibold">
-                                    Supplementary fee (
-                                    {supplementarySelectedCount}{" "}
-                                    {supplementarySelectedCount === 1 ? "paper" : "papers"})
-                                  </span>
-                                  <span className="fw-semibold">
-                                    {formatCurrency(supplementaryFeeAmount)}
-                                  </span>
-                                </div>
-                              </div>
-                            )}
-                            <div className="mt-3">
-                              <div className="card border rounded shadow-sm">
-                                <div className="card-body p-3">
-                                  {showPendingBalanceOnly ? (
-                                    <div className="d-flex justify-content-between mb-1 small text-muted">
-                                      <span>Outstanding balance</span>
-                                      <span>{formatCurrency(Math.max(outstandingTotal, 0))}</span>
-                                    </div>
-                                  ) : (
-                                    <>
-                                      <div className="d-flex justify-content-between mb-1 small text-muted">
-                                        <span>Regular exam fees</span>
-                                        <span>{regularExamFeeDisplay}</span>
-                                      </div>
-                                      {supplementarySelectedCount > 0 && (
-                                        <div className="d-flex justify-content-between mb-1 small text-muted">
-                                          <span>Supplementary fee</span>
-                                          <span>{formatCurrency(supplementaryFeeAmount)}</span>
+                            </div>
+                          )}
+                          {supplementarySelectedBySemester.length > 0 && (
+                            <div>
+                              {supplementarySelectedBySemester.map((group) => (
+                                <div className="mb-3" key={`review-suppl-${group.semester}`}>
+                                  <div className="text-muted small mb-2 fw-semibold">
+                                    Supplementary Semester {group.semester} - {group.entries.length} selected
+                                  </div>
+                                  <div className="d-flex flex-column gap-2">
+                                    {group.entries.map((entry) => (
+                                      <div key={`review-suppl-entry-${entry.key}`} className="border-bottom pb-2">
+                                        <div className="fw-semibold">{entry.name}</div>
+                                        <div className="text-muted small">
+                                          {entry.code || "Code unavailable"}
                                         </div>
-                                      )}
-                                    </>
-                                  )}
-                                  <div className="d-flex justify-content-between fw-semibold">
-                                    <span>Total payable</span>
-                                    <span>
-                                      {formatCurrency(
-                                        showPendingBalanceOnly
-                                          ? Math.max(outstandingTotal, 0)
-                                          : regularExamFeeAmount + supplementaryFeeAmount
-                                      )}
-                                    </span>
+                                      </div>
+                                    ))}
                                   </div>
                                 </div>
-                              </div>
+                              ))}
                             </div>
-                            </div>
+                          )}
                         </div>
-                    )}
+                      </div>
+                    </>
+                  )}
                   </div>
                 </div>
                 <div className="modal-footer d-flex gap-2">
@@ -2727,7 +3085,11 @@ export default function Payments() {
                   <button
                     type="button"
                     className="btn btn-primary"
-                    onClick={modalStep === 1 ? handleAdvanceToSummary : handlePaySubjects}
+                    onClick={
+                      modalStep === 1
+                        ? handleAdvanceToSummary
+                        : handleStoreSelectedSubjects
+                    }
                   >
                     {modalStep === 1 ? "Next" : "Confirm"}
                   </button>
