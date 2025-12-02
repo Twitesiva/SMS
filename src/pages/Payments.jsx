@@ -542,10 +542,6 @@ export default function Payments() {
     }
 
     const uniqueSubjectEntries = getUniqueSelectedSubjectEntries();
-    const detailKeyForModal = getAppliedRegistrationKey(
-      activePaymentStudent,
-      modalSemester || form.semester || ""
-    );
     try {
       const { examRegistrationId, examMasterId } =
         await createOrFetchExamRegistration(examNameValue);
@@ -560,16 +556,7 @@ export default function Payments() {
       });
       try {
         const nextDetails = await buildAppliedRegistrationDetails();
-        const merged = detailKeyForModal
-          ? {
-              ...nextDetails,
-              [detailKeyForModal]: {
-                ...(nextDetails[detailKeyForModal] || {}),
-                applied: true,
-              },
-            }
-          : nextDetails;
-        setAppliedRegistrationDetails(merged);
+        setAppliedRegistrationDetails(nextDetails);
       } catch (error) {
         console.error("Failed to refresh applied registrations:", error);
       }
@@ -2434,11 +2421,9 @@ export default function Payments() {
                             const key = getAppliedRegistrationKey(s);
                             const detail = key ? appliedRegistrationDetails[key] : null;
                             const isApplied = detail?.fullyPaid;
-                            const hasAppliedForExam = Boolean(detail?.applied);
-                            const buttonLabel = detail?.paidTotal > 0
-                              ? "Pay balance"
-                              : hasAppliedForExam
-                                ? "Applied"
+                            const buttonLabel =
+                              detail?.paidTotal > 0
+                                ? "Pay balance"
                                 : "Apply for Exam";
                             const shouldSkipSelection =
                               detail && detail.paidTotal > 0 && !detail.fullyPaid;
@@ -2471,7 +2456,6 @@ export default function Payments() {
                                           : "btn-outline-primary"
                                       }`}
                                       onClick={openModal}
-                                      disabled={hasAppliedForExam}
                                     >
                                       {buttonLabel}
                                     </button>
