@@ -80,6 +80,10 @@ export default function Payments() {
     );
     return match?.id ?? null;
   }, [form.examName, storedExamList]);
+  const normalizedSelectedExamName = useMemo(
+    () => (form.examName || "").trim().toLowerCase() || null,
+    [form.examName]
+  );
   const [allowPaymentWithoutSelection, setAllowPaymentWithoutSelection] = useState(false);
   const examFeeData = useMemo(() => {
     if (!modalFeeInfo?.categories?.length) return null;
@@ -705,7 +709,7 @@ export default function Payments() {
     const { data, error } = await supabase
       .from("exam_registrations")
       .select(
-        "id, student_id, semester, total_fee, total_exam_fee, payments(fee_type, amount_paid, payment_status)"
+        "id, student_id, semester, total_fee, total_exam_fee, payments(fee_type, amount_paid, payment_status), exam_master(exam_name)"
       )
       .in("student_id", studentIds)
       .limit(1000);
@@ -719,6 +723,12 @@ export default function Payments() {
       const registrationId = registration.id;
       const studentRecord = studentLookup.get(registration.student_id);
       if (!studentRecord) return;
+
+      const examNameRow = (
+        registration.exam_master?.exam_name || ""
+      ).trim().toLowerCase();
+      if (!normalizedSelectedExamName || normalizedSelectedExamName !== examNameRow)
+        return;
 
       const studentIdSource =
         studentRecord.student_id ??
@@ -777,7 +787,7 @@ export default function Payments() {
     });
 
     return nextDetails;
-  }, [students, selectedExamId]);
+  }, [students, selectedExamId, normalizedSelectedExamName]);
 
   const getMatchedGroup = (student) =>
     groups.find(
