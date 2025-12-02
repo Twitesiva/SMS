@@ -2473,31 +2473,30 @@ export default function Payments() {
                               );
                             return (
                               <Fragment key={`${s.student_id}-payment`}>
-                                <td className="text-center text-muted small align-middle">
-                                  &nbsp;
+                                <td className="text-center">
+                                  <div className="d-flex flex-column gap-2 align-items-center">
+                                    {renderPaymentStatusCell(detail)}
+                                    <button
+                                      type="button"
+                                      className="btn btn-sm btn-outline-success"
+                                      onClick={openModal}
+                                      disabled={isApplied}
+                                    >
+                                      Pay now
+                                    </button>
+                                  </div>
                                 </td>
                   <td className="text-end">
-                    <div className="d-flex flex-column gap-2 align-items-end">
-                      <div className="text-end w-100">
-                        {renderPaymentStatusCell(detail)}
-                      </div>
-                      <div className="d-flex gap-2">
-                        <button
-                          className="btn btn-sm btn-outline-success"
-                          onClick={openModal}
-                          disabled={isApplied}
-                        >
-                          Pay now
-                        </button>
-                        <button
-                          className={`btn btn-sm ${
-                            isActive ? "btn-outline-secondary" : "btn-outline-primary"
-                          }`}
-                          onClick={openModal}
-                        >
-                          {buttonLabel}
-                        </button>
-                      </div>
+                    <div className="d-flex justify-content-end gap-2">
+                      <button
+                        className={`btn btn-sm ${
+                          isActive ? "btn-outline-secondary" : "btn-outline-primary"
+                        }`}
+                        onClick={openModal}
+                        disabled={detail?.paidTotal > 0}
+                      >
+                        {buttonLabel}
+                      </button>
                     </div>
                   </td>
                               </Fragment>
