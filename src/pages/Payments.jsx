@@ -22,6 +22,19 @@ const sumExamCoverageFromPayments = (payments = []) =>
 const normalizeCategoryValue = (value) =>
   value === undefined || value === null ? "" : String(value).trim().toUpperCase();
 
+const normalizeSemesterValue = (value) =>
+  value === undefined || value === null ? "" : String(value).trim();
+
+const normalizeStudentIdentifier = (value) =>
+  value === undefined || value === null ? "" : String(value).trim();
+
+const buildRegistrationKey = (studentId, semesterValue) => {
+  const normalizedStudentId = normalizeStudentIdentifier(studentId);
+  if (!normalizedStudentId) return null;
+  const normalizedSemester = normalizeSemesterValue(semesterValue);
+  return `${normalizedStudentId}-${normalizedSemester}`;
+};
+
 const formatCurrency = (value) => {
   const num = Number(value || 0);
   return `₹${num.toLocaleString("en-IN")}`;
@@ -72,6 +85,7 @@ export default function Payments() {
   const [modalPaymentSummary, setModalPaymentSummary] = useState(null);
   const [loadingModalPayments, setLoadingModalPayments] = useState(false);
   const [appliedRegistrationDetails, setAppliedRegistrationDetails] = useState({});
+  const [savedRegistrationSubjectIds, setSavedRegistrationSubjectIds] = useState([]);
   const selectedExamId = useMemo(() => {
     const normalized = (form.examName || "").trim().toLowerCase();
     if (!normalized) return null;
@@ -216,13 +230,76 @@ export default function Payments() {
     return options;
   }, [modalSemester]);
 
-  useEffect(() => {
+  const subjectRecordById = useMemo(() => {
+    const map = new Map();
+    subjects.forEach((subject) => {
+      const identifier =
+        subject.subject_id ?? subject.id ?? subject.subjectId ?? null;
+      if (identifier !== undefined && identifier !== null) {
+        map.set(String(identifier), subject);
+      }
+    });
+    return map;
+  }, [subjects]);
+
+    useEffect(() => {
     setSelectedSupplementarySemesters((prev) =>
       prev.filter((sem) =>
         availableSupplementarySemesters.includes(Number(sem))
       )
     );
   }, [availableSupplementarySemesters]);
+
+  useEffect(() => {
+    if (
+      !allowPaymentWithoutSelection ||
+      !savedRegistrationSubjectIds.length
+    ) {
+      return;
+    }
+    const normalizedCurrentSemester = normalizeSemesterValue(modalSemester);
+    const storedSupplementarySemesters = new Set();
+    savedRegistrationSubjectIds.forEach((subjectId) => {
+      const subject = subjectRecordById.get(String(subjectId));
+      if (!subject) return;
+      const subjectSemester =
+        subject.semester ??
+        subject.semester_number ??
+        subject.semesterNumber ??
+        "";
+      const normalizedSubjectSemester = normalizeSemesterValue(subjectSemester);
+      if (
+        !normalizedSubjectSemester ||
+        normalizedSubjectSemester === normalizedCurrentSemester
+      ) {
+        return;
+      }
+      if (
+        availableSupplementarySemesters.some(
+          (option) => String(option) === normalizedSubjectSemester
+        )
+      ) {
+        storedSupplementarySemesters.add(normalizedSubjectSemester);
+      }
+    });
+    const nextSemesters = Array.from(storedSupplementarySemesters);
+    if (
+      nextSemesters.length === selectedSupplementarySemesters.length &&
+      nextSemesters.every((semester) =>
+        selectedSupplementarySemesters.includes(semester)
+      )
+    ) {
+      return;
+    }
+    setSelectedSupplementarySemesters(nextSemesters);
+  }, [
+    allowPaymentWithoutSelection,
+    availableSupplementarySemesters,
+    modalSemester,
+    savedRegistrationSubjectIds,
+    selectedSupplementarySemesters,
+    subjectRecordById,
+  ]);
 
   const displayedSubjectLabel = selectedSupplementarySemesters.length
     ? "Supplementary subjects"
@@ -430,6 +507,40 @@ export default function Payments() {
     });
     setModalStep(allowPaymentWithoutSelection ? 2 : 1);
   }, [uniqueModalSubjectKeys, allowPaymentWithoutSelection]);
+
+  useEffect(() => {
+    if (
+      !allowPaymentWithoutSelection ||
+      !savedRegistrationSubjectIds.length ||
+      !combinedSubjectEntries.length
+    ) {
+      return;
+    }
+    const subjectIdSet = new Set(savedRegistrationSubjectIds);
+    const nextKeys = new Set();
+    combinedSubjectEntries.forEach((entry) => {
+      const identifier =
+        entry.subjectReferenceId ?? entry.subjectId ?? null;
+      if (!identifier) return;
+      if (subjectIdSet.has(String(identifier))) {
+        nextKeys.add(entry.key);
+      }
+    });
+    if (!nextKeys.size) return;
+    setSelectedSubjectKeys((prev) => {
+      if (
+        prev.size === nextKeys.size &&
+        Array.from(prev).every((key) => nextKeys.has(key))
+      ) {
+        return prev;
+      }
+      return nextKeys;
+    });
+  }, [
+    allowPaymentWithoutSelection,
+    combinedSubjectEntries,
+    savedRegistrationSubjectIds,
+  ]);
   const currentSelectedCount = currentSelectedEntries.length;
   const supplementarySelectedCount = supplementarySelectedEntries.length;
   const supplementaryFeeAmount = useMemo(() => {
@@ -676,11 +787,11 @@ export default function Payments() {
   const renderPaymentStatusCell = () => null;
 
   const getAppliedRegistrationKey = (student, semesterValue) => {
-    const semester =
-      semesterValue ||
-      form.semester ||
-      student?.semester ||
-      student?.semester_number ||
+    const semesterCandidate =
+      semesterValue ??
+      form.semester ??
+      student?.semester ??
+      student?.semester_number ??
       "";
     const studentId =
       student?.student_id ??
@@ -688,8 +799,7 @@ export default function Payments() {
       student?.id ??
       student?.student_id_number ??
       "";
-    if (!studentId || !semester) return null;
-    return `${studentId}-${semester}`;
+    return buildRegistrationKey(studentId, semesterCandidate);
   };
 
   const buildAppliedRegistrationDetails = useCallback(async () => {
@@ -706,11 +816,11 @@ export default function Payments() {
     const studentIds = Array.from(studentLookup.keys());
     if (!studentIds.length || !selectedExamId) return {};
 
-    const { data, error } = await supabase
-      .from("exam_registrations")
-      .select(
-        "id, student_id, semester, total_fee, total_exam_fee, payments(fee_type, amount_paid, payment_status), exam_master(exam_name)"
-      )
+      const { data, error } = await supabase
+        .from("exam_registrations")
+        .select(
+          "id, student_id, semester, exam_id, total_fee, total_exam_fee, payments(fee_type, amount_paid, payment_status), exam_master(exam_name)"
+        )
       .in("student_id", studentIds)
       .limit(1000);
 
@@ -739,12 +849,10 @@ export default function Payments() {
       if (!studentIdSource) return;
 
       if (selectedExamId && registration.exam_id !== selectedExamId) return;
-      if (registration.exam_id !== selectedExamId) return;
       const semesterValue =
         registration.semester === undefined || registration.semester === null
           ? ""
-          : String(registration.semester);
-      if (!semesterValue) return;
+          : registration.semester;
 
       const successfulPayments = (registration.payments || []).filter(
         (payment) => payment?.payment_status === "success"
@@ -767,7 +875,8 @@ export default function Payments() {
         ? "exam-paid"
         : "partial-paid-without-exam";
 
-      const registrationKey = `${studentIdSource}-${semesterValue}`;
+      const registrationKey = buildRegistrationKey(studentIdSource, semesterValue);
+      if (!registrationKey) return;
       registrationKeyById.set(registrationId, registrationKey);
       nextDetails[registrationKey] = {
         fullyPaid,
@@ -777,6 +886,7 @@ export default function Payments() {
         examCoverageAmount,
         totalFee,
         applied: false,
+        registrationId,
       };
     });
 
@@ -1358,10 +1468,16 @@ export default function Payments() {
     setModalPaymentSummary(null);
     setSelectedSubjectKeys(new Set());
     setSelectedSupplementarySemesters([]);
-    setModalStep(options.skipSubjectSelection ? 2 : 1);
+    const skipSelection = Boolean(options.skipSubjectSelection);
+    setModalStep(skipSelection ? 2 : 1);
     setModalPaymentRecords(options.records || []);
     setPaymentMethod("");
-    setAllowPaymentWithoutSelection(Boolean(options.skipSubjectSelection));
+    setAllowPaymentWithoutSelection(skipSelection);
+    setSavedRegistrationSubjectIds([]);
+    const registrationId = options.registrationDetail?.registrationId ?? null;
+    if (registrationId) {
+      void loadExamRegistrationSubjects(registrationId);
+    }
   };
 
   const openStudentModal = (student, options = {}) => {
@@ -1387,6 +1503,7 @@ export default function Payments() {
     setLoadingModalPayments(false);
     setModalPaymentRecords([]);
     setAllowPaymentWithoutSelection(false);
+    setSavedRegistrationSubjectIds([]);
   };
   const closePaymentModal = ({ notifyCancellation = false } = {}) => {
     setShowPaymentModal(false);
@@ -1448,6 +1565,28 @@ export default function Payments() {
       .insert(decodePayload);
     if (decodeInsertError) throw decodeInsertError;
   };
+
+  const loadExamRegistrationSubjects = useCallback(async (registrationId) => {
+    if (!registrationId) {
+      setSavedRegistrationSubjectIds([]);
+      return;
+    }
+    try {
+      const { data, error } = await supabase
+        .from("exam_registration_subjects")
+        .select("subject_id")
+        .eq("exam_registration_id", registrationId);
+      if (error) throw error;
+      const subjectIds = (data || [])
+        .map((row) => row?.subject_id)
+        .filter((value) => value !== undefined && value !== null)
+        .map((value) => String(value));
+      setSavedRegistrationSubjectIds(subjectIds);
+    } catch (error) {
+      console.error("Failed to load stored subjects:", error);
+      setSavedRegistrationSubjectIds([]);
+    }
+  }, []);
 
   const ensureExamMaster = useCallback(
     async (examName) => {
@@ -2316,17 +2455,19 @@ export default function Payments() {
                             const key = getAppliedRegistrationKey(s);
                             const detail = key ? appliedRegistrationDetails[key] : null;
                             const isApplied = detail?.fullyPaid;
+                            const hasStoredSubjects = Boolean(detail?.applied);
                             const buttonLabel =
                               detail?.paidTotal > 0
                                 ? "Pay balance"
                                 : "Apply for Exam";
-                            const shouldSkipSelection =
-                              detail && detail.paidTotal > 0 && !detail.fullyPaid;
+                            const skipSelection =
+                              hasStoredSubjects ||
+                              (detail && detail.paidTotal > 0 && !detail.fullyPaid);
                             const openModal = () =>
-                              openStudentModal(
-                                s,
-                                shouldSkipSelection ? { skipSubjectSelection: true } : {}
-                              );
+                              openStudentModal(s, {
+                                skipSubjectSelection: skipSelection,
+                                registrationDetail: detail,
+                              });
                             return (
                               <Fragment key={`${s.student_id}-payment`}>
                                 <td className="text-center">
@@ -2726,15 +2867,6 @@ export default function Payments() {
                   </div>
                 </div>
                 <div className="modal-footer d-flex gap-2">
-                  {modalStep === 2 && (
-                    <button
-                      type="button"
-                      className="btn btn-outline-secondary"
-                      onClick={() => setModalStep(1)}
-                    >
-                      Back
-                    </button>
-                  )}
                   <button
                     type="button"
                     className="btn btn-primary"
