@@ -1577,6 +1577,17 @@ export default function Payments() {
     }
   };
 
+  const handleCompleteRegistration = () => {
+    const confirmed = window.confirm(
+      "Complete registration for the currently selected students?"
+    );
+    if (!confirmed) return;
+    showToast("Registration process marked complete.", {
+      type: "success",
+      title: "Registration",
+    });
+  };
+
   const handleDeleteExamName = async (examEntry) => {
     const target = examEntry ?? editingExam;
     if (!target) {
@@ -2078,6 +2089,13 @@ export default function Payments() {
             disabled={!editingExam}
           >
             Edit
+          </button>
+          <button
+            type="button"
+            className="btn btn-sm btn-success"
+            onClick={handleCompleteRegistration}
+          >
+            Complete Registration
           </button>
         </div>
       </div>
