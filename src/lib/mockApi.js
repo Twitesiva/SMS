@@ -10,7 +10,7 @@ const TABLES = {
   subjects: "subjects",
   batches: "batches",
   students: "students",
-  exams: "exams",
+  exams: "exam_master",
   payments: "payments",
   hallTickets: "hall_tickets",
   results: "results",
@@ -506,22 +506,22 @@ const mapBatch = (row = {}) => ({
 
 const toBatchRow = ({ name }) => ({ name });
 
-const mapExam = (row = {}) => ({
-  id: row.id,
-  title: row.title,
-  date: row.date || row.exam_date,
-  time: row.time || row.exam_time,
-  venue: row.venue,
-  course_id: row.course_id,
-  created_at: row.created_at,
-});
+const mapExam = (row = {}) => {
+  const name = row.exam_name ?? row.name ?? row.title ?? "";
+  return {
+    id: row.id,
+    exam_name: name,
+    title: name,
+    name,
+    created_at: row.created_at,
+    date: row.date || row.exam_date || row.created_at || "",
+    time: row.time || row.exam_time || "",
+    venue: row.venue || "",
+  };
+};
 
-const toExamRow = ({ title, date, time, venue, course_id }) => ({
-  title,
-  exam_date: date,
-  exam_time: time,
-  venue,
-  course_id: course_id || null,
+const toExamRow = ({ title, name, exam_name }) => ({
+  exam_name: exam_name ?? name ?? title ?? "",
 });
 
 const mapExamSchedule = (row = {}) => ({
@@ -1034,7 +1034,7 @@ export const api = {
     const rows = await runQuery(
       supabase
         .from(TABLES.exams)
-        .select("id, name, created_at")
+        .select("id, exam_name, created_at")
         .order("created_at", { ascending: false }),
       "Unable to fetch exams"
     );

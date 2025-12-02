@@ -1,14 +1,669 @@
+import { useEffect, useMemo, useState } from "react";
 import AdminShell from "../components/AdminShell";
+import { api } from "../lib/mockApi";
+import { supabase } from "../../supabaseClient";
+import collegeLogo from "../assets/media/images.png";
+import signatureImage from "../assets/media/signature.png";
 
 export default function HallTickets() {
+  const [filters, setFilters] = useState({
+    exam: "",
+    group: "",
+    course: "",
+    hallTicket: "",
+  });
+  const [options, setOptions] = useState({
+    exams: [],
+    groups: [],
+    courses: [],
+  });
+  const [loadingOptions, setLoadingOptions] = useState(true);
+  const [registeredStudents, setRegisteredStudents] = useState([]);
+  const [loadingRegistrations, setLoadingRegistrations] = useState(false);
+  const [registrationsError, setRegistrationsError] = useState("");
+  const [modalStudent, setModalStudent] = useState(null);
+  const [appearingPapers, setAppearingPapers] = useState([]);
+  const [papersLoading, setPapersLoading] = useState(false);
+  const [papersError, setPapersError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    const loadOptions = async () => {
+      try {
+        const [exams, groups, courses] = await Promise.all([
+          api.listExams?.() ?? [],
+          api.listGroups?.() ?? [],
+          api.listCourses?.() ?? [],
+        ]);
+        if (!active) return;
+        setOptions({
+          exams: exams || [],
+          groups: groups || [],
+          courses: courses || [],
+        });
+      } catch (err) {
+        console.error("Unable to load hall ticket metadata", err);
+      } finally {
+        if (active) setLoadingOptions(false);
+      }
+    };
+    loadOptions();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleFilterChange = (field) => (event) => {
+    setFilters((prev) => {
+      const next = { ...prev, [field]: event.target.value };
+      if (field === "group") {
+        next.course = "";
+      }
+      return next;
+    });
+  };
+
+  const formatExamLabel = (exam) =>
+    exam?.title ?? exam?.name ?? exam?.exam_name ?? "Exam";
+  const formatGroupLabel = (group) =>
+    group?.name ??
+    group?.group_name ??
+    group?.label ??
+    group?.code ??
+    group?.groupCode ??
+    "Group";
+  const formatCourseLabel = (course) =>
+    course?.name ??
+    course?.course_name ??
+    course?.courseName ??
+    course?.courseCode ??
+    "Course";
+
+  const getExamValue = (exam) =>
+    String(exam?.id ?? exam?.exam_id ?? exam?.value ?? "");
+  const getGroupValue = (group) =>
+    group?.group_name ??
+    group?.name ??
+    group?.groupName ??
+    group?.group_code ??
+    group?.groupCode ??
+    group?.code ??
+    group?.id ??
+    "";
+  const getCourseValue = (course) =>
+    course?.course_name ??
+    course?.courseName ??
+    course?.courseCode ??
+    course?.course_code ??
+    course?.id ??
+    "";
+
+  const getCourseGroupValue = (course) =>
+    course?.group_name ??
+    course?.groupName ??
+    course?.group_code ??
+    course?.groupCode ??
+    "";
+
+  const filteredCourses = filters.group
+    ? options.courses.filter((course) => {
+        const groupValue = getCourseGroupValue(course);
+        if (!groupValue) return true;
+        return groupValue === filters.group;
+      })
+    : options.courses;
+
+  const selectedExamLabel = useMemo(() => {
+    if (!filters.exam) return "";
+    const exam = options.exams.find(
+      (item) => getExamValue(item) === String(filters.exam)
+    );
+    return formatExamLabel(exam);
+  }, [filters.exam, options.exams]);
+
+  const handleViewStudent = (student) => {
+    setModalStudent(student);
+  };
+
+  const modalBackdropStyle = {
+    backgroundColor: "rgba(0, 0, 0, 0.15)",
+    zIndex: 1050,
+    pointerEvents: "none",
+  };
+
+  const modalDialogStyle = {
+    zIndex: 1060,
+  };
+
+  useEffect(() => {
+    if (!modalStudent) return;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setModalStudent(null);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [modalStudent]);
+
+  useEffect(() => {
+    const loadAppearingPapers = async () => {
+      if (!modalStudent || !filters.exam || !modalStudent.studentRowId) {
+        setAppearingPapers([]);
+        setPapersError("");
+        return;
+      }
+      setPapersLoading(true);
+      setPapersError("");
+      try {
+        // fetch seat assignments with subject info
+        const { data: seatRows, error: seatError } = await supabase
+          .from("student_subject_seats")
+          .select("seat_number, subject_id")
+          .eq("student_id", modalStudent.studentRowId)
+          .eq("exam_id", filters.exam);
+        if (seatError) throw seatError;
+
+        const subjectIds = Array.from(
+          new Set(
+            (seatRows || [])
+              .map((row) => row.subject_id)
+              .filter((id) => id !== undefined && id !== null)
+          )
+        );
+        let subjectRows = [];
+        if (subjectIds.length) {
+          const { data: subjects, error: subjectError } = await supabase
+            .from("subjects")
+            .select("subject_id, subject_code, subject_name")
+            .in("subject_id", subjectIds);
+          if (subjectError) throw subjectError;
+          subjectRows = subjects || [];
+        }
+
+        const subjectMap = new Map(
+          subjectRows.map((row) => [row.subject_id, row])
+        );
+
+        const { data: scheduleRows, error: scheduleError } = await supabase
+          .from("exam_schedule")
+          .select("subject_code, exam_date, exam_start_time, exam_end_time")
+          .eq("exam_master_id", filters.exam);
+        if (scheduleError) throw scheduleError;
+
+        const scheduleMap = new Map(
+          (scheduleRows || []).map((row) => [
+            row.subject_code?.toString().toUpperCase(),
+            row,
+          ])
+        );
+
+        const papers = (seatRows || []).map((row) => {
+          const subject = subjectMap.get(row.subject_id);
+          const code = subject?.subject_code?.toString().toUpperCase();
+          const schedule = scheduleMap.get(code);
+          return {
+            seatNumber: row.seat_number ?? "—",
+            date: schedule?.exam_date ?? "—",
+              time:
+                schedule?.exam_start_time && schedule?.exam_end_time
+                  ? `${schedule.exam_start_time} - ${schedule.exam_end_time}`
+                  : "—",
+              subjectCode: subject?.subject_code ?? "—",
+              subjectName: subject?.subject_name ?? "—",
+            };
+          });
+        setAppearingPapers(papers);
+      } catch (error) {
+        console.error("Unable to load appearing papers", error);
+        setPapersError(error.message || "Failed to load paper details.");
+      } finally {
+        setPapersLoading(false);
+      }
+    };
+
+    loadAppearingPapers();
+  }, [modalStudent, filters.exam]);
+
+  useEffect(() => {
+    let active = true;
+    const shouldFetch =
+      filters.exam && (filters.hallTicket || (filters.group && filters.course));
+    if (!shouldFetch) {
+      setRegisteredStudents([]);
+      setRegistrationsError("");
+      return;
+    }
+
+    const fetchRegistrations = async () => {
+      setLoadingRegistrations(true);
+      setRegistrationsError("");
+      try {
+        const { data: registrations, error: regError } = await supabase
+          .from("exam_registrations")
+          .select(
+            "id, student_id, academic_year, semester, group_name, course_name, status, created_at"
+          )
+          .eq("exam_id", filters.exam)
+          .order("created_at", { ascending: true });
+        if (regError) throw regError;
+        const normalized = (value) => value?.toString().trim();
+        const filtered = (registrations || []).filter((reg) => {
+          const matchesGroup = filters.group
+            ? normalized(reg.group_name) === normalized(filters.group)
+            : true;
+          const matchesCourse = filters.course
+            ? normalized(reg.course_name) === normalized(filters.course)
+            : true;
+          return matchesGroup && matchesCourse;
+        });
+        if (!filtered.length) {
+          setRegisteredStudents([]);
+          return;
+        }
+
+        const studentIds = Array.from(
+          new Set(filtered.map((reg) => reg.student_id).filter(Boolean))
+        );
+        let studentRows = [];
+        if (studentIds.length) {
+          const { data: students, error: studentError } = await supabase
+            .from("students")
+            .select(
+              "id, student_id, full_name, hall_ticket_no, group_name, course_name, gender, email, photo_url"
+            )
+            .in("id", studentIds);
+          if (studentError) throw studentError;
+          studentRows = students || [];
+        }
+        if (!active) return;
+        const studentMap = new Map(studentRows.map((s) => [s.id, s]));
+        const combined = filtered.map((reg) => {
+          const student = studentMap.get(reg.student_id);
+          return {
+            registrationId: reg.id,
+            studentId: student?.student_id ?? reg.student_id,
+            name: student?.full_name ?? "Unnamed student",
+            hallTicket: student?.hall_ticket_no ?? "—",
+            group: reg.group_name || reg.group_code || "—",
+            course: reg.course_name || reg.course_code || "—",
+            semester: reg.semester ?? "—",
+            status: reg.status ?? "—",
+            email: student?.email ?? "",
+            photo: student?.photo_url ?? "",
+            studentRowId: student?.id ?? null,
+          };
+        });
+      const hallTicketFilter = filters.hallTicket?.toString().trim().toLowerCase();
+        const finalList = hallTicketFilter
+          ? combined.filter((student) =>
+              student.hallTicket
+                .toString()
+                .toLowerCase()
+                .includes(hallTicketFilter)
+            )
+          : combined;
+        setRegisteredStudents(finalList);
+      } catch (error) {
+        if (!active) return;
+        console.error("Unable to load hall ticket registrations", error);
+        setRegistrationsError(error.message || "Failed to load students.");
+      } finally {
+        active && setLoadingRegistrations(false);
+      }
+    };
+
+    fetchRegistrations();
+    return () => {
+      active = false;
+    };
+  }, [filters]);
+
+  const shouldShowStudents =
+    filters.exam && (filters.hallTicket || (filters.group && filters.course));
+
   return (
     <AdminShell>
-      <div
-        className="d-flex flex-column align-items-center justify-content-center"
-        style={{ minHeight: "70vh" }}
-      >
-        <h2 className="fw-bold mb-3">Hall Tickets</h2>
-        <p className="h4 text-muted">This page should be updated</p>
+      <div className="container-fluid py-4">
+        <div className="row mb-4">
+          <div className="col-12">
+            <div className="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3">
+              <div>
+                <h2 className="fw-bold mb-1">Hall Tickets</h2>
+                <p className="text-muted mb-0">
+                  Use the dropdowns below to filter by exam, group, and course.
+                  The names are loaded from the database so they stay in sync.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="row gy-4">
+          <div className="col-12">
+            <div className="card card-soft shadow-sm">
+              <div className="card-body">
+                <div className="row g-3">
+                  <div className="col-md-4">
+                    <label className="form-label">Exam name</label>
+                    <select
+                      className="form-select"
+                      value={filters.exam}
+                      onChange={handleFilterChange("exam")}
+                    >
+                      <option value="">
+                        {loadingOptions ? "Loading exams…" : "Select Exam"}
+                      </option>
+                      {!loadingOptions &&
+                        options.exams.map((option) => (
+                          <option
+                            key={getExamValue(option) || option.title || option.name}
+                            value={getExamValue(option)}
+                          >
+                            {formatExamLabel(option)}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label">Group</label>
+                    <select
+                      className="form-select"
+                      value={filters.group}
+                      onChange={handleFilterChange("group")}
+                    >
+                      <option value="">
+                        {loadingOptions ? "Loading groups…" : "Select Group"}
+                      </option>
+                      {!loadingOptions &&
+                        options.groups.map((option) => (
+                          <option
+                            key={getGroupValue(option) || option.name}
+                            value={getGroupValue(option)}
+                          >
+                            {formatGroupLabel(option)}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label">Course</label>
+                    <select
+                      className="form-select"
+                      value={filters.course}
+                      onChange={handleFilterChange("course")}
+                    >
+                      <option value="">
+                        {loadingOptions ? "Loading courses…" : "Select Course"}
+                      </option>
+                      {!loadingOptions && filteredCourses.length === 0 && filters.group && (
+                        <option disabled value="">
+                          No courses available for this group
+                        </option>
+                      )}
+                      {!loadingOptions &&
+                        filteredCourses.map((option) => (
+                          <option
+                            key={getCourseValue(option) || option.name}
+                            value={getCourseValue(option)}
+                          >
+                            {formatCourseLabel(option)}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label">Hall ticket no.</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={filters.hallTicket}
+                      onChange={handleFilterChange("hallTicket")}
+                      placeholder="Start typing hall ticket no."
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {shouldShowStudents && (
+            <div className="col-12">
+              <div className="card card-soft shadow-sm">
+                <div className="card-body">
+                  <div className="d-flex justify-content-between align-items-center gap-3 mb-3 flex-wrap">
+                    <h4 className="mb-0">Registered students</h4>
+                    {loadingRegistrations && (
+                      <span className="text-muted small">Loading students…</span>
+                    )}
+                  </div>
+                  {registrationsError && (
+                    <div className="alert alert-danger mb-3">
+                      {registrationsError}
+                    </div>
+                  )}
+                  {!loadingRegistrations && !registeredStudents.length && (
+                    <div className="text-muted">No students registered yet.</div>
+                  )}
+                  {!loadingRegistrations && registeredStudents.length > 0 && (
+                    <div className="table-responsive">
+                      <table className="table mb-0">
+                        <thead>
+                          <tr>
+                            <th>Student ID</th>
+                            <th>Name</th>
+                            <th>Hall ticket</th>
+                            <th>Semester</th>
+                            <th>Group</th>
+                            <th>Course</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {registeredStudents.map((student) => (
+                            <tr key={`${student.registrationId}-${student.studentId}`}>
+                              <td>{student.studentId}</td>
+                              <td>{student.name}</td>
+                              <td>{student.hallTicket}</td>
+                              <td>{student.semester}</td>
+                              <td>{student.group}</td>
+                              <td>{student.course}</td>
+                              <td>
+                                <div className="d-flex flex-wrap gap-2">
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-outline-info"
+                                    onClick={() => handleViewStudent(student)}
+                                  >
+                                    View
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-outline-primary"
+                                  >
+                                    Download
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-outline-secondary"
+                                  >
+                                    Print
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        {modalStudent && (
+          <div
+            className="modal fade show d-block"
+            tabIndex="-1"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div
+              className="modal-backdrop fade show"
+              style={modalBackdropStyle}
+            ></div>
+            <div
+              className="modal-dialog modal-xl modal-dialog-centered"
+              style={modalDialogStyle}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="modal-content p-4">
+                <div className="d-flex justify-content-between gap-3 flex-wrap align-items-start">
+                  <img
+                    src={collegeLogo}
+                    alt="College logo"
+                    style={{ width: 96, height: 96, objectFit: "contain" }}
+                    className="rounded border"
+                  />
+                  <div className="text-center flex-grow-1">
+                    <div className="text-uppercase text-muted fs-xs">
+                      Vijayam Arts and Science College
+                    </div>
+                    <h5 className="fw-bold mb-1">
+                      {selectedExamLabel || "Exam Details"}
+                    </h5>
+                    <div className="fw-semibold fs-4">Hall Ticket</div>
+                  </div>
+                  <div className="text-end">
+                    <img
+                      src={
+                        modalStudent.photo ||
+                        "https://via.placeholder.com/96?text=Photo"
+                      }
+                      alt="Student"
+                      className="rounded border mt-2"
+                      style={{ width: 96, height: 96, objectFit: "cover" }}
+                    />
+                  </div>
+                </div>
+                <div className="d-flex flex-column gap-2 mt-3 text-start">
+                  {[
+                    {
+                      label: "Hall Ticket Number",
+                      value: modalStudent.hallTicket,
+                    },
+                    { label: "Student Name", value: modalStudent.name },
+                    { label: "Group Name", value: modalStudent.group },
+                    { label: "Course Name", value: modalStudent.course },
+                  ].map((column) => (
+                    <div
+                      className="d-flex align-items-center gap-2"
+                      key={column.label}
+                    >
+                      <span
+                        className="text-muted fs-7"
+                        style={{ width: 150 }}
+                      >
+                        {column.label}
+                      </span>
+                      <span className="text-muted">:</span>
+                      <span className="fw-semibold text-body">
+                        {column.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="position-relative text-center my-4">
+                  <hr />
+                  <span className="position-absolute top-50 start-50 translate-middle bg-white px-3 text-uppercase small text-muted fw-bold">
+                    Appearing Papers
+                  </span>
+                </div>
+                <div className="mb-3">
+                  {papersLoading && (
+                    <div className="text-muted">Loading papers…</div>
+                  )}
+                  {papersError && (
+                    <div className="alert alert-warning mb-2">
+                      {papersError}
+                    </div>
+                  )}
+                  {appearingPapers.length > 0 && (
+                    <div className="table-responsive">
+                      <table className="table table-borderless align-middle mb-0">
+                        <thead>
+                          <tr>
+                            <th>Seat No</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Subject Code</th>
+                            <th>Subject</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {appearingPapers.map((paper) => (
+                            <tr
+                              key={`${paper.subjectCode}-${paper.seatNumber}-${paper.time}`}
+                            >
+                              <td className="fw-semibold">{paper.seatNumber}</td>
+                              <td>{paper.date}</td>
+                              <td>{paper.time}</td>
+                              <td>{paper.subjectCode}</td>
+                              <td>{paper.subjectName}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                  {!papersLoading &&
+                    !papersError &&
+                    appearingPapers.length === 0 && (
+                      <div className="text-muted">No papers found.</div>
+                    )}
+                </div>
+                <div className="row text-center mt-4 align-items-end">
+                  {["Signature of the Student", "Signature of the Principal", "Controller of Examination"].map(
+                    (label) => (
+                      <div
+                        className="col-12 col-md-4 mb-3 mb-md-0 d-flex flex-column align-items-center justify-content-end"
+                        key={label}
+                        style={{ minHeight: 150 }}
+                      >
+                        {label === "Controller of Examination" && (
+                          <img
+                            src={signatureImage}
+                            alt="Controller signature"
+                            className="mb-2 w-100"
+                            style={{ maxWidth: 180, height: "auto", objectFit: "contain" }}
+                          />
+                        )}
+                        <p className="mb-0 fw-semibold text-dark text-uppercase">
+                          {label}
+                        </p>
+                      </div>
+                    )
+                  )}
+                </div>
+                <div className="mt-2 text-end">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => setModalStudent(null)}
+                  >
+                    Close Modal
+                  </button>
+                </div>
+                <p className="text-muted fw-bold small mt-3">
+                  Note. The information furnished above is submitted by college.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AdminShell>
   );
