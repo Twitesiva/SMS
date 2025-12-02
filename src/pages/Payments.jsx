@@ -736,15 +736,6 @@ export default function Payments() {
     );
   }
 
-  if (detail.applied) {
-    return (
-      <>
-        <span className="badge bg-secondary text-white">Applied</span>
-        <div className="text-muted small mt-1">Subjects already stored</div>
-      </>
-    );
-  }
-
   return (
     <>
       <span className="badge bg-warning text-dark">Partial payment</span>
