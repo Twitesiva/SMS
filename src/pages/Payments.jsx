@@ -80,10 +80,6 @@ export default function Payments() {
     );
     return match?.id ?? null;
   }, [form.examName, storedExamList]);
-  const normalizedSelectedExamName = useMemo(
-    () => (form.examName || "").trim().toLowerCase() || null,
-    [form.examName]
-  );
   const [allowPaymentWithoutSelection, setAllowPaymentWithoutSelection] = useState(false);
   const examFeeData = useMemo(() => {
     if (!modalFeeInfo?.categories?.length) return null;
@@ -739,6 +735,7 @@ export default function Payments() {
       if (!studentIdSource) return;
 
       if (selectedExamId && registration.exam_id !== selectedExamId) return;
+      if (registration.exam_id !== selectedExamId) return;
       const semesterValue =
         registration.semester === undefined || registration.semester === null
           ? ""
