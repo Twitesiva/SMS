@@ -2060,27 +2060,30 @@ export default function Payments() {
                       : "Tap edit to change the name"}
                   </div>
                 </div>
-                <div className="btn-group btn-group-sm">
+                <div className="d-flex flex-wrap gap-2 justify-content-end w-100 w-md-auto">
                   <button
                     type="button"
-                    className="btn btn-outline-primary"
+                    className="btn btn-sm btn-outline-primary rounded-pill px-3"
                     onClick={() => handleSelectSavedExam(entry)}
+                    title="Edit this exam name"
                   >
-                    Edit
+                    ✏️ Edit
                   </button>
                   <button
                     type="button"
-                    className="btn btn-outline-danger"
+                    className="btn btn-sm btn-outline-danger rounded-pill px-3"
                     onClick={() => handleDeleteExamName(entry)}
+                    title="Remove this exam name"
                   >
-                    Delete
+                    🗑 Delete
                   </button>
                   <button
                     type="button"
-                    className="btn btn-outline-success"
+                    className="btn btn-sm btn-outline-success rounded-pill px-3"
                     onClick={openCompleteRegistrationModal}
+                    title="Mark students for this exam as fully registered"
                   >
-                    Complete Registration
+                    ✅ Complete Registration
                   </button>
                 </div>
               </div>
