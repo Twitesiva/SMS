@@ -68,8 +68,6 @@ export default function Payments() {
   const [loadingSupplementaryFeeRates, setLoadingSupplementaryFeeRates] =
     useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentOption, setPaymentOption] = useState("full");
-  const [partialAmount, setPartialAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
   const [modalPaymentSummary, setModalPaymentSummary] = useState(null);
   const [loadingModalPayments, setLoadingModalPayments] = useState(false);
@@ -479,29 +477,13 @@ export default function Payments() {
       : modalPaymentSummary?.totalFee || 0;
   const alreadyPaidTotal = modalPaymentSummary?.alreadyPaidTotal || 0;
   const examCoverageAmount = modalPaymentSummary?.examCoverageAmount || 0;
-  const alreadyPaidExam = Math.min(examOnlyAmount, examCoverageAmount);
+  const alreadyPaidExam = Math.min(examSubtotal, examCoverageAmount);
   const outstandingTotal = Math.max(
     totalFeeBreakdownAmount - alreadyPaidTotal,
     0
   );
-  const outstandingExam = Math.max(examOnlyAmount - alreadyPaidExam, 0);
-  const paymentIntentAmount = useMemo(() => {
-    if (paymentOption === "exam") return outstandingExam;
-    if (paymentOption === "full") return outstandingTotal;
-    const parsed = Number(partialAmount);
-    if (Number.isNaN(parsed) || parsed <= 0) {
-      return Math.max(outstandingExam, 0);
-    }
-    return Math.min(
-      Math.max(parsed, Math.max(outstandingExam, 0)),
-      Math.max(outstandingTotal, 0)
-    );
-  }, [paymentOption, partialAmount, outstandingExam, outstandingTotal]);
-  useEffect(() => {
-    if (outstandingExam <= 0 && paymentOption === "exam") {
-      setPaymentOption("full");
-    }
-  }, [outstandingExam, paymentOption]);
+  const outstandingExam = Math.max(examSubtotal - alreadyPaidExam, 0);
+  const examDueAmount = Math.max(examSubtotal - alreadyPaidExam, 0);
   const selectedSubjectCount =
     currentSelectedCount + supplementarySelectedCount;
   const totalModalSubjectCount =
@@ -1377,8 +1359,6 @@ export default function Payments() {
     setSelectedSupplementarySemesters([]);
     setModalStep(options.skipSubjectSelection ? 2 : 1);
     setModalPaymentRecords(options.records || []);
-    setPaymentOption("full");
-    setPartialAmount("");
     setPaymentMethod("");
     setAllowPaymentWithoutSelection(Boolean(options.skipSubjectSelection));
   };
@@ -1409,8 +1389,6 @@ export default function Payments() {
   };
   const closePaymentModal = ({ notifyCancellation = false } = {}) => {
     setShowPaymentModal(false);
-    setPaymentOption("full");
-    setPartialAmount("");
     setPaymentMethod("");
     if (notifyCancellation) {
       showToast("Payment canceled.", {
@@ -1723,22 +1701,7 @@ export default function Payments() {
       });
       return;
     }
-    const examFullyPaid =
-      examOnlyAmount > 0 &&
-      (modalPaymentSummary?.alreadyPaidExam || 0) >= examOnlyAmount;
-    if (paymentOption === "exam" && examFullyPaid) {
-      showToast("Exam fees already paid for this student.", {
-        type: "warning",
-        title: "Payment",
-      });
-      setPaymentMethod("");
-      setPaymentOption("full");
-      return;
-    }
-
     const uniqueSubjectEntries = getUniqueSelectedSubjectEntries();
-
-    let amount = 0;
 
     try {
       const { examRegistrationId, examMasterId } =
@@ -1750,84 +1713,20 @@ export default function Payments() {
         .eq("payment_status", "success");
       if (paymentsError) throw paymentsError;
       const successfulPayments = existingPayments || [];
-      const alreadyPaidTotal = successfulPayments.reduce(
-        (sum, payment) => sum + Number(payment.amount_paid || 0),
-        0
+      const alreadyPaidExam = Math.min(
+        examSubtotal,
+        sumExamCoverageFromPayments(successfulPayments)
       );
-      const examCoverageAmount = sumExamCoverageFromPayments(successfulPayments);
-      const alreadyPaidExam = Math.min(examSubtotal, examCoverageAmount);
-      const outstandingTotal = Math.max(
-        totalFeeBreakdownAmount - alreadyPaidTotal,
-        0
-      );
-      const outstandingExam = Math.max(examSubtotal - alreadyPaidExam, 0);
-
-      const effectivePaymentOption =
-        paymentOption === "exam" && outstandingExam <= 0 ? "full" : paymentOption;
-      if (
-        effectivePaymentOption !== paymentOption &&
-        paymentOption === "exam" &&
-        outstandingExam <= 0
-      ) {
-        setPaymentOption("full");
+      const amount = Math.max(examSubtotal - alreadyPaidExam, 0);
+      if (amount <= 0) {
+        showToast("Exam fees are already fully paid for this student.", {
+          type: "warning",
+          title: "Payment",
+        });
+        setPaymentMethod("");
+        return;
       }
-      if (effectivePaymentOption === "exam") {
-        amount = outstandingExam;
-      } else if (effectivePaymentOption === "full") {
-        if (outstandingTotal <= 0) {
-          const detailKey = getAppliedRegistrationKey(activePaymentStudent);
-          if (detailKey) {
-            setAppliedRegistrationDetails((prev) => ({
-              ...prev,
-              [detailKey]: {
-                ...(prev[detailKey] || {}),
-                fullyPaid: true,
-                hasExamPaid: true,
-                status: "fully-paid",
-                paidTotal: Math.max(paidTotal, totalFeeBreakdownAmount),
-                examCoverageAmount,
-                totalFee: totalFeeBreakdownAmount,
-              },
-            }));
-          }
-          showToast("Semester fees are already fully paid.", {
-            type: "warning",
-            title: "Payment",
-          });
-          setPaymentMethod("");
-          return;
-        }
-        amount = outstandingTotal;
-      } else {
-        const parsed = Number(partialAmount);
-        if (Number.isNaN(parsed) || parsed <= 0) {
-          showToast("Enter a valid amount for the partial payment.", {
-            type: "warning",
-            title: "Payment",
-          });
-          return;
-        }
-        if (parsed < outstandingExam) {
-          showToast(
-            `Partial amount must cover the remaining exam portion of ${formatCurrency(
-              outstandingExam
-            )}.`,
-            { type: "warning", title: "Payment" }
-          );
-          return;
-        }
-        if (parsed > outstandingTotal) {
-          showToast(
-            `Amount exceeds the outstanding balance of ${formatCurrency(
-              outstandingTotal
-            )}.`,
-            { type: "warning", title: "Payment" }
-          );
-          return;
-        }
-        amount = parsed;
-      }
-      const normalizedPaymentOption = effectivePaymentOption;
+      const normalizedPaymentOption = "exam";
 
       const { data: duplicateEntry, error: duplicateError } = await supabase
         .from("payments")
@@ -2880,100 +2779,21 @@ export default function Payments() {
               </div>
               <div className="modal-body">
                 {renderStudentProfileCard(activePaymentStudent)}
-                <div className="mb-4">
-                  <div className="fw-semibold mb-2">Payment option</div>
-                  <div className="form-check">
-                    <input
-                      className="form-check-input"
-                      type="radio"
-                      name="paymentOption"
-                      id="paymentOptionExam"
-                      value="exam"
-                      checked={paymentOption === "exam"}
-                      onChange={() => setPaymentOption("exam")}
-                      disabled={outstandingExam <= 0}
-                    />
-                    <label
-                      className="form-check-label d-flex justify-content-between align-items-center"
-                      htmlFor="paymentOptionExam"
-                    >
-                      <div className="d-flex align-items-center gap-2">
-                        <span>Exam fee only</span>
-                        {outstandingExam <= 0 && (
-                          <span className="text-danger small">
-                            Already covered
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-muted small">
-                        {formatCurrency(examSubtotal)}
-                        {modalPaymentSummary && (
-                          <>
-                            {" "}
-                            • Remaining {formatCurrency(outstandingExam)}
-                          </>
-                        )}
-                      </span>
-                    </label>
+                     <div class="mb-4">
+                  <div class="fw-semibold mb-2">Exam fee</div>
+                  <p class="text-muted small mb-2">
+                    Pay the configured exam and supplementary fees in full for the selected subjects.
+                  </p>
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted small">Amount due</span>
+                    <span class="fw-semibold">{formatCurrency(examSubtotal)}
+                      {modalPaymentSummary && (
+                        <span class="text-muted small">(Remaining {formatCurrency(outstandingExam)})</span>
+                      )}
+                    </span>
                   </div>
-                  <div className="form-check">
-                    <input
-                      className="form-check-input"
-                      type="radio"
-                      name="paymentOption"
-                      id="paymentOptionFull"
-                      value="full"
-                      checked={paymentOption === "full"}
-                      onChange={() => setPaymentOption("full")}
-                    />
-                    <label
-                      className="form-check-label d-flex justify-content-between align-items-center"
-                      htmlFor="paymentOptionFull"
-                    >
-                      <span>Full fees</span>
-                      <span className="text-muted small">
-                        {formatCurrency(totalFeeBreakdownAmount)}
-                        {modalPaymentSummary && (
-                          <>
-                            {" "}
-                            • Remaining {formatCurrency(outstandingTotal)}
-                          </>
-                        )}
-                      </span>
-                    </label>
-                  </div>
-                  <div className="form-check">
-                    <input
-                      className="form-check-input"
-                      type="radio"
-                      name="paymentOption"
-                      id="paymentOptionPartial"
-                      value="partial"
-                      checked={paymentOption === "partial"}
-                      onChange={() => setPaymentOption("partial")}
-                    />
-                    <label className="form-check-label" htmlFor="paymentOptionPartial">
-                      Partial
-                    </label>
-                  </div>
-                  {paymentOption === "partial" && (
-                    <div className="mt-2">
-                      <label className="form-label mb-1">Amount</label>
-                      <input
-                        type="number"
-                        className="form-control"
-                        min={Math.max(outstandingExam, 0)}
-                        value={partialAmount}
-                        onChange={(event) => setPartialAmount(event.target.value)}
-                        placeholder={formatCurrency(Math.max(outstandingExam, 0))}
-                      />
-                      <div className="form-text">
-                        Minimum {formatCurrency(Math.max(outstandingExam, 0))}.
-                      </div>
-                    </div>
-                  )}
                 </div>
-                  <div className="card border rounded shadow-sm mb-3">
+<div className="card border rounded shadow-sm mb-3">
                     <div className="card-body">
                       <div className="d-flex justify-content-between align-items-baseline">
                         <div>
