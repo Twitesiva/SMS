@@ -2045,7 +2045,18 @@ export default function Payments() {
           </div>
         </div>
         <div className="mt-3">
-          <div className="text-muted small mb-1">Saved exams</div>
+          <div className="d-flex align-items-start justify-content-between gap-3 mb-2">
+            <div>
+              <div className="text-muted small mb-1">Saved exams</div>
+            </div>
+            <button
+              type="button"
+              className="btn btn-sm btn-success"
+              onClick={openCompleteRegistrationModal}
+            >
+              Complete Registration
+            </button>
+          </div>
           <div className="list-group list-group-flush">
             {storedExamList.map((entry) => (
               <div
@@ -2096,13 +2107,6 @@ export default function Payments() {
             disabled={!editingExam}
           >
             Edit
-          </button>
-          <button
-            type="button"
-            className="btn btn-sm btn-success"
-            onClick={openCompleteRegistrationModal}
-          >
-            Complete Registration
           </button>
         </div>
       </div>
