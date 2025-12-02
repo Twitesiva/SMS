@@ -86,6 +86,7 @@ export default function Payments() {
   const [loadingModalPayments, setLoadingModalPayments] = useState(false);
   const [appliedRegistrationDetails, setAppliedRegistrationDetails] = useState({});
   const [savedRegistrationSubjectIds, setSavedRegistrationSubjectIds] = useState([]);
+  const [showPaymentDetailsModal, setShowPaymentDetailsModal] = useState(false);
   const selectedExamId = useMemo(() => {
     const normalized = (form.examName || "").trim().toLowerCase();
     if (!normalized) return null;
@@ -626,7 +627,21 @@ export default function Payments() {
     setModalStep(2);
   };
 
+  const handleProceedToPaymentReview = () => {
+    setShowPaymentDetailsModal(true);
+  };
+
   const handleStoreSelectedSubjects = async () => {
+    if (allowPaymentWithoutSelection) {
+      if (!savedRegistrationSubjectIds.length && !selectedSubjectKeys.size) {
+        showToast("No subjects stored yet. Please select subjects first.", {
+          type: "warning",
+        });
+        return;
+      }
+      handleProceedToPaymentReview();
+      return;
+    }
     if (!selectedSubjectKeys.size && !allowPaymentWithoutSelection) {
       showToast("Select at least one subject before continuing.", {
         type: "warning",
@@ -1507,6 +1522,7 @@ export default function Payments() {
   };
   const closePaymentModal = ({ notifyCancellation = false } = {}) => {
     setShowPaymentModal(false);
+    setShowPaymentDetailsModal(false);
     setPaymentMethod("");
     if (notifyCancellation) {
       showToast("Payment canceled.", {
@@ -1706,19 +1722,105 @@ export default function Payments() {
     setCompletionTargetExam(null);
   };
 
-  const handleCompleteRegistrationConfirm = () => {
+  const assignSeatNumbersForExam = useCallback(
+    async (examMasterId) => {
+      if (!examMasterId) return 0;
+      const { data: registrations, error: regError } = await supabase
+        .from("exam_registrations")
+        .select("id, student_id, exam_id")
+        .eq("exam_id", examMasterId);
+      if (regError) throw regError;
+      const registrationIds = (registrations || [])
+        .map((registration) => registration?.id)
+        .filter(Boolean);
+      if (!registrationIds.length) {
+        return 0;
+      }
+      const { data: subjectRows, error: subjectsError } = await supabase
+        .from("exam_registration_subjects")
+        .select("exam_registration_id, subject_id")
+        .in("exam_registration_id", registrationIds);
+      if (subjectsError) throw subjectsError;
+      const studentLookup = new Map(
+        students.map((student) => [String(student.id), student])
+      );
+      const validEntries = (subjectRows || [])
+        .map((entry) => {
+          const registration = (registrations || []).find(
+            (reg) => reg?.id === entry?.exam_registration_id
+          );
+          if (!registration || !entry?.subject_id) return null;
+          const student = studentLookup.get(String(registration.student_id));
+          const name =
+            (student?.full_name ||
+              student?.name ||
+              student?.student_name ||
+              student?.student_id ||
+              "")
+              .trim()
+              .toLowerCase();
+          return {
+            ...entry,
+            student_id: registration.student_id,
+            exam_id: registration.exam_id,
+            studentName: name,
+          };
+        })
+        .filter(Boolean);
+      if (!validEntries.length) {
+        return 0;
+      }
+      validEntries.sort((a, b) => {
+        const comparison = a.studentName.localeCompare(b.studentName);
+        if (comparison !== 0) return comparison;
+        return String(a.subject_id).localeCompare(String(b.subject_id));
+      });
+      const seatAssignments = validEntries.map((entry, index) => ({
+        exam_id: examMasterId,
+        student_id: entry.student_id,
+        subject_id: entry.subject_id,
+        seat_number: `S${String(index + 1).padStart(4, "0")}`,
+      }));
+      const { error: deleteError } = await supabase
+        .from("student_subject_seats")
+        .delete()
+        .eq("exam_id", examMasterId);
+      if (deleteError) throw deleteError;
+      const { error: insertError } = await supabase
+        .from("student_subject_seats")
+        .insert(seatAssignments);
+      if (insertError) throw insertError;
+      return seatAssignments.length;
+    },
+    [students]
+  );
+
+  const handleCompleteRegistrationConfirm = async () => {
     closeCompleteRegistrationModal();
-    if (completionTargetExam?.id) {
+    if (!completionTargetExam?.id) return;
+    try {
+      const assignedCount = await assignSeatNumbersForExam(
+        completionTargetExam.id
+      );
       setCompletedExamIds((prev) =>
         prev.includes(completionTargetExam.id)
           ? prev
           : [...prev, completionTargetExam.id]
       );
+      const message = assignedCount
+        ? `Registration completed and ${assignedCount} seat numbers assigned.`
+        : "Registration completed but no students were registered.";
+      showToast(message, {
+        type: "success",
+        title: "Registration",
+      });
+    } catch (error) {
+      console.error("Failed to assign seat numbers:", error);
+      showToast("Unable to complete registration. Please try again.", {
+        type: "danger",
+        title: "Registration",
+      });
     }
-    showToast("Registration completed.", {
-      type: "success",
-      title: "Registration",
-    });
   };
 
   const handleDeleteExamName = async (examEntry) => {
@@ -1859,11 +1961,13 @@ export default function Payments() {
       );
       const amount = Math.max(examSubtotal - alreadyPaidExam, 0);
       if (amount <= 0) {
-        showToast("Exam fees are already fully paid for this student.", {
-          type: "warning",
+        showToast("Payment successful. No outstanding amount remaining.", {
+          type: "success",
           title: "Payment",
         });
         setPaymentMethod("");
+        closePaymentModal();
+        closeStudentModal();
         return;
       }
       const normalizedPaymentOption = "exam";
@@ -2475,11 +2579,13 @@ export default function Payments() {
                                     {renderPaymentStatusCell(detail)}
                                     <button
                                       type="button"
-                                      className="btn btn-sm btn-outline-success"
+                                      className={`btn btn-sm ${
+                                        isApplied ? "btn-success" : "btn-outline-success"
+                                      }`}
                                       onClick={openModal}
                                       disabled={isApplied}
                                     >
-                                      Pay now
+                                      {isApplied ? "Paid" : "Pay now"}
                                     </button>
                                   </div>
                                 </td>
@@ -2947,6 +3053,68 @@ export default function Payments() {
                       ) : null}
                     </div>
                   </div>
+              </div>
+              <div className="modal-footer d-flex justify-content-end gap-2">
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary"
+                  onClick={() => closePaymentModal({ notifyCancellation: true })}
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handlePaymentModalConfirm}
+                >
+                  Pay now
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {showPaymentDetailsModal && (
+        <div
+          className="modal d-block"
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+          style={{ backgroundColor: "rgba(0,0,0,0.4)", zIndex: 1100 }}
+        >
+          <div className="modal-dialog modal-md modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Payment details</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  aria-label="Close"
+                  onClick={() => setShowPaymentDetailsModal(false)}
+                ></button>
+              </div>
+              <div className="modal-body">
+                <div className="mb-3">
+                  <div className="d-flex justify-content-between">
+                    <span>Regular exam fee</span>
+                    <span>{formatCurrency(examOnlyAmount)}</span>
+                  </div>
+                  {supplementaryFeeAmount > 0 && (
+                    <div className="d-flex justify-content-between">
+                      <span>Supplementary fee</span>
+                      <span>{formatCurrency(supplementaryFeeAmount)}</span>
+                    </div>
+                  )}
+                  <div className="mt-2 border-top pt-2 d-flex justify-content-between fw-semibold">
+                    <span>Total due</span>
+                    <span>{formatCurrency(examSubtotal)}</span>
+                  </div>
+                  {modalPaymentSummary?.alreadyPaidExam > 0 && (
+                    <div className="text-muted small mt-1">
+                      There is a balance of {formatCurrency(outstandingExam)} remaining.
+                    </div>
+                  )}
+                </div>
                 <div className="mb-3">
                   <label className="form-label fw-semibold">Payment method</label>
                   <select
@@ -2963,20 +3131,21 @@ export default function Payments() {
                   </select>
                 </div>
               </div>
-              <div className="modal-footer d-flex justify-content-end gap-2">
+              <div className="modal-footer d-flex gap-2 justify-content-end">
                 <button
                   type="button"
                   className="btn btn-outline-secondary"
-                  onClick={() => closePaymentModal({ notifyCancellation: true })}
+                  onClick={() => setShowPaymentDetailsModal(false)}
                 >
-                  Back
+                  Cancel
                 </button>
                 <button
                   type="button"
                   className="btn btn-primary"
                   onClick={handlePaymentModalConfirm}
+                  disabled={!paymentMethod}
                 >
-                  Pay now
+                  Confirm payment
                 </button>
               </div>
             </div>
