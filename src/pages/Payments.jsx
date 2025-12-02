@@ -2067,7 +2067,7 @@ export default function Payments() {
                     onClick={() => handleSelectSavedExam(entry)}
                     title="Edit this exam name"
                   >
-                    ✏️ Edit
+                    Edit
                   </button>
                   <button
                     type="button"
@@ -2075,7 +2075,7 @@ export default function Payments() {
                     onClick={() => handleDeleteExamName(entry)}
                     title="Remove this exam name"
                   >
-                    🗑 Delete
+                    Delete
                   </button>
                   <button
                     type="button"
@@ -2083,7 +2083,7 @@ export default function Payments() {
                     onClick={openCompleteRegistrationModal}
                     title="Mark students for this exam as fully registered"
                   >
-                    ✅ Complete Registration
+                    Complete Registration
                   </button>
                 </div>
               </div>
