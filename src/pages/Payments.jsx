@@ -1577,11 +1577,18 @@ export default function Payments() {
     }
   };
 
-  const handleCompleteRegistration = () => {
-    const confirmed = window.confirm(
-      "Complete registration for the currently selected students?"
-    );
-    if (!confirmed) return;
+  const [completeRegistrationModalOpen, setCompleteRegistrationModalOpen] = useState(false);
+
+  const openCompleteRegistrationModal = () => {
+    setCompleteRegistrationModalOpen(true);
+  };
+
+  const closeCompleteRegistrationModal = () => {
+    setCompleteRegistrationModalOpen(false);
+  };
+
+  const handleCompleteRegistrationConfirm = () => {
+    closeCompleteRegistrationModal();
     showToast("Registration process marked complete.", {
       type: "success",
       title: "Registration",
@@ -2093,7 +2100,7 @@ export default function Payments() {
           <button
             type="button"
             className="btn btn-sm btn-success"
-            onClick={handleCompleteRegistration}
+            onClick={openCompleteRegistrationModal}
           >
             Complete Registration
           </button>
@@ -2443,6 +2450,51 @@ export default function Payments() {
             </div>
           )}
       </div>
+      {completeRegistrationModalOpen && (
+        <div
+          className="modal d-block"
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+          style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
+        >
+          <div className="modal-dialog modal-sm modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Confirm registration</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  aria-label="Close"
+                  onClick={closeCompleteRegistrationModal}
+                ></button>
+              </div>
+              <div className="modal-body">
+                <p className="mb-0">
+                  Are you sure you want to mark registration as complete for the
+                  currently selected students?
+                </p>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary"
+                  onClick={closeCompleteRegistrationModal}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleCompleteRegistrationConfirm}
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {modalOpen && modalStudent && (
         <>
           <div className="modal-backdrop show"></div>
