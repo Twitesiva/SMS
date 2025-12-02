@@ -22,6 +22,7 @@ export default function PaymentsOverview() {
   const [loadingExams, setLoadingExams] = useState(false);
   const [examSubjects, setExamSubjects] = useState([]);
   const [loadingExamSubjects, setLoadingExamSubjects] = useState(false);
+  const [visibleDecodeNumbers, setVisibleDecodeNumbers] = useState({});
 
   // Fetch exams from exam_master table
   useEffect(() => {
@@ -56,51 +57,87 @@ export default function PaymentsOverview() {
 
       setLoadingExamSubjects(true);
       try {
-        // First, get all exam registrations for this exam
-        const { data: registrations, error: regError } = await supabase
-          .from('exam_registrations')
-          .select('id')
-          .eq('exam_id', selectedExam);
+        // Get the exam details first
+        const { data: examData, error: examError } = await supabase
+          .from('exam_master')
+          .select('*')
+          .eq('id', selectedExam)
+          .single();
 
-        if (regError) throw regError;
-
-        const registrationIds = registrations?.map(r => r.id) || [];
-        
-        if (registrationIds.length === 0) {
+        if (examError) throw examError;
+        if (!examData) {
           setExamSubjects([]);
           return;
         }
 
-        // Then get all subjects for these registrations
-        const { data: subjectData, error: subjectError } = await supabase
+        // First, get all exam registrations for this exam
+        const { data: examRegistrations, error: regError } = await supabase
+          .from('exam_registrations')
+          .select('id, student_id, semester, exam_id')
+          .eq('exam_id', selectedExam);
+
+        if (regError) throw regError;
+        if (!examRegistrations?.length) {
+          setExamSubjects([]);
+          return;
+        }
+
+        // First, get all subject registrations for these exam registrations
+        const { data: subjectRegistrations, error: regSubjError } = await supabase
           .from('exam_registration_subjects')
-          .select(`
-            id,
-            subject_id,
-            subjects!inner(subject_id, subject_code, subject_name)
-          `)
-          .in('exam_registration_id', registrationIds);
+          .select('id, subject_id, exam_registration_id')
+          .in('exam_registration_id', examRegistrations.map(er => er.id));
 
-        if (subjectError) throw subjectError;
+        if (regSubjError) throw regSubjError;
+        if (!subjectRegistrations?.length) {
+          setExamSubjects([]);
+          return;
+        }
 
-        // Get unique subjects with counts
-        const subjectMap = new Map();
-        subjectData?.forEach(item => {
-          if (!item.subjects) return;
-          const subj = item.subjects;
-          const key = `${subj.subject_code}-${subj.subject_name}`;
-          if (!subjectMap.has(key)) {
-            subjectMap.set(key, {
-              subject_id: subj.subject_id,
-              subject_code: subj.subject_code,
-              subject_name: subj.subject_name,
-              count: 0
-            });
-          }
-          subjectMap.get(key).count++;
+        // Get unique subject IDs
+        const subjectIds = [...new Set(subjectRegistrations.map(sr => sr.subject_id))];
+
+        // Get all subjects details
+        const { data: subjects, error: subjectsError } = await supabase
+          .from('subjects')
+          .select('*')
+          .in('subject_id', subjectIds);
+
+        if (subjectsError) throw subjectsError;
+
+        // Create a map of subject_id to subject details
+        const subjectDetails = {};
+        subjects.forEach(subj => {
+          subjectDetails[subj.subject_id] = subj;
         });
 
-        setExamSubjects(Array.from(subjectMap.values()));
+        // Count subject occurrences
+        const subjectCounts = {};
+        subjectRegistrations.forEach(sr => {
+          const subjId = sr.subject_id;
+          subjectCounts[subjId] = (subjectCounts[subjId] || 0) + 1;
+        });
+
+        // Combine the data
+        const result = Object.entries(subjectCounts).map(([subjectId, count]) => {
+          const subject = subjectDetails[subjectId] || {};
+          return {
+            subject_id: subjectId,
+            subject_code: subject.subject_code || '',
+            subject_name: subject.subject_name || '',
+            academic_year: subject.academic_year || '',
+            semester_number: subject.semester_number || 0,
+            count: count,
+            exam_registration_subject_id: subjectRegistrations.find(sr => sr.subject_id === subjectId)?.id || ''
+          };
+        });
+
+        // Sort by subject code
+        const sortedSubjects = result.sort((a, b) => 
+          a.subject_code.localeCompare(b.subject_code)
+        );
+        
+        setExamSubjects(sortedSubjects);
       } catch (error) {
         console.error('Error fetching exam subjects:', error);
         setExamSubjects([]);
@@ -284,198 +321,168 @@ export default function PaymentsOverview() {
       return;
     }
 
-    // If an exam is selected, use the subject from examSubjects to ensure we're only searching within that exam
-    if (selectedExam) {
-      const selectedSubject = examSubjects.find(
-        subj => subj.subject_code.toLowerCase() === trimmed.toLowerCase()
-      );
-
-      if (!selectedSubject) {
-        setSubjectSearchError("No matching subject found for the selected exam.");
-        setSubjectStudents([]);
-        return;
-      }
-    }
-
     setSubjectSearchLoading(true);
     setSubjectSearchError("");
     setSubjectStudents([]);
 
     try {
+      console.log('Searching for subject code:', trimmed);
+      
+      // First, find the subject by code (exact match)
       const { data: subjectRecord, error: subjectError } = await supabase
         .from("subjects")
-        .select("subject_id, subject_name, subject_code")
-        .eq("subject_code", trimmed)
+        .select("subject_id, subject_name, subject_code, academic_year, semester_number")
+        .or(`subject_code.eq.${trimmed},subject_code.ilike.%${trimmed}%`)
         .maybeSingle();
 
-      if (subjectError) throw subjectError;
+      if (subjectError) {
+        console.error('Error fetching subject:', subjectError);
+        throw subjectError;
+      }
+      
       if (!subjectRecord?.subject_id) {
+        console.log('No subject found with code:', trimmed);
         setSubjectSearchError("No subject found with that code.");
         return;
       }
 
-      const { data: subjectRows, error: subjectRowsError } = await supabase
-        .from("exam_registration_subjects")
-        .select("id, exam_registration_id, subject_id, subjects(subject_name, subject_code)")
-        .eq("subject_id", subjectRecord.subject_id);
-      if (subjectRowsError) throw subjectRowsError;
+      console.log('Found subject:', subjectRecord);
 
-      const examRegistrationIds = Array.from(
-        new Set(
-          (subjectRows || [])
-            .map((row) => row.exam_registration_id)
-            .filter(Boolean)
-        )
-      );
+      // First, get all exam registrations for this exam (if selected)
+      let examRegistrationsQuery = supabase
+        .from('exam_registrations')
+        .select('id, student_id, semester, academic_year, group_name, course_name, exam_id');
 
-      if (!examRegistrationIds.length) {
-        setSubjectSearchError("No students found for this subject code.");
+      if (selectedExam) {
+        examRegistrationsQuery = examRegistrationsQuery.eq('exam_id', selectedExam);
+      }
+
+      const { data: examRegistrations, error: examRegsError } = await examRegistrationsQuery;
+      
+      if (examRegsError) {
+        console.error('Error fetching exam registrations:', examRegsError);
+        throw examRegsError;
+      }
+
+      if (!examRegistrations?.length) {
+        const msg = selectedExam 
+          ? 'No exam registrations found for the selected exam.' 
+          : 'No exam registrations found.';
+        console.log(msg);
+        setSubjectSearchError(msg);
         return;
       }
 
-      const { data: registrations, error: registrationsError } = await supabase
-        .from("exam_registrations")
-        .select("id, student_id, academic_year, group_name, course_name")
-        .in("id", examRegistrationIds);
+      console.log('Found exam registrations:', examRegistrations.length);
 
-      if (registrationsError) throw registrationsError;
+      // Now find all subject registrations for these exam registrations and the subject
+      const { data: subjectRegistrations, error: regError } = await supabase
+        .from('exam_registration_subjects')
+        .select('id, exam_registration_id, subject_id')
+        .in('exam_registration_id', examRegistrations.map(er => er.id))
+        .eq('subject_id', subjectRecord.subject_id);
 
-      const studentInternalIds = Array.from(
-        new Set((registrations || []).map((row) => row.student_id).filter(Boolean))
-      );
-
-      if (!studentInternalIds.length) {
-        setSubjectSearchError("No students found for this subject code.");
+      if (regError) {
+        console.error('Error fetching subject registrations:', regError);
+        throw regError;
+      }
+      
+      if (!subjectRegistrations?.length) {
+        console.log('No subject registrations found for subject ID:', subjectRecord.subject_id);
+        setSubjectSearchError("No students registered for this subject" + (selectedExam ? " in the selected exam." : "."));
         return;
       }
 
-      const { data: studentsData, error: studentsError } = await supabase
+      console.log('Found subject registrations:', subjectRegistrations.length);
+
+      // Create a map of exam registration IDs to their details
+      const examRegistrationsMap = new Map(
+        examRegistrations.map(er => [er.id, er])
+      );
+
+      // Filter and map the subject registrations to include exam registration details
+      const filteredRegistrations = subjectRegistrations
+        .map(sr => ({
+          ...sr,
+          exam_registrations: examRegistrationsMap.get(sr.exam_registration_id)
+        }))
+        .filter(sr => sr.exam_registrations); // Only keep those with valid exam registrations
+
+      if (filteredRegistrations.length === 0) {
+        console.log('No valid exam registrations found after filtering');
+        setSubjectSearchError("No valid student registrations found for this subject" + (selectedExam ? " in the selected exam." : "."));
+        return;
+      }
+
+      // Get unique student IDs
+      const studentIds = [...new Set(
+        filteredRegistrations
+          .map(reg => reg.exam_registrations?.student_id)
+          .filter(Boolean)
+      )];
+
+      if (studentIds.length === 0) {
+        console.log('No student IDs found in filtered registrations');
+        setSubjectSearchError("No valid student registrations found for this subject.");
+        return;
+      }
+
+      console.log('Student IDs to fetch:', studentIds);
+
+      // Get student details
+      const { data: students, error: studentsError } = await supabase
         .from("students")
         .select("id, student_id, full_name, academic_year, group_name, course_name")
-        .in("id", studentInternalIds);
+        .in("id", studentIds);
 
       if (studentsError) throw studentsError;
 
-      const studentMap = new Map();
-      (studentsData || []).forEach((student) => {
-        if (!student) return;
-        studentMap.set(student.id, student);
-      });
+      // Get decode numbers for these registrations
+      const registrationIds = filteredRegistrations.map(reg => reg.id);
+      const { data: decodeNumbers, error: decodeError } = await supabase
+        .from("decode_numbers")
+        .select("id, decode_no, exam_registration_subject_id")
+        .in("exam_registration_subject_id", registrationIds);
 
-      const groupCodeSet = new Set(
-        (studentsData || [])
-          .map((s) => s.group_name)
-          .filter((code) => code !== null && code !== undefined)
-      );
-      const courseCodeSet = new Set(
-        (studentsData || [])
-          .map((s) => s.course_name)
-          .filter((code) => code !== null && code !== undefined)
-      );
+      if (decodeError) console.error("Error fetching decode numbers:", decodeError);
 
-      const groupNameMap = new Map();
-      if (groupCodeSet.size > 0) {
-        const { data: groupsData, error: groupsError } = await supabase
-          .from("groups")
-          .select("group_code, group_name");
-
-        if (groupsError) throw groupsError;
-
-        (groupsData || []).forEach((g) => {
-          if (!g || g.group_code === null || g.group_code === undefined) return;
-          groupNameMap.set(g.group_code, g.group_name);
-        });
-      }
-
-      const courseNameMap = new Map();
-      if (courseCodeSet.size > 0) {
-        const { data: coursesData, error: coursesError } = await supabase
-          .from("courses")
-          .select("course_code, course_name");
-
-        if (coursesError) throw coursesError;
-
-        (coursesData || []).forEach((c) => {
-          if (!c || c.course_code === null || c.course_code === undefined) return;
-          courseNameMap.set(c.course_code, c.course_name);
-        });
-      }
-
-      const registrationMap = new Map();
-      (registrations || []).forEach((reg) => {
-        if (!reg) return;
-        registrationMap.set(reg.id, reg);
-      });
-
-      const subjectIds = new Set(
-        (subjectRows || [])
-          .map((row) => row.id)
-          .filter((id) => id !== null && id !== undefined)
-      );
-
-      let decodeMap = new Map();
-      if (subjectIds.size > 0) {
-        const { data: decodeRows, error: decodeError } = await supabase
-          .from("decode_numbers")
-          .select("exam_registration_subject_id, decode_no")
-          .in("exam_registration_subject_id", Array.from(subjectIds));
-
-        if (decodeError) throw decodeError;
-
-        decodeMap = new Map();
-        (decodeRows || []).forEach((row) => {
-          if (!row) return;
-          const key = row.exam_registration_subject_id;
-          if (!decodeMap.has(key)) {
-            decodeMap.set(key, []);
+      // Create a map of registration ID to decode numbers
+      const decodeMap = new Map();
+      if (decodeNumbers) {
+        decodeNumbers.forEach(dn => {
+          if (!decodeMap.has(dn.exam_registration_subject_id)) {
+            decodeMap.set(dn.exam_registration_subject_id, []);
           }
-          decodeMap.get(key).push(row.decode_no);
+          decodeMap.get(dn.exam_registration_subject_id).push(dn.decode_no);
         });
       }
 
-      const subjectStudentRows = [];
-      (subjectRows || []).forEach((subj) => {
-        if (!subj) return;
-        const reg = registrationMap.get(subj.exam_registration_id);
-        if (!reg) return;
-        const student = studentMap.get(reg.student_id);
-        if (!student) return;
-
-        const decodes = decodeMap.get(subj.id) || [null];
-        const groupDisplayName = groupNameMap.get(student.group_name) || student.group_name;
-        const courseDisplayName = courseNameMap.get(student.course_name) || student.course_name;
-
-        decodes.forEach((decode_no) => {
-          subjectStudentRows.push({
-            registration_id: reg.id,
-            subject_code: trimmed,
-            decode_no,
-            student_id: student.student_id,
-            full_name: student.full_name,
-            academic_year: student.academic_year,
-            group_name: groupDisplayName,
-            course_name: courseDisplayName,
-          });
-        });
+      // Combine the data
+      const studentRecords = filteredRegistrations.map(reg => {
+        const student = students?.find(s => s.id === reg.exam_registrations.student_id);
+        const decodes = decodeMap.get(reg.id) || [];
+        
+        return {
+          registration_id: reg.exam_registration_id,
+          subject_code: subjectRecord.subject_code,
+          subject_name: subjectRecord.subject_name,
+          decode_no: decodes.length > 0 ? decodes[0] : null,
+          student_id: student?.student_id || 'N/A',
+          full_name: student?.full_name || 'Unknown',
+          academic_year: reg.exam_registrations.academic_year || student?.academic_year || 'N/A',
+          group_name: reg.exam_registrations.group_name || student?.group_name || 'N/A',
+          course_name: reg.exam_registrations.course_name || student?.course_name || 'N/A',
+          semester: reg.exam_registrations.semester || subjectRecord.semester_number || 'N/A',
+          all_decode_numbers: decodes
+        };
       });
 
-      const seenStudentRows = new Map();
-      subjectStudentRows.forEach((row) => {
-        const key = row.student_id;
-        if (!key) return;
-        if (!seenStudentRows.has(key)) {
-          seenStudentRows.set(key, row);
-        }
-      });
-
-      const uniqueStudents = Array.from(seenStudentRows.values());
-
-      if (!uniqueStudents.length) {
-        setSubjectSearchError("No students found for this subject code.");
+      if (studentRecords.length === 0) {
+        setSubjectSearchError("No student records found for this subject.");
         return;
       }
 
-      setSubjectStudents(uniqueStudents);
+      setSubjectStudents(studentRecords);
     } catch (e) {
       console.error("Error searching by subject code:", e);
       setSubjectSearchError("Failed to search students for this subject code. Please try again.");
@@ -496,6 +503,12 @@ export default function PaymentsOverview() {
       event.preventDefault();
       handleSearchBySubjectCode();
     }
+  };
+
+  const toggleDecodeNumber = (studentId) => {
+    setVisibleDecodeNumbers({
+      [studentId]: true
+    });
   };
 
   return (
@@ -521,73 +534,7 @@ export default function PaymentsOverview() {
           </div>
         </div>
 
-        {/* Show loading indicator when searching */}
-        {loadingExamSubjects && (
-          <div className="text-center py-3">
-            <div className="spinner-border text-primary" role="status">
-              <span className="visually-hidden">Loading subjects...</span>
-            </div>
-          </div>
-        )}
-        
-        {/* Show subjects after search */}
-        {!loadingExamSubjects && subjectCodeInput && subjectStudents.length > 0 && (
-          <div className="mb-4">
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <h6 className="mb-0">Search Results</h6>
-              <span className="badge bg-primary">
-                {subjectStudents.length} student{subjectStudents.length !== 1 ? 's' : ''} found
-              </span>
-            </div>
-            
-            {/* Show subject details */}
-            {subjectStudents[0]?.subject_name && (
-              <div className="mb-3 p-3 bg-light rounded">
-                <div className="fw-bold">
-                  {subjectStudents[0].subject_name} ({subjectStudents[0].subject_code})
-                </div>
-                <div className="text-muted small">
-                  {subjectStudents.length} student{subjectStudents.length !== 1 ? 's' : ''} registered for this subject
-                </div>
-              </div>
-            )}
-            
-            {/* Students list */}
-            <div className="table-responsive">
-              <table className="table table-sm align-middle mb-0">
-                <thead>
-                  <tr>
-                    <th>Student ID</th>
-                    <th>Name</th>
-                    <th>Group</th>
-                    <th>Course</th>
-                    <th>Decode</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {subjectStudents.map((student) => (
-                    <tr key={student.student_id}>
-                      <td>{student.student_id}</td>
-                      <td>{student.full_name}</td>
-                      <td>{student.group_name}</td>
-                      <td>{student.course_name}</td>
-                      <td>{student.decode_no || '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-        
-        {/* Show no results message only after search */}
-        {!loadingExamSubjects && subjectCodeInput && subjectStudents.length === 0 && (
-          <div className="alert alert-info mb-4">
-            No students found for the selected subject code.
-          </div>
-        )}
-
-        <div className="row g-3 align-items-end">
+        <div className="row g-3 align-items-end mb-4">
           <div className="col-12 col-sm-6 col-md-4">
             <label className="form-label">Subject Code</label>
             <div className="input-group">
@@ -620,47 +567,94 @@ export default function PaymentsOverview() {
             )}
           </div>
         </div>
+        
+        {/* Show loading indicator when searching */}
+        {loadingExamSubjects && (
+          <div className="text-center py-3">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading subjects...</span>
+            </div>
+          </div>
+        )}
+        
+        {/* Show subjects after search */}
+        {!loadingExamSubjects && subjectCodeInput && subjectStudents.length > 0 && (
+          <div className="mb-4">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h5 className="mb-0">Search Results</h5>
+              <span className="badge bg-primary fw-bold">
+                {subjectStudents.length} student{subjectStudents.length !== 1 ? 's' : ''} found
+              </span>
+            </div>
+            
+            {/* Show subject details */}
+            {subjectStudents[0]?.subject_name && (
+              <div className="mb-3 p-3 bg-light rounded">
+                <div className="fw-bold">
+                  {subjectStudents[0].subject_name} ({subjectStudents[0].subject_code})
+                </div>
+                <div className="text-muted small">
+                  {subjectStudents.length} student{subjectStudents.length !== 1 ? 's' : ''} registered for this subject
+                </div>
+              </div>
+            )}
+            
+            {/* Students list */}
+            <div className="table-responsive">
+              <table className="table table-sm align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>Student ID</th>
+                    <th>Name</th>
+                    <th>Group</th>
+                    <th>Course</th>
+                    <th>Decode No</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {subjectStudents.map((student) => (
+                    <tr key={student.student_id}>
+                      <td>{student.student_id}</td>
+                      <td>{student.full_name}</td>
+                      <td>{student.group_name}</td>
+                      <td>{student.course_name}</td>
+                      <td>
+                        {student.decode_no ? (
+                          <div className="position-relative d-inline-block">
+                            {visibleDecodeNumbers[student.student_id] ? (
+                              <span className="badge bg-primary">{student.decode_no}</span>
+                            ) : (
+                              <button 
+                                className="btn btn-sm btn-outline-primary"
+                                onClick={() => toggleDecodeNumber(student.student_id)}
+                              >
+                                View
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-muted">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+        
+        {/* Show no results message only after search */}
+        {!loadingExamSubjects && subjectCodeInput && subjectStudents.length === 0 && (
+          <div className="alert alert-info mb-4">
+            No students found for the selected subject code.
+          </div>
+        )}
         {subjectSearchError && (
           <p className="text-danger small mt-2 mb-0">{subjectSearchError}</p>
         )}
       </div>
 
-      {subjectStudents.length > 0 && (
-        <div className="card card-soft p-3 mb-4">
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <h5 className="mb-0">Students Applied for Subject</h5>
-            <span className="text-muted fw-bold" style={{ fontSize: '1.05rem' }}>
-              Total Students: {subjectStudents.length}
-            </span>
-          </div>
-          <div className="table-responsive">
-            <table className="table table-sm align-middle mb-0">
-              <thead>
-                <tr>
-                  <th>Student ID</th>
-                  <th>Student Name</th>
-                  <th>Academic Year</th>
-                  <th>Group Name</th>
-                  <th>Course Name</th>
-                  <th>Decode</th>
-                </tr>
-              </thead>
-              <tbody>
-                {subjectStudents.map((row) => (
-                  <tr key={row.student_id}>
-                    <td>{row.student_id || "-"}</td>
-                    <td>{row.full_name || "-"}</td>
-                    <td>{row.academic_year || "-"}</td>
-                    <td>{row.group_name || "-"}</td>
-                    <td>{row.course_name || "-"}</td>
-                    <td>{row.decode_no || "-"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
 
       {selectedStudent && (
         <div className="card card-soft p-3 mb-4">

@@ -10,7 +10,7 @@ const TABLES = {
   subjects: "subjects",
   batches: "batches",
   students: "students",
-  exams: "exams",
+  exams: "exam_master",
   payments: "payments",
   hallTickets: "hall_tickets",
   results: "results",

@@ -34,9 +34,17 @@ export default function Results(){
     setDecodeError('')
     setDecodeLoading(true)
     try {
+      // First get the subject_id from exam_registration_subjects
       const { data: decodeRow, error: decodeErr } = await supabase
         .from('decode_numbers')
-        .select('id, exam_registration_subject_id, decode_no')
+        .select(`
+          id, 
+          exam_registration_subject_id, 
+          decode_no,
+          exam_registration_subjects:exam_registration_subject_id (
+            subject_id
+          )
+        `)
         .eq('decode_no', trimmed)
         .single()
 
@@ -46,19 +54,25 @@ export default function Results(){
         return
       }
 
-      const { data: subjectRow, error: subjectErr } = await supabase
-        .from('exam_registration_subjects')
-        .select('id, subject_name, subject_code')
-        .eq('id', decodeRow.exam_registration_subject_id)
-        .single()
-
-      if (subjectErr) throw subjectErr
-      if (!subjectRow) {
+      if (!decodeRow.exam_registration_subjects?.subject_id) {
         setDecodeError('No subject found for this decode number')
         return
       }
 
-      setSubject(subjectRow)
+      // Then get the subject details from the subjects table
+      const { data: subjectData, error: subjectErr } = await supabase
+        .from('subjects')
+        .select('subject_name, subject_code')
+        .eq('subject_id', decodeRow.exam_registration_subjects.subject_id)
+        .single()
+
+      if (subjectErr) throw subjectErr
+      if (!subjectData) {
+        setDecodeError('Subject details not found')
+        return
+      }
+
+      setSubject(subjectData)
     } catch (err) {
       console.error('Error fetching decode details', err)
       setDecodeError('Failed to load details for this decode number')

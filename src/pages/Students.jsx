@@ -105,15 +105,14 @@ export default function Students() {
   const formatPaymentStatusInfo = (
     payment,
     outstandingBalance = 0,
-    coverage = { examPaid: false, otherPaid: false }
+    coverage = { examPaid: false }
   ) => {
     if (!payment) {
       return {
         label: "Not Paid",
         variant: "danger",
         detailLines: [
-          { label: "Exam fees", paid: false },
-          { label: "Other fees", paid: false },
+          { label: "Exam fees", paid: false }
         ],
       };
     }
@@ -129,15 +128,13 @@ export default function Students() {
       baseLabel =
         normalizedStatus.charAt(0).toUpperCase() + normalizedStatus.slice(1);
     }
-    const feeTypeLabel = formatFeeTypeLabel(payment.fee_type);
-    const label = feeTypeLabel ? `${baseLabel} (${feeTypeLabel})` : baseLabel;
+    const label = baseLabel;
     const variant = getPaymentVariant(normalizedStatus);
     return {
       label,
       variant,
       detailLines: [
-        { label: "Exam fees", paid: coverage.examPaid },
-        { label: "Other fees", paid: coverage.otherPaid },
+        { label: "Exam fees", paid: coverage.examPaid }
       ],
     };
   };
@@ -277,14 +274,11 @@ export default function Students() {
         paymentTotals[studentId] =
           (paymentTotals[studentId] || 0) + Number(payment.amount_paid || 0);
         if (!paymentCoverage[studentId]) {
-          paymentCoverage[studentId] = { examPaid: false, otherPaid: false };
+          paymentCoverage[studentId] = { examPaid: false };
         }
         const feeTypeNormalized = (payment.fee_type || "").toString().trim().toLowerCase();
         if (feeTypeNormalized === "exam" || feeTypeNormalized === "partial" || feeTypeNormalized === "full") {
           paymentCoverage[studentId].examPaid = true;
-        }
-        if (feeTypeNormalized === "full") {
-          paymentCoverage[studentId].otherPaid = true;
         }
       }
     });
@@ -292,8 +286,7 @@ export default function Students() {
     const statuses = {};
     studentIds.forEach((studentId) => {
       const coverage = paymentCoverage[studentId] || {
-        examPaid: false,
-        otherPaid: false,
+        examPaid: false
       };
       if (latestPayments[studentId]) {
         const outstandingBalance = Math.max(
@@ -311,8 +304,7 @@ export default function Students() {
           label: "Awaiting Payment",
           variant: "warning",
           detailLines: [
-            { label: "Exam fees", paid: coverage.examPaid },
-            { label: "Other fees", paid: coverage.otherPaid },
+            { label: "Exam fees", paid: coverage.examPaid }
           ],
         };
       } else {
@@ -320,8 +312,7 @@ export default function Students() {
           label: "Not Registered",
           variant: "secondary",
           detailLines: [
-            { label: "Exam fees", paid: coverage.examPaid },
-            { label: "Other fees", paid: coverage.otherPaid },
+            { label: "Exam fees", paid: coverage.examPaid }
           ],
         };
       }
@@ -1371,45 +1362,34 @@ export default function Students() {
                       </button>
                     </td>
                     <td>
-                      {paymentSemester ? (
-                        paymentStatuses[student.id] ? (
-                          <div className="d-flex flex-column gap-2">
-                            <span className="text-muted small mb-1">
-                              {paymentStatuses[student.id].label}
-                            </span>
-                            <div className="d-flex flex-wrap gap-2">
-                              {paymentStatuses[student.id]?.detailLines?.map(
-                                (line, index) => (
-                                  <button
-                                    key={`payment-detail-${student.id}-${index}`}
-                                    type="button"
-                                    className={`btn btn-sm ${
-                                      line.paid
-                                        ? "btn-status-paid"
-                                        : "btn-status-unpaid"
-                                    }`}
-                                    style={{ minWidth: "140px" }}
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      openPaymentHistoryModal(student);
-                                    }}
-                                  >
-                                    {line.paid
-                                      ? `${line.label} paid`
-                                      : `${line.label} unpaid`}
-                                  </button>
-                                )
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-muted small">
-                            Loading payment status...
-                          </span>
-                        )
+                      {paymentSemester && paymentStatuses[student.id] ? (
+                        <div className="d-flex flex-wrap gap-2">
+                          {paymentStatuses[student.id]?.detailLines?.map(
+                            (line, index) => (
+                              <button
+                                key={`payment-detail-${student.id}-${index}`}
+                                type="button"
+                                className={`btn btn-sm ${
+                                  line.paid
+                                    ? "btn-status-paid"
+                                    : "btn-status-unpaid"
+                                }`}
+                                style={{ minWidth: "140px" }}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  openPaymentHistoryModal(student);
+                                }}
+                              >
+                                {line.paid
+                                  ? `${line.label} paid`
+                                  : `${line.label} unpaid`}
+                              </button>
+                            )
+                          )}
+                        </div>
                       ) : (
                         <span className="text-muted small">
-                          Select payment semester
+                          {paymentSemester ? 'Loading...' : 'Select semester'}
                         </span>
                       )}
                     </td>
