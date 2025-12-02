@@ -139,6 +139,7 @@ export default function SubjectsSection({
         comboKey,
         academicYearId: item.academicYearId || item.academic_year,
         academicYearName: item.academicYearName || item.academic_year,
+        academicYear: item.academicYearName || item.academic_year,
         groupCode: item.groupCode || item.group_code,
         courseCode: item.courseCode || item.course_name,
         semester: item.semester,
