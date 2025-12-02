@@ -134,6 +134,14 @@ export default function HallTickets() {
   const modalDialogStyle = {
     zIndex: 1060,
   };
+  const hallTicketBoxStyle = {
+    width: "min(95vw, 960px)",
+    borderRadius: 28,
+    border: "1.25px solid rgba(0, 0, 0, 0.15)",
+    boxShadow: "0 30px 60px rgba(0, 0, 0, 0.12)",
+    backgroundColor: "#fff",
+    padding: "2.5rem",
+  };
 
   useEffect(() => {
     if (!modalStudent) return;
@@ -520,114 +528,120 @@ export default function HallTickets() {
               style={modalDialogStyle}
               onClick={(event) => event.stopPropagation()}
             >
-              <div className="modal-content p-4">
-                <div className="d-flex justify-content-between gap-3 flex-wrap align-items-start">
-                  <img
-                    src={collegeLogo}
-                    alt="College logo"
-                    style={{ width: 96, height: 96, objectFit: "contain" }}
-                    className="rounded border"
-                  />
-                  <div className="text-center flex-grow-1">
-                    <div className="text-uppercase text-muted fs-xs">
+              <div className="modal-content border-0 bg-transparent">
+                <div className="mx-auto" style={hallTicketBoxStyle}>
+                  <div className="d-flex justify-content-between gap-3 flex-wrap align-items-start">
+                    <img
+                      src={collegeLogo}
+                      alt="College logo"
+                      style={{ width: 96, height: 96, objectFit: "contain" }}
+                      className="rounded border"
+                    />
+                    <div className="text-center flex-grow-1">
+                    <div className="text-uppercase text-muted fs-4 fw-bold">
                       Vijayam Arts and Science College
                     </div>
-                    <h5 className="fw-bold mb-1">
-                      {selectedExamLabel || "Exam Details"}
-                    </h5>
-                    <div className="fw-semibold fs-4">Hall Ticket</div>
+                      <h5 className="fw-bold mb-1">
+                        {selectedExamLabel || "Exam Details"}
+                      </h5>
+                      <div className="fw-semibold fs-4">Hall Ticket</div>
+                    </div>
+                    <div className="text-end">
+                      <img
+                        src={
+                          modalStudent.photo ||
+                          "https://via.placeholder.com/96?text=Photo"
+                        }
+                        alt="Student"
+                        className="rounded border mt-2"
+                        style={{ width: 96, height: 96, objectFit: "cover" }}
+                      />
+                    </div>
                   </div>
-                  <div className="text-end">
-                    <img
-                      src={
-                        modalStudent.photo ||
-                        "https://via.placeholder.com/96?text=Photo"
-                      }
-                      alt="Student"
-                      className="rounded border mt-2"
-                      style={{ width: 96, height: 96, objectFit: "cover" }}
-                    />
-                  </div>
-                </div>
-                <div className="d-flex flex-column gap-2 mt-3 text-start">
-                  {[
-                    {
-                      label: "Hall Ticket Number",
-                      value: modalStudent.hallTicket,
-                    },
-                    { label: "Student Name", value: modalStudent.name },
-                    { label: "Group Name", value: modalStudent.group },
-                    { label: "Course Name", value: modalStudent.course },
-                  ].map((column) => (
-                    <div
-                      className="d-flex align-items-center gap-2"
-                      key={column.label}
-                    >
-                      <span
-                        className="text-muted fs-7"
-                        style={{ width: 150 }}
+                  <div className="d-flex flex-column gap-2 mt-3 text-start">
+                    {[
+                      {
+                        label: "Hall Ticket Number",
+                        value: modalStudent.hallTicket,
+                      },
+                      { label: "Student Name", value: modalStudent.name },
+                      { label: "Group Name", value: modalStudent.group },
+                      { label: "Course Name", value: modalStudent.course },
+                    ].map((column) => (
+                      <div
+                        className="d-flex align-items-center gap-2"
+                        key={column.label}
                       >
-                        {column.label}
-                      </span>
-                      <span className="text-muted">:</span>
-                      <span className="fw-semibold text-body">
-                        {column.value}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <div className="position-relative text-center my-4">
-                  <hr />
-                  <span className="position-absolute top-50 start-50 translate-middle bg-white px-3 text-uppercase small text-muted fw-bold">
-                    Appearing Papers
-                  </span>
-                </div>
-                <div className="mb-3">
-                  {papersLoading && (
-                    <div className="text-muted">Loading papers…</div>
-                  )}
-                  {papersError && (
-                    <div className="alert alert-warning mb-2">
-                      {papersError}
-                    </div>
-                  )}
-                  {appearingPapers.length > 0 && (
-                    <div className="table-responsive">
-                      <table className="table table-borderless align-middle mb-0">
-                        <thead>
-                          <tr>
-                            <th>Seat No</th>
-                            <th>Date</th>
-                            <th>Time</th>
-                            <th>Subject Code</th>
-                            <th>Subject</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {appearingPapers.map((paper) => (
-                            <tr
-                              key={`${paper.subjectCode}-${paper.seatNumber}-${paper.time}`}
-                            >
-                              <td className="fw-semibold">{paper.seatNumber}</td>
-                              <td>{paper.date}</td>
-                              <td>{paper.time}</td>
-                              <td>{paper.subjectCode}</td>
-                              <td>{paper.subjectName}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                  {!papersLoading &&
-                    !papersError &&
-                    appearingPapers.length === 0 && (
-                      <div className="text-muted">No papers found.</div>
+                        <span
+                          className="text-muted fs-7"
+                          style={{ width: 150 }}
+                        >
+                          {column.label}
+                        </span>
+                        <span className="text-muted">:</span>
+                        <span className="fw-semibold text-body">
+                          {column.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="position-relative text-center my-4">
+                    <hr />
+                    <span className="position-absolute top-50 start-50 translate-middle bg-white px-3 text-uppercase small text-muted fw-bold">
+                      Appearing Papers
+                    </span>
+                  </div>
+                  <div className="mb-3">
+                    {papersLoading && (
+                      <div className="text-muted">Loading papers...</div>
                     )}
-                </div>
-                <div className="row text-center mt-4 align-items-end">
-                  {["Signature of the Student", "Signature of the Principal", "Controller of Examination"].map(
-                    (label) => (
+                    {papersError && (
+                      <div className="alert alert-warning mb-2">
+                        {papersError}
+                      </div>
+                    )}
+                    {appearingPapers.length > 0 && (
+                      <div className="table-responsive">
+                        <table className="table table-borderless align-middle mb-0">
+                          <thead>
+                            <tr>
+                              <th>Seat No</th>
+                              <th>Date</th>
+                              <th>Time</th>
+                              <th>Subject Code</th>
+                              <th>Subject</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {appearingPapers.map((paper) => (
+                              <tr
+                                key={`${paper.subjectCode}-${paper.seatNumber}-${paper.time}`}
+                              >
+                                <td className="fw-semibold">
+                                  {paper.seatNumber}
+                                </td>
+                                <td>{paper.date}</td>
+                                <td>{paper.time}</td>
+                                <td>{paper.subjectCode}</td>
+                                <td>{paper.subjectName}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                    {!papersLoading &&
+                      !papersError &&
+                      appearingPapers.length === 0 && (
+                        <div className="text-muted">No papers found.</div>
+                      )}
+                  </div>
+                  <div className="row text-center mt-4 align-items-end">
+                    {[
+                      "Signature of the Student",
+                      "Signature of the Principal",
+                      "Controller of Examination",
+                    ].map((label) => (
                       <div
                         className="col-12 col-md-4 mb-3 mb-md-0 d-flex flex-column align-items-center justify-content-end"
                         key={label}
@@ -638,28 +652,58 @@ export default function HallTickets() {
                             src={signatureImage}
                             alt="Controller signature"
                             className="mb-2 w-100"
-                            style={{ maxWidth: 180, height: "auto", objectFit: "contain" }}
+                            style={{
+                              maxWidth: 180,
+                              height: "auto",
+                              objectFit: "contain",
+                            }}
                           />
                         )}
                         <p className="mb-0 fw-semibold text-dark text-uppercase">
                           {label}
                         </p>
                       </div>
-                    )
-                  )}
-                </div>
-                <div className="mt-2 text-end">
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary"
-                    onClick={() => setModalStudent(null)}
+                    ))}
+                  </div>
+                  <p className="text-muted fw-bold small mt-3">
+                    Note. The information furnished above is submitted by college.
+                  </p>
+                  <hr className="border-dark border-2 mt-0" />
+                  <h6
+                    className="text-center fw-bold text-uppercase mb-0 mt-2"
+                    style={{ textDecoration: "underline", textDecorationThickness: "3px" }}
                   >
-                    Close Modal
-                  </button>
-                </div>
-                <p className="text-muted fw-bold small mt-3">
-                  Note. The information furnished above is submitted by college.
-                </p>
+                    Instructions to the candidates
+                  </h6>
+                  <div className="mt-3 text-start small text-muted">
+                    <ol className="ps-3 mb-0">
+                      <li>Candidates should occupy their seats in the examination hall at least 30 minutes before the commencement of the examination.</li>
+                      <li>Write your answer on both sides of the answer booklet. No additional booklet will be issued.</li>
+                      <li>Candidates should bring their Hall Ticket and Identity Card for inspection by the Chief Superintendent/ Invigilator/Observer/Squad/ University authorities.</li>
+                      <li>Candidates are prohibited from writing anything on their Hall Tickets or Question Papers.</li>
+                      <li>No candidate will be allowed to leave the examination hall until completion of half of the time allotted for the examination.</li>
+                      <li>Candidates must use only blue/black pen for answering.</li>
+                      <li>Candidates are prohibited from writing their names or Registered Numbers on any part of answer booklet except noting their Registered Numbers. Code number of Question Paper and Title of the Paper in the space provided for on the cover page of the Main Answer Booklet.</li>
+                      <li>Candidates are prohibited from marking any identification marks including religious signs or symbols on the Main Answer Booklet which will be treated as a case of malpractice (SMP).</li>
+                      <li>Candidates are prohibited from communicating either orally and or exchanging forbidden materials with other candidates during the course of examination. Otherwise such candidates stand the risk of being debarred from appearing for the examination(s).</li>
+                      <li>Candidate should attend examination only at the examination centre allotted to him/her.</li>
+                      <li>Candidate is strictly prohibited from bringing mobiles, electronic gadgets, calculators (unless specified) and forbidden materials (such as printed, handwritten, xerox or typewritten) into the examination hall which will be treated as a case of malpractice (SMP).</li>
+                      <li>Mobiles and Handbags, if any, carried by candidates must be deposited voluntarily in the office of the Principal before the candidates present themselves in the examination hall.</li>
+                      <li>Candidates are advised to verify the Date and Time of all examinations from the Time Tables displayed by the Principal/Chief Superintendent in the notice board of the examination centre.</li>
+                      <li>Responsibility to handover the answer booklet to the invigilator is with you only.</li>
+                      <li>Suits against the University if any, shall be filled in courts with in the juridiction of Chittoor district only.</li>
+                    </ol>
+                  </div>
+                  <div className="mt-3 d-flex justify-content-end">
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary"
+                      onClick={() => setModalStudent(null)}
+                    >
+                      Close Modal
+                    </button>
+                  </div>
+              </div>
               </div>
             </div>
           </div>
