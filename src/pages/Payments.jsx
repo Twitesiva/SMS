@@ -709,42 +709,7 @@ export default function Payments() {
     );
   };
 
-  const renderPaymentStatusCell = (detail) => {
-    if (!detail) {
-      return null;
-    }
-
-    if (detail.fullyPaid) {
-      return (
-        <>
-          <span className="badge bg-success text-white">Paid fully</span>
-          <div className="text-muted small mt-1">
-            {`Total paid ${formatCurrency(detail.paidTotal)}`}
-          </div>
-        </>
-      );
-    }
-
-  if (detail.hasExamPaid) {
-    return (
-      <>
-        <span className="badge bg-info text-dark">Exam paid</span>
-        <div className="text-muted small mt-1">
-          {`Covered ${formatCurrency(detail.examCoverageAmount)}`}
-        </div>
-      </>
-    );
-  }
-
-  return (
-    <>
-      <span className="badge bg-warning text-dark">Partial payment</span>
-      <div className="text-muted small mt-1">
-          {`Paid ${formatCurrency(detail.paidTotal)}`}
-        </div>
-      </>
-    );
-  };
+  const renderPaymentStatusCell = () => null;
 
   const getAppliedRegistrationKey = (student, semesterValue) => {
     const semester =
