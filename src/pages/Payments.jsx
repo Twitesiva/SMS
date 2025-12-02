@@ -2487,7 +2487,12 @@ export default function Payments() {
                                   </div>
                                 </td>
                   <td className="text-end">
-                    <div className="d-flex justify-content-end gap-2">
+                    {detail?.applied ? (
+                      <div className="d-flex flex-column align-items-end text-success small">
+                        <span className="fw-semibold">Applied</span>
+                        <span className="text-muted small">Subjects already stored</span>
+                      </div>
+                    ) : (
                       <button
                         className={`btn btn-sm ${
                           isActive ? "btn-outline-secondary" : "btn-outline-primary"
@@ -2497,7 +2502,7 @@ export default function Payments() {
                       >
                         {buttonLabel}
                       </button>
-                    </div>
+                    )}
                   </td>
                               </Fragment>
                             );
