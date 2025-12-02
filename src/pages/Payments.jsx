@@ -72,18 +72,6 @@ export default function Payments() {
   const [modalPaymentSummary, setModalPaymentSummary] = useState(null);
   const [loadingModalPayments, setLoadingModalPayments] = useState(false);
   const [appliedRegistrationDetails, setAppliedRegistrationDetails] = useState({});
-  const [appliedKeys, setAppliedKeys] = useState([]);
-  const applyAppliedFlags = (details = {}) => {
-    const merged = { ...details };
-    appliedKeys.forEach((key) => {
-      if (!key) return;
-      merged[key] = {
-        ...(merged[key] || {}),
-        applied: true,
-      };
-    });
-    return merged;
-  };
   const [allowPaymentWithoutSelection, setAllowPaymentWithoutSelection] = useState(false);
   const examFeeData = useMemo(() => {
     if (!modalFeeInfo?.categories?.length) return null;
@@ -515,11 +503,6 @@ export default function Payments() {
     setModalStep(2);
   };
 
-  const markAppliedKey = (key) => {
-    if (!key) return;
-    setAppliedKeys((prev) => (prev.includes(key) ? prev : [...prev, key]));
-  };
-
   const handleStoreSelectedSubjects = async () => {
     if (!selectedSubjectKeys.size && !allowPaymentWithoutSelection) {
       showToast("Select at least one subject before continuing.", {
@@ -540,11 +523,6 @@ export default function Payments() {
       return;
     }
 
-    const detailKeyForModal = getAppliedRegistrationKey(
-      activePaymentStudent,
-      modalSemester || form.semester || ""
-    );
-
     const uniqueSubjectEntries = getUniqueSelectedSubjectEntries();
     try {
       const { examRegistrationId, examMasterId } =
@@ -560,15 +538,7 @@ export default function Payments() {
       });
       try {
         const nextDetails = await buildAppliedRegistrationDetails();
-        const merged = { ...nextDetails };
-        if (detailKeyForModal) {
-          merged[detailKeyForModal] = {
-            ...(merged[detailKeyForModal] || {}),
-            applied: true,
-          };
-        }
-        setAppliedRegistrationDetails(merged);
-        markAppliedKey(detailKeyForModal);
+        setAppliedRegistrationDetails(nextDetails);
       } catch (error) {
         console.error("Failed to refresh applied registrations:", error);
       }
@@ -727,7 +697,7 @@ export default function Payments() {
     const { data, error } = await supabase
       .from("exam_registrations")
       .select(
-        "student_id, semester, total_fee, total_exam_fee, payments(fee_type, amount_paid, payment_status)"
+        "id, student_id, semester, total_fee, total_exam_fee, payments(fee_type, amount_paid, payment_status)"
       )
       .in("student_id", studentIds)
       .limit(1000);
@@ -735,8 +705,10 @@ export default function Payments() {
     if (error) throw error;
 
     const nextDetails = {};
+    const registrationKeyById = new Map();
     (data || []).forEach((registration) => {
       if (!registration) return;
+      const registrationId = registration.id;
       const studentRecord = studentLookup.get(registration.student_id);
       if (!studentRecord) return;
 
@@ -776,18 +748,41 @@ export default function Payments() {
         ? "exam-paid"
         : "partial-paid-without-exam";
 
-      nextDetails[`${studentIdSource}-${semesterValue}`] = {
+      const registrationKey = `${studentIdSource}-${semesterValue}`;
+      registrationKeyById.set(registrationId, registrationKey);
+      nextDetails[registrationKey] = {
         fullyPaid,
         hasExamPaid,
         status,
         paidTotal,
         examCoverageAmount,
         totalFee,
+        applied: false,
       };
     });
 
-    return applyAppliedFlags(nextDetails);
-  }, [students, appliedKeys]);
+    const registrationIds = (data || [])
+      .map((registration) => registration?.id)
+      .filter(Boolean);
+    if (registrationIds.length) {
+      const { data: subjectRows, error: subjectError } = await supabase
+        .from("exam_registration_subjects")
+        .select("exam_registration_id")
+        .in("exam_registration_id", registrationIds);
+      if (subjectError) throw subjectError;
+      const appliedMap = new Set(
+        (subjectRows || []).map((row) => row.exam_registration_id)
+      );
+      appliedMap.forEach((registrationId) => {
+        const key = registrationKeyById.get(registrationId);
+        if (key && nextDetails[key]) {
+          nextDetails[key].applied = true;
+        }
+      });
+    }
+
+    return nextDetails;
+  }, [students]);
 
   const getMatchedGroup = (student) =>
     groups.find(
