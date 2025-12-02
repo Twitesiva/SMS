@@ -874,39 +874,87 @@ export const api = {
 
   addSubjects: async (subjects = []) => {
     if (!Array.isArray(subjects) || !subjects.length) return [];
-    // validate duplicates for each subject (skip phone/mobile checks by design)
-    for (const s of subjects) {
-      const subjectRow = toSubjectRow(s);
-      const rawExclude = s.subject_id || s.subjectId || s.id || null;
-      const excludeId =
-        rawExclude !== null && rawExclude !== undefined && rawExclude !== ""
-          ? Number(rawExclude)
-          : null;
-      // only use excludeId when it's a valid number (DB uses integer identity)
-      await ensureNoDuplicate(TABLES.subjects, subjectRow, {
-        excludeId: !isNaN(excludeId) ? excludeId : undefined,
-      });
-    }
-    // prepare payloads for upsert — remove subject_id so DB can generate
-    // identity values. Use composite conflict columns for batch uniqueness.
-    const payload = subjects.map((s) => {
-      const r = toSubjectRow(s);
-      if (r.subject_id !== undefined) delete r.subject_id;
-      return r;
-    });
-    // Use subject_code as the conflict target so Supabase performs an
-    // upsert on the same unique key that Postgres enforces, avoiding
-    // 409 duplicate key errors for existing subject codes.
-    const rows = await runQuery(
-      supabase
-        .from(TABLES.subjects)
-        .upsert(payload, { onConflict: "subject_code" })
-        .select(
-          "subject_id, academic_year, course_name, semester_number, category_id, subject_code, subject_name, fees_categories, amount"
-        ),
-      "Unable to save subjects"
+    
+    // First, check for existing subjects to avoid duplicates
+    const existingSubjects = await runQuery(
+      supabase.from(TABLES.subjects).select('*'),
+      "Unable to fetch existing subjects"
     );
-    return rows.map(mapSubject);
+    
+    // Create a map of existing subject codes to their IDs for quick lookup
+    const existingSubjectMap = new Map(
+      existingSubjects.map(sub => [
+        `${sub.academic_year}|${sub.course_name}|${sub.semester_number}|${sub.subject_code}`.toLowerCase(),
+        sub.subject_id
+      ])
+    );
+    
+    // Prepare the final list of subjects to insert
+    const subjectsToInsert = [];
+    const subjectsToUpdate = [];
+    
+    for (const subject of subjects) {
+      const subjectRow = toSubjectRow(subject);
+      const subjectKey = `${subjectRow.academic_year}|${subjectRow.course_name}|${subjectRow.semester_number}|${subjectRow.subject_code}`.toLowerCase();
+      
+      if (existingSubjectMap.has(subjectKey)) {
+        // Subject exists, prepare for update
+        const existingId = existingSubjectMap.get(subjectKey);
+        subjectsToUpdate.push({
+          ...subjectRow,
+          subject_id: existingId
+        });
+      } else {
+        // New subject, prepare for insert
+        if (subjectRow.subject_id !== undefined) {
+          delete subjectRow.subject_id; // Let the database generate the ID
+        }
+        subjectsToInsert.push(subjectRow);
+      }
+    }
+    
+    // Process updates
+    const updatedSubjects = [];
+    if (subjectsToUpdate.length > 0) {
+      for (const subject of subjectsToUpdate) {
+        const { subject_id, ...updateData } = subject;
+        const { data: updated, error } = await supabase
+          .from(TABLES.subjects)
+          .update(updateData)
+          .eq('subject_id', subject_id)
+          .select();
+          
+        if (error) {
+          console.error('Error updating subject:', error);
+          throw new Error(`Error updating subject: ${error.message}`);
+        }
+        
+        if (updated && updated.length > 0) {
+          updatedSubjects.push(...updated);
+        }
+      }
+    }
+    
+    // Process inserts
+    let insertedSubjects = [];
+    if (subjectsToInsert.length > 0) {
+      const { data: inserted, error } = await supabase
+        .from(TABLES.subjects)
+        .insert(subjectsToInsert)
+        .select();
+        
+      if (error) {
+        console.error('Error inserting subjects:', error);
+        throw new Error(`Error inserting subjects: ${error.message}`);
+      }
+      
+      if (inserted) {
+        insertedSubjects = inserted;
+      }
+    }
+    
+    // Return combined results
+    return [...updatedSubjects, ...insertedSubjects].map(mapSubject);
   },
 
   deleteSubject: async (id) => {
