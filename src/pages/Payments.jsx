@@ -1770,17 +1770,28 @@ export default function Payments() {
       if (!validEntries.length) {
         return 0;
       }
-      validEntries.sort((a, b) => {
-        const comparison = a.studentName.localeCompare(b.studentName);
-        if (comparison !== 0) return comparison;
-        return String(a.subject_id).localeCompare(String(b.subject_id));
+      const grouped = new Map();
+      validEntries.forEach((entry) => {
+        const key = String(entry.subject_id);
+        if (!grouped.has(key)) grouped.set(key, []);
+        grouped.get(key).push(entry);
       });
-      const seatAssignments = validEntries.map((entry, index) => ({
-        exam_id: examMasterId,
-        student_id: entry.student_id,
-        subject_id: entry.subject_id,
-        seat_number: `S${String(index + 1).padStart(4, "0")}`,
-      }));
+      const seatAssignments = [];
+      grouped.forEach((entries) => {
+        entries.sort((a, b) => {
+          const comparison = a.studentName.localeCompare(b.studentName);
+          if (comparison !== 0) return comparison;
+          return String(a.subject_id).localeCompare(String(b.subject_id));
+        });
+        entries.forEach((entry, index) => {
+          seatAssignments.push({
+            exam_id: examMasterId,
+            student_id: entry.student_id,
+            subject_id: entry.subject_id,
+            seat_number: `S${String(index + 1).padStart(4, "0")}`,
+          });
+        });
+      });
       const { error: deleteError } = await supabase
         .from("student_subject_seats")
         .delete()
