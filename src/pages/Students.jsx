@@ -1110,12 +1110,6 @@ export default function Students() {
     },
   ];
 
-  const handleQuickPayments = () => {
-    showToast("Use the Payments screen to record quick payments.", {
-      type: "info",
-    });
-  };
-
   return (
     <AdminShell>
       <div className="students-page-shell">
@@ -1135,13 +1129,6 @@ export default function Students() {
               value={studentIdSearch}
               onChange={(e) => setStudentIdSearch(e.target.value)}
             />
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              onClick={handleQuickPayments}
-            >
-              Quick payments
-            </button>
           </div>
           <div className="students-stats-grid row g-3 px-3 pb-3">
             {heroStats.map((stat) => (

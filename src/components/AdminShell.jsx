@@ -31,7 +31,6 @@ const nav = [
     label: "Decode",
     icon: "bi-bar-chart",
   },
-  { to: "/admin/courses", label: "View Courses", icon: "bi-book" },
   {
     to: "/admin/hall-tickets",
     label: "Hall Ticket",

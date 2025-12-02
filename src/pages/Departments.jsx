@@ -115,12 +115,6 @@ export default function Departments() {
     },
   ];
 
-  const handleQuickPayments = () => {
-    showToast("Use the Payments screen for quick payment actions.", {
-      type: "info",
-    });
-  };
-
   const categoryFilterValue = normalizeCategory(form.category);
 
   // ---------------- LOAD MASTER DATA ----------------
@@ -1033,13 +1027,6 @@ export default function Departments() {
             value={categorySearch}
             onChange={(event) => setCategorySearch(event.target.value)}
           />
-          <button
-            type="button"
-            className="btn btn-primary btn-sm students-button"
-            onClick={handleQuickPayments}
-          >
-            Quick payments
-          </button>
         </div>
         <div className="students-stats-grid row g-3 px-3 pb-3">
           {departmentHeroStats.map((stat) => (
@@ -1404,7 +1391,7 @@ export default function Departments() {
       <div className="students-table-panel card card-soft mb-4 p-4">
         <div className="students-table-panel-header mb-3">
           <div>
-            <p className="students-table-panel-title mb-1">Fee Category Records</p>
+            <p className="students-table-panel-title text-white mb-1">Fee Category Records</p>
             <p className="students-table-panel-copy small mb-0">
               Recently saved fee combinations and their totals.
             </p>
