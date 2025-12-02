@@ -2456,12 +2456,18 @@ export default function Payments() {
           tabIndex="-1"
           role="dialog"
           aria-modal="true"
-          style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
+          style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
         >
-          <div className="modal-dialog modal-sm modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Confirm registration</h5>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content border-0 shadow-lg">
+              <div className="modal-header border-0">
+                <div>
+                  <h5 className="modal-title fw-bold">Complete registration?</h5>
+                  <p className="text-muted small mb-0">
+                    Confirming will mark the selected students as finalized in the
+                    current exam batch.
+                  </p>
+                </div>
                 <button
                   type="button"
                   className="btn-close"
@@ -2470,12 +2476,27 @@ export default function Payments() {
                 ></button>
               </div>
               <div className="modal-body">
-                <p className="mb-0">
-                  Are you sure you want to mark registration as complete for the
-                  currently selected students?
-                </p>
+                <div className="p-3 rounded-3 border border-success bg-light">
+                  <div className="fw-semibold text-success mb-2">
+                    <span role="img" aria-label="check">
+                      ✅
+                    </span>{" "}
+                    Registration record
+                  </div>
+                  <p className="mb-1 text-muted small">
+                    Students that have an active payment context will be locked for
+                    further exam edits until the next cycle.
+                  </p>
+                  <ul className="list-unstyled mb-0 small text-muted">
+                    <li>- Exam name: {form.examName || "Not set"}</li>
+                    <li>
+                      - Students filtered:{" "}
+                      {displayCount || "All"} ({filteredBySearch.length})
+                    </li>
+                  </ul>
+                </div>
               </div>
-              <div className="modal-footer">
+              <div className="modal-footer border-0 pt-0">
                 <button
                   type="button"
                   className="btn btn-outline-secondary"
@@ -2485,10 +2506,10 @@ export default function Payments() {
                 </button>
                 <button
                   type="button"
-                  className="btn btn-primary"
+                  className="btn btn-success"
                   onClick={handleCompleteRegistrationConfirm}
                 >
-                  Confirm
+                  Confirm completion
                 </button>
               </div>
             </div>
