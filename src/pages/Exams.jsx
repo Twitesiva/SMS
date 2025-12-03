@@ -1,5 +1,5 @@
 import AdminShell from '../components/AdminShell'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '../lib/mockApi'
 import { showToast } from '../store/ui.js'
 import { supabase } from '../../supabaseClient'
@@ -54,46 +54,282 @@ export default function Exams() {
   const [exams, setExams] = useState([])
   const [selectedExam, setSelectedExam] = useState('')
   const [examParity, setExamParity] = useState('')
+  const [examNameInput, setExamNameInput] = useState('')
+  const [editingExam, setEditingExam] = useState(null)
+  const [examsLoading, setExamsLoading] = useState(false)
+  const [completeRegistrationModalOpen, setCompleteRegistrationModalOpen] = useState(false)
+  const [completionTargetExam, setCompletionTargetExam] = useState(null)
+  const [completedExamIds, setCompletedExamIds] = useState([])
 
   // Fetch exams from exam_master table
+  const refreshExams = useCallback(async () => {
+    setExamsLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('exam_master')
+        .select('id, exam_name, created_at, results_published, result_published, result_status, status')
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setExams(data || [])
+    } catch (error) {
+      console.error('Error fetching exams:', error)
+      setFeedback({
+        message: error.message || 'Failed to load exams. Please try again later.',
+        type: 'error',
+      })
+    } finally {
+      setExamsLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
-    const fetchExams = async () => {
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('exam_master')
-          .select('id, exam_name, created_at')
-          .order('created_at', { ascending: false });
+    refreshExams()
+  }, [refreshExams])
 
-        if (error) {
-          console.error('Database error:', error);
-          throw new Error('Failed to fetch exams from database');
-        }
-        
-        if (!data || data.length === 0) {
-          console.warn('No exams found in the database');
-          setFeedback({
-            message: 'No exams found. Please create an exam first.',
-            type: 'warning'
-          });
-          return;
-        }
-        
-        setExams(data);
-        setFeedback({ message: '', type: '' });
-      } catch (error) {
-        console.error('Error fetching exams:', error);
-        setFeedback({
-          message: error.message || 'Failed to load exams. Please try again later.',
-          type: 'error'
-        });
-      } finally {
-        setLoading(false);
+  useEffect(() => {
+    if (selectedExam || !exams.length) return
+    const firstExamId = exams[0]?.id
+    if (!firstExamId) return
+    setSelectedExam(String(firstExamId))
+  }, [exams, selectedExam])
+
+  const handleSelectSavedExam = (exam) => {
+    setExamNameInput(exam.exam_name)
+    setEditingExam(exam)
+    setSelectedExam(String(exam.id))
+  }
+
+  const handleSaveExamName = async () => {
+    const value = (examNameInput || '').trim()
+    if (!value) {
+      showToast('Enter an exam name before saving.', { type: 'warning' })
+      return
+    }
+    if (editingExam) {
+      showToast('Finish editing or cancel before saving a new exam name.', { type: 'warning' })
+      return
+    }
+    const duplicate = exams.some(
+      (entry) => (entry.exam_name || '').trim().toLowerCase() === value.toLowerCase()
+    )
+    if (duplicate) {
+      showToast('This exam name already exists.', { type: 'warning' })
+      return
+    }
+    try {
+      const { data, error } = await supabase
+        .from('exam_master')
+        .insert({ exam_name: value })
+        .select('id')
+        .single()
+      if (error) throw error
+      await refreshExams()
+      if (data?.id) {
+        setSelectedExam(String(data.id))
       }
-    };
+      setExamNameInput('')
+      showToast('Exam name saved.', { type: 'success' })
+    } catch (error) {
+      console.error('Failed to save exam name:', error)
+      showToast('Unable to save exam name.', { type: 'danger' })
+    }
+  }
 
-    fetchExams();
-  }, []);
+  const handleUpdateExamName = async () => {
+    if (!editingExam) {
+      showToast('Select an exam name to edit.', { type: 'warning' })
+      return
+    }
+    const value = (examNameInput || '').trim()
+    if (!value) {
+      showToast('Exam name cannot be empty.', { type: 'warning' })
+      return
+    }
+    if (value === editingExam.exam_name) {
+      showToast('No changes to save.', { type: 'info' })
+      return
+    }
+    const duplicate = exams.some(
+      (entry) =>
+        entry.id !== editingExam.id &&
+        (entry.exam_name || '').trim().toLowerCase() === value.toLowerCase()
+    )
+    if (duplicate) {
+      showToast('Another exam already uses this name.', { type: 'warning' })
+      return
+    }
+    try {
+      const { error } = await supabase
+        .from('exam_master')
+        .update({ exam_name: value })
+        .eq('id', editingExam.id)
+      if (error) throw error
+      await refreshExams()
+      showToast('Exam name updated.', { type: 'success' })
+      setEditingExam(null)
+      setExamNameInput('')
+    } catch (error) {
+      console.error('Failed to update exam name:', error)
+      showToast('Unable to update exam name.', { type: 'danger' })
+    }
+  }
+
+  const handleDeleteExamName = async (examEntry) => {
+    const target = examEntry ?? editingExam
+    if (!target) {
+      showToast('Select an exam to delete.', { type: 'warning' })
+      return
+    }
+    try {
+      const { error } = await supabase
+        .from('exam_master')
+        .delete()
+        .eq('id', target.id)
+      if (error) throw error
+      await refreshExams()
+      if (String(selectedExam) === String(target.id)) {
+        setSelectedExam('')
+      }
+      setEditingExam(null)
+      setExamNameInput('')
+      showToast('Exam name removed.', { type: 'success' })
+    } catch (error) {
+      console.error('Failed to delete exam name:', error)
+      showToast('Unable to delete exam name.', { type: 'danger' })
+    }
+  }
+
+  const openCompleteRegistrationModal = (exam) => {
+    setCompletionTargetExam(exam)
+    setCompleteRegistrationModalOpen(true)
+  }
+
+  const closeCompleteRegistrationModal = () => {
+    setCompleteRegistrationModalOpen(false)
+    setCompletionTargetExam(null)
+  }
+
+  const assignSeatNumbersForExam = useCallback(async (examMasterId) => {
+    if (!examMasterId) return 0
+    const { data: registrations, error: regError } = await supabase
+      .from('exam_registrations')
+      .select('id, student_id, exam_id')
+      .eq('exam_id', examMasterId)
+    if (regError) throw regError
+    const registrationIds = (registrations || [])
+      .map((registration) => registration?.id)
+      .filter(Boolean)
+    if (!registrationIds.length) {
+      return 0
+    }
+    const studentIds = Array.from(
+      new Set(
+        (registrations || [])
+          .map((registration) => registration?.student_id)
+          .filter(Boolean)
+      )
+    )
+    let studentLookup = new Map()
+    if (studentIds.length) {
+      const { data: studentRows, error: studentsError } = await supabase
+        .from('students')
+        .select('id, full_name, name, student_name, student_id')
+        .in('id', studentIds)
+      if (studentsError) throw studentsError
+      studentLookup = new Map(
+        (studentRows || []).map((student) => [String(student.id), student])
+      )
+    }
+    const { data: subjectRows, error: subjectsError } = await supabase
+      .from('exam_registration_subjects')
+      .select('exam_registration_id, subject_id')
+      .in('exam_registration_id', registrationIds)
+    if (subjectsError) throw subjectsError
+    const validEntries = (subjectRows || [])
+      .map((entry) => {
+        const registration = (registrations || []).find(
+          (reg) => reg?.id === entry?.exam_registration_id
+        )
+        if (!registration || !entry?.subject_id) return null
+        const student = studentLookup.get(String(registration.student_id))
+        const name = (
+          student?.full_name ||
+          student?.name ||
+          student?.student_name ||
+          student?.student_id ||
+          ''
+        )
+          .toString()
+          .trim()
+          .toLowerCase()
+        return {
+          ...entry,
+          student_id: registration.student_id,
+          exam_id: registration.exam_id,
+          studentName: name,
+        }
+      })
+      .filter(Boolean)
+    if (!validEntries.length) {
+      return 0
+    }
+    const grouped = new Map()
+    validEntries.forEach((entry) => {
+      const key = String(entry.subject_id)
+      if (!grouped.has(key)) grouped.set(key, [])
+      grouped.get(key).push(entry)
+    })
+    const seatAssignments = []
+    grouped.forEach((entries) => {
+      entries.sort((a, b) => {
+        const comparison = a.studentName.localeCompare(b.studentName)
+        if (comparison !== 0) return comparison
+        return String(a.subject_id).localeCompare(String(b.subject_id))
+      })
+      entries.forEach((entry, index) => {
+        seatAssignments.push({
+          exam_id: examMasterId,
+          student_id: entry.student_id,
+          subject_id: entry.subject_id,
+          seat_number: `S${String(index + 1).padStart(4, '0')}`,
+        })
+      })
+    })
+    const { error: deleteError } = await supabase
+      .from('student_subject_seats')
+      .delete()
+      .eq('exam_id', examMasterId)
+    if (deleteError) throw deleteError
+    const { error: insertError } = await supabase
+      .from('student_subject_seats')
+      .insert(seatAssignments)
+    if (insertError) throw insertError
+    return seatAssignments.length
+  }, [])
+
+  const handleCompleteRegistrationConfirm = async () => {
+    if (!completionTargetExam?.id) return
+    closeCompleteRegistrationModal()
+    try {
+      const assignedCount = await assignSeatNumbersForExam(completionTargetExam.id)
+      setCompletedExamIds((prev) =>
+        prev.includes(completionTargetExam.id)
+          ? prev
+          : [...prev, completionTargetExam.id]
+      )
+      const message = assignedCount
+        ? `Registration completed and ${assignedCount} seat numbers assigned.`
+        : 'Registration completed but no students were registered.'
+      showToast(message, { type: 'success', title: 'Registration' })
+    } catch (error) {
+      console.error('Failed to assign seat numbers:', error)
+      showToast('Unable to complete registration. Please try again.', {
+        type: 'danger',
+        title: 'Registration',
+      })
+    }
+  }
 
   useEffect(() => {
     let isMounted = true
@@ -434,6 +670,96 @@ export default function Exams() {
           </div>
         ) : null}
         <div className="card card-soft p-3 mb-4">
+          <div className="mb-3">
+            <h4 className="fw-bold mb-1">Exam details</h4>
+            <p className="text-muted small mb-0">Create, rename, or finalize exams before assigning schedules.</p>
+          </div>
+          <div className="row g-3">
+            <div className="col-md-8">
+              <label className="form-label">Exam name</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Enter exam name"
+                value={examNameInput}
+                onChange={(event) => setExamNameInput(event.target.value)}
+                list="exam-name-options"
+              />
+              <datalist id="exam-name-options">
+                {exams.map((exam) => (
+                  <option key={exam.id} value={exam.exam_name} />
+                ))}
+              </datalist>
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-muted small mb-1">Saved exams</div>
+            <div className="list-group list-group-flush">
+              {examsLoading ? (
+                <div className="text-muted small px-3 py-2">Loading exams...</div>
+              ) : exams.length ? (
+                exams.map((exam) => (
+                  <div
+                    key={exam.id}
+                    className="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2"
+                  >
+                    <div className="w-100 w-md-auto">
+                      <div className="fw-semibold">{exam.exam_name}</div>
+                      <div className="text-muted small">
+                        {editingExam?.id === exam.id ? 'Selected for editing' : 'Tap edit to rename'}
+                      </div>
+                    </div>
+                    <div className="d-flex flex-wrap gap-2 justify-content-end w-100 w-md-auto">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-primary rounded-pill px-3"
+                        onClick={() => handleSelectSavedExam(exam)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-danger rounded-pill px-3"
+                        onClick={() => handleDeleteExamName(exam)}
+                      >
+                        Delete
+                      </button>
+                      <button
+                        type="button"
+                        className={"btn btn-sm rounded-pill px-3 " + (completedExamIds.includes(exam.id) ? 'btn-outline-secondary' : 'btn-outline-success')}
+                        onClick={() => openCompleteRegistrationModal(exam)}
+                        disabled={completedExamIds.includes(exam.id)}
+                      >
+                        {completedExamIds.includes(exam.id) ? 'Completed' : 'Complete Registration'}
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-muted small px-3 py-2">No exams saved yet.</div>
+              )}
+            </div>
+          </div>
+          <div className="mt-3 d-flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn btn-sm btn-primary"
+              onClick={handleSaveExamName}
+              disabled={Boolean(editingExam)}
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-primary"
+              onClick={handleUpdateExamName}
+              disabled={!editingExam}
+            >
+              Update
+            </button>
+          </div>
+        </div>
+        <div className="card card-soft p-3 mb-4">
           <div className="row g-3">
             <div className="col-md-2">
               <label className="form-label">Category</label>
@@ -456,10 +782,10 @@ export default function Exams() {
                 className="form-select"
                 value={selectedExam}
                 onChange={(e) => setSelectedExam(e.target.value)}
-                disabled={loading || exams.length === 0}
+                disabled={examsLoading || exams.length === 0}
               >
                 <option value="">
-                  {loading ? 'Loading exams...' : (exams.length === 0 ? 'No exams available' : 'Select exam')}
+                  {examsLoading ? 'Loading exams...' : exams.length === 0 ? 'No exams available' : 'Select exam'}
                 </option>
                 {exams.map((exam) => (
                   <option key={exam.id} value={exam.id}>
@@ -467,8 +793,8 @@ export default function Exams() {
                   </option>
                 ))}
               </select>
-              {loading && <div className="form-text">Loading exam data...</div>}
-              {!loading && exams.length === 0 && (
+              {examsLoading && <div className="form-text">Loading exam data...</div>}
+              {!examsLoading && exams.length === 0 && (
                 <div className="form-text text-warning">No exams found. Please create an exam first.</div>
               )}
             </div>
@@ -654,6 +980,48 @@ export default function Exams() {
           </button>
         </div>
       </div>
+      {completeRegistrationModalOpen && (
+        <div
+          className="modal d-block"
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+          style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
+        >
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content border-0 shadow-lg">
+              <div className="modal-header border-0">
+                <div>
+                  <h5 className="modal-title fw-bold">Complete registration?</h5>
+                  <p className="text-muted small mb-0">Assign seat numbers for the selected exam before printing hall tickets.</p>
+                </div>
+                <button
+                  type="button"
+                  className="btn-close"
+                  aria-label="Close"
+                  onClick={closeCompleteRegistrationModal}
+                ></button>
+              </div>
+              <div className="modal-body">
+                <div className="p-3 rounded-3 border border-success bg-light">
+                  <div className="fw-semibold text-success mb-2">Exam record</div>
+                  <p className="mb-1 text-muted small">
+                    Students tied to <strong>{completionTargetExam?.exam_name || 'this exam'}</strong> will be marked completed.
+                  </p>
+                </div>
+              </div>
+              <div className="modal-footer border-0 pt-0">
+                <button type="button" className="btn btn-outline-secondary" onClick={closeCompleteRegistrationModal}>
+                  Cancel
+                </button>
+                <button type="button" className="btn btn-success" onClick={handleCompleteRegistrationConfirm}>
+                  Confirm completion
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminShell>
   )
 }

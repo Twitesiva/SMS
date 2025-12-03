@@ -40,7 +40,6 @@ export default function Departments() {
   const categoryDropdownRef = useRef(null);
 
   const [appliedFilter, setAppliedFilter] = useState(null);
-  const [categorySearch, setCategorySearch] = useState("");
 
   const normalizeCategory = (value) => (value || "").trim().toLowerCase();
 
@@ -68,14 +67,7 @@ export default function Departments() {
       .map(([, value]) => value);
   }, [groups, years]);
 
-  const filteredFeeCategories = useMemo(() => {
-    const filter = categorySearch.trim().toLowerCase();
-    if (!filter) return feeCats;
-    return (feeCats || []).filter((category) => {
-      const name = (category?.name || "").toString().toLowerCase();
-      return name.includes(filter);
-    });
-  }, [feeCats, categorySearch]);
+  const filteredFeeCategories = feeCats;
 
   const [supplementaryFees, setSupplementaryFees] = useState([]);
   const [paper1, setPaper1] = useState("");
@@ -1019,15 +1011,6 @@ export default function Departments() {
             Manage fee categories, structures, and supplements with the same payments-style surface.
           </p>
         </div>
-        <div className="d-flex flex-wrap align-items-center gap-2 px-3 pb-3">
-          <input
-            type="text"
-            className="form-control students-hero-search"
-            placeholder="Search category"
-            value={categorySearch}
-            onChange={(event) => setCategorySearch(event.target.value)}
-          />
-        </div>
         <div className="students-stats-grid row g-3 px-3 pb-3">
           {departmentHeroStats.map((stat) => (
             <div className="col-6 col-md-3" key={stat.label}>
@@ -1146,7 +1129,7 @@ export default function Departments() {
                   <div className="alert alert-info mb-0">
                     {feeCats.length === 0
                       ? "No fee categories found. Add one to get started."
-                      : "No fee categories match the current search/filter."}
+                      : "No fee categories match the current filters."}
                   </div>
                 </div>
               )}

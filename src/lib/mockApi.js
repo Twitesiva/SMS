@@ -508,6 +508,20 @@ const toBatchRow = ({ name }) => ({ name });
 
 const mapExam = (row = {}) => {
   const name = row.exam_name ?? row.name ?? row.title ?? "";
+  const resultStatus =
+    row.result_status ??
+    row.resultStatus ??
+    row.status ??
+    row.exam_status ??
+    "";
+  const publishedFlag =
+    row.results_published ??
+    row.result_published ??
+    row.resultsPublished ??
+    row.resultPublished ??
+    row.is_results_published ??
+    row.isResultPublished ??
+    null;
   return {
     id: row.id,
     exam_name: name,
@@ -517,6 +531,8 @@ const mapExam = (row = {}) => {
     date: row.date || row.exam_date || row.created_at || "",
     time: row.time || row.exam_time || "",
     venue: row.venue || "",
+    result_status: resultStatus,
+    results_published: publishedFlag,
   };
 };
 
@@ -1034,7 +1050,9 @@ export const api = {
     const rows = await runQuery(
       supabase
         .from(TABLES.exams)
-        .select("id, exam_name, created_at")
+        .select(
+          "id, exam_name, created_at, results_published, result_published, result_status, status"
+        )
         .order("created_at", { ascending: false }),
       "Unable to fetch exams"
     );

@@ -624,6 +624,11 @@ h6,
   margin: 1.5rem auto;
 }
 
+.subjects-modal-dialog {
+  width: min(900px, 96vw);
+  margin: 2rem auto;
+}
+
 .students-modal-content {
   width: 100%;
   border-radius: 32px;
@@ -633,9 +638,14 @@ h6,
   border: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 24px);
+  height: 100%;
   max-height: none;
   margin: 0;
+}
+
+.subjects-modal-dialog .students-modal-content {
+  max-height: none;
+  border-radius: 26px;
 }
 
 .students-modal-header {
@@ -674,6 +684,12 @@ h6,
   max-height: calc(100vh - 180px);
   display: grid;
   gap: 2rem;
+}
+
+.subjects-modal-dialog .students-modal-body {
+  max-height: none;
+  padding: 1.25rem;
+  gap: 1rem;
 }
 
 .students-modal-summary {
@@ -4371,9 +4387,40 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
-.sidebar-nav::-webkit-scrollbar {
-  width: 0;
-  background: transparent;
+  .sidebar-nav::-webkit-scrollbar {
+    width: 0;
+    background: transparent;
+  }
+
+.sidebar-scroll-hint {
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.8);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.9rem;
+  margin: 0 1.1rem 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  pointer-events: none;
+}
+
+.sidebar-scroll-hint i {
+  font-size: 0.85rem;
+  animation: sidebarScrollHintBounce 1.1s ease-in-out infinite alternate;
+}
+
+@keyframes sidebarScrollHintBounce {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(4px);
+  }
 }
 
 .nav-item-modern {

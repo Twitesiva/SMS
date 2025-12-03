@@ -47,6 +47,13 @@ export default function PaymentsOverview() {
     fetchExams();
   }, []);
 
+  useEffect(() => {
+    if (selectedExam || !exams.length) return;
+    const firstExamId = exams[0]?.id;
+    if (!firstExamId) return;
+    setSelectedExam(String(firstExamId));
+  }, [exams, selectedExam]);
+
   // Fetch subjects for selected exam
   useEffect(() => {
     const fetchExamSubjects = async () => {

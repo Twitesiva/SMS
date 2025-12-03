@@ -19,6 +19,17 @@ export default function Results(){
   const [marksError, setMarksError] = useState('')
 
   useEffect(()=>{(async()=>{setStudents(await api.listStudents()); setExams(await api.listExams())})()},[])
+
+  useEffect(() => {
+    if (!exams.length) return
+    setForm((prev) => {
+      if (prev.exam_id) return prev
+      const firstExamId = exams[0]?.id
+      if (!firstExamId) return prev
+      return { ...prev, exam_id: String(firstExamId) }
+    })
+  }, [exams, form.exam_id])
+
   const save=async()=>{ if(!form.student_id||!form.exam_id||!form.total||!form.grade) return; setSaving(true); await api.addResult({ student_id:form.student_id, exam_id:form.exam_id, total:Number(form.total), grade:form.grade }); setForm({student_id:'',exam_id:'',total:'',grade:''}); setSaving(false) }
 
   const fetchDecodeDetails = async () => {

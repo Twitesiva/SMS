@@ -5,6 +5,10 @@ import { supabase } from "../../supabaseClient";
 import { api } from "../lib/mockApi";
 import { validateRequiredFields } from "../lib/validation";
 import { showToast } from "../store/ui";
+import {
+  getFirstUnpublishedExam,
+  isExamResultPublished,
+} from "../lib/examUtils";
 
 const EXAM_RELEVANT_FEE_TYPES = new Set(["exam", "full", "partial"]);
 const isExamCoveragePayment = (feeType = "") =>
@@ -60,9 +64,7 @@ export default function Payments() {
     examName: "",
   });
   const [displayCount, setDisplayCount] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
   const [storedExamList, setStoredExamList] = useState([]);
-  const [editingExam, setEditingExam] = useState(null);
 
   const [activePaymentStudent, setActivePaymentStudent] = useState(null);
 
@@ -1163,7 +1165,9 @@ export default function Payments() {
     try {
       const { data, error } = await supabase
         .from("exam_master")
-        .select("id, exam_name")
+        .select(
+          "id, exam_name, results_published, result_published, result_status, status"
+        )
         .order("exam_name", { ascending: true })
         .limit(500);
       if (error) throw error;
@@ -1171,6 +1175,10 @@ export default function Payments() {
         .map((entry) => ({
           id: entry.id,
           exam_name: (entry.exam_name || "").trim(),
+          results_published: entry.results_published,
+          result_published: entry.result_published,
+          result_status: entry.result_status,
+          status: entry.status,
         }))
         .filter((entry) => entry.exam_name);
       setStoredExamList(names);
@@ -1182,6 +1190,36 @@ export default function Payments() {
   useEffect(() => {
     refreshStoredExamList();
   }, [refreshStoredExamList]);
+
+  useEffect(() => {
+    if (!storedExamList.length) return;
+    setForm((prev) => {
+      const normalizedCurrent = (prev.examName || "")
+        .toString()
+        .trim()
+        .toLowerCase();
+      const currentExam = storedExamList.find(
+        (exam) =>
+          (exam.exam_name || "").toString().trim().toLowerCase() ===
+          normalizedCurrent
+      );
+      if (currentExam && !isExamResultPublished(currentExam)) {
+        return prev;
+      }
+      const fallback = getFirstUnpublishedExam(storedExamList);
+      const fallbackName = fallback?.exam_name || "";
+      if (!fallbackName) {
+        if (!prev.examName) {
+          return prev;
+        }
+        return { ...prev, examName: "" };
+      }
+      if (fallbackName.toLowerCase() === normalizedCurrent) {
+        return prev;
+      }
+      return { ...prev, examName: fallbackName };
+    });
+  }, [storedExamList]);
 
   // Restore filters and selected student when navigated back with state
   useEffect(() => {
@@ -1630,231 +1668,8 @@ export default function Payments() {
     [refreshStoredExamList]
   );
 
-  const handleSelectSavedExam = (exam) => {
-    setForm((prev) => ({ ...prev, examName: exam.exam_name }));
-    setEditingExam(exam);
-  };
 
-  const handleSaveExamName = async () => {
-    const value = (form.examName || "").trim();
-    if (!value) {
-      showToast("Enter an exam name before saving.", { type: "warning" });
-      return;
-    }
-    if (editingExam) {
-      showToast("Finish editing or cancel before saving a new exam name.", {
-        type: "warning",
-      });
-      return;
-    }
-    const exists = storedExamList.some(
-      (entry) => entry.exam_name.toLowerCase() === value.toLowerCase()
-    );
-    if (exists) {
-      showToast("This exam name already exists.", { type: "warning" });
-      return;
-    }
-    try {
-      const { error } = await supabase
-        .from("exam_master")
-        .insert({ exam_name: value });
-      if (error) throw error;
-      await refreshStoredExamList();
-      showToast("Exam name saved.", { type: "success" });
-      setEditingExam(null);
-    } catch (error) {
-      console.error("Failed to save exam name:", error);
-      showToast("Unable to save exam name.", { type: "danger" });
-    }
-  };
 
-  const handleUpdateExamName = async () => {
-    if (!editingExam) {
-      showToast("Select an exam name to edit.", { type: "warning" });
-      return;
-    }
-    const value = (form.examName || "").trim();
-    if (!value) {
-      showToast("Exam name cannot be empty.", { type: "warning" });
-      return;
-    }
-    if (value === editingExam.exam_name) {
-      showToast("No changes to save.", { type: "info" });
-      return;
-    }
-    const duplicate = storedExamList.some(
-      (entry) =>
-        entry.id !== editingExam.id &&
-        entry.exam_name.toLowerCase() === value.toLowerCase()
-    );
-    if (duplicate) {
-      showToast("Another exam already uses this name.", { type: "warning" });
-      return;
-    }
-    try {
-      const { error } = await supabase
-        .from("exam_master")
-        .update({ exam_name: value })
-        .eq("id", editingExam.id);
-      if (error) throw error;
-      await refreshStoredExamList();
-      showToast("Exam name updated.", { type: "success" });
-      setEditingExam(null);
-    } catch (error) {
-      console.error("Failed to update exam name:", error);
-      showToast("Unable to update exam name.", { type: "danger" });
-    }
-  };
-
-  const [completeRegistrationModalOpen, setCompleteRegistrationModalOpen] = useState(
-    false
-  );
-  const [completionTargetExam, setCompletionTargetExam] = useState(null);
-  const [completedExamIds, setCompletedExamIds] = useState([]);
-
-  const openCompleteRegistrationModal = (exam) => {
-    setCompleteRegistrationModalOpen(true);
-    setCompletionTargetExam(exam);
-  };
-
-  const closeCompleteRegistrationModal = () => {
-    setCompleteRegistrationModalOpen(false);
-    setCompletionTargetExam(null);
-  };
-
-  const assignSeatNumbersForExam = useCallback(
-    async (examMasterId) => {
-      if (!examMasterId) return 0;
-      const { data: registrations, error: regError } = await supabase
-        .from("exam_registrations")
-        .select("id, student_id, exam_id")
-        .eq("exam_id", examMasterId);
-      if (regError) throw regError;
-      const registrationIds = (registrations || [])
-        .map((registration) => registration?.id)
-        .filter(Boolean);
-      if (!registrationIds.length) {
-        return 0;
-      }
-      const { data: subjectRows, error: subjectsError } = await supabase
-        .from("exam_registration_subjects")
-        .select("exam_registration_id, subject_id")
-        .in("exam_registration_id", registrationIds);
-      if (subjectsError) throw subjectsError;
-      const studentLookup = new Map(
-        students.map((student) => [String(student.id), student])
-      );
-      const validEntries = (subjectRows || [])
-        .map((entry) => {
-          const registration = (registrations || []).find(
-            (reg) => reg?.id === entry?.exam_registration_id
-          );
-          if (!registration || !entry?.subject_id) return null;
-          const student = studentLookup.get(String(registration.student_id));
-          const name =
-            (student?.full_name ||
-              student?.name ||
-              student?.student_name ||
-              student?.student_id ||
-              "")
-              .trim()
-              .toLowerCase();
-          return {
-            ...entry,
-            student_id: registration.student_id,
-            exam_id: registration.exam_id,
-            studentName: name,
-          };
-        })
-        .filter(Boolean);
-      if (!validEntries.length) {
-        return 0;
-      }
-      const grouped = new Map();
-      validEntries.forEach((entry) => {
-        const key = String(entry.subject_id);
-        if (!grouped.has(key)) grouped.set(key, []);
-        grouped.get(key).push(entry);
-      });
-      const seatAssignments = [];
-      grouped.forEach((entries) => {
-        entries.sort((a, b) => {
-          const comparison = a.studentName.localeCompare(b.studentName);
-          if (comparison !== 0) return comparison;
-          return String(a.subject_id).localeCompare(String(b.subject_id));
-        });
-        entries.forEach((entry, index) => {
-          seatAssignments.push({
-            exam_id: examMasterId,
-            student_id: entry.student_id,
-            subject_id: entry.subject_id,
-            seat_number: `S${String(index + 1).padStart(4, "0")}`,
-          });
-        });
-      });
-      const { error: deleteError } = await supabase
-        .from("student_subject_seats")
-        .delete()
-        .eq("exam_id", examMasterId);
-      if (deleteError) throw deleteError;
-      const { error: insertError } = await supabase
-        .from("student_subject_seats")
-        .insert(seatAssignments);
-      if (insertError) throw insertError;
-      return seatAssignments.length;
-    },
-    [students]
-  );
-
-  const handleCompleteRegistrationConfirm = async () => {
-    closeCompleteRegistrationModal();
-    if (!completionTargetExam?.id) return;
-    try {
-      const assignedCount = await assignSeatNumbersForExam(
-        completionTargetExam.id
-      );
-      setCompletedExamIds((prev) =>
-        prev.includes(completionTargetExam.id)
-          ? prev
-          : [...prev, completionTargetExam.id]
-      );
-      const message = assignedCount
-        ? `Registration completed and ${assignedCount} seat numbers assigned.`
-        : "Registration completed but no students were registered.";
-      showToast(message, {
-        type: "success",
-        title: "Registration",
-      });
-    } catch (error) {
-      console.error("Failed to assign seat numbers:", error);
-      showToast("Unable to complete registration. Please try again.", {
-        type: "danger",
-        title: "Registration",
-      });
-    }
-  };
-
-  const handleDeleteExamName = async (examEntry) => {
-    const target = examEntry ?? editingExam;
-    if (!target) {
-      showToast("Select an exam to delete.", { type: "warning" });
-      return;
-    }
-    try {
-      const { error } = await supabase
-        .from("exam_master")
-        .delete()
-        .eq("id", target.id);
-      if (error) throw error;
-      await refreshStoredExamList();
-      setForm((prev) => ({ ...prev, examName: "" }));
-      setEditingExam(null);
-      showToast("Exam name removed.", { type: "success" });
-    } catch (error) {
-      console.error("Failed to delete exam name:", error);
-      showToast("Unable to delete exam name.", { type: "danger" });
-    }
-  };
 
   const createOrFetchExamRegistration = async (examName) => {
     if (!activePaymentStudent) {
@@ -2048,21 +1863,12 @@ export default function Payments() {
 
   const matchedStudentCount = hasActiveFilters ? filteredStudents.length : 0;
 
-  const filteredBySearch = searchTerm
-    ? filteredStudents.filter((student) => {
-        const key = `${student.student_id} ${
-          student.full_name || student.name || ""
-        }`.toLowerCase();
-        return key.includes(searchTerm.toLowerCase());
-      })
-    : filteredStudents;
-
   const limitedStudents = displayCount
-    ? filteredBySearch.slice(
+    ? filteredStudents.slice(
         0,
-        Math.min(Number(displayCount), filteredBySearch.length)
+        Math.min(Number(displayCount), filteredStudents.length)
       )
-    : filteredBySearch;
+    : filteredStudents;
 
   const outstandingStudentsCount = useMemo(() => {
     return limitedStudents.reduce((count, student) => {
@@ -2091,7 +1897,7 @@ export default function Payments() {
     return [
       {
         label: "Matching students",
-        value: filteredBySearch.length,
+        value: filteredStudents.length,
         meta: hasActiveFilters ? "Filters active" : "All students",
       },
       {
@@ -2111,7 +1917,7 @@ export default function Payments() {
       },
     ];
   }, [
-    filteredBySearch.length,
+    filteredStudents.length,
     limitedStudents.length,
     displayCount,
     hasActiveFilters,
@@ -2159,15 +1965,6 @@ export default function Payments() {
             Filter, search, and select a student to settle outstanding fees in one clean flow.
           </p>
         </div>
-        <div className="d-flex flex-wrap align-items-center gap-2 px-3 pb-3">
-          <input
-            type="text"
-            className="form-control students-hero-search"
-            placeholder="Search student or ID"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
         <div className="students-stats-grid row g-3 px-3 pb-3">
           {paymentStats.map((stat) => (
             <div className="col-6 col-md-3" key={stat.label}>
@@ -2182,109 +1979,12 @@ export default function Payments() {
       </div>
 
       <div className="students-filter-panel payments-filter-panel card card-soft mb-4 p-4">
-        <h4 className="fw-bold mb-3">Exam details</h4>
-        <p className="text-muted small mb-0">
-          Enter the exam name that should be associated with the selected students.
-        </p>
-        <div className="row g-3 mt-3">
-          <div className="col-md-8">
-            <label className="form-label fw-bold">Exam name</label>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Enter exam name"
-              value={form.examName}
-              onChange={(e) => {
-                setForm((prev) => ({ ...prev, examName: e.target.value }));
-              }}
-              list="exam-name-options"
-            />
-            <datalist id="exam-name-options">
-              {storedExamList.map((exam) => (
-                <option key={exam.id} value={exam.exam_name} />
-              ))}
-            </datalist>
-          </div>
-        </div>
-        <div className="mt-3">
-          <div className="text-muted small mb-1">Saved exams</div>
-          <div className="list-group list-group-flush">
-            {storedExamList.map((entry) => (
-              <div
-                key={entry.id}
-                className="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2"
-              >
-                <div className="w-100 w-md-auto">
-                  <div className="fw-semibold">{entry.exam_name}</div>
-                  <div className="text-muted small">
-                    {editingExam?.id === entry.id
-                      ? "Selected for editing"
-                      : "Tap edit to change the name"}
-                  </div>
-                </div>
-                <div className="d-flex flex-wrap gap-2 justify-content-end w-100 w-md-auto">
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-outline-primary rounded-pill px-3"
-                    onClick={() => handleSelectSavedExam(entry)}
-                    title="Edit this exam name"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-outline-danger rounded-pill px-3"
-                    onClick={() => handleDeleteExamName(entry)}
-                    title="Remove this exam name"
-                  >
-                    Delete
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn btn-sm rounded-pill px-3 ${
-                      completedExamIds.includes(entry.id)
-                        ? "btn-outline-secondary"
-                        : "btn-outline-success"
-                    }`}
-                    onClick={() => openCompleteRegistrationModal(entry)}
-                    title="Mark students for this exam as fully registered"
-                    disabled={completedExamIds.includes(entry.id)}
-                  >
-                    {completedExamIds.includes(entry.id)
-                      ? "Completed"
-                      : "Complete Registration"}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="mt-3 d-flex flex-wrap gap-2">
-          <button
-            type="button"
-            className="btn btn-sm btn-primary"
-            onClick={handleSaveExamName}
-            disabled={Boolean(editingExam)}
-          >
-            Save
-          </button>
-          <button
-            type="button"
-            className="btn btn-sm btn-outline-primary"
-            onClick={handleUpdateExamName}
-            disabled={!editingExam}
-          >
-            Edit
-          </button>
-        </div>
-      </div>
-      <div className="students-filter-panel payments-filter-panel card card-soft mb-4 p-4">
         <h4 className="fw-bold mb-3">Filter Students</h4>
 
         <div className="row g-3">
           {/* Student ID */}
           <div className="col-md-3">
-            <label className="form-label fw-bold">Hall ticket number</label>
+            <label className="form-label fw-bold">Hall ticket / Student ID</label>
             <input
               type="text"
               className="form-control"
@@ -2295,7 +1995,6 @@ export default function Payments() {
                   student_id: e.target.value,
                 })
               }
-              placeholder="Enter Hall ticket"
             />
           </div>
 
@@ -2450,11 +2149,19 @@ export default function Payments() {
               }
             >
               <option value="">Select exam</option>
-              {storedExamList.map((entry) => (
-                <option key={entry.id} value={entry.exam_name}>
-                  {entry.exam_name}
-                </option>
-              ))}
+              {storedExamList.map((entry) => {
+                const disabled = isExamResultPublished(entry);
+                return (
+                  <option
+                    key={entry.id}
+                    value={entry.exam_name}
+                    disabled={disabled}
+                  >
+                    {entry.exam_name}
+                    {disabled ? " (Results published)" : ""}
+                  </option>
+                );
+              })}
             </select>
           </div>
         </div>
@@ -2469,7 +2176,7 @@ export default function Payments() {
           </div>
           <span className="text-muted small">
             {hasActiveFilters
-              ? `Displaying ${limitedStudents.length} of ${filteredBySearch.length}`
+              ? `Displaying ${limitedStudents.length} of ${filteredStudents.length}`
               : "Apply filters to load students"}
           </span>
         </div>
@@ -2630,71 +2337,6 @@ export default function Payments() {
             </div>
           )}
       </div>
-      {completeRegistrationModalOpen && (
-        <div
-          className="modal d-block"
-          tabIndex="-1"
-          role="dialog"
-          aria-modal="true"
-          style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
-        >
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content border-0 shadow-lg">
-              <div className="modal-header border-0">
-                <div>
-                  <h5 className="modal-title fw-bold">Complete registration?</h5>
-                  <p className="text-muted small mb-0">
-                    Confirming will mark the selected students as finalized in the
-                    current exam batch.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="btn-close"
-                  aria-label="Close"
-                  onClick={closeCompleteRegistrationModal}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <div className="p-3 rounded-3 border border-success bg-light">
-                  <div className="fw-semibold text-success mb-2">
-                    Registration record
-                  </div>
-                  <p className="mb-1 text-muted small">
-                    Students tied to{" "}
-                    <strong>
-                      {completionTargetExam?.exam_name || form.examName || "this"}
-                    </strong>{" "}
-                    exam will be marked completed.
-                  </p>
-                  <ul className="list-unstyled mb-0 small text-muted">
-                    <li>- Students filtered: {displayCount || "All"}</li>
-                    <li>
-                      - Visible after filters: {filteredBySearch.length}
-                    </li>
-                  </ul>
-                </div>
-              </div>
-              <div className="modal-footer border-0 pt-0">
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary"
-                  onClick={closeCompleteRegistrationModal}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-success"
-                  onClick={handleCompleteRegistrationConfirm}
-                >
-                  Confirm completion
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
       {modalOpen && modalStudent && (
         <>
           <div className="modal-backdrop show"></div>

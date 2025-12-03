@@ -1121,15 +1121,6 @@ export default function Students() {
               Monitor academic statuses and payments in one polished workspace.
             </p>
           </div>
-          <div className="d-flex flex-wrap align-items-center gap-2 px-3 pb-3">
-            <input
-              type="text"
-              className="form-control students-hero-search"
-              placeholder="Search student or ID"
-              value={studentIdSearch}
-              onChange={(e) => setStudentIdSearch(e.target.value)}
-            />
-          </div>
           <div className="students-stats-grid row g-3 px-3 pb-3">
             {heroStats.map((stat) => (
               <div className="col-6 col-md-3" key={stat.label}>
@@ -1152,24 +1143,32 @@ export default function Students() {
         <div className="students-filter-panel card card-soft mb-4 p-4">
           <div className="d-flex flex-wrap justify-content-between gap-3 mb-4">
             <div>
-              <p className="text-muted mb-1">Filters</p>
-              <h5 className="fw-bold mb-1">Refine the student roster</h5>
+              <h5 className="fw-bold mb-1">Filters</h5>
               <p className="text-muted mb-0">
-                Use academic, group and payment filters to quickly surface the right record.
+                Use the hall ticket field or filters to quickly locate a student.
               </p>
             </div>
-          <div className="text-end small text-muted">
-            <div>
-              Showing <strong>{filteredStudents.length}</strong> of {students.length}
-            </div>
-            <div>
-              {paymentSemester
-                ? `Payment semester: ${paymentSemester}`
-                : "Select payment semester for payment insights"}
+            <div className="text-end small text-muted">
+              <div>
+                Showing <strong>{filteredStudents.length}</strong> of {students.length}
+              </div>
+              <div>
+                {paymentSemester
+                  ? `Payment semester: ${paymentSemester}`
+                  : "Select payment semester for payment insights"}
+              </div>
             </div>
           </div>
-        </div>
         <div className="row g-3">
+          <div className="col-12 col-md-6 col-lg-3">
+            <label className="form-label">Hall ticket / Student ID</label>
+            <input
+              type="text"
+              className="form-control"
+              value={studentIdSearch}
+              onChange={(e) => setStudentIdSearch(e.target.value)}
+            />
+          </div>
           <div className="col-12 col-sm-6 col-md-4 col-lg-2">
             <label className="form-label">Category</label>
             <select
@@ -1272,16 +1271,16 @@ export default function Students() {
         )}
       </div>
 
-      <div className="students-table-panel card card-soft p-4">
-        <div className="students-table-panel-header mb-3">
-          <div>
-            <h5 className="students-table-panel-title fw-bold mb-1">
-              Student roster
-            </h5>
-            <p className="students-table-panel-copy mb-0">
-              Tap any row to review details, edit records or inspect payments.
-            </p>
-          </div>
+        <div className="students-table-panel card card-soft p-4">
+          <div className="students-table-panel-header mb-3">
+            <div>
+              <h5 className="students-table-panel-title fw-bold mb-1">
+                Students
+              </h5>
+              <p className="students-table-panel-copy mb-0">
+                Tap any row to review details, edit records or inspect payments.
+              </p>
+            </div>
           <div className="students-table-panel-meta text-end">
             {loading ? "Refreshing data..." : `${filteredStudents.length} students listed`}
           </div>

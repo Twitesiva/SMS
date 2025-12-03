@@ -187,6 +187,17 @@ export default function SubjectsSection({
   }
   const pendingCombos = buildComboRows(pendingSubjects)
   const savedCombos = buildComboRows(subjects)
+  const [modalCategory, setModalCategory] = useState(null)
+
+  const openCategoryModal = (combo, category, subjects) => {
+    setModalCategory({
+      combo,
+      category,
+      subjects,
+    })
+  }
+
+  const closeCategoryModal = () => setModalCategory(null)
   const updateExtraField = (idx, field, value) => {
     setSubjectForm(prev => {
       const names = [...(prev.extraSubjectNames || [])]
@@ -510,9 +521,13 @@ export default function SubjectsSection({
               </select>
             </div>
             <div className="col-md-9">
-              <div className="mb-2">
-                <label className="form-label fw-bold mb-1">Subject Title *</label>
-                <label className="form-label fw-bold mb-1">Subject code *</label>
+              <div className="row mb-2">
+                <div className="col-6">
+                  <label className="form-label fw-bold mb-1">Subject Title *</label>
+                </div>
+                <div className="col-6">
+                  <label className="form-label fw-bold mb-1">Subject code *</label>
+                </div>
               </div>
               {(catItems[subjectForm.category] || []).length ? (
                 <div className="subject-checkbox-group d-flex flex-column gap-3">
@@ -668,14 +683,23 @@ export default function SubjectsSection({
                                 <td>{combo.courseName || combo.courseCode || '-'}</td>
                                 <td>Sem {combo.semester}</td>
                                 <td>
-                                  <div className="d-flex flex-column gap-3">
+                                  <div className="d-flex flex-column gap-2">
                                     {Object.entries(categoriesByType).map(([category, cats]) => (
-                                      <div key={category} className="mb-2">
-                                        <div className="fw-semibold mb-1">{category}</div>
-                                        <div className="text-muted small">
-                                          {cats.flatMap(cat => cat.subjects.filter(Boolean)).join(', ') || '-'}
-                                        </div>
-                                      </div>
+                                      <button
+                                        type="button"
+                                        className="btn btn-outline-secondary students-button students-button-sm text-start"
+                                        key={category}
+                                        onClick={() => openCategoryModal(
+                                          combo,
+                                          category,
+                                          cats.flatMap(cat => cat.subjects.filter(Boolean))
+                                        )}
+                                      >
+                                        <span className="fw-semibold">{category}</span>
+                                        <span className="text-muted small d-block">
+                                          Click to view
+                                        </span>
+                                      </button>
                                     ))}
                                   </div>
                                 </td>
@@ -712,6 +736,54 @@ export default function SubjectsSection({
           )}
         </div>
       </section>
+      {modalCategory && (
+        <div className="students-modal-overlay" role="dialog" aria-modal="true">
+          <div className="students-modal-dialog subjects-modal-dialog">
+            <div className="students-modal-content">
+              <div className="students-modal-header">
+                <div>
+                  <div className="students-modal-header-eyebrow">
+                    Sub-category subjects
+                  </div>
+                  <h5 className="students-modal-header-title mb-1">
+                    {modalCategory.category}
+                  </h5>
+                  <div className="students-modal-header-meta">
+                    <span>
+                      {modalCategory.combo.academicYear} · {displayGroupName(modalCategory.combo.groupCode)}
+                    </span>
+                    <span>
+                      {modalCategory.combo.courseName || modalCategory.combo.courseCode || '-'} · Sem {modalCategory.combo.semester}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  className="students-modal-close"
+                  type="button"
+                  onClick={closeCategoryModal}
+                >
+                  &times;
+                </button>
+              </div>
+              <div className="students-modal-body">
+                {modalCategory.subjects.length ? (
+                  <ul className="list-unstyled mb-0">
+                    {modalCategory.subjects.map((subject, idx) => (
+                      <li key={`${modalCategory.combo.comboKey}-${modalCategory.category}-${idx}`} className="mb-2 text-muted">
+                        {subject}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-muted mb-0">
+                    No subjects have been assigned to this sub-category yet.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

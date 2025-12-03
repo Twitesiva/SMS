@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "../store/auth";
 import logo from "../assets/media/images.png";
 const nav = [
@@ -52,6 +52,7 @@ export default function AdminShell({ children, onSignOut }) {
   const { signOut } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const sidebarRef = useRef(null);
+  const [showScrollHint, setShowScrollHint] = useState(false);
   const handleSignOut = () => {
     if (typeof onSignOut === "function") {
       onSignOut();
@@ -62,6 +63,18 @@ export default function AdminShell({ children, onSignOut }) {
     }
     navTo("/");
   };
+
+  const updateScrollHint = useCallback(() => {
+    const navElement = sidebarRef.current;
+    if (!navElement) {
+      setShowScrollHint(false);
+      return;
+    }
+    const canScroll = navElement.scrollHeight > navElement.clientHeight + 8;
+    const nearBottom =
+      navElement.scrollTop >= navElement.scrollHeight - navElement.clientHeight - 12;
+    setShowScrollHint(canScroll && !nearBottom);
+  }, []);
 
   // Restore the sidebar scroll position after navigation changes.
   useEffect(() => {
@@ -87,17 +100,23 @@ export default function AdminShell({ children, onSignOut }) {
     if (!navElement) {
       return;
     }
-    if (typeof window === "undefined" || !window.sessionStorage) {
-      return;
-    }
+
     const handleScroll = () => {
-      window.sessionStorage.setItem(SIDEBAR_SCROLL_KEY, String(navElement.scrollTop));
+      if (typeof window !== "undefined" && window.sessionStorage) {
+        window.sessionStorage.setItem(
+          SIDEBAR_SCROLL_KEY,
+          String(navElement.scrollTop)
+        );
+      }
+      updateScrollHint();
     };
+
+    updateScrollHint();
     navElement.addEventListener("scroll", handleScroll);
     return () => {
       navElement.removeEventListener("scroll", handleScroll);
     };
-  }, []);
+  }, [collapsed, updateScrollHint]);
 
   return (
     <div
@@ -167,6 +186,13 @@ export default function AdminShell({ children, onSignOut }) {
             </Link>
           ))}
         </nav>
+
+        {showScrollHint && (
+          <div className="sidebar-scroll-hint">
+            <span>Scroll to see more</span>
+            <i className="bi bi-chevron-down"></i>
+          </div>
+        )}
 
         <div className="sidebar-footer text-center small text-muted mt-auto">
           <div style={{ color: "#4c75f2", letterSpacing: "0.15em" }}>
