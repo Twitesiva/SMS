@@ -88,6 +88,9 @@ export default function Payments() {
   const [loadingModalPayments, setLoadingModalPayments] = useState(false);
   const [appliedRegistrationDetails, setAppliedRegistrationDetails] = useState({});
   const [savedRegistrationSubjectIds, setSavedRegistrationSubjectIds] = useState([]);
+  const [deletingRegistrationId, setDeletingRegistrationId] = useState(null);
+  const [loadingSavedSubjects, setLoadingSavedSubjects] = useState(false);
+  const [processingPayment, setProcessingPayment] = useState(false);
   const [showPaymentDetailsModal, setShowPaymentDetailsModal] = useState(false);
   const selectedExamId = useMemo(() => {
     const normalized = (form.examName || "").trim().toLowerCase();
@@ -513,7 +516,6 @@ export default function Payments() {
 
   useEffect(() => {
     if (
-      !allowPaymentWithoutSelection ||
       !savedRegistrationSubjectIds.length ||
       !combinedSubjectEntries.length
     ) {
@@ -539,11 +541,7 @@ export default function Payments() {
       }
       return nextKeys;
     });
-  }, [
-    allowPaymentWithoutSelection,
-    combinedSubjectEntries,
-    savedRegistrationSubjectIds,
-  ]);
+  }, [combinedSubjectEntries, savedRegistrationSubjectIds]);
   const currentSelectedCount = currentSelectedEntries.length;
   const supplementarySelectedCount = supplementarySelectedEntries.length;
   const supplementaryFeeAmount = useMemo(() => {
@@ -730,13 +728,10 @@ export default function Payments() {
     </tr>
   );
 
-  const getUniqueSelectedSubjectEntries = useCallback(() => {
-    const selectedSubjectEntries = combinedSubjectEntries.filter((entry) =>
-      selectedSubjectKeys.has(entry.key)
-    );
+  const dedupeSubjectEntries = (entries) => {
     const next = [];
     const tracked = new Set();
-    selectedSubjectEntries.forEach((entry) => {
+    entries.forEach((entry) => {
       const identity =
         entry.key ??
         entry.dedupKey ??
@@ -746,7 +741,31 @@ export default function Payments() {
       next.push(entry);
     });
     return next;
-  }, [combinedSubjectEntries, selectedSubjectKeys]);
+  };
+
+  const getUniqueSelectedSubjectEntries = useCallback(() => {
+    const selectedSubjectEntries = combinedSubjectEntries.filter((entry) =>
+      selectedSubjectKeys.has(entry.key)
+    );
+    const selectedDeduped = dedupeSubjectEntries(selectedSubjectEntries);
+    if (selectedDeduped.length) {
+      return selectedDeduped;
+    }
+    if (!savedRegistrationSubjectIds.length) {
+      return [];
+    }
+    const savedSet = new Set(savedRegistrationSubjectIds.map(String));
+    const fallbackEntries = combinedSubjectEntries.filter((entry) => {
+      const identifier =
+        entry.subjectReferenceId ?? entry.subjectId ?? null;
+      return identifier && savedSet.has(String(identifier));
+    });
+    return dedupeSubjectEntries(fallbackEntries);
+  }, [
+    combinedSubjectEntries,
+    savedRegistrationSubjectIds,
+    selectedSubjectKeys,
+  ]);
 
   const renderStudentProfileCard = (student) => {
     if (!student) return null;
@@ -800,8 +819,6 @@ export default function Payments() {
       </div>
     );
   };
-
-  const renderPaymentStatusCell = () => null;
 
   const getAppliedRegistrationKey = (student, semesterValue) => {
     const semesterCandidate =
@@ -1536,6 +1553,43 @@ export default function Payments() {
     setModalOpen(true);
   };
 
+  const handleEditStoredSubjects = (student, detail) => {
+    if (!detail?.registrationId) return;
+    openStudentModal(student, {
+      registrationDetail: detail,
+    });
+  };
+
+  const handleDeleteStoredSubjects = async (student, detail) => {
+    if (!detail?.registrationId) return;
+    if (deletingRegistrationId === detail.registrationId) return;
+    const registrationId = detail.registrationId;
+    setDeletingRegistrationId(registrationId);
+    try {
+      const { error } = await supabase
+        .from("exam_registration_subjects")
+        .delete()
+        .eq("exam_registration_id", registrationId);
+      if (error) throw error;
+      const nextDetails = await buildAppliedRegistrationDetails();
+      setAppliedRegistrationDetails(nextDetails);
+      const studentName =
+        student?.full_name || student?.name || "the student";
+      showToast(`Stored subjects removed for ${studentName}.`, {
+        type: "success",
+        title: "Exam",
+      });
+    } catch (error) {
+      console.error("Unable to delete stored subjects", error);
+      showToast("Unable to delete stored subjects. Please try again.", {
+        type: "danger",
+        title: "Exam",
+      });
+    } finally {
+      setDeletingRegistrationId(null);
+    }
+  };
+
   const handleModalSemesterChange = (semesterValue) => {
     setModalSemester(semesterValue);
     setModalFeeInfo(null);
@@ -1568,7 +1622,7 @@ export default function Payments() {
     }
   };
   const generateDecodeNo = () => {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    const chars = "0123456789";
     let code = "";
     for (let i = 0; i < 5; i += 1) {
       const index = Math.floor(Math.random() * chars.length);
@@ -1619,8 +1673,10 @@ export default function Payments() {
   };
 
   const loadExamRegistrationSubjects = useCallback(async (registrationId) => {
+    setLoadingSavedSubjects(true);
     if (!registrationId) {
       setSavedRegistrationSubjectIds([]);
+      setLoadingSavedSubjects(false);
       return;
     }
     try {
@@ -1637,6 +1693,8 @@ export default function Payments() {
     } catch (error) {
       console.error("Failed to load stored subjects:", error);
       setSavedRegistrationSubjectIds([]);
+    } finally {
+      setLoadingSavedSubjects(false);
     }
   }, []);
 
@@ -1752,6 +1810,7 @@ export default function Payments() {
   };
 
   const handlePaymentModalConfirm = async () => {
+    if (processingPayment) return;
     if (!paymentMethod) {
       showToast("Please select a payment method.", { type: "warning" });
       return;
@@ -1767,8 +1826,44 @@ export default function Payments() {
       });
       return;
     }
-    const uniqueSubjectEntries = getUniqueSelectedSubjectEntries();
 
+    const markActiveRegistrationPaid = (paidAmount = 0) => {
+      const registrationKey = getAppliedRegistrationKey(
+        activePaymentStudent,
+        modalSemester
+      );
+      if (!registrationKey) return;
+      setAppliedRegistrationDetails((prev) => {
+        const previous = prev[registrationKey] ?? {};
+        const paidTotal = Math.max(
+          Number(previous.paidTotal || 0),
+          Number(paidAmount || 0)
+        );
+        const nextTotalFee =
+          previous.totalFee || totalFeeBreakdownAmount || 0;
+        const examCoverage = Math.max(
+          Number(previous.examCoverageAmount || 0),
+          examSubtotal
+        );
+        return {
+          ...prev,
+          [registrationKey]: {
+            ...previous,
+            fullyPaid: true,
+            hasExamPaid: true,
+            status: "fully-paid",
+            paidTotal,
+            totalFee: nextTotalFee,
+            examCoverageAmount: examCoverage,
+            applied: true,
+          },
+        };
+      });
+    };
+
+    const uniqueSubjectEntries = getUniqueSelectedSubjectEntries();
+    let paymentAmount = 0;
+    setProcessingPayment(true);
     try {
       const { examRegistrationId, examMasterId } =
         await createOrFetchExamRegistration(examNameValue);
@@ -1785,6 +1880,7 @@ export default function Payments() {
       );
       const amount = Math.max(examSubtotal - alreadyPaidExam, 0);
       if (amount <= 0) {
+        markActiveRegistrationPaid(alreadyPaidExam);
         showToast("Payment successful. No outstanding amount remaining.", {
           type: "success",
           title: "Payment",
@@ -1831,6 +1927,7 @@ export default function Payments() {
         payment_status: "success",
       });
       if (paymentError) throw paymentError;
+      paymentAmount = amount;
     } catch (error) {
       console.error("Unable to record payment", error);
       showToast("Payment unsuccessful. Unable to record payment. Please try again.", {
@@ -1838,10 +1935,14 @@ export default function Payments() {
         title: "Payment",
       });
       return;
+    } finally {
+      setProcessingPayment(false);
     }
 
+    markActiveRegistrationPaid(paymentAmount);
+
     showToast(
-      `Payment successful for ${formatCurrency(amount)} via ${paymentMethod}.`,
+      `Payment successful for ${formatCurrency(paymentAmount)} via ${paymentMethod}.`,
       {
         type: "success",
         title: "Payment",
@@ -2292,7 +2393,6 @@ export default function Payments() {
                               <Fragment key={`${s.student_id}-payment`}>
                                 <td className="text-center">
                                   <div className="d-flex flex-column gap-2 align-items-center">
-                                    {renderPaymentStatusCell(detail)}
                                     <button
                                       type="button"
                                       className={`btn btn-sm ${
@@ -2301,16 +2401,51 @@ export default function Payments() {
                                       onClick={openModal}
                                       disabled={isApplied}
                                     >
-                                      {isApplied ? "Paid" : "Pay now"}
+                                      {isApplied ? "Payment recorded" : "Pay now"}
                                     </button>
                                   </div>
                                 </td>
                   <td className="text-end">
                     {detail?.applied ? (
-                      <div className="d-flex flex-column align-items-end text-success small">
-                        <span className="fw-semibold">Applied</span>
-                        <span className="text-muted small">Subjects already stored</span>
-                      </div>
+                      (() => {
+                        const hasPayments = Number(detail.paidTotal || 0) > 0;
+                        const canModifyStoredSubjects = !hasPayments;
+                        if (canModifyStoredSubjects) {
+                          return (
+                            <div className="d-flex flex-column align-items-end gap-2">
+                              <div className="d-flex gap-2 justify-content-end">
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-primary"
+                                  onClick={() => handleEditStoredSubjects(s, detail)}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-danger"
+                                  onClick={() => handleDeleteStoredSubjects(s, detail)}
+                                  disabled={
+                                    deletingRegistrationId === detail.registrationId
+                                  }
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return (
+                          <div className="d-flex flex-column align-items-end text-success small">
+                            <span className="fw-semibold">Applied</span>
+                            <span className="text-muted small">
+                              {hasPayments
+                                ? "Payment recorded"
+                                : "Subjects already stored"}
+                            </span>
+                          </div>
+                        );
+                      })()
                     ) : (
                       <button
                         className={`btn btn-sm ${
@@ -2717,8 +2852,9 @@ export default function Payments() {
                   type="button"
                   className="btn btn-primary"
                   onClick={handlePaymentModalConfirm}
+                  disabled={processingPayment}
                 >
-                  Pay now
+                  {processingPayment ? "Processing..." : "Pay now"}
                 </button>
               </div>
             </div>
@@ -2768,37 +2904,46 @@ export default function Payments() {
                 </div>
                 <div className="mb-3">
                   <label className="form-label fw-semibold">Payment method</label>
-                  <select
-                    className="form-select"
-                    value={paymentMethod}
-                    onChange={(event) => setPaymentMethod(event.target.value)}
-                  >
-                    <option value="">Select method</option>
-                    {["Cash", "Card", "UPI", "GPay"].map((method) => (
-                      <option key={method} value={method}>
-                        {method}
-                      </option>
-                    ))}
-                  </select>
+                <select
+                  className="form-select"
+                  value={paymentMethod}
+                  onChange={(event) => setPaymentMethod(event.target.value)}
+                >
+                  <option value="">Select method</option>
+                  {["Cash", "Card", "UPI", "GPay"].map((method) => (
+                    <option key={method} value={method}>
+                      {method}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {loadingSavedSubjects && (
+                <div className="text-muted small mb-2">
+                  Loading saved subjects before recording payment...
                 </div>
-              </div>
-              <div className="modal-footer d-flex gap-2 justify-content-end">
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary"
-                  onClick={() => setShowPaymentDetailsModal(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={handlePaymentModalConfirm}
-                  disabled={!paymentMethod}
-                >
-                  Confirm payment
-                </button>
-              </div>
+              )}
+            </div>
+            <div className="modal-footer d-flex gap-2 justify-content-end">
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={() => setShowPaymentDetailsModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handlePaymentModalConfirm}
+                disabled={
+                  !paymentMethod ||
+                  loadingSavedSubjects ||
+                  processingPayment
+                }
+              >
+                {processingPayment ? "Processing..." : "Confirm payment"}
+              </button>
+            </div>
             </div>
           </div>
         </div>

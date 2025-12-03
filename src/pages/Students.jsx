@@ -921,31 +921,43 @@ export default function Students() {
     setEditingStudent(null);
   };
  
-  const [pendingDeleteStudentId, setPendingDeleteStudentId] = useState(null);
+  const [deleteModal, setDeleteModal] = useState({
+    show: false,
+    student: null,
+    loading: false,
+  });
 
-  const handleDelete = async (studentId) => {
-    if (pendingDeleteStudentId === studentId) {
-      setPendingDeleteStudentId(null);
-      try {
-        await api.deleteStudent(studentId);
-        setStudents((prev) => prev.filter((s) => s.id !== studentId));
-        showToast("Student deleted.", { type: "info" });
-      } catch (error) {
-        console.error("Error deleting student:", error);
-        showToast("Unable to delete student.", { type: "danger" });
-      }
-      return;
-    }
-    setPendingDeleteStudentId(studentId);
-    showToast(
-      "Click delete again within 5 seconds to confirm removing this student.",
-      { type: "warning" }
-    );
-    setTimeout(() => {
-      setPendingDeleteStudentId((prev) =>
-        prev === studentId ? null : prev
+  const openDeleteModal = (student) => {
+    setDeleteModal({
+      show: true,
+      student,
+      loading: false,
+    });
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModal({
+      show: false,
+      student: null,
+      loading: false,
+    });
+  };
+
+  const confirmDeleteStudent = async () => {
+    if (!deleteModal.student) return;
+    setDeleteModal((prev) => ({ ...prev, loading: true }));
+    try {
+      await api.deleteStudent(deleteModal.student.id);
+      setStudents((prev) =>
+        prev.filter((student) => student.id !== deleteModal.student.id)
       );
-    }, 5000);
+      showToast("Student deleted.", { type: "info" });
+    } catch (error) {
+      console.error("Error deleting student:", error);
+      showToast("Unable to delete student.", { type: "danger" });
+    } finally {
+      closeDeleteModal();
+    }
   };
  
   // Open status modal with current student's status
@@ -1394,7 +1406,7 @@ export default function Students() {
                           className="students-action-button students-action-button--delete"
                           onClick={(event) => {
                             event.stopPropagation();
-                            handleDelete(student.id);
+                            openDeleteModal(student);
                           }}
                         >
                           Delete
@@ -2319,6 +2331,48 @@ export default function Students() {
                   onClick={closePaymentHistoryModal}
                 >
                   Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {deleteModal.show && (
+        <div className="modal d-block" tabIndex="-1" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Confirm delete</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={closeDeleteModal}
+                  disabled={deleteModal.loading}
+                ></button>
+              </div>
+              <div className="modal-body">
+                <p className="mb-0">
+                  Are you sure you want to remove{" "}
+                  <strong>{deleteModal.student?.full_name || "this student"}</strong>?
+                  This action cannot be undone.
+                </p>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary"
+                  onClick={closeDeleteModal}
+                  disabled={deleteModal.loading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={confirmDeleteStudent}
+                  disabled={deleteModal.loading}
+                >
+                  {deleteModal.loading ? "Deleting..." : "Delete student"}
                 </button>
               </div>
             </div>
