@@ -44,6 +44,37 @@ const formatCurrency = (value) => {
   return `₹${num.toLocaleString("en-IN")}`;
 };
 
+const formatDeadlineDate = (value) => {
+  if (!value) return "";
+  const normalized = new Date(value);
+  if (Number.isNaN(normalized.getTime())) return "";
+  return normalized.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+const getCategoryNameFromLookup = (subject, lookup) => {
+  const directCategory =
+    subject.category ??
+    subject.category_name ??
+    subject.categoryName ??
+    subject.subCategory ??
+    subject.fee_category ??
+    "";
+  if (directCategory) return directCategory;
+  const categoryId =
+    subject.category_id ??
+    subject.categoryId ??
+    subject.categoryID ??
+    null;
+  if (categoryId && lookup) {
+    return lookup.get(String(categoryId)) || "";
+  }
+  return "";
+};
+
 export default function Payments() {
   // Master data
   const [years, setYears] = useState([]);
@@ -92,6 +123,10 @@ export default function Payments() {
   const [loadingSavedSubjects, setLoadingSavedSubjects] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
   const [showPaymentDetailsModal, setShowPaymentDetailsModal] = useState(false);
+  const [activeSubjectCategory, setActiveSubjectCategory] = useState(null);
+  const [fineAmountSetting, setFineAmountSetting] = useState(0);
+  const [examDeadlines, setExamDeadlines] = useState([]);
+  const [subjectCategoryLookup, setSubjectCategoryLookup] = useState(new Map());
   const selectedExamId = useMemo(() => {
     const normalized = (form.examName || "").trim().toLowerCase();
     if (!normalized) return null;
@@ -100,6 +135,72 @@ export default function Payments() {
     );
     return match?.id ?? null;
   }, [form.examName, storedExamList]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadFineConfig = async () => {
+      try {
+        const fineQuery = supabase
+          .from("global_settings")
+          .select("fine_amount")
+          .order("created_at", { ascending: false })
+          .limit(1);
+        const deadlineQuery = supabase
+          .from("exam_deadlines")
+          .select("exam_id, last_date");
+        const [{ data: fineData, error: fineError }, { data: deadlineData, error: deadlineError }] =
+          await Promise.all([fineQuery, deadlineQuery]);
+        if (fineError) {
+          console.error("Failed to load fine amount:", fineError);
+        } else if (isMounted) {
+          const amount = Number(fineData?.[0]?.fine_amount || 0);
+          setFineAmountSetting(Number.isFinite(amount) ? amount : 0);
+        }
+        if (deadlineError) {
+          console.error("Failed to load exam deadlines:", deadlineError);
+        } else if (isMounted) {
+          setExamDeadlines(deadlineData || []);
+        }
+      } catch (error) {
+        console.error("Unable to load fine configuration:", error);
+      }
+    };
+    void loadFineConfig();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchSubjectCategories = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("subject_category")
+          .select("category_id, category_name");
+        if (!isMounted) return;
+        if (error) {
+          console.error("Failed to load subject categories:", error);
+          return;
+        }
+        const lookup = new Map();
+        (data || []).forEach((category) => {
+          if (category?.category_id) {
+            lookup.set(String(category.category_id), category.category_name || "");
+          }
+        });
+        setSubjectCategoryLookup(lookup);
+      } catch (error) {
+        if (isMounted) {
+          console.error("Unable to fetch subject categories:", error);
+        }
+      }
+    };
+    void fetchSubjectCategories();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
   const normalizedSelectedExamName = useMemo(
     () => (form.examName || "").trim().toLowerCase() || null,
     [form.examName]
@@ -403,6 +504,7 @@ export default function Payments() {
         key: `${subjectIdentifier}-${contextKey}-${name}-${index}`,
         name,
         code: code || undefined,
+        category: getCategoryNameFromLookup(subject, subjectCategoryLookup),
         subjectId: subjectIdentifier,
         subjectReferenceId: referenceId,
         dedupKey,
@@ -470,10 +572,76 @@ export default function Payments() {
     () => supplementarySubjectsBySemester.flatMap((group) => group.entries),
     [supplementarySubjectsBySemester]
   );
+  const filterEntriesByCategory = (entries) => {
+    if (!activeSubjectCategory) return entries;
+    return entries.filter((entry) => entry.category === activeSubjectCategory);
+  };
+  const filteredCurrentSubjectEntries = useMemo(
+    () => filterEntriesByCategory(currentSubjectEntries),
+    [currentSubjectEntries, activeSubjectCategory]
+  );
+  const filteredSupplementarySubjectEntries = useMemo(
+    () => filterEntriesByCategory(supplementarySubjectEntries),
+    [supplementarySubjectEntries, activeSubjectCategory]
+  );
+  const filteredSupplementarySubjectsBySemester = useMemo(
+    () =>
+      supplementarySubjectsBySemester
+        .map((group) => ({
+          semester: group.semester,
+          entries: filterEntriesByCategory(group.entries),
+        }))
+        .filter((group) => group.entries.length > 0),
+    [supplementarySubjectsBySemester, activeSubjectCategory]
+  );
   const combinedSubjectEntries = useMemo(
     () => [...currentSubjectEntries, ...supplementarySubjectEntries],
     [currentSubjectEntries, supplementarySubjectEntries]
   );
+  const subjectCountsByCategory = useMemo(() => {
+    const map = new Map();
+    combinedSubjectEntries.forEach((entry) => {
+      const key = (entry.category || "").toString().trim();
+      if (!key) return;
+      map.set(key, (map.get(key) || 0) + 1);
+    });
+    return map;
+  }, [combinedSubjectEntries]);
+  const subjectCategoryOptions = useMemo(
+    () => Array.from(subjectCountsByCategory.keys()),
+    [subjectCountsByCategory]
+  );
+  useEffect(() => {
+    if (!subjectCategoryOptions.includes(activeSubjectCategory)) {
+      setActiveSubjectCategory(null);
+    }
+  }, [subjectCategoryOptions, activeSubjectCategory]);
+  const filteredCurrentSelectedCount = useMemo(
+    () =>
+      filteredCurrentSubjectEntries.filter((entry) =>
+        selectedSubjectKeys.has(entry.key)
+      ).length,
+    [filteredCurrentSubjectEntries, selectedSubjectKeys]
+  );
+  const filteredSupplementarySelectedCount = useMemo(
+    () =>
+      filteredSupplementarySubjectEntries.filter((entry) =>
+        selectedSubjectKeys.has(entry.key)
+      ).length,
+    [filteredSupplementarySubjectEntries, selectedSubjectKeys]
+  );
+  const visibleCurrentSubjectEntries = activeSubjectCategory
+    ? filteredCurrentSubjectEntries
+    : [];
+  const visibleSupplementarySubjectGroups = activeSubjectCategory
+    ? filteredSupplementarySubjectsBySemester
+    : [];
+  const visibleSubjectCountForCategory =
+    visibleCurrentSubjectEntries.length +
+    visibleSupplementarySubjectGroups.reduce(
+      (sum, group) => sum + group.entries.length,
+      0
+    );
   const currentSelectedEntries = useMemo(
     () =>
       currentSubjectEntries.filter((entry) =>
@@ -596,11 +764,33 @@ export default function Payments() {
   );
   const outstandingExam = Math.max(examSubtotal - alreadyPaidExam, 0);
   const examDueAmount = Math.max(examSubtotal - alreadyPaidExam, 0);
+  const selectedExamDeadline = useMemo(() => {
+    if (!selectedExamId || !examDeadlines.length) return null;
+    return examDeadlines.find(
+      (deadline) => String(deadline.exam_id) === String(selectedExamId)
+    ) ?? null;
+  }, [examDeadlines, selectedExamId]);
+  const normalizedDeadline = selectedExamDeadline?.last_date
+    ? new Date(selectedExamDeadline.last_date)
+    : null;
+  const isAfterDeadline =
+    normalizedDeadline &&
+    Date.now() >
+      new Date(
+        normalizedDeadline.getFullYear(),
+        normalizedDeadline.getMonth(),
+        normalizedDeadline.getDate(),
+        23,
+        59,
+        59,
+        999
+      ).getTime();
+  const lateFeeAmount = isAfterDeadline ? Number(fineAmountSetting || 0) : 0;
+  const paymentIntentAmount = outstandingTotal + lateFeeAmount;
   const selectedSubjectCount =
     currentSelectedCount + supplementarySelectedCount;
   const totalModalSubjectCount =
     currentSubjectEntries.length + supplementarySubjectEntries.length;
-  const currentTotalCount = currentSubjectEntries.length;
   const toggleSubjectSelection = (key) => {
     setSelectedSubjectKeys((prev) => {
       const next = new Set(prev);
@@ -1752,27 +1942,21 @@ export default function Payments() {
       null;
 
     const examMasterId = await ensureExamMaster(examName);
-    let query = supabase
-      .from("exam_registrations")
-      .select("id, exam_id")
-      .eq("student_id", activePaymentStudent.id);
-    if (semesterNumber !== null && !Number.isNaN(semesterNumber)) {
-      query = query.eq("semester", semesterNumber);
-    }
-    if (academicYear) {
-      query = query.eq("academic_year", academicYear);
-    }
-    if (groupLabel) {
-      query = query.eq("group_name", groupLabel);
-    }
-    if (courseName) {
-      query = query.eq("course_name", courseName);
-    }
-    if (examMasterId) {
-      query = query.eq("exam_id", examMasterId);
-    }
+    const buildRegistrationQuery = ({
+      includeDetails = true,
+    } = {}) => {
+      const columns = includeDetails ? "id, exam_id" : "id";
+      let query = supabase
+        .from("exam_registrations")
+        .select(columns)
+        .eq("student_id", activePaymentStudent.id);
+      if (examMasterId) {
+        query = query.eq("exam_id", examMasterId);
+      }
+      return query;
+    };
 
-    const { data: existingReg, error: existingRegError } = await query.maybeSingle();
+    const { data: existingReg, error: existingRegError } = await buildRegistrationQuery().maybeSingle();
     if (existingRegError) throw existingRegError;
     if (existingReg?.id) {
       return {
@@ -1794,12 +1978,32 @@ export default function Payments() {
       exam_id: examMasterId,
     };
 
-    const { data: insertedReg, error: insertError } = await supabase
-      .from("exam_registrations")
-      .insert(payload)
-      .select("id")
-      .maybeSingle();
-    if (insertError) throw insertError;
+    let insertedReg = null;
+    try {
+      const { data, error } = await supabase
+        .from("exam_registrations")
+        .insert(payload)
+        .select("id")
+        .maybeSingle();
+      if (error) throw error;
+      insertedReg = data;
+    } catch (error) {
+      const isConflict =
+        error?.code === "23505" ||
+        (error?.details || "").includes("exam_reg_unique");
+      if (isConflict) {
+        const { data: conflictReg, error: conflictError } =
+          await buildRegistrationQuery({ relaxExamFilter: true }).maybeSingle();
+        if (conflictError) throw conflictError;
+        if (conflictReg?.id) {
+          return {
+            examRegistrationId: conflictReg.id,
+            examMasterId: conflictReg.exam_id || examMasterId,
+          };
+        }
+      }
+      throw error;
+    }
     if (!insertedReg?.id) {
       throw new Error("Unable to establish exam registration");
     }
@@ -1879,7 +2083,8 @@ export default function Payments() {
         sumExamCoverageFromPayments(successfulPayments)
       );
       const amount = Math.max(examSubtotal - alreadyPaidExam, 0);
-      if (amount <= 0) {
+      const payableAmount = amount + lateFeeAmount;
+      if (payableAmount <= 0) {
         markActiveRegistrationPaid(alreadyPaidExam);
         showToast("Payment successful. No outstanding amount remaining.", {
           type: "success",
@@ -1895,13 +2100,13 @@ export default function Payments() {
       const { data: duplicateEntry, error: duplicateError } = await supabase
         .from("payments")
         .select("id")
-        .match({
-          exam_registration_id: examRegistrationId,
-          payment_type: paymentMethod,
-          fee_type: normalizedPaymentOption,
-          amount_paid: amount,
-          payment_status: "success",
-        })
+          .match({
+            exam_registration_id: examRegistrationId,
+            payment_type: paymentMethod,
+            fee_type: normalizedPaymentOption,
+            amount_paid: payableAmount,
+            payment_status: "success",
+          })
         .limit(1)
         .maybeSingle();
       if (duplicateError) throw duplicateError;
@@ -1921,13 +2126,13 @@ export default function Payments() {
       );
       const { error: paymentError } = await supabase.from("payments").insert({
         exam_registration_id: examRegistrationId,
-        amount_paid: amount,
+        amount_paid: payableAmount,
         payment_type: paymentMethod,
         fee_type: normalizedPaymentOption,
         payment_status: "success",
       });
       if (paymentError) throw paymentError;
-      paymentAmount = amount;
+      paymentAmount = payableAmount;
     } catch (error) {
       console.error("Unable to record payment", error);
       showToast("Payment unsuccessful. Unable to record payment. Please try again.", {
@@ -2575,24 +2780,60 @@ export default function Payments() {
                               </p>
                             </div>
                             <div className="text-end small text-muted">
-                              Selected {selectedSubjectCount} / Available {totalModalSubjectCount || "-"}
+                              Selected {selectedSubjectCount} / Available {activeSubjectCategory ? visibleSubjectCountForCategory : "-"}
                             </div>
                           </div>
                           <div className="mt-2 d-flex flex-wrap gap-2">
-                            <span className="badge bg-light text-dark border">
-                              Current semester {currentTotalCount} subjects
-                            </span>
-                            {supplementarySubjectsBySemester.map((group) => (
-                              <span
-                                key={`suppl-badge-${group.semester}`}
-                                className="badge bg-light text-dark border"
-                              >
-                                Supplementary Sem {group.semester} ({group.entries.length})
+                            {activeSubjectCategory ? (
+                              <>
+                                <span className="badge bg-light text-dark border">
+                                  Current semester {visibleCurrentSubjectEntries.length} subjects
+                                </span>
+                                {visibleSupplementarySubjectGroups.map((group) => (
+                                  <span
+                                    key={`suppl-badge-${group.semester}`}
+                                    className="badge bg-light text-dark border"
+                                  >
+                                    Supplementary Sem {group.semester} ({group.entries.length})
+                                  </span>
+                                ))}
+                              </>
+                            ) : (
+                              <span className="badge bg-light text-dark border">
+                                Select a sub-category to see the available subjects.
                               </span>
-                            ))}
+                            )}
                           </div>
                         </div>
                       )}
+                    {modalStep === 1 && subjectCategoryOptions.length > 0 && (
+                      <div className="mb-3">
+                        <div className="d-flex flex-wrap gap-2">
+                          {subjectCategoryOptions.map((category) => {
+                            const isActive = activeSubjectCategory === category;
+                            return (
+                              <button
+                                key={category}
+                                type="button"
+                                className={`btn btn-sm ${
+                                  isActive ? "btn-primary" : "btn-outline-primary"
+                                }`}
+                                onClick={() =>
+                                  setActiveSubjectCategory((prev) =>
+                                    prev === category ? null : category
+                                  )
+                                }
+                              >
+                                <span className="me-2">{category}</span>
+                                <span className="badge bg-white text-dark border">
+                                  {subjectCountsByCategory.get(category) || 0}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                     {modalStep === 1 && availableSupplementarySemesters.length > 0 && (
                       <div className="d-flex align-items-center justify-content-end gap-2 mb-3">
                         <span className="fw-semibold">Select Supplementary:</span>
@@ -2620,73 +2861,85 @@ export default function Payments() {
                     {modalStep === 1 ? (
                       combinedSubjectEntries.length === 0 ? null : (
                         <>
-                          {currentSubjectEntries.length > 0 && (
-                            <div className="border rounded mb-3">
-                              <div className="px-3 py-2 bg-light border-bottom d-flex justify-content-between align-items-center">
-                                <span className="fw-semibold">Current semester subjects</span>
-                                <span className="text-muted small">
-                                  {currentSelectedCount} of {currentTotalCount} selected
-                                </span>
-                              </div>
-                              <div className="table-responsive">
-                                <table className="table table-sm table-hover mb-0">
-                                  <thead>
-                                    <tr>
-                                      <th scope="col" className="text-center" style={{ width: "1px" }}>
-                                        Select
-                                      </th>
-                                      <th scope="col">Subject</th>
-                                      <th scope="col">Subject code</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>{currentSubjectEntries.map(renderSubjectRow)}</tbody>
-                                </table>
-                              </div>
+                          {!activeSubjectCategory ? (
+                            <div className="border rounded mb-3 p-3 text-muted small">
+                              Select a sub-category to view its subjects before selecting them.
                             </div>
-                          )}
-                          {supplementarySubjectsBySemester.length > 0 &&
-                            supplementarySubjectsBySemester.map((group) => {
-                              const selectedInGroup = group.entries.filter((entry) =>
-                                selectedSubjectKeys.has(entry.key)
-                              ).length;
-                              return (
-                                <div
-                                  className="border rounded mb-3"
-                                  key={`suppl-sem-${group.semester}`}
-                                >
+                          ) : (
+                            <>
+                              {visibleCurrentSubjectEntries.length > 0 ? (
+                                <div className="border rounded mb-3">
                                   <div className="px-3 py-2 bg-light border-bottom d-flex justify-content-between align-items-center">
-                                    <div>
-                                      <span className="fw-semibold">
-                                        Supplementary Sem {group.semester}
-                                      </span>
-                                    </div>
+                                    <span className="fw-semibold">Current semester subjects</span>
                                     <span className="text-muted small">
-                                      {selectedInGroup} of {group.entries.length} supplementary subjects selected
+                                      {filteredCurrentSelectedCount} of {visibleCurrentSubjectEntries.length} selected
                                     </span>
                                   </div>
                                   <div className="table-responsive">
-                                    {group.entries.length > 0 ? (
-                                      <table className="table table-sm table-hover mb-0">
-                                        <thead>
-                                          <tr>
-                                            <th scope="col" className="text-center" style={{ width: "1px" }}>
-                                              Select
-                                            </th>
-                                            <th scope="col">Subject</th>
-                                            <th scope="col">Subject code</th>
-                                          </tr>
-                                        </thead>
-                                        <tbody>{group.entries.map(renderSubjectRow)}</tbody>
-                                      </table>
-                                    ) : (
-                                      <div className="p-3 text-muted small">
-                                        No supplementary subjects configured for Sem {group.semester}.
-                                      </div>
-                                    )}
+                                    <table className="table table-sm table-hover mb-0">
+                                      <thead>
+                                        <tr>
+                                          <th scope="col" className="text-center" style={{ width: "1px" }}>
+                                            Select
+                                          </th>
+                                          <th scope="col">Subject</th>
+                                          <th scope="col">Subject code</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>{visibleCurrentSubjectEntries.map(renderSubjectRow)}</tbody>
+                                    </table>
                                   </div>
                                 </div>
-                              );
-                            })}
+                              ) : (
+                                <div className="border rounded mb-3 p-3 text-muted small">
+                                  No current semester subjects tied to {activeSubjectCategory}.
+                                </div>
+                              )}
+                              {visibleSupplementarySubjectGroups.length > 0 &&
+                                visibleSupplementarySubjectGroups.map((group) => {
+                                  const selectedInGroup = group.entries.filter((entry) =>
+                                    selectedSubjectKeys.has(entry.key)
+                                  ).length;
+                                  return (
+                                    <div
+                                      className="border rounded mb-3"
+                                      key={`suppl-sem-${group.semester}`}
+                                    >
+                                      <div className="px-3 py-2 bg-light border-bottom d-flex justify-content-between align-items-center">
+                                        <div>
+                                          <span className="fw-semibold">
+                                            Supplementary Sem {group.semester}
+                                          </span>
+                                        </div>
+                                        <span className="text-muted small">
+                                          {selectedInGroup} of {group.entries.length} supplementary subjects selected
+                                        </span>
+                                      </div>
+                                      <div className="table-responsive">
+                                        {group.entries.length > 0 ? (
+                                          <table className="table table-sm table-hover mb-0">
+                                            <thead>
+                                              <tr>
+                                                <th scope="col" className="text-center" style={{ width: "1px" }}>
+                                                  Select
+                                                </th>
+                                                <th scope="col">Subject</th>
+                                                <th scope="col">Subject code</th>
+                                              </tr>
+                                            </thead>
+                                            <tbody>{group.entries.map(renderSubjectRow)}</tbody>
+                                          </table>
+                                        ) : (
+                                          <div className="p-3 text-muted small">
+                                            No supplementary subjects configured for Sem {group.semester}.
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                            </>
+                          )}
                         </>
                       )
                     ) : (
@@ -2809,13 +3062,20 @@ export default function Payments() {
                   <p class="text-muted small mb-2">
                     Pay the configured exam and supplementary fees in full for the selected subjects.
                   </p>
-                  <div class="d-flex justify-content-between align-items-center">
-                    <span class="text-muted small">Amount due</span>
-                    <span class="fw-semibold">{formatCurrency(examSubtotal)}
-                      {modalPaymentSummary && (
-                        <span class="text-muted small">(Remaining {formatCurrency(outstandingExam)})</span>
-                      )}
-                    </span>
+                  <div class="d-flex flex-column gap-1">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <span class="text-muted small">Amount due</span>
+                      <span class="fw-semibold">{formatCurrency(examSubtotal)}
+                        {modalPaymentSummary && (
+                          <span class="text-muted small">(Remaining {formatCurrency(outstandingExam)})</span>
+                        )}
+                      </span>
+                    </div>
+                    {lateFeeAmount > 0 && selectedExamDeadline?.last_date && (
+                      <div class="text-muted small">
+                        Fine fee {formatCurrency(lateFeeAmount)} applies after {formatDeadlineDate(selectedExamDeadline.last_date)}.
+                      </div>
+                    )}
                   </div>
                 </div>
 <div className="card border rounded shadow-sm mb-3">
@@ -2892,13 +3152,24 @@ export default function Payments() {
                       <span>{formatCurrency(supplementaryFeeAmount)}</span>
                     </div>
                   )}
+                  {lateFeeAmount > 0 && (
+                    <div className="d-flex justify-content-between">
+                      <span>Fine fee</span>
+                      <span>{formatCurrency(lateFeeAmount)}</span>
+                    </div>
+                  )}
                   <div className="mt-2 border-top pt-2 d-flex justify-content-between fw-semibold">
                     <span>Total due</span>
-                    <span>{formatCurrency(examSubtotal)}</span>
+                    <span>{formatCurrency(paymentIntentAmount)}</span>
                   </div>
                   {modalPaymentSummary?.alreadyPaidExam > 0 && (
                     <div className="text-muted small mt-1">
                       There is a balance of {formatCurrency(outstandingExam)} remaining.
+                    </div>
+                  )}
+                  {lateFeeAmount > 0 && selectedExamDeadline?.last_date && (
+                    <div className="text-muted small mt-2">
+                      Fine fee applies after {formatDeadlineDate(selectedExamDeadline.last_date)}.
                     </div>
                   )}
                 </div>

@@ -188,6 +188,7 @@ export default function SubjectsSection({
   const pendingCombos = buildComboRows(pendingSubjects)
   const savedCombos = buildComboRows(subjects)
   const [modalCategory, setModalCategory] = useState(null)
+  const [showAllSavedSubjects, setShowAllSavedSubjects] = useState(false)
 
   const openCategoryModal = (combo, category, subjects) => {
     setModalCategory({
@@ -665,8 +666,8 @@ export default function SubjectsSection({
                             <th>Actions</th>
                           </tr>
                         </thead>
-                        <tbody>
-                          {savedCombos.map((combo, index) => {
+                      <tbody>
+                        {(showAllSavedSubjects ? savedCombos : savedCombos.slice(0, 3)).map((combo, index) => {
                             // Group categories by semester
                             const categoriesByType = {};
                             combo.categories.forEach(cat => {
@@ -729,6 +730,17 @@ export default function SubjectsSection({
                         </tbody>
                       </table>
                     </div>
+                    {savedCombos.length > 3 && (
+                      <div className="text-end mt-3">
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-primary students-button"
+                          onClick={() => setShowAllSavedSubjects((prev) => !prev)}
+                        >
+                          {showAllSavedSubjects ? "Show fewer" : `View all ${savedCombos.length}`}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
