@@ -91,6 +91,7 @@ export default function Departments() {
   const [editingDeadlineId, setEditingDeadlineId] = useState(null);
   const [examDeadlines, setExamDeadlines] = useState([]);
   const [showAllFeeCategories, setShowAllFeeCategories] = useState(false);
+  const [showAllExamDeadlines, setShowAllExamDeadlines] = useState(false);
   const canSubmitSupplementary = editingFeeId || supplementaryFees.length === 0;
 
   const matchingCategoriesCount = filteredFeeCategories.length;
@@ -1664,7 +1665,9 @@ export default function Departments() {
                 </tr>
               </thead>
               <tbody>
-                {examDeadlines.map((deadline) => (
+                {examDeadlines
+                  .slice(0, showAllExamDeadlines ? examDeadlines.length : 3)
+                  .map((deadline) => (
                   <tr key={deadline.id}>
                     <td>{deadline.exam?.exam_name || 'N/A'}</td>
                     <td>{new Date(deadline.last_date).toLocaleDateString()}</td>
