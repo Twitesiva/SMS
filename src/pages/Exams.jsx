@@ -67,7 +67,7 @@ export default function Exams() {
     try {
       const { data, error } = await supabase
         .from('exam_master')
-        .select('id, exam_name, created_at, results_published, result_published, result_status, status')
+        .select('*')
         .order('created_at', { ascending: false })
 
       if (error) throw error

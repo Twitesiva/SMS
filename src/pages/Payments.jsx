@@ -1165,9 +1165,7 @@ export default function Payments() {
     try {
       const { data, error } = await supabase
         .from("exam_master")
-        .select(
-          "id, exam_name, results_published, result_published, result_status, status"
-        )
+        .select("*")
         .order("exam_name", { ascending: true })
         .limit(500);
       if (error) throw error;

@@ -1050,9 +1050,7 @@ export const api = {
     const rows = await runQuery(
       supabase
         .from(TABLES.exams)
-        .select(
-          "id, exam_name, created_at, results_published, result_published, result_status, status"
-        )
+        .select("*")
         .order("created_at", { ascending: false }),
       "Unable to fetch exams"
     );
