@@ -1017,6 +1017,8 @@ export default function Setup() {
 
   const [subjects, setSubjects] = useState([]);
   const [pendingSubjects, setPendingSubjects] = useState([]);
+  const [subjectIdsToDelete, setSubjectIdsToDelete] = useState([]);
+  const [subjectEditBackup, setSubjectEditBackup] = useState([]);
   const [subjectForm, setSubjectForm] = useState(() => buildSubjectForm(""));
 
   useEffect(() => {
@@ -1197,6 +1199,7 @@ export default function Setup() {
       if (editingSubjectId) {
         setEditingSubjectId("");
         setEditingBatchId("");
+        setSubjectEditBackup([]);
       }
     } catch (error) {
       console.error("Error preparing subjects:", error);
@@ -1300,6 +1303,20 @@ export default function Setup() {
     try {
       showToast("Saving subjects to database...", { type: "info" });
       
+      if (subjectIdsToDelete.length) {
+        try {
+          await Promise.all(
+            subjectIdsToDelete.map((id) =>
+              api.deleteSubject?.(Number(id))
+            )
+          );
+          setSubjectIdsToDelete([]);
+        } catch (error) {
+          console.error("Failed to delete subject(s) before update", error);
+          throw error;
+        }
+      }
+
       const payload = [];
       
       // Process each pending subject
@@ -1436,6 +1453,14 @@ export default function Setup() {
 
   const editSubject = async (rec) => {
     const batchRef = buildSubjectBatchKey(rec);
+    const snapshot = (rec.subjectRecords || [rec]).filter(Boolean);
+    if (snapshot.length) {
+      setSubjectEditBackup(snapshot);
+    }
+    const ids = (rec.subjectIds || []).filter(Boolean);
+    if (ids.length) {
+      setSubjectIdsToDelete(ids);
+    }
 
     setSubjects((prev) =>
       prev.filter((s) => buildSubjectBatchKey(s) !== batchRef)
@@ -1490,9 +1515,14 @@ export default function Setup() {
   };
 
   const cancelSubjectEdit = () => {
+    if (subjectEditBackup.length) {
+      setSubjects((prev) => [...subjectEditBackup, ...prev]);
+      setSubjectEditBackup([]);
+    }
     setEditingSubjectId("");
     setEditingBatchId("");
     setSubjectForm(buildSubjectForm(categories[0] || ""));
+    setSubjectIdsToDelete([]);
   };
 
   const heroStats = [

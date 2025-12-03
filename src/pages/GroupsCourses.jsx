@@ -110,7 +110,7 @@ export default function GroupsCoursesSection({
                     setGroupForm({ ...groupForm, years: e.target.value });
                 }}
                 disabled={isFixedDuration}
-                style={{ "-moz-appearance": "textfield" }}
+                style={{ MozAppearance: "textfield" }}
                 onWheel={(e) => e.target.blur()}
               />
             </div>
@@ -128,7 +128,7 @@ export default function GroupsCoursesSection({
                     setGroupForm({ ...groupForm, semesters: e.target.value });
                 }}
                 disabled={isFixedDuration}
-                style={{ "-moz-appearance": "textfield" }}
+                style={{ MozAppearance: "textfield" }}
                 onWheel={(e) => e.target.blur()}
               />
             </div>

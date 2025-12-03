@@ -135,9 +135,9 @@ export default function SubjectsSection({
         item.semester === undefined || item.semester === null ? '' : item.semester
       ].join('::')
       
-      const base = comboMap.get(comboKey) || {
-        comboKey,
-        academicYearId: item.academicYearId || item.academic_year,
+        const base = comboMap.get(comboKey) || {
+          comboKey,
+          academicYearId: item.academicYearId || item.academic_year,
         academicYearName: item.academicYearName || item.academic_year,
         academicYear: item.academicYearName || item.academic_year,
         groupCode: item.groupCode || item.group_code,
@@ -146,14 +146,14 @@ export default function SubjectsSection({
         subjectIds: [],
         subjectNames: [],
         subjectCodes: [],
-        subjectSelections: [],
-        subjectId: item.subject_id || item.id,
-        category: item.category,
-        categoryId: item.category_id,
-        feeCategory: item.feeCategory || item.fee_category,
-        feeAmount: item.amount || item.feeAmount,
-        categories: [] // Initialize categories array
-      }
+          subjectSelections: [],
+          subjectId: item.subject_id || item.id,
+          category: item.category,
+          categoryId: item.category_id,
+          feeCategory: item.feeCategory || item.fee_category,
+          feeAmount: item.amount || item.feeAmount,
+          categories: [] // Initialize categories array
+        }
 
       // Add subject information
       if (item.subject_name) {
@@ -173,6 +173,9 @@ export default function SubjectsSection({
         catEntry = {
           name: categoryName,
           subjects: [],
+          subjectCodes: [],
+          subjectIds: [],
+          subjectRecords: [],
           source: item
         }
         base.categories.push(catEntry)
@@ -180,6 +183,19 @@ export default function SubjectsSection({
       
       const itemSubjects = item.subjectNames?.length ? item.subjectNames : [item.subjectName].filter(Boolean)
       catEntry.subjects.push(...itemSubjects)
+      const codeValues = item.subjectCodes?.length
+        ? item.subjectCodes
+        : item.subjectCode
+          ? [item.subjectCode]
+          : item.code
+            ? [item.code]
+            : []
+      catEntry.subjectCodes.push(...codeValues)
+      const idValue = item.subject_id || item.id || item.subjectId || null
+      if (idValue) {
+        catEntry.subjectIds.push(idValue)
+      }
+      catEntry.subjectRecords.push(item)
 
       comboMap.set(comboKey, base)
     })
@@ -196,6 +212,22 @@ export default function SubjectsSection({
       category,
       subjects,
     })
+  }
+
+  const buildAggregatedCategoryPayload = (combo, aggregated) => {
+    const source =
+      aggregated.source ||
+      combo.categories.find((cat) => cat.name === aggregated.name)?.source ||
+      {}
+    return {
+      ...source,
+      category: aggregated.name,
+      subjectNames: aggregated.subjects,
+      subjectCodes: aggregated.subjectCodes,
+      subjectSelections: aggregated.subjects,
+      subjectIds: aggregated.subjectIds,
+      subjectRecords: aggregated.subjectRecords || [source],
+    }
   }
 
   const closeCategoryModal = () => setModalCategory(null)
@@ -668,13 +700,23 @@ export default function SubjectsSection({
                         </thead>
                       <tbody>
                         {(showAllSavedSubjects ? savedCombos : savedCombos.slice(0, 3)).map((combo, index) => {
-                            // Group categories by semester
                             const categoriesByType = {};
                             combo.categories.forEach(cat => {
-                              if (!categoriesByType[cat.name]) {
-                                categoriesByType[cat.name] = [];
+                              const existing = categoriesByType[cat.name];
+                              if (existing) {
+                                existing.subjects.push(...(cat.subjects || []));
+                                existing.subjectCodes.push(...(cat.subjectCodes || []));
+                                existing.subjectIds.push(...(cat.subjectIds || []));
+                                existing.subjectRecords.push(...(cat.subjectRecords || []));
+                              } else {
+                                categoriesByType[cat.name] = {
+                                  ...cat,
+                                  subjects: [...(cat.subjects || [])],
+                                  subjectCodes: [...(cat.subjectCodes || [])],
+                                  subjectIds: [...(cat.subjectIds || [])],
+                                  subjectRecords: [...(cat.subjectRecords || [])],
+                                };
                               }
-                              categoriesByType[cat.name].push(cat);
                             });
                             
                             return (
@@ -685,7 +727,7 @@ export default function SubjectsSection({
                                 <td>Sem {combo.semester}</td>
                                 <td>
                                   <div className="d-flex flex-column gap-2">
-                                    {Object.entries(categoriesByType).map(([category, cats]) => (
+                                    {Object.entries(categoriesByType).map(([category, entry]) => (
                                       <button
                                         type="button"
                                         className="btn btn-outline-secondary students-button students-button-sm text-start"
@@ -693,7 +735,7 @@ export default function SubjectsSection({
                                         onClick={() => openCategoryModal(
                                           combo,
                                           category,
-                                          cats.flatMap(cat => cat.subjects.filter(Boolean))
+                                          entry.subjects.filter(Boolean)
                                         )}
                                       >
                                         <span className="fw-semibold">{category}</span>
@@ -706,17 +748,17 @@ export default function SubjectsSection({
                                 </td>
                                 <td>
                                   <div className="d-flex flex-column gap-2">
-                                    {Object.entries(categoriesByType).map(([category, cats]) => (
+                                    {Object.entries(categoriesByType).map(([category, entry]) => (
                                       <div key={category} className="d-flex gap-2">
                                         <button 
                                           className="btn btn-sm btn-outline-primary students-button students-button-sm"
-                                          onClick={() => editSubject(cats[0].source)}
+                                          onClick={() => editSubject(buildAggregatedCategoryPayload(combo, entry))}
                                         >
                                           Edit {category}
                                         </button>
                                         <button 
                                           className="btn btn-sm btn-outline-danger students-button students-button-sm"
-                                          onClick={() => deleteSubject(cats[0].source)}
+                                          onClick={() => deleteSubject(buildAggregatedCategoryPayload(combo, entry))}
                                         >
                                           Delete
                                         </button>
