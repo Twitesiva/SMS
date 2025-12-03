@@ -101,11 +101,17 @@ export default function Exams() {
   }
 
   const handleSaveExamName = async () => {
-    const value = (examNameInput || '').trim()
-    if (!value) {
-      showToast('Enter an exam name before saving.', { type: 'warning' })
+    const monthYear = (examNameInput || '').trim()
+    if (!monthYear) {
+      showToast('Enter month and year (MM/YYYY) before saving.', { type: 'warning' })
       return
     }
+    // Add validation for Month YYYY format (e.g., "December 2025")
+    if (!/^[a-zA-Z]+\s\d{4}$/.test(monthYear)) {
+      showToast('Please enter a valid month and year (e.g., "December 2025")', { type: 'warning' })
+      return
+    }
+    const value = `Regular and Supplementary Examinations - ${monthYear}`
     if (editingExam) {
       showToast('Finish editing or cancel before saving a new exam name.', { type: 'warning' })
       return
@@ -138,14 +144,20 @@ export default function Exams() {
 
   const handleUpdateExamName = async () => {
     if (!editingExam) {
-      showToast('Select an exam name to edit.', { type: 'warning' })
+      showToast('Select an exam to edit.', { type: 'warning' })
       return
     }
-    const value = (examNameInput || '').trim()
-    if (!value) {
-      showToast('Exam name cannot be empty.', { type: 'warning' })
+    const monthYear = (examNameInput || '').trim()
+    if (!monthYear) {
+      showToast('Month and year cannot be empty.', { type: 'warning' })
       return
     }
+    // Add validation for Month YYYY format (e.g., "December 2025")
+    if (!/^[a-zA-Z]+\s\d{4}$/.test(monthYear)) {
+      showToast('Please enter a valid month and year (e.g., "December 2025")', { type: 'warning' })
+      return
+    }
+    const value = `Regular and Supplementary Examinations - ${monthYear}`
     if (value === editingExam.exam_name) {
       showToast('No changes to save.', { type: 'info' })
       return
@@ -677,18 +689,23 @@ export default function Exams() {
           <div className="row g-3">
             <div className="col-md-8">
               <label className="form-label">Exam name</label>
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Enter exam name"
-                value={examNameInput}
-                onChange={(event) => setExamNameInput(event.target.value)}
-                list="exam-name-options"
-              />
+              <div className="input-group">
+                <span className="input-group-text">Regular and Supplementary Examinations - </span>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Month YYYY (e.g., December 2025)"
+                  value={examNameInput}
+                  onChange={(event) => setExamNameInput(event.target.value)}
+                  list="exam-name-options"
+                />
+              </div>
               <datalist id="exam-name-options">
-                {exams.map((exam) => (
-                  <option key={exam.id} value={exam.exam_name} />
-                ))}
+                {exams.map((exam) => {
+                  // Extract just the month/year part for the datalist
+                  const displayValue = exam.exam_name.replace('Regular and Supplementary Examinations - ', '');
+                  return <option key={exam.id} value={displayValue} />;
+                })}
               </datalist>
             </div>
           </div>
@@ -704,7 +721,11 @@ export default function Exams() {
                     className="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2"
                   >
                     <div className="w-100 w-md-auto">
-                      <div className="fw-semibold">{exam.exam_name}</div>
+                      <div className="fw-semibold">
+                        {exam.exam_name.startsWith('Regular and Supplementary Examinations - ') 
+                          ? exam.exam_name 
+                          : `Regular and Supplementary Examinations - ${exam.exam_name}`}
+                      </div>
                       <div className="text-muted small">
                         {editingExam?.id === exam.id ? 'Selected for editing' : 'Tap edit to rename'}
                       </div>
