@@ -25,7 +25,12 @@ const nav = [
     label: "Fees Generation",
     icon: "bi-mortarboard",
   },
-  { to: "/admin/payments", label: "Payments", icon: "bi-credit-card" },
+  {
+    to: "/admin/exams",
+    label: "Create Exam timetable",
+    icon: "bi-journal-check",
+  },
+  { to: "/admin/payments", label: "Student Mapping & Payments", icon: "bi-credit-card" },
   {
     to: "/admin/payments-overview",
     label: "Decode",
@@ -35,11 +40,6 @@ const nav = [
     to: "/admin/hall-tickets",
     label: "Hall Ticket",
     icon: "bi-ticket-perforated",
-  },
-  {
-    to: "/admin/exams",
-    label: "Create Exam timetable",
-    icon: "bi-journal-check",
   },
   { to: "/admin/results", label: "Marks Entry and Result", icon: "bi-award" },
 ];
@@ -52,7 +52,7 @@ export default function AdminShell({ children, onSignOut }) {
   const { signOut } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const sidebarRef = useRef(null);
-  const [showScrollHint, setShowScrollHint] = useState(false);
+
   const handleSignOut = () => {
     if (typeof onSignOut === "function") {
       onSignOut();
@@ -63,18 +63,6 @@ export default function AdminShell({ children, onSignOut }) {
     }
     navTo("/");
   };
-
-  const updateScrollHint = useCallback(() => {
-    const navElement = sidebarRef.current;
-    if (!navElement) {
-      setShowScrollHint(false);
-      return;
-    }
-    const canScroll = navElement.scrollHeight > navElement.clientHeight + 8;
-    const nearBottom =
-      navElement.scrollTop >= navElement.scrollHeight - navElement.clientHeight - 12;
-    setShowScrollHint(canScroll && !nearBottom);
-  }, []);
 
   // Restore the sidebar scroll position after navigation changes.
   useEffect(() => {
@@ -108,15 +96,13 @@ export default function AdminShell({ children, onSignOut }) {
           String(navElement.scrollTop)
         );
       }
-      updateScrollHint();
     };
 
-    updateScrollHint();
     navElement.addEventListener("scroll", handleScroll);
     return () => {
       navElement.removeEventListener("scroll", handleScroll);
     };
-  }, [collapsed, updateScrollHint]);
+  }, [collapsed]);
 
   return (
     <div
@@ -187,14 +173,8 @@ export default function AdminShell({ children, onSignOut }) {
           ))}
         </nav>
 
-        {showScrollHint && (
-          <div className="sidebar-scroll-hint">
-            <span>Scroll to see more</span>
-            <i className="bi bi-chevron-down"></i>
-          </div>
-        )}
 
-        <div className="sidebar-footer text-center small text-muted mt-auto">
+        <div className="sidebar-footer text-center small text-muted">
           <div style={{ color: "#4c75f2", letterSpacing: "0.15em" }}>
             Exam Management Studio
           </div>

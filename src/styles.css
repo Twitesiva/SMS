@@ -4382,15 +4382,26 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  overflow-x: hidden;
-  padding-right: 0.4rem;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  padding-right: 0.5rem;
+  scrollbar-width: 8px;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  -ms-overflow-style: auto;
 }
-  .sidebar-nav::-webkit-scrollbar {
-    width: 0;
-    background: transparent;
-  }
+.sidebar-nav::-webkit-scrollbar {
+  width: 8px;
+}
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 4px 0;
+}
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  border-radius: 3px;
+}
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
 
 .sidebar-scroll-hint {
   text-transform: uppercase;
