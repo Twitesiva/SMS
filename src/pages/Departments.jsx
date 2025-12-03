@@ -1090,7 +1090,7 @@ export default function Departments() {
         <div className="students-table-panel card card-soft mb-4">
           <div className="students-table-panel-header mb-3">
             <div>
-              <p className="students-table-panel-title mb-1">Fee Categories</p>
+              <p className="students-table-panel-title mb-1" style={{ color: 'white' }}>Fee Categories</p>
               <p className="students-table-panel-copy small mb-0">
                 Manage the categories that can be applied to any fee structure.
               </p>
@@ -1192,7 +1192,7 @@ export default function Departments() {
         <div className="students-table-panel card card-soft mb-4">
           <div className="students-table-panel-header mb-3">
             <div>
-              <p className="students-table-panel-title mb-1">Fee Structure</p>
+              <p className="students-table-panel-title mb-1" style={{ color: 'white' }}>Fee Structure</p>
               <p className="students-table-panel-copy small mb-0">
                 Review the current fee structure and assign categories to academic groups.
               </p>
@@ -1538,7 +1538,7 @@ export default function Departments() {
       <div className="students-table-panel card card-soft mb-4 p-4">
         <div className="students-table-panel-header mb-3">
           <div>
-            <p className="students-table-panel-title mb-1">Exam Deadlines</p>
+            <p className="students-table-panel-title mb-1" style={{ color: 'white' }}>Exam Deadlines</p>
             <p className="students-table-panel-copy small mb-0">
               Manage last dates for exam registrations.
             </p>
@@ -1705,7 +1705,7 @@ export default function Departments() {
       <div className="students-table-panel card card-soft mb-4 p-4">
         <div className="students-table-panel-header mb-3">
           <div>
-            <p className="students-table-panel-title mb-1">Fine Amount</p>
+            <p className="students-table-panel-title mb-1" style={{ color: 'white' }}>Fine Amount</p>
             <p className="students-table-panel-copy small mb-0">
               Configure the fine amount for late fee payments.
             </p>
@@ -1877,7 +1877,7 @@ export default function Departments() {
       <div className="students-table-panel card card-soft mb-4 p-4">
         <div className="students-table-panel-header mb-3">
           <div>
-            <p className="students-table-panel-title mb-1">Supplementary Fees</p>
+            <p className="students-table-panel-title mb-1" style={{ color: 'white' }}>Supplementary Fees</p>
             <p className="students-table-panel-copy small mb-0">
               Configure fees for supplementary examinations by paper count.
             </p>
