@@ -82,6 +82,15 @@ export default function Departments() {
   const [paper2, setPaper2] = useState("");
   const [paper3Plus, setPaper3Plus] = useState("");
   const [editingFeeId, setEditingFeeId] = useState(null);
+  const [fineAmount, setFineAmount] = useState("");
+  const [editingFineId, setEditingFineId] = useState(null);
+  const [fineAmounts, setFineAmounts] = useState([]);
+  const [exams, setExams] = useState([]);
+  const [selectedExam, setSelectedExam] = useState("");
+  const [lastDate, setLastDate] = useState("");
+  const [editingDeadlineId, setEditingDeadlineId] = useState(null);
+  const [examDeadlines, setExamDeadlines] = useState([]);
+  const [showAllFeeCategories, setShowAllFeeCategories] = useState(false);
   const canSubmitSupplementary = editingFeeId || supplementaryFees.length === 0;
 
   const matchingCategoriesCount = filteredFeeCategories.length;
@@ -977,9 +986,50 @@ export default function Departments() {
     }
   };
 
-  // Fetch supplementary fees on component mount
+  // Fetch data on component mount
   useEffect(() => {
     const init = async () => {
+      // Load exams
+      const { data: examsData, error: examsError } = await supabase
+        .from('exam_master')
+        .select('*');
+      
+      if (examsError) {
+        console.error('Error loading exams:', examsError);
+        showToast('Failed to load exams', { type: 'danger' });
+      } else {
+        setExams(examsData || []);
+      }
+
+      // Load fine amounts
+      const { data: fineData, error: fineError } = await supabase
+        .from('global_settings')
+        .select('*');
+      
+      if (fineError) {
+        console.error('Error loading fine amounts:', fineError);
+      } else {
+        setFineAmounts(fineData || []);
+        if (fineData && fineData.length > 0) {
+          setFineAmount(fineData[0].fine_amount || '');
+        }
+      }
+
+      // Load exam deadlines
+      const { data: deadlinesData, error: deadlinesError } = await supabase
+        .from('exam_deadlines')
+        .select(`
+          *,
+          exam:exam_master(exam_name)
+        `);
+      
+      if (deadlinesError) {
+        console.error('Error loading exam deadlines:', deadlinesError);
+      } else {
+        setExamDeadlines(deadlinesData || []);
+      }
+
+      // Load supplementary fees
       const tableExists = await checkTableExists("Supplementary");
       console.log("Supplementary table exists:", tableExists);
       if (tableExists) {
@@ -1154,7 +1204,7 @@ export default function Departments() {
           </div>
         </div>
 
-        {/* Existing fee structure content */}
+        {/* Fee Structure Container */}
         <div className="students-table-panel card card-soft mb-4">
           <div className="students-table-panel-header mb-3">
             <div>
@@ -1165,11 +1215,7 @@ export default function Departments() {
             </div>
           </div>
           <div className="card-body">
-            {/* Existing fee structure content */}
-          </div>
-        </div>
-      </div>
-      <div className="students-filter-control-panel card card-soft mb-4">
+            <div className="students-filter-control-panel">
         <div className="row g-3">
         {/* Category */}
         <div className="col-md-3">
@@ -1388,36 +1434,33 @@ export default function Departments() {
 
       {/* ---------------- CATEGORY FEE TABLE ---------------- */}
       {filteredCategoryFees.length > 0 && (
-      <div className="students-table-panel card card-soft mb-4 p-4">
-        <div className="students-table-panel-header mb-3">
-          <div>
-            <p className="students-table-panel-title text-white mb-1">Fee Category Records</p>
-            <p className="students-table-panel-copy small mb-0">
-              Recently saved fee combinations and their totals.
-            </p>
+        <div className="students-table-panel card card-soft mb-4 p-4">
+          <div className="students-table-panel-header mb-3">
+            <div>
+              <p className="students-table-panel-title text-white mb-1">Fee Category Records</p>
+            </div>
           </div>
-        </div>
-          <div className="table-responsive students-table-panel-table-wrapper">
-            <table className="table mb-0 students-table-panel-table">
+          <div className="table-responsive">
+            <table className="table table-bordered align-middle">
               <thead>
                 <tr>
-                  <th>YEAR</th>
-                  <th>GROUP</th>
-                  <th>COURSE</th>
-                  <th>SEMESTER</th>
-                  <th>FEE CATEGORIES</th>
-                  <th>TOTAL FEE</th>
-                  <th>ACTIONS</th>
+                  <th>Academic Year</th>
+                  <th>Group</th>
+                  <th>Course</th>
+                  <th>Semester</th>
+                  <th>Categories</th>
+                  <th>Total Amount (₹)</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredCategoryFees.map((fees) => {
-                  const categoryDisplays = fees.feeCategories || [];
-                  return (
-                    <tr
-                      key={`${fees.academic_year}-${fees.group}-${fees.course_code}-${fees.semester}`}
-                    >
-                      <td>{fees.academic_year}</td>
+                {filteredCategoryFees
+                  .slice(0, showAllFeeCategories ? filteredCategoryFees.length : 6)
+                  .map((fees) => {
+                    const categoryDisplays = fees.feeCategories || [];
+                    return (
+                      <tr key={fees.id}>
+                        <td>{fees.academic_year}</td>
                       <td>
                         {groups.find((g) => g.code === fees.group)?.name ||
                           fees.group}
@@ -1431,9 +1474,9 @@ export default function Departments() {
                         {categoryDisplays.length === 0 ? (
                           <span className="text-muted">No categories</span>
                         ) : (
-                          categoryDisplays.map((cat) => (
+                          categoryDisplays.map((cat, index) => (
                             <div
-                              key={cat.id}
+                              key={cat.id || `category-${index}`}
                               className="mb-1 d-flex align-items-center"
                             >
                               <span className="fw-semibold">{cat.name}</span>
@@ -1486,9 +1529,364 @@ export default function Departments() {
                 })}
               </tbody>
             </table>
+            
+            {filteredCategoryFees.length > 6 && (
+              <div className="d-flex justify-content-center mt-3">
+                <button 
+                  className="btn btn-outline-primary"
+                  onClick={() => setShowAllFeeCategories(!showAllFeeCategories)}
+                >
+                  {showAllFeeCategories ? (
+                    <>
+                      <i className="fas fa-arrow-left me-2"></i>
+                      Back to Top
+                    </>
+                  ) : (
+                    `View All (${filteredCategoryFees.length})`
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
+      {/* Exam Deadlines Section */}
+      <div className="students-table-panel card card-soft mb-4 p-4">
+        <div className="students-table-panel-header mb-3">
+          <div>
+            <p className="students-table-panel-title mb-1">Exam Deadlines</p>
+            <p className="students-table-panel-copy small mb-0">
+              Manage last dates for exam registrations.
+            </p>
+          </div>
+        </div>
+
+        <form 
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (!selectedExam || !lastDate) {
+              showToast("Please select an exam and set a last date", { type: "warning" });
+              return;
+            }
+
+            try {
+              if (editingDeadlineId) {
+                // Update existing deadline
+                const { error } = await supabase
+                  .from('exam_deadlines')
+                  .update({ 
+                    exam_id: selectedExam,
+                    last_date: lastDate
+                  })
+                  .eq('id', editingDeadlineId);
+                
+                if (error) throw error;
+                showToast("Exam deadline updated successfully", { type: "success" });
+              } else {
+                // Create new deadline
+                const { error } = await supabase
+                  .from('exam_deadlines')
+                  .insert([{ 
+                    exam_id: selectedExam,
+                    last_date: lastDate
+                  }]);
+                
+                if (error) throw error;
+                showToast("Exam deadline added successfully", { type: "success" });
+              }
+
+              // Refresh deadlines
+              const { data: deadlinesData } = await supabase
+                .from('exam_deadlines')
+                .select(`
+                  *,
+                  exam:exam_master(exam_name)
+                `);
+              
+              setExamDeadlines(deadlinesData || []);
+              setSelectedExam("");
+              setLastDate("");
+              setEditingDeadlineId(null);
+            } catch (error) {
+              console.error("Error saving exam deadline:", error);
+              showToast("Failed to save exam deadline", { type: "danger" });
+            }
+          }}
+          className="mb-4"
+        >
+          <div className="row g-3">
+            <div className="col-md-5">
+              <div className="form-group">
+                <label className="form-label">Exam</label>
+                <select
+                  className="form-select"
+                  value={selectedExam}
+                  onChange={(e) => setSelectedExam(e.target.value)}
+                  required
+                >
+                  <option value="">Select Exam</option>
+                  {exams.map((exam) => (
+                    <option key={exam.id} value={exam.id}>
+                      {exam.exam_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="col-md-5">
+              <div className="form-group">
+                <label className="form-label">Last Date</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={lastDate}
+                  onChange={(e) => setLastDate(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div className="col-md-2 d-flex align-items-end">
+              <button type="submit" className="btn btn-primary students-button w-100">
+                {editingDeadlineId ? "Update" : "Add"}
+              </button>
+            </div>
+          </div>
+        </form>
+
+        {examDeadlines.length > 0 && (
+          <div className="table-responsive">
+            <table className="table table-bordered align-middle">
+              <thead>
+                <tr>
+                  <th>Exam</th>
+                  <th>Last Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {examDeadlines.map((deadline) => (
+                  <tr key={deadline.id}>
+                    <td>{deadline.exam?.exam_name || 'N/A'}</td>
+                    <td>{new Date(deadline.last_date).toLocaleDateString()}</td>
+                    <td>
+                      <div className="d-flex gap-2">
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-primary students-button students-button-sm"
+                          onClick={() => {
+                            setSelectedExam(deadline.exam_id);
+                            setLastDate(deadline.last_date.split('T')[0]);
+                            setEditingDeadlineId(deadline.id);
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-danger students-button students-button-sm"
+                          onClick={async () => {
+                            if (window.confirm("Are you sure you want to delete this deadline?")) {
+                              try {
+                                const { error } = await supabase
+                                  .from('exam_deadlines')
+                                  .delete()
+                                  .eq('id', deadline.id);
+                                
+                                if (error) throw error;
+                                
+                                setExamDeadlines(examDeadlines.filter(d => d.id !== deadline.id));
+                                showToast("Deadline deleted successfully", { type: "success" });
+                              } catch (error) {
+                                console.error("Error deleting deadline:", error);
+                                showToast("Failed to delete deadline", { type: "danger" });
+                              }
+                            }
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Fine Amount Section */}
+      <div className="students-table-panel card card-soft mb-4 p-4">
+        <div className="students-table-panel-header mb-3">
+          <div>
+            <p className="students-table-panel-title mb-1">Fine Amount</p>
+            <p className="students-table-panel-copy small mb-0">
+              Configure the fine amount for late fee payments.
+            </p>
+          </div>
+        </div>
+
+        <form 
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (!fineAmount) {
+              showToast("Please enter a fine amount", { type: "warning" });
+              return;
+            }
+
+            if (fineAmounts.length > 0 && !editingFineId) {
+              showToast(
+                "Only one fine amount entry is allowed. Please edit or delete the existing record.",
+                { type: "warning", title: "Fine Amount" }
+              );
+              return;
+            }
+
+            try {
+              if (editingFineId) {
+                // Update existing fine amount
+                const { error } = await supabase
+                  .from('global_settings')
+                  .update({ 
+                    fine_amount: parseFloat(fineAmount)
+                    // Removed updated_at since it doesn't exist in the table
+                  })
+                  .eq('id', editingFineId);
+                
+                if (error) throw error;
+                showToast("Fine amount updated successfully", { type: "success" });
+              } else {
+                // Create new fine amount
+                const { error } = await supabase
+                  .from('global_settings')
+                  .insert([{ 
+                    fine_amount: parseFloat(fineAmount),
+                    created_at: new Date().toISOString()
+                  }]);
+                
+                if (error) throw error;
+                showToast("Fine amount saved successfully", { type: "success" });
+              }
+
+              // Refresh fine amounts
+              const { data } = await supabase
+                .from('global_settings')
+                .select('*')
+                .order('created_at', { ascending: false });
+              
+              setFineAmounts(data || []);
+              setFineAmount("");
+              setEditingFineId(null);
+            } catch (error) {
+              console.error("Error saving fine amount:", error);
+              showToast("Failed to save fine amount", { type: "danger" });
+            }
+          }}
+          className="mb-4"
+        >
+          <div className="row g-3">
+            <div className="col-md-4">
+              <div className="form-group">
+                <label className="form-label">Fine Amount (₹)</label>
+                <div className="input-group">
+                  <span className="input-group-text">₹</span>
+                  <input
+                    type="number"
+                    className="form-control"
+                    value={fineAmount}
+                    onChange={(e) => setFineAmount(e.target.value)}
+                    placeholder="Enter fine amount"
+                    min="0"
+                    step="0.01"
+                    required
+                    disabled={fineAmounts.length > 0 && !editingFineId}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="col-md-8 d-flex align-items-end gap-2">
+              <button 
+                type="submit" 
+                className="btn btn-primary students-button"
+                disabled={fineAmounts.length > 0 && !editingFineId}
+              >
+                {editingFineId ? "Update" : "Save"}
+              </button>
+              {editingFineId && (
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary students-button"
+                  onClick={() => {
+                    setFineAmount("");
+                    setEditingFineId(null);
+                  }}
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          </div>
+        </form>
+
+        {fineAmounts.length > 0 && (
+          <div className="table-responsive">
+            <table className="table table-bordered align-middle">
+              <thead>
+                <tr>
+                  <th>Fine Amount (₹)</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {fineAmounts.slice(0, 1).map((item) => (
+                  <tr key={item.id}>
+                    <td>₹{parseFloat(item.fine_amount || 0).toFixed(2)}</td>
+                    <td>
+                      <div className="d-flex gap-2">
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-primary students-button students-button-sm"
+                          onClick={() => {
+                            setFineAmount(item.fine_amount || "");
+                            setEditingFineId(item.id);
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-danger students-button students-button-sm"
+                          onClick={async () => {
+                            if (window.confirm("Are you sure you want to delete this fine amount?")) {
+                              try {
+                                const { error } = await supabase
+                                  .from('global_settings')
+                                  .delete()
+                                  .eq('id', item.id);
+                                
+                                if (error) throw error;
+                                
+                                setFineAmounts(fineAmounts.filter(i => i.id !== item.id));
+                                showToast("Fine amount deleted successfully", { type: "success" });
+                              } catch (error) {
+                                console.error("Error deleting fine amount:", error);
+                                showToast("Failed to delete fine amount", { type: "danger" });
+                              }
+                            }
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       {/* Supplementary Fees Section */}
       <div className="students-table-panel card card-soft mb-4 p-4">
         <div className="students-table-panel-header mb-3">
@@ -1614,8 +2012,10 @@ export default function Departments() {
           </div>
         )}
 
-
+        </div>
       </div>
-    </AdminShell>
+    </div>
+  </div>
+</AdminShell>
   );
 }
