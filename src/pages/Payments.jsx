@@ -234,10 +234,10 @@ export default function Payments() {
   const getNormalizedSubjectAcademicYear = (subject = {}) =>
     normalizeSearchValue(
       subject.academicYearName ??
-        subject.academic_year ??
-        subject.academicYear ??
-        subject.year ??
-        ""
+      subject.academic_year ??
+      subject.academicYear ??
+      subject.year ??
+      ""
     );
   const categoryOptions = useMemo(() => {
     const categories = new Set();
@@ -884,15 +884,25 @@ export default function Payments() {
     try {
       const { examRegistrationId, examMasterId } =
         await createOrFetchExamRegistration(examNameValue);
-      await persistExamRegistrationSubjects(
+      const insertedSubjects = await persistExamRegistrationSubjects(
         examRegistrationId,
         uniqueSubjectEntries,
         examMasterId
+      );
+      const barcodeSummary = await ensureBarcodesForSubjects(
+        examRegistrationId,
+        insertedSubjects || []
       );
       showToast("Selected subjects stored successfully.", {
         type: "success",
         title: "Exam",
       });
+      if (barcodeSummary.failureCount) {
+        showToast(
+          `Stored subjects but barcode generation failed for ${barcodeSummary.failureCount} subject(s).`,
+          { type: "warning", title: "Exam" }
+        );
+      }
       try {
         const nextDetails = await buildAppliedRegistrationDetails();
         setAppliedRegistrationDetails(nextDetails);
@@ -1883,41 +1893,53 @@ export default function Payments() {
     subjectEntries,
     examMasterId
   ) => {
-    if (!subjectEntries?.length) return;
-    const payload = [];
-    const seenBySubjectId = new Set();
-    subjectEntries.forEach((entry) => {
-      const subjectId =
-        entry.subjectReferenceId ?? entry.subjectId ?? null;
-      if (subjectId && seenBySubjectId.has(subjectId)) return;
-      if (subjectId) seenBySubjectId.add(subjectId);
-      payload.push({
-        exam_registration_id: examRegistrationId,
-        subject_id: subjectId,
+    if (!subjectEntries?.length || !activePaymentStudent?.id) return;
+
+    try {
+      // Prepare subject entries with unique subject IDs
+      const uniqueSubjects = [];
+      const seenSubjectIds = new Set();
+
+      subjectEntries.forEach((entry) => {
+        const subjectId = entry.subjectReferenceId ?? entry.subjectId ?? null;
+        if (subjectId && !seenSubjectIds.has(subjectId)) {
+          seenSubjectIds.add(subjectId);
+          uniqueSubjects.push({ subject_id: subjectId });
+        }
       });
-    });
-    const { error: deleteError } = await supabase
-      .from("exam_registration_subjects")
-      .delete()
-      .eq("exam_registration_id", examRegistrationId);
-    if (deleteError) throw deleteError;
-    const { data: insertedSubjects, error: insertError } = await supabase
-      .from("exam_registration_subjects")
-      .insert(payload)
-      .select("id");
-    if (insertError) throw insertError;
-    const subjectsWithIds = insertedSubjects || [];
-    if (!subjectsWithIds.length) return;
-    const decodePayload = subjectsWithIds.map((subject) => ({
-      exam_registration_subject_id: subject.id,
-      decode_no: generateDecodeNo(),
-      is_valid: true,
-      exam_id: examMasterId,
-    }));
-    const { error: decodeInsertError } = await supabase
-      .from("decode_numbers")
-      .insert(decodePayload);
-    if (decodeInsertError) throw decodeInsertError;
+
+      // Call the database function to handle the transaction
+      // Replaced RPC with direct upsert as the function was missing
+      const subjectsToInsert = uniqueSubjects.map(s => ({
+        exam_registration_id: examRegistrationId,
+        subject_id: s.subject_id
+      }));
+
+      const { data, error } = await supabase
+        .from('exam_registration_subjects')
+        .upsert(subjectsToInsert, {
+          onConflict: 'exam_registration_id, subject_id',
+          ignoreDuplicates: true
+        })
+        .select();
+
+      if (error) {
+        console.error('Error processing exam registration:', error);
+        throw error;
+      }
+
+      console.log('Exam registration subjects processed successfully:', data);
+      return data;
+    } catch (error) {
+      console.error('Error in persistExamRegistrationSubjects:', {
+        error,
+        examRegistrationId,
+        subjectEntries,
+        examMasterId,
+        studentId: activePaymentStudent?.id
+      });
+      throw error;
+    }
   };
 
   const loadExamRegistrationSubjects = useCallback(async (registrationId) => {
@@ -2138,6 +2160,30 @@ export default function Payments() {
     }
   };
 
+  const ensureBarcodesForSubjects = async (examRegistrationId, subjectRows = []) => {
+    const normalizedRows = (subjectRows || []).filter((subject) => subject?.id);
+    if (!examRegistrationId || !normalizedRows.length || !activePaymentStudent?.id) {
+      return { successCount: 0, failureCount: 0 };
+    }
+
+    const results = await Promise.allSettled(
+      normalizedRows.map((subject) =>
+        generateBarcodeForSubject(examRegistrationId, subject.id, activePaymentStudent.id)
+      )
+    );
+
+    const failureCount = results.filter((result) => result.status === 'rejected').length;
+    const successCount = results.length - failureCount;
+
+    if (failureCount) {
+      console.warn(
+        `Barcode generation failed for ${failureCount} subject(s) of registration ${examRegistrationId}.`
+      );
+    }
+
+    return { successCount, failureCount };
+  };
+
 
 
   const handlePaymentModalConfirm = async () => {
@@ -2293,13 +2339,10 @@ export default function Payments() {
 
       // After successful payment, generate barcodes for each subject
       if (uniqueSubjectEntries.length > 0) {
-        console.log('Starting barcode generation for subjects:', uniqueSubjectEntries);
-
         try {
-          // Get the exam registration subjects that were just created
           const { data: registrationSubjects, error: subjectsError } = await supabase
             .from('exam_registration_subjects')
-            .select('id, subject_id, exam_registration_id')
+            .select('id')
             .eq('exam_registration_id', examRegistrationId);
 
           if (subjectsError) {
@@ -2307,46 +2350,22 @@ export default function Payments() {
             throw subjectsError;
           }
 
-          console.log('Found registration subjects:', registrationSubjects);
+          const { successCount, failureCount } = await ensureBarcodesForSubjects(
+            examRegistrationId,
+            registrationSubjects || []
+          );
 
-          // Generate barcodes for each subject
-          const barcodePromises = (registrationSubjects || []).map(async (subject) => {
-            try {
-              console.log(`Processing subject ${subject.id} for student ${activePaymentStudent.id}`);
-              const barcode = await generateBarcodeForSubject(
-                subject.exam_registration_id,
-                subject.id, // exam_registration_subjects.id
-                activePaymentStudent.id // student_id
-              );
-              console.log(`Generated barcode for subject ${subject.id}:`, barcode);
-              return { subjectId: subject.id, success: true, barcode };
-            } catch (barcodeError) {
-              console.error(`Error generating barcode for subject ${subject.id}:`, barcodeError);
-              return { subjectId: subject.id, success: false, error: barcodeError };
-            }
-          });
-
-          // Wait for all barcode generations to complete
-          const results = await Promise.all(barcodePromises);
-          const successful = results.filter(r => r.success).length;
-          const failed = results.length - successful;
-
-          console.log(`Barcode generation completed: ${successful} succeeded, ${failed} failed`);
-
-          if (failed > 0) {
-            console.warn(`Failed to generate barcodes for ${failed} subjects`);
-            // Optionally show a warning to the user
+          if (failureCount > 0) {
             showToast(
-              `Generated barcodes for ${successful} subjects, but failed for ${failed} subjects. Check console for details.`,
+              `Generated barcodes for ${successCount} subject(s) but failed for ${failureCount}. Check console for details.`,
               { type: 'warning' }
             );
-          } else if (successful > 0) {
+          } else if (successCount > 0) {
             showToast(
-              `Successfully generated barcodes for ${successful} subjects.`,
+              `Successfully generated barcodes for ${successCount} subject(s).`,
               { type: 'success' }
             );
           }
-
         } catch (error) {
           console.error('Error in barcode generation process:', error);
           showToast(
