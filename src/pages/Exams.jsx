@@ -4,6 +4,35 @@ import { api } from '../lib/mockApi'
 import { showToast } from '../store/ui.js'
 import { supabase } from '../../supabaseClient'
 
+// Generate time slots in 15-minute intervals from 6:00 AM to 6:00 PM in 12-hour format
+const generateTimeSlots = () => {
+  const times = [];
+  // Start from 6:00 AM (hour 6)
+  for (let hour = 6; hour <= 18; hour++) {
+    for (let minute = 0; minute < 60; minute += 15) {
+      // Skip times after 6:00 PM (18:00)
+      if (hour === 18 && minute > 0) continue;
+
+      const time = new Date();
+      time.setHours(hour, minute, 0, 0);
+
+      // Format as 12-hour with AM/PM
+      const hours = hour % 12 || 12;
+      const ampm = hour < 12 ? 'AM' : 'PM';
+      const formattedMinute = minute.toString().padStart(2, '0');
+      const displayTime = `${hours}:${formattedMinute} ${ampm}`;
+
+      // Format for time input (24-hour format)
+      const value = time.toTimeString().slice(0, 5);
+
+      times.push({ value, displayTime });
+    }
+  }
+  return times;
+};
+
+const TIME_SLOTS = generateTimeSlots();
+
 const DEFAULT_CATEGORY_ORDER = ['UG', 'PG']
 
 const buildDefaultSchedule = () => ({
@@ -223,12 +252,23 @@ export default function Exams() {
   }
 
   const assignSeatNumbersForExam = useCallback(async (examMasterId) => {
-    if (!examMasterId) return 0
+    if (!examMasterId) {
+      console.error('No exam master ID provided for seat assignment')
+      return 0
+    }
+
+    // Get all registrations for this exam
     const { data: registrations, error: regError } = await supabase
       .from('exam_registrations')
       .select('id, student_id, exam_id')
       .eq('exam_id', examMasterId)
-    if (regError) throw regError
+      .not('student_id', 'is', null)
+      .not('exam_id', 'is', null)
+
+    if (regError) {
+      console.error('Error fetching exam registrations:', regError)
+      throw new Error('Failed to fetch exam registrations')
+    }
     const registrationIds = (registrations || [])
       .map((registration) => registration?.id)
       .filter(Boolean)
@@ -244,10 +284,12 @@ export default function Exams() {
     )
     let studentLookup = new Map()
     if (studentIds.length) {
+      // Query only existing columns in students table
       const { data: studentRows, error: studentsError } = await supabase
         .from('students')
-        .select('id, full_name, name, student_name, student_id')
+        .select('id, full_name, student_id')
         .in('id', studentIds)
+        .order('full_name', { ascending: true })
       if (studentsError) throw studentsError
       studentLookup = new Map(
         (studentRows || []).map((student) => [String(student.id), student])
@@ -267,8 +309,6 @@ export default function Exams() {
         const student = studentLookup.get(String(registration.student_id))
         const name = (
           student?.full_name ||
-          student?.name ||
-          student?.student_name ||
           student?.student_id ||
           ''
         )
@@ -308,37 +348,92 @@ export default function Exams() {
         })
       })
     })
+    // Delete existing seat assignments directly
     const { error: deleteError } = await supabase
       .from('student_subject_seats')
       .delete()
       .eq('exam_id', examMasterId)
-    if (deleteError) throw deleteError
-    const { error: insertError } = await supabase
-      .from('student_subject_seats')
-      .insert(seatAssignments)
-    if (insertError) throw insertError
+
+    if (deleteError) {
+      console.error('Error deleting existing seat assignments:', deleteError)
+      throw new Error('Failed to clear existing seat assignments')
+    }
+
+    // Insert new seat assignments in batches to avoid payload size limits
+    const BATCH_SIZE = 100
+    for (let i = 0; i < seatAssignments.length; i += BATCH_SIZE) {
+      const batch = seatAssignments.slice(i, i + BATCH_SIZE)
+      const { error: insertError } = await supabase
+        .from('student_subject_seats')
+        .insert(batch)
+
+      if (insertError) {
+        console.error('Error inserting seat assignments batch:', insertError)
+        throw new Error(`Failed to save seat assignments (batch ${i / BATCH_SIZE + 1})`)
+      }
+    }
     return seatAssignments.length
   }, [])
 
   const handleCompleteRegistrationConfirm = async () => {
-    if (!completionTargetExam?.id) return
+    if (!completionTargetExam?.id) {
+      showToast('No exam selected for registration', { type: 'warning' })
+      return
+    }
+
     closeCompleteRegistrationModal()
+
     try {
+      showToast('Starting registration process...', { type: 'info', autoClose: 2000 })
+
+      // Check if there are any registrations before proceeding
+      const { count: registrationCount } = await supabase
+        .from('exam_registrations')
+        .select('*', { count: 'exact', head: true })
+        .eq('exam_id', completionTargetExam.id)
+
+      if (!registrationCount) {
+        showToast('No student registrations found for this exam', { type: 'warning' })
+        return
+      }
+
       const assignedCount = await assignSeatNumbersForExam(completionTargetExam.id)
+
+      // Update the exam status to mark as completed
+      const { error: updateError } = await supabase
+        .from('exam_master')
+        .update({ registration_completed: true })
+        .eq('id', completionTargetExam.id)
+
+      if (updateError) throw updateError
+
       setCompletedExamIds((prev) =>
         prev.includes(completionTargetExam.id)
           ? prev
           : [...prev, completionTargetExam.id]
       )
-      const message = assignedCount
-        ? `Registration completed and ${assignedCount} seat numbers assigned.`
-        : 'Registration completed but no students were registered.'
-      showToast(message, { type: 'success', title: 'Registration' })
+
+      const message = assignedCount > 0
+        ? `Successfully assigned ${assignedCount} seat numbers for the exam.`
+        : 'No seat assignments were needed.'
+
+      showToast(message, {
+        type: 'success',
+        title: 'Registration Completed',
+        autoClose: 5000
+      })
+
+      // Refresh the exams list to show updated status
+      await refreshExams()
+
     } catch (error) {
-      console.error('Failed to assign seat numbers:', error)
-      showToast('Unable to complete registration. Please try again.', {
+      console.error('Registration failed:', error)
+
+      const errorMessage = error.message || 'An unknown error occurred during registration'
+      showToast(`Registration failed: ${errorMessage}`, {
         type: 'danger',
-        title: 'Registration',
+        title: 'Registration Error',
+        autoClose: 10000
       })
     }
   }
@@ -419,22 +514,22 @@ export default function Exams() {
     console.log('Selected Group Code:', groupCode);
     console.log('Available Groups:', groups);
     console.log('All Courses:', courses);
-    
+
     const selectedGroup = groups.find(g => g.code === groupCode || g.group_code === groupCode);
     if (!selectedGroup) {
       console.log('No matching group found for code:', groupCode);
       return [];
     }
-    
+
     const groupName = selectedGroup.name || selectedGroup.group_name;
     console.log('Filtering courses for group:', groupName);
-    
+
     const filtered = courses.filter(course => {
       const matches = (course.group_name === groupName || course.group_name === groupCode);
       console.log(`Course: ${course.name} (${course.code}), Group: ${course.group_name}, Matches: ${matches}`);
       return matches;
     });
-    
+
     console.log('Filtered Courses:', filtered);
     return filtered;
   }, [courses, groupCode, groups]);
@@ -458,24 +553,24 @@ export default function Exams() {
   // Filter semesters to show only even or odd based on selection, with selected semester first
   const sortedSemesters = useMemo(() => {
     if (!availableSemesters.length) return [];
-    
+
     if (!semesterFocus) return availableSemesters;
-    
+
     const selectedSem = Number(semesterFocus);
     const isEvenSelected = selectedSem % 2 === 0;
-    
+
     // Filter semesters to only include those with the same parity as selected
     const filteredSemesters = availableSemesters
       .filter(sem => isEvenSelected ? sem % 2 === 0 : sem % 2 !== 0)
       .sort((a, b) => b - a); // Sort in descending order
-    
+
     // Move selected semester to the front
     const selectedIndex = filteredSemesters.indexOf(selectedSem);
     if (selectedIndex > -1) {
       filteredSemesters.splice(selectedIndex, 1);
       filteredSemesters.unshift(selectedSem);
     }
-    
+
     return filteredSemesters;
   }, [availableSemesters, semesterFocus]);
 
@@ -511,13 +606,13 @@ export default function Exams() {
       const codes = subject.subjectCodes?.length
         ? subject.subjectCodes
         : subject.subjectCode
-        ? [subject.subjectCode]
-        : []
+          ? [subject.subjectCode]
+          : []
       const names = subject.subjectNames?.length
         ? subject.subjectNames
         : subject.subjectName
-        ? [subject.subjectName]
-        : []
+          ? [subject.subjectName]
+          : []
       const maxLen = Math.max(codes.length, names.length, 1)
       for (let i = 0; i < maxLen; i += 1) {
         const code = codes[i] ?? codes[0] ?? ''
@@ -578,7 +673,9 @@ export default function Exams() {
     })
   }
 
-  const handleSave = async () => {
+  const [showPreview, setShowPreview] = useState(false)
+
+  const handlePreview = () => {
     setFeedback({ message: '', type: '' })
     if (!category || !academicYear || !groupCode || !courseCode) {
       setFeedback({
@@ -594,9 +691,15 @@ export default function Exams() {
       })
       return
     }
-    const entries = []
-    for (const [id, entry] of Object.entries(schedules)) {
-      if (!entry.selected) continue
+
+    const selectedEntries = Object.entries(schedules).filter(([, entry]) => entry.selected)
+
+    if (!selectedEntries.length) {
+      setFeedback({ type: 'error', message: 'Select at least one subject to schedule.' })
+      return
+    }
+
+    for (const [id, entry] of selectedEntries) {
       const subject = subjectMap[id]
       if (!subject) continue
       if (!entry.date || !entry.startTime || !entry.endTime) {
@@ -614,6 +717,20 @@ export default function Exams() {
         })
         return
       }
+    }
+
+    setShowPreview(true)
+  }
+
+  const handleConfirmSave = async () => {
+    const entries = []
+    for (const [id, entry] of Object.entries(schedules)) {
+      if (!entry.selected) continue
+      const subject = subjectMap[id]
+      if (!subject) continue
+
+      const subjectCodeRaw = subject.subjectCodeRaw?.trim() ?? subject.subjectCode?.trim()
+
       entries.push({
         academic_year: academicYear,
         group_code: groupCode,
@@ -624,20 +741,17 @@ export default function Exams() {
         exam_start_time: entry.startTime,
         exam_end_time: entry.endTime,
         category,
-        exam_master_id: selectedExam, // Add the selected exam ID as a reference to exam_master
+        exam_master_id: selectedExam,
       })
     }
-    if (!entries.length) {
-      setFeedback({ type: 'error', message: 'Select at least one subject to schedule.' })
-      return
-    }
+
     try {
       setSaving(true)
       await api.saveExamSchedule(entries)
       const successMessage = 'Exam schedule saved successfully.'
       setFeedback({ message: successMessage, type: 'success' })
       showToast(successMessage, { type: 'success' })
-      
+
       // Reset form fields
       setSchedules({})
       setSelectedExam('')
@@ -648,6 +762,7 @@ export default function Exams() {
       setCategory('')
       setExamParity('')
       setCurrentSemesterNumber(null)
+      setShowPreview(false)
     } catch (err) {
       console.error(err)
       const errorMessage = err.message || 'Unable to save exam schedule.'
@@ -681,325 +796,417 @@ export default function Exams() {
             {feedback.message}
           </div>
         ) : null}
-        <div className="card card-soft p-3 mb-4">
-          <div className="mb-3">
-            <h4 className="fw-bold mb-1">Exam details</h4>
-            <p className="text-muted small mb-0">Create, rename, or finalize exams before assigning schedules.</p>
-          </div>
-          <div className="row g-3">
-            <div className="col-md-8">
-              <label className="form-label">Exam name</label>
-              <div className="input-group">
-                <span className="input-group-text">Regular and Supplementary Examinations - </span>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Month YYYY (e.g., December 2025)"
-                  value={examNameInput}
-                  onChange={(event) => setExamNameInput(event.target.value)}
-                  list="exam-name-options"
-                />
-              </div>
-              <datalist id="exam-name-options">
-                {exams.map((exam) => {
-                  // Extract just the month/year part for the datalist
-                  const displayValue = exam.exam_name.replace('Regular and Supplementary Examinations - ', '');
-                  return <option key={exam.id} value={displayValue} />;
-                })}
-              </datalist>
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-muted small mb-1">Saved exams</div>
-            <div className="list-group list-group-flush">
-              {examsLoading ? (
-                <div className="text-muted small px-3 py-2">Loading exams...</div>
-              ) : exams.length ? (
-                exams.map((exam) => (
-                  <div
-                    key={exam.id}
-                    className="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2"
-                  >
-                    <div className="w-100 w-md-auto">
-                      <div className="fw-semibold">
-                        {exam.exam_name.startsWith('Regular and Supplementary Examinations - ') 
-                          ? exam.exam_name 
-                          : `Regular and Supplementary Examinations - ${exam.exam_name}`}
-                      </div>
-                      <div className="text-muted small">
-                        {editingExam?.id === exam.id ? 'Selected for editing' : 'Tap edit to rename'}
-                      </div>
-                    </div>
-                    <div className="d-flex flex-wrap gap-2 justify-content-end w-100 w-md-auto">
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-outline-primary rounded-pill px-3"
-                        onClick={() => handleSelectSavedExam(exam)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-outline-danger rounded-pill px-3"
-                        onClick={() => handleDeleteExamName(exam)}
-                      >
-                        Delete
-                      </button>
-                      <button
-                        type="button"
-                        className={"btn btn-sm rounded-pill px-3 " + (completedExamIds.includes(exam.id) ? 'btn-outline-secondary' : 'btn-outline-success')}
-                        onClick={() => openCompleteRegistrationModal(exam)}
-                        disabled={completedExamIds.includes(exam.id)}
-                      >
-                        {completedExamIds.includes(exam.id) ? 'Completed' : 'Complete Registration'}
-                      </button>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-muted small px-3 py-2">No exams saved yet.</div>
-              )}
-            </div>
-          </div>
-          <div className="mt-3 d-flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="btn btn-sm btn-primary"
-              onClick={handleSaveExamName}
-              disabled={Boolean(editingExam)}
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              className="btn btn-sm btn-outline-primary"
-              onClick={handleUpdateExamName}
-              disabled={!editingExam}
-            >
-              Update
-            </button>
-          </div>
-        </div>
-        <div className="card card-soft p-3 mb-4">
-          <div className="row g-3">
-            <div className="col-md-2">
-              <label className="form-label">Category</label>
-              <select
-                className="form-select"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-              >
-                <option value="">Select category</option>
-                {categoryOptions.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="col-md-3">
-              <label className="form-label">Exam Name</label>
-              <select
-                className="form-select"
-                value={selectedExam}
-                onChange={(e) => setSelectedExam(e.target.value)}
-                disabled={examsLoading || exams.length === 0}
-              >
-                <option value="">
-                  {examsLoading ? 'Loading exams...' : exams.length === 0 ? 'No exams available' : 'Select exam'}
-                </option>
-                {exams.map((exam) => (
-                  <option key={exam.id} value={exam.id}>
-                    {exam.exam_name}
-                  </option>
-                ))}
-              </select>
-              {examsLoading && <div className="form-text">Loading exam data...</div>}
-              {!examsLoading && exams.length === 0 && (
-                <div className="form-text text-warning">No exams found. Please create an exam first.</div>
-              )}
-            </div>
-            <div className="col-md-3">
-              <label className="form-label">Academic Year</label>
-              <select
-                className="form-select"
-                value={academicYear}
-                onChange={(e) => setAcademicYear(e.target.value)}
-              >
-                <option value="">Select academic year</option>
-                {academicYears.map((year) => (
-                  <option key={year.id} value={year.academic_year}>
-                    {year.academic_year}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="col-md-4">
-              <label className="form-label">Group</label>
-              <select className="form-select" value={groupCode} onChange={(e) => setGroupCode(e.target.value)}>
-                <option value="">Select group</option>
-                {groups.map((group) => (
-                  <option key={group.id} value={group.code}>
-                    {group.name} ({group.code})
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="row g-3 mt-1">
-            <div className="col-md-6">
-              <label className="form-label">Course</label>
-              <select 
-                className="form-select" 
-                value={courseCode} 
-                onChange={(e) => setCourseCode(e.target.value)}
-                disabled={!groupCode}
-              >
-                <option value="">
-                  {groupCode ? 'Select course' : 'Select a group first'}
-                </option>
-                {filteredCourses.map((course) => (
-                  <option key={course.id} value={course.code}>
-                    {course.name} ({course.code})
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="col-md-6">
-              <label className="form-label">Semester</label>
-              <select
-                className="form-select"
-                value={semesterFocus}
-                onChange={(e) => setSemesterFocus(e.target.value)}
-              >
-                <option value="">
-                  {availableSemesters.length
-                    ? 'All semesters'
-                    : 'Select course first'}
-                </option>
-                {availableSemesters.map((sem) => (
-                  <option key={sem} value={sem}>
-                    Semester {sem}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-        {loading && <p className="text-muted mb-3">Loading exam metadata...</p>}
-        {!loading && !filtersReady && (
-          <p className="text-muted mb-3">
-            Select the academic year, group and course to load subjects.
-          </p>
-        )}
-        {filtersReady && !availableSemesters.length && (
-          <p className="text-muted mb-3">
-            This course does not define any semesters yet.
-          </p>
-        )}
-        {filtersReady && availableSemesters.length > 0 && (
-          <div className="mb-3">
-            <small className="text-muted">
-              {semesterFocus
-                ? `Focusing on semester ${semesterFocus}`
-                : 'Showing all semesters'}
-            </small>
-          </div>
-        )}
-        {filtersReady && availableSemesters.length > 0 && (
+        {!showPreview ? (
           <>
-            {sortedSemesters.map((semesterNumber) => {
-              const semesterSubjects = subjectsBySemester[semesterNumber] || []
-              return (
-                <div className="card card-soft mb-3" key={semesterNumber}>
-                  <div className="card-body">
-                    <div className="d-flex justify-content-between align-items-start mb-3">
-                      <h5 className="mb-0">Semester {semesterNumber}</h5>
-                      <span className="text-muted">
-                        {semesterSubjects.length} subject{semesterSubjects.length === 1 ? '' : 's'}
-                      </span>
-                    </div>
-                    {semesterSubjects.length ? (
-                      <div className="table-responsive">
-                        <table className="table mb-0">
-                          <thead>
-                            <tr>
-                              <th style={{ width: '120px' }}>Select</th>
-                              <th>Subject Code</th>
-                              <th>Subject Name</th>
-                              <th>Date</th>
-                              <th>Start Time</th>
-                              <th>End Time</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {semesterSubjects.map((subject) => {
-                              const entry = schedules[String(subject.id)] || buildDefaultSchedule()
-                              return (
-                                <tr key={subject.id}>
-                                  <td>
-                                    <div className="form-check">
-                                      <input
-                                        className="form-check-input"
-                                        type="checkbox"
-                                        id={`subject-${subject.id}`}
-                                        checked={entry.selected}
-                                        onChange={() => handleToggleSubject(subject.id)}
-                                      />
-                                      <label className="form-check-label" htmlFor={`subject-${subject.id}`}>
-                                        {entry.selected ? 'Scheduled' : 'Select'}
-                                      </label>
-                                    </div>
-                                  </td>
-                                  <td>{subject.subjectCode || subject.subjectName}</td>
-                                  <td>{subject.subjectName || subject.subjectCode}</td>
-                                  <td>
-                                    <input
-                                      type="date"
-                                      className="form-control form-control-sm"
-                                      value={entry.date}
-                                      disabled={!entry.selected}
-                                      onChange={(e) => handleScheduleChange(subject.id, 'date', e.target.value)}
-                                    />
-                                  </td>
-                                  <td>
-                                    <input
-                                      type="time"
-                                      className="form-control form-control-sm"
-                                      value={entry.startTime}
-                                      disabled={!entry.selected}
-                                      onChange={(e) => handleScheduleChange(subject.id, 'startTime', e.target.value)}
-                                    />
-                                  </td>
-                                  <td>
-                                    <input
-                                      type="time"
-                                      className="form-control form-control-sm"
-                                      value={entry.endTime}
-                                      disabled={!entry.selected}
-                                      onChange={(e) => handleScheduleChange(subject.id, 'endTime', e.target.value)}
-                                    />
-                                  </td>
-                                </tr>
-                              )
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    ) : (
-                      <p className="text-muted mb-0">No subjects defined for this semester yet.</p>
-                    )}
+            <div className="card card-soft p-3 mb-4">
+              <div className="mb-3">
+                <h4 className="fw-bold mb-1">Exam details</h4>
+                <p className="text-muted small mb-0">Create, rename, or finalize exams before assigning schedules.</p>
+              </div>
+              <div className="row g-3">
+                <div className="col-md-8">
+                  <label className="form-label">Exam name</label>
+                  <div className="input-group">
+                    <span className="input-group-text">Regular and Supplementary Examinations - </span>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Month YYYY (e.g., December 2025)"
+                      value={examNameInput}
+                      onChange={(event) => setExamNameInput(event.target.value)}
+                      list="exam-name-options"
+                    />
                   </div>
+                  <datalist id="exam-name-options">
+                    {exams.map((exam) => {
+                      // Extract just the month/year part for the datalist
+                      const displayValue = exam.exam_name.replace('Regular and Supplementary Examinations - ', '');
+                      return <option key={exam.id} value={displayValue} />;
+                    })}
+                  </datalist>
                 </div>
-              )
-            })}
+              </div>
+              <div className="mt-3">
+                <div className="text-muted small mb-1">Saved exams</div>
+                <div className="list-group list-group-flush">
+                  {examsLoading ? (
+                    <div className="text-muted small px-3 py-2">Loading exams...</div>
+                  ) : exams.length ? (
+                    exams.map((exam) => (
+                      <div
+                        key={exam.id}
+                        className="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2"
+                      >
+                        <div className="w-100 w-md-auto">
+                          <div className="fw-semibold">
+                            {exam.exam_name.startsWith('Regular and Supplementary Examinations - ')
+                              ? exam.exam_name
+                              : `Regular and Supplementary Examinations - ${exam.exam_name}`}
+                          </div>
+                          <div className="text-muted small">
+                            {editingExam?.id === exam.id ? 'Selected for editing' : 'Tap edit to rename'}
+                          </div>
+                        </div>
+                        <div className="d-flex flex-wrap gap-2 justify-content-end w-100 w-md-auto">
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-primary rounded-pill px-3"
+                            onClick={() => handleSelectSavedExam(exam)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-danger rounded-pill px-3"
+                            onClick={() => handleDeleteExamName(exam)}
+                          >
+                            Delete
+                          </button>
+                          <button
+                            type="button"
+                            className={"btn btn-sm rounded-pill px-3 " + (completedExamIds.includes(exam.id) ? 'btn-outline-secondary' : 'btn-outline-success')}
+                            onClick={() => openCompleteRegistrationModal(exam)}
+                            disabled={completedExamIds.includes(exam.id)}
+                          >
+                            {completedExamIds.includes(exam.id) ? 'Completed' : 'Complete Registration'}
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-muted small px-3 py-2">No exams saved yet.</div>
+                  )}
+                </div>
+              </div>
+              <div className="mt-3 d-flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary"
+                  onClick={handleSaveExamName}
+                  disabled={Boolean(editingExam)}
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-primary"
+                  onClick={handleUpdateExamName}
+                  disabled={!editingExam}
+                >
+                  Update
+                </button>
+              </div>
+            </div>
+            <div className="card card-soft p-3 mb-4">
+              <div className="row g-3">
+                <div className="col-md-2">
+                  <label className="form-label">Category</label>
+                  <select
+                    className="form-select"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                  >
+                    <option value="">Select category</option>
+                    {categoryOptions.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-md-3">
+                  <label className="form-label">Exam Name</label>
+                  <select
+                    className="form-select"
+                    value={selectedExam}
+                    onChange={(e) => setSelectedExam(e.target.value)}
+                    disabled={examsLoading || exams.length === 0}
+                  >
+                    <option value="">
+                      {examsLoading ? 'Loading exams...' : exams.length === 0 ? 'No exams available' : 'Select exam'}
+                    </option>
+                    {exams.map((exam) => (
+                      <option key={exam.id} value={exam.id}>
+                        {exam.exam_name}
+                      </option>
+                    ))}
+                  </select>
+                  {examsLoading && <div className="form-text">Loading exam data...</div>}
+                  {!examsLoading && exams.length === 0 && (
+                    <div className="form-text text-warning">No exams found. Please create an exam first.</div>
+                  )}
+                </div>
+                <div className="col-md-3">
+                  <label className="form-label">Academic Year</label>
+                  <select
+                    className="form-select"
+                    value={academicYear}
+                    onChange={(e) => setAcademicYear(e.target.value)}
+                  >
+                    <option value="">Select academic year</option>
+                    {academicYears.map((year) => (
+                      <option key={year.id} value={year.academic_year}>
+                        {year.academic_year}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-md-4">
+                  <label className="form-label">Group</label>
+                  <select className="form-select" value={groupCode} onChange={(e) => setGroupCode(e.target.value)}>
+                    <option value="">Select group</option>
+                    {groups.map((group) => (
+                      <option key={group.id} value={group.code}>
+                        {group.name} ({group.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="row g-3 mt-1">
+                <div className="col-md-6">
+                  <label className="form-label">Course</label>
+                  <select
+                    className="form-select"
+                    value={courseCode}
+                    onChange={(e) => setCourseCode(e.target.value)}
+                    disabled={!groupCode}
+                  >
+                    <option value="">
+                      {groupCode ? 'Select course' : 'Select a group first'}
+                    </option>
+                    {filteredCourses.map((course) => (
+                      <option key={course.id} value={course.code}>
+                        {course.name} ({course.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label">Semester</label>
+                  <select
+                    className="form-select"
+                    value={semesterFocus}
+                    onChange={(e) => setSemesterFocus(e.target.value)}
+                  >
+                    <option value="">
+                      {availableSemesters.length
+                        ? 'All semesters'
+                        : 'Select course first'}
+                    </option>
+                    {availableSemesters.map((sem) => (
+                      <option key={sem} value={sem}>
+                        Semester {sem}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+            {loading && <p className="text-muted mb-3">Loading exam metadata...</p>}
+            {!loading && !filtersReady && (
+              <p className="text-muted mb-3">
+                Select the academic year, group and course to load subjects.
+              </p>
+            )}
+            {filtersReady && !availableSemesters.length && (
+              <p className="text-muted mb-3">
+                This course does not define any semesters yet.
+              </p>
+            )}
+            {filtersReady && availableSemesters.length > 0 && (
+              <div className="mb-3">
+                <small className="text-muted">
+                  {semesterFocus
+                    ? `Focusing on semester ${semesterFocus}`
+                    : 'Showing all semesters'}
+                </small>
+              </div>
+            )}
+            {filtersReady && availableSemesters.length > 0 && (
+              <>
+                {sortedSemesters.map((semesterNumber) => {
+                  const semesterSubjects = subjectsBySemester[semesterNumber] || []
+                  return (
+                    <div className="card card-soft mb-3" key={semesterNumber}>
+                      <div className="card-body">
+                        <div className="d-flex justify-content-between align-items-start mb-3">
+                          <h5 className="mb-0">Semester {semesterNumber}</h5>
+                          <span className="text-muted">
+                            {semesterSubjects.length} subject{semesterSubjects.length === 1 ? '' : 's'}
+                          </span>
+                        </div>
+                        {semesterSubjects.length ? (
+                          <div className="table-responsive">
+                            <table className="table mb-0">
+                              <thead>
+                                <tr>
+                                  <th style={{ width: '120px' }}>Select</th>
+                                  <th>Subject Code</th>
+                                  <th>Subject Name</th>
+                                  <th>Date</th>
+                                  <th>Start Time</th>
+                                  <th>End Time</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {semesterSubjects.map((subject) => {
+                                  const entry = schedules[String(subject.id)] || buildDefaultSchedule()
+                                  return (
+                                    <tr key={subject.id}>
+                                      <td>
+                                        <div className="form-check">
+                                          <input
+                                            className="form-check-input"
+                                            type="checkbox"
+                                            id={`subject-${subject.id}`}
+                                            checked={entry.selected}
+                                            onChange={() => handleToggleSubject(subject.id)}
+                                          />
+                                          <label className="form-check-label" htmlFor={`subject-${subject.id}`}>
+                                            {entry.selected ? 'Scheduled' : 'Select'}
+                                          </label>
+                                        </div>
+                                      </td>
+                                      <td>{subject.subjectCode || subject.subjectName}</td>
+                                      <td>{subject.subjectName || subject.subjectCode}</td>
+                                      <td>
+                                        <div className="input-group input-group-sm">
+                                          <input
+                                            type="date"
+                                            className="form-control form-control-sm"
+                                            value={entry.date}
+                                            min={new Date().toISOString().split('T')[0]}
+                                            disabled={!entry.selected}
+                                            onChange={(e) => handleScheduleChange(subject.id, 'date', e.target.value)}
+                                            style={{ minWidth: '120px' }}
+                                          />
+                                        </div>
+                                      </td>
+                                      <td>
+                                        <div className="input-group input-group-sm">
+                                          <select
+                                            className="form-select form-select-sm"
+                                            value={entry.startTime}
+                                            disabled={!entry.selected}
+                                            onChange={(e) => handleScheduleChange(subject.id, 'startTime', e.target.value)}
+                                            style={{ minWidth: '120px' }}
+                                          >
+                                            <option value="">Select start time</option>
+                                            {TIME_SLOTS.map((time) => (
+                                              <option key={`start-${time.value}`} value={time.value}>
+                                                {time.displayTime}
+                                              </option>
+                                            ))}
+                                          </select>
+                                        </div>
+                                      </td>
+                                      <td>
+                                        <div className="input-group input-group-sm">
+                                          <select
+                                            className="form-select form-select-sm"
+                                            value={entry.endTime}
+                                            disabled={!entry.selected || !entry.startTime}
+                                            onChange={(e) => handleScheduleChange(subject.id, 'endTime', e.target.value)}
+                                            style={{ minWidth: '120px' }}
+                                          >
+                                            <option value="">Select end time</option>
+                                            {TIME_SLOTS
+                                              .filter(time => {
+                                                if (!entry.startTime) return true;
+                                                const [startH, startM] = entry.startTime.split(':').map(Number);
+                                                const [endH, endM] = time.value.split(':').map(Number);
+                                                return (endH > startH) || (endH === startH && endM > startM);
+                                              })
+                                              .map((time) => (
+                                                <option key={`end-${time.value}`} value={time.value}>
+                                                  {time.displayTime}
+                                                </option>
+                                              ))}
+                                          </select>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  )
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <p className="text-muted mb-0">No subjects defined for this semester yet.</p>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </>
+            )}
+            <div className="d-flex justify-content-end">
+              <button className="btn btn-brand" disabled={saveDisabled} onClick={handlePreview}>
+                Preview
+              </button>
+            </div>
           </>
+        ) : (
+          <div className="card card-soft p-4">
+            <div className="mb-4">
+              <h4 className="fw-bold mb-1">Preview Schedule</h4>
+              <p className="text-muted small mb-0">Review the exam schedule before saving.</p>
+            </div>
+
+            <div className="table-responsive mb-4">
+              <table className="table table-bordered">
+                <thead className="bg-light">
+                  <tr>
+                    <th>Semester</th>
+                    <th>Subject Code</th>
+                    <th>Subject Name</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(schedules)
+                    .filter(([, entry]) => entry.selected)
+                    .map(([id, entry]) => {
+                      const subject = subjectMap[id];
+                      if (!subject) return null;
+
+                      const startTimeDisplay = TIME_SLOTS.find(t => t.value === entry.startTime)?.displayTime || entry.startTime;
+                      const endTimeDisplay = TIME_SLOTS.find(t => t.value === entry.endTime)?.displayTime || entry.endTime;
+
+                      return (
+                        <tr key={id}>
+                          <td>{subject.semester}</td>
+                          <td>{subject.subjectCode || subject.subjectName}</td>
+                          <td>{subject.subjectName || subject.subjectCode}</td>
+                          <td>{entry.date}</td>
+                          <td>{startTimeDisplay} - {endTimeDisplay}</td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="d-flex justify-content-end gap-2">
+              <button
+                className="btn btn-outline-secondary"
+                onClick={() => setShowPreview(false)}
+                disabled={saving}
+              >
+                Back
+              </button>
+              <button
+                className="btn btn-brand"
+                onClick={handleConfirmSave}
+                disabled={saving}
+              >
+                {saving ? 'Saving...' : 'Create Exam Schedule'}
+              </button>
+            </div>
+          </div>
         )}
-        <div className="d-flex justify-content-end">
-          <button className="btn btn-brand" disabled={saveDisabled} onClick={handleSave}>
-            {saving ? 'Saving schedule…' : 'Save Exam Schedule'}
-          </button>
-        </div>
       </div>
       {completeRegistrationModalOpen && (
         <div
