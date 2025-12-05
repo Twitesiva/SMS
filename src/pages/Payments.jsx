@@ -231,6 +231,14 @@ export default function Payments() {
     );
   const normalizeSearchValue = (value) =>
     (value || "").toString().trim().toLowerCase();
+  const getNormalizedSubjectAcademicYear = (subject = {}) =>
+    normalizeSearchValue(
+      subject.academicYearName ??
+        subject.academic_year ??
+        subject.academicYear ??
+        subject.year ??
+        ""
+    );
   const categoryOptions = useMemo(() => {
     const categories = new Set();
     years.forEach((year) => {
@@ -285,6 +293,16 @@ export default function Payments() {
     });
   }, [courses, form.group_code, form.group]);
 
+  const normalizedModalAcademicYear = normalizeSearchValue(
+    firstDefined(
+      modalStudent?.academic_year,
+      modalStudent?.academicYear,
+      modalStudent?.year,
+      modalStudent?.academicYearName,
+      modalStudent?.academic_year_name
+    )
+  );
+
   const subjectsForCurrentSemester = useMemo(() => {
     if (!modalCourseCode || modalSemester === "") return [];
     const normalizedCourse = normalizeSearchValue(modalCourseCode);
@@ -298,9 +316,12 @@ export default function Payments() {
         normalizeSearchValue(subject.courseName) === normalizedCourse;
       const semesterMatch =
         subject.semester === "" ? semesterValue === "" : String(subject.semester) === semesterValue;
-      return courseMatch && semesterMatch;
+      const matchesAcademicYear =
+        !normalizedModalAcademicYear ||
+        getNormalizedSubjectAcademicYear(subject) === normalizedModalAcademicYear;
+      return courseMatch && semesterMatch && matchesAcademicYear;
     });
-  }, [subjects, modalCourseCode, modalSemester]);
+  }, [subjects, modalCourseCode, modalSemester, normalizedModalAcademicYear]);
 
   const subjectsForSupplementarySemester = useMemo(() => {
     if (!modalCourseCode || selectedSupplementarySemesters.length === 0) return [];
@@ -321,9 +342,17 @@ export default function Payments() {
           ? ""
           : String(subject.semester);
       const semesterMatch = semesterSet.has(semesterValue);
-      return courseMatch && semesterMatch;
+      const matchesAcademicYear =
+        !normalizedModalAcademicYear ||
+        getNormalizedSubjectAcademicYear(subject) === normalizedModalAcademicYear;
+      return courseMatch && semesterMatch && matchesAcademicYear;
     });
-  }, [subjects, modalCourseCode, selectedSupplementarySemesters]);
+  }, [
+    subjects,
+    modalCourseCode,
+    selectedSupplementarySemesters,
+    normalizedModalAcademicYear,
+  ]);
   const availableSupplementarySemesters = useMemo(() => {
     const numeric = Number(modalSemester);
     if (!Number.isFinite(numeric) || numeric <= 1) {
@@ -1825,24 +1854,44 @@ export default function Payments() {
     subjectEntries,
     examMasterId
   ) => {
-    if (!subjectEntries?.length) return;
-    const payload = [];
+    if (!Array.isArray(subjectEntries) || !subjectEntries.length) return;
+    const dedupedSubjects = [];
     const seenBySubjectId = new Set();
     subjectEntries.forEach((entry) => {
-      const subjectId =
+      const rawSubjectId =
         entry.subjectReferenceId ?? entry.subjectId ?? null;
-      if (subjectId && seenBySubjectId.has(subjectId)) return;
-      if (subjectId) seenBySubjectId.add(subjectId);
-      payload.push({
-        exam_registration_id: examRegistrationId,
-        subject_id: subjectId,
-      });
+      if (rawSubjectId === undefined || rawSubjectId === null) {
+        return;
+      }
+      const candidate = String(rawSubjectId).trim();
+      if (!candidate) return;
+      if (seenBySubjectId.has(candidate)) return;
+      seenBySubjectId.add(candidate);
+      const numericSubjectId = Number(candidate);
+      const normalizedSubjectId = Number.isFinite(numericSubjectId)
+        ? numericSubjectId
+        : candidate;
+      dedupedSubjects.push(normalizedSubjectId);
     });
-    const { error: deleteError } = await supabase
+    if (!dedupedSubjects.length) return;
+
+    const { data: existingSubjects, error: existingError } = await supabase
       .from("exam_registration_subjects")
-      .delete()
+      .select("subject_id")
       .eq("exam_registration_id", examRegistrationId);
-    if (deleteError) throw deleteError;
+    if (existingError) throw existingError;
+    const existingSubjectSet = new Set(
+      (existingSubjects || []).map((row) => String(row.subject_id))
+    );
+    const subjectsToInsert = dedupedSubjects.filter(
+      (subjectId) => !existingSubjectSet.has(String(subjectId))
+    );
+    if (!subjectsToInsert.length) return;
+
+    const payload = subjectsToInsert.map((subjectId) => ({
+      exam_registration_id: examRegistrationId,
+      subject_id: subjectId,
+    }));
     const { data: insertedSubjects, error: insertError } = await supabase
       .from("exam_registration_subjects")
       .insert(payload)
