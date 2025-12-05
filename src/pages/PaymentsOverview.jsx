@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Barcode from "react-barcode";
 import AdminShell from "../components/AdminShell";
 import { supabase } from "../../supabaseClient";
 
@@ -832,7 +833,7 @@ export default function PaymentsOverview() {
                           <td>{student.hallTicketNo || "N/A"}</td>
                           <td>
                             {student.barcode ? (
-                              <span className="badge bg-primary">{student.barcode}</span>
+                              <Barcode value={student.barcode} height={25} width={1} displayValue={false} fontSize={10} margin={0} />
                             ) : (
                               <span className="text-muted">-</span>
                             )}
@@ -1076,7 +1077,9 @@ export default function PaymentsOverview() {
                         {(student.barcode) ? (
                           <div className="position-relative d-inline-block">
                             {visibleDecodeNumbers[student.student_id || student.studentId] ? (
-                              <span className="badge bg-primary">{student.barcode}</span>
+                              <div className="bg-white d-inline-block p-1 border rounded">
+                                <Barcode value={student.barcode} height={30} width={1} displayValue={false} fontSize={12} margin={0} />
+                              </div>
                             ) : (
                               <button
                                 className="btn btn-sm btn-outline-primary"
@@ -1205,8 +1208,8 @@ export default function PaymentsOverview() {
                             {row.barcode && (
                               <div className="position-relative d-inline-block">
                                 {isVisible && (
-                                  <div className="position-absolute bottom-100 start-50 translate-middle-x mb-1 px-2 py-1 bg-light border rounded shadow-sm small">
-                                    <strong>{row.barcode}</strong>
+                                  <div className="position-absolute bottom-100 start-50 translate-middle-x mb-1 px-2 py-1 bg-white border rounded shadow-sm small" style={{ zIndex: 10 }}>
+                                    <Barcode value={row.barcode} height={30} width={1} displayValue={false} fontSize={12} margin={0} />
                                   </div>
                                 )}
                                 <button

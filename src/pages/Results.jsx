@@ -1,5 +1,5 @@
 import AdminShell from '../components/AdminShell'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { api } from '../lib/mockApi'
 import { supabase } from '../../supabaseClient'
 
@@ -13,12 +13,25 @@ export default function Results() {
   const [decodeLoading, setDecodeLoading] = useState(false)
   const [decodeError, setDecodeError] = useState('')
   const [subject, setSubject] = useState(null)
+  const [barcodeId, setBarcodeId] = useState(null)
   const [marksForm, setMarksForm] = useState({ marks_obtained: '' })
   const [savingMarks, setSavingMarks] = useState(false)
   const [marksSuccess, setMarksSuccess] = useState('')
   const [marksError, setMarksError] = useState('')
 
+  const barcodeInputRef = useRef(null)
+  const marksInputRef = useRef(null)
+  const debounceRef = useRef(null)
+
   useEffect(() => { (async () => { setStudents(await api.listStudents()); setExams(await api.listExams()) })() }, [])
+
+  useEffect(() => {
+    if (subject) {
+      setTimeout(() => marksInputRef.current?.focus(), 100)
+    } else {
+      barcodeInputRef.current?.focus()
+    }
+  }, [subject])
 
   useEffect(() => {
     if (!exams.length) return
@@ -32,9 +45,11 @@ export default function Results() {
 
   const save = async () => { if (!form.student_id || !form.exam_id || !form.total || !form.grade) return; setSaving(true); await api.addResult({ student_id: form.student_id, exam_id: form.exam_id, total: Number(form.total), grade: form.grade }); setForm({ student_id: '', exam_id: '', total: '', grade: '' }); setSaving(false) }
 
-  const fetchDecodeDetails = async () => {
-    const trimmed = barcode.trim()
+  const fetchDecodeDetails = async (codeOverride) => {
+    const code = typeof codeOverride === 'string' ? codeOverride : barcode
+    const trimmed = code.trim()
     setSubject(null)
+    setBarcodeId(null)
     setMarksSuccess('')
     setMarksError('')
 
@@ -84,6 +99,7 @@ export default function Results() {
       }
 
       setSubject(subjectData)
+      setBarcodeId(decodeRow.id)
     } catch (err) {
       console.error('Error fetching barcode details', err)
       setDecodeError('Failed to load details for this barcode')
@@ -91,6 +107,18 @@ export default function Results() {
       setDecodeLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (barcode.trim()) {
+      debounceRef.current = setTimeout(() => {
+        fetchDecodeDetails(barcode)
+      }, 500)
+    }
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [barcode])
 
   const saveMarks = async () => {
     const trimmed = barcode.trim()
@@ -114,10 +142,14 @@ export default function Results() {
     setMarksSuccess('')
     setMarksError('')
     try {
+      if (!barcodeId) {
+        setDecodeError('Invalid barcode context')
+        return
+      }
       const { data: existingMarks, error: existingErr } = await supabase
         .from('marks')
         .select('id')
-        .eq('decode_no', trimmed)
+        .eq('barcode_id', barcodeId)
 
       if (existingErr) throw existingErr
       if (existingMarks && existingMarks.length > 0) {
@@ -126,7 +158,7 @@ export default function Results() {
       }
 
       const { error } = await supabase.from('marks').insert({
-        decode_no: trimmed,
+        barcode_id: barcodeId,
         marks_obtained: obtained,
         max_marks: max
       })
@@ -134,6 +166,7 @@ export default function Results() {
       setMarksSuccess('Marks saved successfully')
       setBarcode('')
       setSubject(null)
+      setBarcodeId(null)
       setMarksForm({ marks_obtained: '' })
       setMarksError('')
       setDecodeError('')
@@ -151,6 +184,7 @@ export default function Results() {
         <div className="row g-2 align-items-end">
           <div className="col-md-8">
             <input
+              ref={barcodeInputRef}
               type="text"
               className="form-control"
               placeholder="Barcode"
@@ -159,12 +193,14 @@ export default function Results() {
                 setBarcode(e.target.value)
                 setDecodeError('')
                 setSubject(null)
+                setBarcodeId(null)
                 setMarksSuccess('')
               }}
               onKeyDown={e => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
-                  fetchDecodeDetails()
+                  if (debounceRef.current) clearTimeout(debounceRef.current)
+                  fetchDecodeDetails(e.currentTarget.value)
                 }
               }}
             />
@@ -201,6 +237,7 @@ export default function Results() {
             <div className="col-md-6">
               <label className="form-label">Marks Obtained</label>
               <input
+                ref={marksInputRef}
                 type="number"
                 className="form-control"
                 value={marksForm.marks_obtained}
