@@ -3,13 +3,13 @@ import { useEffect, useState } from 'react'
 import { api } from '../lib/mockApi'
 import { supabase } from '../../supabaseClient'
 
-export default function Results(){
-  const [students,setStudents]=useState([])
-  const [exams,setExams]=useState([])
-  const [form,setForm]=useState({student_id:'',exam_id:'',total:'',grade:''})
-  const [saving,setSaving]=useState(false)
+export default function Results() {
+  const [students, setStudents] = useState([])
+  const [exams, setExams] = useState([])
+  const [form, setForm] = useState({ student_id: '', exam_id: '', total: '', grade: '' })
+  const [saving, setSaving] = useState(false)
 
-  const [decodeNo, setDecodeNo] = useState('')
+  const [barcode, setBarcode] = useState('')
   const [decodeLoading, setDecodeLoading] = useState(false)
   const [decodeError, setDecodeError] = useState('')
   const [subject, setSubject] = useState(null)
@@ -18,7 +18,7 @@ export default function Results(){
   const [marksSuccess, setMarksSuccess] = useState('')
   const [marksError, setMarksError] = useState('')
 
-  useEffect(()=>{(async()=>{setStudents(await api.listStudents()); setExams(await api.listExams())})()},[])
+  useEffect(() => { (async () => { setStudents(await api.listStudents()); setExams(await api.listExams()) })() }, [])
 
   useEffect(() => {
     if (!exams.length) return
@@ -30,16 +30,16 @@ export default function Results(){
     })
   }, [exams, form.exam_id])
 
-  const save=async()=>{ if(!form.student_id||!form.exam_id||!form.total||!form.grade) return; setSaving(true); await api.addResult({ student_id:form.student_id, exam_id:form.exam_id, total:Number(form.total), grade:form.grade }); setForm({student_id:'',exam_id:'',total:'',grade:''}); setSaving(false) }
+  const save = async () => { if (!form.student_id || !form.exam_id || !form.total || !form.grade) return; setSaving(true); await api.addResult({ student_id: form.student_id, exam_id: form.exam_id, total: Number(form.total), grade: form.grade }); setForm({ student_id: '', exam_id: '', total: '', grade: '' }); setSaving(false) }
 
   const fetchDecodeDetails = async () => {
-    const trimmed = decodeNo.trim()
+    const trimmed = barcode.trim()
     setSubject(null)
     setMarksSuccess('')
     setMarksError('')
 
     if (!trimmed) {
-      setDecodeError('Please enter a decode number')
+      setDecodeError('Please enter a barcode')
       return
     }
     setDecodeError('')
@@ -47,26 +47,26 @@ export default function Results(){
     try {
       // First get the subject_id from exam_registration_subjects
       const { data: decodeRow, error: decodeErr } = await supabase
-        .from('decode_numbers')
+        .from('barcodes')
         .select(`
           id, 
           exam_registration_subject_id, 
-          decode_no,
+          barcode,
           exam_registration_subjects:exam_registration_subject_id (
             subject_id
           )
         `)
-        .eq('decode_no', trimmed)
+        .eq('barcode', trimmed)
         .single()
 
       if (decodeErr) throw decodeErr
       if (!decodeRow) {
-        setDecodeError('Decode number not found')
+        setDecodeError('Barcode not found')
         return
       }
 
       if (!decodeRow.exam_registration_subjects?.subject_id) {
-        setDecodeError('No subject found for this decode number')
+        setDecodeError('No subject found for this barcode')
         return
       }
 
@@ -85,17 +85,17 @@ export default function Results(){
 
       setSubject(subjectData)
     } catch (err) {
-      console.error('Error fetching decode details', err)
-      setDecodeError('Failed to load details for this decode number')
+      console.error('Error fetching barcode details', err)
+      setDecodeError('Failed to load details for this barcode')
     } finally {
       setDecodeLoading(false)
     }
   }
 
   const saveMarks = async () => {
-    const trimmed = decodeNo.trim()
+    const trimmed = barcode.trim()
     if (!trimmed) {
-      setDecodeError('Please enter a decode number')
+      setDecodeError('Please enter a barcode')
       return
     }
     if (!marksForm.marks_obtained) {
@@ -121,7 +121,7 @@ export default function Results(){
 
       if (existingErr) throw existingErr
       if (existingMarks && existingMarks.length > 0) {
-        setDecodeError('Marks already entered for this decode number')
+        setDecodeError('Marks already entered for this barcode')
         return
       }
 
@@ -132,7 +132,7 @@ export default function Results(){
       })
       if (error) throw error
       setMarksSuccess('Marks saved successfully')
-      setDecodeNo('')
+      setBarcode('')
       setSubject(null)
       setMarksForm({ marks_obtained: '' })
       setMarksError('')
@@ -147,16 +147,16 @@ export default function Results(){
   return (
     <AdminShell>
       <div className="card card-soft p-3" style={{ maxWidth: '600px', margin: '0 auto' }}>
-        <h5 className="mb-3">Enter Decode Number</h5>
+        <h5 className="mb-3">Enter Barcode</h5>
         <div className="row g-2 align-items-end">
           <div className="col-md-8">
             <input
               type="text"
               className="form-control"
-              placeholder="Decode Number"
-              value={decodeNo}
+              placeholder="Barcode"
+              value={barcode}
               onChange={e => {
-                setDecodeNo(e.target.value)
+                setBarcode(e.target.value)
                 setDecodeError('')
                 setSubject(null)
                 setMarksSuccess('')

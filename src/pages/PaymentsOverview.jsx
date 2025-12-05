@@ -13,16 +13,25 @@ export default function PaymentsOverview() {
   const [loadingSubjects, setLoadingSubjects] = useState(false);
   const [subjectsError, setSubjectsError] = useState("");
   const [visibleDecodeRows, setVisibleDecodeRows] = useState({});
-  const [subjectCodeInput, setSubjectCodeInput] = useState("");
   const [subjectSearchLoading, setSubjectSearchLoading] = useState(false);
   const [subjectSearchError, setSubjectSearchError] = useState("");
-  const [subjectStudents, setSubjectStudents] = useState([]);
   const [exams, setExams] = useState([]);
   const [selectedExam, setSelectedExam] = useState("");
   const [loadingExams, setLoadingExams] = useState(false);
   const [examSubjects, setExamSubjects] = useState([]);
   const [loadingExamSubjects, setLoadingExamSubjects] = useState(false);
   const [visibleDecodeNumbers, setVisibleDecodeNumbers] = useState({});
+  const [examDates, setExamDates] = useState([]);
+  const [selectedDate, setSelectedDate] = useState("");
+  const [loadingDates, setLoadingDates] = useState(false);
+  const [subjectsByDate, setSubjectsByDate] = useState([]);
+  const [selectedSubject, setSelectedSubject] = useState("");
+  const [loadingSubjectsByDate, setLoadingSubjectsByDate] = useState(false);
+  const [subjectStudents, setSubjectStudents] = useState([]);
+  const [loadingSubjectStudents, setLoadingSubjectStudents] = useState(false);
+  const [showDecodePopup, setShowDecodePopup] = useState(false);
+  const [selectedSubjectForDecode, setSelectedSubjectForDecode] = useState(null);
+  const [isDecodeGenerated, setIsDecodeGenerated] = useState(false);
 
   // Fetch exams from exam_master table
   useEffect(() => {
@@ -36,7 +45,7 @@ export default function PaymentsOverview() {
 
         if (error) throw error;
         setExams(data || []);
-        console.log('Fetched exams:', data); // Debug log
+        console.log('Fetched exams:', data);
       } catch (error) {
         console.error('Error fetching exams:', error);
       } finally {
@@ -47,6 +56,189 @@ export default function PaymentsOverview() {
     fetchExams();
   }, []);
 
+  // Fetch subjects for selected exam and date
+  const fetchSubjectsByDate = async (examId, date) => {
+    if (!examId || !date) {
+      setSubjectsByDate([]);
+      setSelectedSubject('');
+      return;
+    }
+
+    setLoadingSubjectsByDate(true);
+    try {
+      // First get the subject codes for the selected date
+      const { data: scheduleData, error: scheduleError } = await supabase
+        .from('exam_schedule')
+        .select('subject_code')
+        .eq('exam_master_id', examId)
+        .eq('exam_date', date);
+
+      if (scheduleError) throw scheduleError;
+
+      if (!scheduleData || scheduleData.length === 0) {
+        setSubjectsByDate([]);
+        return;
+      }
+
+      const subjectCodes = scheduleData.map(item => item.subject_code);
+
+      // Then get the full subject details
+      const { data: subjectsData, error: subjectsError } = await supabase
+        .from('subjects')
+        .select('*')
+        .in('subject_code', subjectCodes);
+
+      if (subjectsError) throw subjectsError;
+
+      setSubjectsByDate(subjectsData || []);
+      setSelectedSubject('');
+      setSubjectStudents([]);
+    } catch (error) {
+      console.error('Error fetching subjects by date:', error);
+      setSubjectsByDate([]);
+      setSelectedSubject('');
+    } finally {
+      setLoadingSubjectsByDate(false);
+    }
+  };
+
+  // Handle subject selection
+  const handleSubjectSelect = async (subjectCode) => {
+    setSelectedSubject(subjectCode);
+    const subject = subjectsByDate.find(s => s.subject_code === subjectCode);
+    setSelectedSubjectForDecode(subject);
+    setShowDecodePopup(true);
+    setIsDecodeGenerated(false);
+    setSubjectStudents([]);
+
+    if (!subjectCode || !selectedExam || !selectedDate) {
+      return;
+    }
+
+    setLoadingSubjectStudents(true);
+    try {
+      // Get the subject ID from the subjectsByDate list
+      const subject = subjectsByDate.find(s => s.subject_code === subjectCode);
+      if (!subject) return;
+
+      // Get all exam registrations for this exam and subject
+      const { data: regSubjects, error: subjError } = await supabase
+        .from('exam_registration_subjects')
+        .select(`
+          id, 
+          exam_registration_id, 
+          subject_id,
+          exam_registrations!inner(
+            id,
+            student_id,
+            exam_id
+          )
+        `)
+        .eq('subject_id', subject.subject_id)
+        .eq('exam_registrations.exam_id', selectedExam);
+
+      if (subjError) throw subjError;
+      if (!regSubjects || regSubjects.length === 0) {
+        setSubjectStudents([]);
+        return;
+      }
+
+      // Get unique student IDs from the registrations
+      const studentIds = [...new Set(regSubjects.map(rs => rs.exam_registrations.student_id))];
+
+      // Get decode numbers for these subject registrations
+      const subjectRegIds = regSubjects.map(rs => rs.id);
+      const { data: decodes, error: decodeError } = await supabase
+        .from('barcodes')
+        .select('id, exam_registration_subject_id, barcode')
+        .in('exam_registration_subject_id', subjectRegIds);
+
+      if (decodeError) throw decodeError;
+
+      // Get student details
+      const { data: students, error: studentError } = await supabase
+        .from('students')
+        .select('id, student_id, hall_ticket_no, full_name')
+        .in('id', studentIds);
+
+      if (studentError) throw studentError;
+
+      // Combine all the data
+      const studentData = regSubjects.map(regSubj => {
+        const student = students.find(s => s.id === regSubj.exam_registrations.student_id);
+        if (!student) return null;
+
+        const decode = decodes?.find(d => d.exam_registration_subject_id === regSubj.id);
+
+        return {
+          studentId: student.student_id,
+          hallTicketNo: student.hall_ticket_no,
+          fullName: student.full_name,
+          barcode: decode?.barcode || 'N/A'
+        };
+      }).filter(Boolean); // Filter out any null entries
+
+      setSubjectStudents(studentData);
+    } catch (error) {
+      console.error('Error fetching subject students:', error);
+      setSubjectStudents([]);
+    } finally {
+      setLoadingSubjectStudents(false);
+    }
+  };
+
+  // Handle date change
+  const handleDateChange = async (date) => {
+    setSelectedDate(date);
+    setSelectedSubject('');
+    setSubjectStudents([]);
+    if (selectedExam && date) {
+      await fetchSubjectsByDate(selectedExam, date);
+    }
+  };
+
+  // Fetch exam dates when exam is selected
+  useEffect(() => {
+    const fetchExamDates = async () => {
+      if (!selectedExam) {
+        setExamDates([]);
+        setSelectedDate('');
+        return;
+      };
+
+      setLoadingDates(true);
+      try {
+        const { data, error } = await supabase
+          .from('exam_schedule')
+          .select('exam_date')
+          .eq('exam_master_id', selectedExam)
+          .order('exam_date', { ascending: true });
+
+        if (error) throw error;
+
+        // Get unique dates and format them
+        const uniqueDates = [...new Set(data.map(item => item.exam_date))];
+        setExamDates(uniqueDates);
+
+        // Reset selected date and clear related states
+        setSelectedDate('');
+        setSubjectsByDate([]);
+        setSelectedSubject('');
+        setSubjectStudents([]);
+      } catch (error) {
+        console.error('Error fetching exam dates:', error);
+        setExamDates([]);
+        setSelectedDate('');
+        setSubjectsByDate([]);
+        setSelectedSubject('');
+      } finally {
+        setLoadingDates(false);
+      }
+    };
+
+    fetchExamDates();
+  }, [selectedExam]);
+
   useEffect(() => {
     if (selectedExam || !exams.length) return;
     const firstExamId = exams[0]?.id;
@@ -54,7 +246,7 @@ export default function PaymentsOverview() {
     setSelectedExam(String(firstExamId));
   }, [exams, selectedExam]);
 
-  // Fetch subjects for selected exam
+  // Fetch subjects for selected exam and date
   useEffect(() => {
     const fetchExamSubjects = async () => {
       if (!selectedExam) {
@@ -112,17 +304,36 @@ export default function PaymentsOverview() {
 
         if (subjectsError) throw subjectsError;
 
+        // Get subjects for the selected date if a date is selected
+        let filteredSubjects = [...subjects];
+        if (selectedDate) {
+          const { data: scheduledSubjects, error: scheduleError } = await supabase
+            .from('exam_schedule')
+            .select('subject_code')
+            .eq('exam_date', selectedDate)
+            .eq('exam_master_id', selectedExam);
+
+          if (!scheduleError && scheduledSubjects?.length) {
+            const scheduledSubjectCodes = scheduledSubjects.map(s => s.subject_code);
+            filteredSubjects = subjects.filter(subj =>
+              scheduledSubjectCodes.includes(subj.subject_code)
+            );
+          }
+        }
+
         // Create a map of subject_id to subject details
         const subjectDetails = {};
-        subjects.forEach(subj => {
+        filteredSubjects.forEach(subj => {
           subjectDetails[subj.subject_id] = subj;
         });
 
         // Count subject occurrences
         const subjectCounts = {};
         subjectRegistrations.forEach(sr => {
-          const subjId = sr.subject_id;
-          subjectCounts[subjId] = (subjectCounts[subjId] || 0) + 1;
+          if (subjectDetails[sr.subject_id]) {
+            const subjId = sr.subject_id;
+            subjectCounts[subjId] = (subjectCounts[subjId] || 0) + 1;
+          }
         });
 
         // Combine the data
@@ -140,10 +351,10 @@ export default function PaymentsOverview() {
         });
 
         // Sort by subject code
-        const sortedSubjects = result.sort((a, b) => 
+        const sortedSubjects = result.sort((a, b) =>
           a.subject_code.localeCompare(b.subject_code)
         );
-        
+
         setExamSubjects(sortedSubjects);
       } catch (error) {
         console.error('Error fetching exam subjects:', error);
@@ -154,7 +365,7 @@ export default function PaymentsOverview() {
     };
 
     fetchExamSubjects();
-  }, [selectedExam]);
+  }, [selectedExam, selectedDate]);
 
   const handleSearchStudent = async () => {
     const trimmed = studentIdInput.trim();
@@ -274,8 +485,8 @@ export default function PaymentsOverview() {
       let decodeMap = new Map();
       if (subjectIds.size > 0) {
         const { data: decodeData, error: decodeError } = await supabase
-          .from("decode_numbers")
-          .select("exam_registration_subject_id, decode_no")
+          .from("barcodes")
+          .select("exam_registration_subject_id, barcode")
           .in("exam_registration_subject_id", Array.from(subjectIds));
 
         if (decodeError) throw decodeError;
@@ -287,25 +498,25 @@ export default function PaymentsOverview() {
           if (!decodeMap.has(key)) {
             decodeMap.set(key, []);
           }
-          decodeMap.get(key).push(row.decode_no);
+          decodeMap.get(key).push(row.barcode);
         });
       }
 
       const subjectRows = [];
       baseSubjectRows.forEach((row) => {
-        const decodes = decodeMap.get(row.exam_registration_subject_id) || [null];
+        const decodes = decodeMap.get(row.exam_registration_subject_id) || [];
         decodes.forEach((decode_no) => {
           subjectRows.push({
             subject_name: row.subject_name,
             subject_code: row.subject_code,
-            decode_no,
+            barcode: decode_no,
           });
         });
       });
 
       const seen = new Set();
       const uniqueSubjects = subjectRows.filter((row) => {
-        const key = `${row.subject_name || ""}|${row.subject_code || ""}|${row.decode_no || ""}`;
+        const key = `${row.subject_name || ""}|${row.subject_code || ""}|${row.barcode || ""}`;
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
@@ -321,32 +532,33 @@ export default function PaymentsOverview() {
   };
 
   const handleSearchBySubjectCode = async () => {
-    const trimmed = subjectCodeInput.trim();
-    if (!trimmed) {
-      setSubjectSearchError("Enter a subject code.");
+    if (!selectedSubject) {
+      setSubjectSearchError("Please select a subject from the dropdown.");
       setSubjectStudents([]);
       return;
     }
+
+    const subjectCodeToSearch = selectedSubject;
 
     setSubjectSearchLoading(true);
     setSubjectSearchError("");
     setSubjectStudents([]);
 
     try {
-      console.log('Searching for subject code:', trimmed);
-      
+      console.log('Searching for subject code:', subjectCodeToSearch);
+
       // First, find the subject by code (exact match)
       const { data: subjectRecord, error: subjectError } = await supabase
         .from("subjects")
         .select("subject_id, subject_name, subject_code, academic_year, semester_number")
-        .or(`subject_code.eq.${trimmed},subject_code.ilike.%${trimmed}%`)
+        .or(`subject_code.eq.${subjectCodeToSearch},subject_code.ilike.%${subjectCodeToSearch}%`)
         .maybeSingle();
 
       if (subjectError) {
         console.error('Error fetching subject:', subjectError);
         throw subjectError;
       }
-      
+
       if (!subjectRecord?.subject_id) {
         console.log('No subject found with code:', trimmed);
         setSubjectSearchError("No subject found with that code.");
@@ -365,15 +577,15 @@ export default function PaymentsOverview() {
       }
 
       const { data: examRegistrations, error: examRegsError } = await examRegistrationsQuery;
-      
+
       if (examRegsError) {
         console.error('Error fetching exam registrations:', examRegsError);
         throw examRegsError;
       }
 
       if (!examRegistrations?.length) {
-        const msg = selectedExam 
-          ? 'No exam registrations found for the selected exam.' 
+        const msg = selectedExam
+          ? 'No exam registrations found for the selected exam.'
           : 'No exam registrations found.';
         console.log(msg);
         setSubjectSearchError(msg);
@@ -393,7 +605,7 @@ export default function PaymentsOverview() {
         console.error('Error fetching subject registrations:', regError);
         throw regError;
       }
-      
+
       if (!subjectRegistrations?.length) {
         console.log('No subject registrations found for subject ID:', subjectRecord.subject_id);
         setSubjectSearchError("No students registered for this subject" + (selectedExam ? " in the selected exam." : "."));
@@ -439,7 +651,7 @@ export default function PaymentsOverview() {
       // Get student details
       const { data: students, error: studentsError } = await supabase
         .from("students")
-      .select("id, student_id, full_name, academic_year, group_name, course_name, hall_ticket_no")
+        .select("id, student_id, full_name, academic_year, group_name, course_name, hall_ticket_no")
         .in("id", studentIds);
 
       if (studentsError) throw studentsError;
@@ -447,8 +659,8 @@ export default function PaymentsOverview() {
       // Get decode numbers for these registrations
       const registrationIds = filteredRegistrations.map(reg => reg.id);
       const { data: decodeNumbers, error: decodeError } = await supabase
-        .from("decode_numbers")
-        .select("id, decode_no, exam_registration_subject_id")
+        .from("barcodes")
+        .select("id, barcode, exam_registration_subject_id")
         .in("exam_registration_subject_id", registrationIds);
 
       if (decodeError) console.error("Error fetching decode numbers:", decodeError);
@@ -460,7 +672,7 @@ export default function PaymentsOverview() {
           if (!decodeMap.has(dn.exam_registration_subject_id)) {
             decodeMap.set(dn.exam_registration_subject_id, []);
           }
-          decodeMap.get(dn.exam_registration_subject_id).push(dn.decode_no);
+          decodeMap.get(dn.exam_registration_subject_id).push(dn.barcode);
         });
       }
 
@@ -468,12 +680,12 @@ export default function PaymentsOverview() {
       const studentRecords = filteredRegistrations.map(reg => {
         const student = students?.find(s => s.id === reg.exam_registrations.student_id);
         const decodes = decodeMap.get(reg.id) || [];
-        
+
         return {
           registration_id: reg.exam_registration_id,
           subject_code: subjectRecord.subject_code,
           subject_name: subjectRecord.subject_name,
-          decode_no: decodes.length > 0 ? decodes[0] : null,
+          barcode: decodes.length > 0 ? decodes[0] : null,
           student_id: student?.student_id || 'N/A',
           full_name: student?.full_name || 'Unknown',
           academic_year: reg.exam_registrations.academic_year || student?.academic_year || 'N/A',
@@ -506,12 +718,6 @@ export default function PaymentsOverview() {
     }
   };
 
-  const handleSubjectCodeKeyDown = (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      handleSearchBySubjectCode();
-    }
-  };
 
   const toggleDecodeNumber = (studentId) => {
     setVisibleDecodeNumbers({
@@ -519,8 +725,164 @@ export default function PaymentsOverview() {
     });
   };
 
+  // State to track if decode is being generated
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Handle Generate Decode button click
+  const handleGenerateDecode = async () => {
+    if (!selectedSubjectForDecode || isGenerating) return;
+
+    // If decode is already generated, close the popup
+    if (isDecodeGenerated) {
+      setShowDecodePopup(false);
+      return;
+    }
+
+    try {
+      setIsGenerating(true);
+      setLoadingSubjectStudents(true);
+
+      // Get the subject ID from the subjectsByDate list
+      const subject = subjectsByDate.find(s => s.subject_code === selectedSubjectForDecode.subject_code);
+      if (!subject) return;
+
+      // Set decode generated to true to show the student list
+      setIsDecodeGenerated(true);
+
+      // Rest of the existing handleGenerateDecode implementation...
+      // [Previous implementation of handleGenerateDecode goes here]
+
+    } catch (error) {
+      console.error('Error generating decode:', error);
+    } finally {
+      setLoadingSubjectStudents(false);
+      setIsGenerating(false);
+    }
+  };
+
+  // Close popup when clicking outside
+  const closeDecodePopup = (e) => {
+    if (e.target === e.currentTarget) {
+      setShowDecodePopup(false);
+      // Reset the decode generated state when closing the popup
+      setIsDecodeGenerated(false);
+    }
+  };
+
+  // Rest of the component...
+
   return (
     <AdminShell>
+      {/* Decode Generation Modal */}
+      {showDecodePopup && selectedSubjectForDecode && (
+        <div
+          className="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center z-3"
+          style={{ backdropFilter: 'blur(2px)' }}
+          onClick={closeDecodePopup}
+        >
+          {/* Modal content */}
+          <div
+            className="bg-white rounded-3 shadow-lg"
+            style={{ width: '90%', maxWidth: '600px', maxHeight: '90vh', overflow: 'hidden' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="d-flex justify-content-between align-items-center p-3 border-bottom">
+              <div>
+                <h5 className="mb-0 fw-bold">
+                  {selectedSubjectForDecode.subject_code} - {selectedSubjectForDecode.subject_name}
+                </h5>
+              </div>
+              <button
+                type="button"
+                className="btn-close"
+                onClick={() => setShowDecodePopup(false)}
+                aria-label="Close"
+              ></button>
+            </div>
+
+            {/* Content */}
+            <div className="p-3" style={{ overflowY: 'auto', maxHeight: 'calc(90vh - 120px)' }}>
+              {loadingSubjectStudents ? (
+                <div className="text-center py-4">
+                  <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                </div>
+              ) : isDecodeGenerated && subjectStudents.length > 0 ? (
+                <div className="table-responsive">
+                  <table className="table table-sm">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Subject</th>
+                        <th>Hall Ticket No.</th>
+                        <th>Barcode</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {subjectStudents.map((student, index) => (
+                        <tr key={`${student.studentId}-${index}`}>
+                          <td className="text-muted">{index + 1}.</td>
+                          <td>
+                            {selectedSubjectForDecode ?
+                              `${selectedSubjectForDecode.subject_code}-${selectedSubjectForDecode.subject_name}` :
+                              'N/A'}
+                          </td>
+                          <td>{student.hallTicketNo || "N/A"}</td>
+                          <td>
+                            {student.barcode ? (
+                              <span className="badge bg-primary">{student.barcode}</span>
+                            ) : (
+                              <span className="text-muted">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-5">
+                  <div className="mb-4">
+                    <i className="bi bi-person-lines-fill fs-1 text-primary"></i>
+                    <h4 className="mt-3">Generate Barcode</h4>
+                    <p className="text-muted">Click the button below to view students for this subject</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="d-flex justify-content-end gap-2 p-3 border-top">
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={() => setShowDecodePopup(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={`btn px-4 ${isDecodeGenerated ? 'btn-success' : 'btn-primary'}`}
+                onClick={handleGenerateDecode}
+                disabled={loadingSubjectStudents || isGenerating}
+              >
+                {loadingSubjectStudents || isGenerating ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    {isGenerating ? 'Processing...' : 'Generating...'}
+                  </>
+                ) : isDecodeGenerated ? (
+                  'Completed'
+                ) : (
+                  'Generate Barcode'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="card card-soft p-3 mb-4">
         <h5 className="mb-3">Search by Exam</h5>
         <div className="row g-3 align-items-end mb-4">
@@ -544,38 +906,112 @@ export default function PaymentsOverview() {
 
         <div className="row g-3 align-items-end mb-4">
           <div className="col-12 col-sm-6 col-md-4">
-            <label className="form-label">Subject Code</label>
-            <div className="input-group">
-              <input
-                type="text"
-                className="form-control"
-                value={subjectCodeInput}
-                onChange={(e) => setSubjectCodeInput(e.target.value)}
-                onKeyDown={handleSubjectCodeKeyDown}
-                placeholder="Enter subject code"
-                disabled={!selectedExam}
-              />
-              <button
-                className="btn btn-primary"
-                type="button"
-                onClick={handleSearchBySubjectCode}
-                disabled={subjectSearchLoading || !selectedExam || !subjectCodeInput.trim()}
-              >
-                {subjectSearchLoading ? 'Searching...' : 'Search'}
-              </button>
-            </div>
-            {selectedExam ? (
+            <label className="form-label">Exam Date</label>
+            <select
+              className="form-select mb-3"
+              value={selectedDate}
+              onChange={(e) => handleDateChange(e.target.value)}
+              disabled={!selectedExam || loadingDates}
+            >
+              <option value="">Select Date</option>
+              {examDates.map((date) => (
+                <option key={date} value={date}>
+                  {new Date(date).toLocaleDateString()}
+                </option>
+              ))}
+            </select>
+            {loadingDates && (
+              <div className="text-muted small">Loading dates...</div>
+            )}
+
+            {selectedDate && (
+              <div className="mb-3">
+                <label className="form-label d-block">
+                  Select Subject
+                  {!loadingSubjectsByDate && selectedDate && subjectsByDate.length > 0 && (
+                    <span className="text-muted ms-2">
+                      ({subjectsByDate.length} subject{subjectsByDate.length !== 1 ? 's' : ''} available)
+                    </span>
+                  )}
+                </label>
+
+                {loadingSubjectsByDate ? (
+                  <div className="d-flex align-items-center text-muted">
+                    <div className="spinner-border spinner-border-sm me-2" role="status">
+                      <span className="visually-hidden">Loading...</span>
+                    </div>
+                    Loading subjects...
+                  </div>
+                ) : !selectedDate ? (
+                  <div className="alert alert-info mb-0">
+                    Please select an exam date to view subjects
+                  </div>
+                ) : subjectsByDate.length === 0 ? (
+                  <div className="alert alert-warning mb-0">
+                    No subjects found for the selected date
+                  </div>
+                ) : (
+                  <div className="list-group" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                    {subjectsByDate.map((subject, index) => (
+                      <div
+                        key={subject.subject_code}
+                        className={`list-group-item d-flex align-items-center p-2 ${selectedSubject === subject.subject_code ? 'active' : ''}`}
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => handleSubjectSelect(subject.subject_code)}
+                      >
+                        <div className="d-flex align-items-center w-100">
+                          <div className="me-3 text-muted" style={{ minWidth: '24px', textAlign: 'right' }}>
+                            {index + 1}.
+                          </div>
+                          <div className="d-flex align-items-center flex-grow-1">
+                            <input
+                              type="radio"
+                              className="form-check-input me-2 flex-shrink-0"
+                              name="subjectSelect"
+                              value={subject.subject_code}
+                              checked={selectedSubject === subject.subject_code}
+                              onChange={() => { }}
+                              onClick={(e) => e.stopPropagation()}
+                              style={{ cursor: 'pointer' }}
+                            />
+                            <div>
+                              <div className="fw-semibold">
+                                {subject.subject_code} - {subject.subject_name}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <button
+              className="btn btn-primary mt-2"
+              type="button"
+              onClick={handleSearchBySubjectCode}
+              disabled={subjectSearchLoading || !selectedExam || !selectedDate || !selectedSubject}
+            >
+              {subjectSearchLoading ? 'Searching...' : 'Search Students'}
+            </button>
+            {!selectedExam ? (
               <div className="form-text text-muted">
-                Enter a subject code to search for students
+                Please select an exam first
+              </div>
+            ) : !selectedDate ? (
+              <div className="form-text text-muted">
+                Please select an exam date
               </div>
             ) : (
               <div className="form-text text-muted">
-                Please select an exam first
+                {examDates.length === 0 ? 'No dates found for this exam' : `Showing subjects for ${new Date(selectedDate).toLocaleDateString()}`}
               </div>
             )}
           </div>
         </div>
-        
+
         {/* Show loading indicator when searching */}
         {loadingExamSubjects && (
           <div className="text-center py-3">
@@ -584,60 +1020,67 @@ export default function PaymentsOverview() {
             </div>
           </div>
         )}
-        
-        {/* Show subjects after search */}
-        {!loadingExamSubjects && subjectCodeInput && subjectStudents.length > 0 && (
+
+        {/* Show subjects after search when a subject is selected */}
+        {!loadingSubjectStudents && selectedSubject && subjectStudents.length > 0 && (
           <div className="mb-4">
             <div className="d-flex justify-content-between align-items-center mb-3">
-              <h5 className="mb-0">Search Results</h5>
+              <h5 className="mb-0">
+                {selectedSubject ? 'Students for Selected Subject' : 'Search Results'}
+              </h5>
               <span className="badge bg-primary fw-bold">
                 {subjectStudents.length} student{subjectStudents.length !== 1 ? 's' : ''} found
               </span>
             </div>
-            
+
             {/* Show subject details */}
-            {subjectStudents[0]?.subject_name && (
+            {(subjectStudents[0]?.subject_name || selectedSubject) && (
               <div className="mb-3 p-3 bg-light rounded">
                 <div className="fw-bold">
-                  {subjectStudents[0].subject_name} ({subjectStudents[0].subject_code})
+                  {subjectStudents[0]?.subject_name || ''}
+                  {subjectStudents[0]?.subject_code && `(${subjectStudents[0].subject_code})`}
+                  {!subjectStudents[0]?.subject_name && !subjectStudents[0]?.subject_code &&
+                    subjectsByDate.find(s => s.subject_code === selectedSubject)?.subject_name || ''}
                 </div>
                 <div className="text-muted small">
                   {subjectStudents.length} student{subjectStudents.length !== 1 ? 's' : ''} registered for this subject
                 </div>
               </div>
             )}
-            
+
             {/* Students list */}
             <div className="table-responsive">
               <table className="table table-sm align-middle mb-0">
                 <thead>
                   <tr>
-                    <th>Subject Name</th>
+                    <th>Student Name</th>
+                    <th>Subject</th>
                     <th>Hall Ticket No.</th>
-                    <th>Decode No</th>
+                    <th>Barcode</th>
                   </tr>
                 </thead>
                 <tbody>
                   {subjectStudents.map((student) => (
                     <tr key={student.student_id}>
-                      <td>
-                        <div className="fw-semibold">
-                          {student.subject_name || "-"}
-                        </div>
-                        <div className="text-muted small">
-                          {student.subject_code || "-"}
-                        </div>
+                      <td className="fw-semibold">
+                        {student.fullName || "-"}
                       </td>
-                      <td>{student.hall_ticket || "N/A"}</td>
                       <td>
-                        {student.decode_no ? (
+                        {(() => {
+                          const subject = subjectsByDate.find(s => s.subject_code === selectedSubject);
+                          return subject ? `${subject.subject_code}-${subject.subject_name}` : selectedSubject || "-";
+                        })()}
+                      </td>
+                      <td>{student.hallTicketNo || student.hall_ticket || "N/A"}</td>
+                      <td>
+                        {(student.barcode) ? (
                           <div className="position-relative d-inline-block">
-                            {visibleDecodeNumbers[student.student_id] ? (
-                              <span className="badge bg-primary">{student.decode_no}</span>
+                            {visibleDecodeNumbers[student.student_id || student.studentId] ? (
+                              <span className="badge bg-primary">{student.barcode}</span>
                             ) : (
                               <button
                                 className="btn btn-sm btn-outline-primary"
-                                onClick={() => toggleDecodeNumber(student.student_id)}
+                                onClick={() => toggleDecodeNumber(student.student_id || student.studentId)}
                               >
                                 View
                               </button>
@@ -654,9 +1097,9 @@ export default function PaymentsOverview() {
             </div>
           </div>
         )}
-        
+
         {/* Show no results message only after search */}
-        {!loadingExamSubjects && subjectCodeInput && subjectStudents.length === 0 && (
+        {!loadingExamSubjects && selectedSubject && subjectStudents.length === 0 && (
           <div className="alert alert-info mb-4">
             No students found for the selected subject code.
           </div>
@@ -725,7 +1168,7 @@ export default function PaymentsOverview() {
       {selectedStudent && selectedSemester && (
         <div className="card card-soft p-3 mb-4">
           <div className="d-flex justify-content-between align-items-center mb-3">
-            <h5 className="mb-0">Subjects &amp; Decode Numbers</h5>
+            <h5 className="mb-0">Subjects &amp; Barcodes</h5>
             <span className="text-muted small">
               Semester {selectedSemester}
             </span>
@@ -737,7 +1180,7 @@ export default function PaymentsOverview() {
             <p className="text-muted small mb-0">Loading subjects…</p>
           ) : subjects.length === 0 ? (
             <p className="text-muted small mb-0">
-              No subjects or decode numbers found for this semester.
+              No subjects or barcodes found for this semester.
             </p>
           ) : (
             <div className="table-responsive">
@@ -746,12 +1189,12 @@ export default function PaymentsOverview() {
                   <tr>
                     <th>Subject Name</th>
                     <th>Subject Code</th>
-                    <th>Decode No</th>
+                    <th>Barcode</th>
                   </tr>
                 </thead>
                 <tbody>
                   {subjects.map((row, index) => {
-                    const key = `${row.subject_code || row.subject_name || ""}-${row.decode_no || "none"}-${index}`;
+                    const key = `${row.subject_code || row.subject_name || ""}-${row.barcode || "none"}-${index}`;
                     const isVisible = !!visibleDecodeRows[key];
                     return (
                       <tr key={key}>
@@ -759,11 +1202,11 @@ export default function PaymentsOverview() {
                         <td>{row.subject_code || "-"}</td>
                         <td>
                           <div className="d-flex align-items-center gap-2">
-                            {row.decode_no && (
+                            {row.barcode && (
                               <div className="position-relative d-inline-block">
                                 {isVisible && (
                                   <div className="position-absolute bottom-100 start-50 translate-middle-x mb-1 px-2 py-1 bg-light border rounded shadow-sm small">
-                                    <strong>{row.decode_no}</strong>
+                                    <strong>{row.barcode}</strong>
                                   </div>
                                 )}
                                 <button
