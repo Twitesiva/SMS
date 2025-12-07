@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import ConfirmationModal from '../components/ConfirmationModal.jsx';
 
 export default function GroupsCoursesSection({
   groupForm,
@@ -32,14 +33,34 @@ export default function GroupsCoursesSection({
 
   const isFixedDuration =
     groupForm && (groupForm.category === "UG" || groupForm.category === "PG");
-    
+
   // State for category filter in courses section
   const [categoryFilter, setCategoryFilter] = useState("");
-  
+
   // Filter groups based on selected category
-  const filteredGroups = categoryFilter 
+  const filteredGroups = categoryFilter
     ? groups.filter(group => group.category === categoryFilter)
     : groups;
+
+  const [confirmModalState, setConfirmModalState] = useState({ isOpen: false, type: null, id: null });
+
+  const handleDeleteGroupClick = (id) => {
+    setConfirmModalState({ isOpen: true, type: 'group', id });
+  };
+
+  const handleDeleteCourseClick = (id) => {
+    setConfirmModalState({ isOpen: true, type: 'course', id });
+  };
+
+  const handleConfirmDelete = async () => {
+    const { type, id } = confirmModalState;
+    if (type === 'group') {
+      await deleteGroup(id);
+    } else if (type === 'course') {
+      await deleteCourse(id);
+    }
+    setConfirmModalState({ isOpen: false, type: null, id: null });
+  };
 
   return (
     <>
@@ -218,7 +239,7 @@ export default function GroupsCoursesSection({
                           <button
                             type="button"
                             className="btn btn-sm btn-outline-danger students-button students-button-sm flex-fill"
-                            onClick={() => deleteGroup(g.id)}
+                            onClick={() => handleDeleteGroupClick(g.id)}
                           >
                             Delete
                           </button>
@@ -398,7 +419,7 @@ export default function GroupsCoursesSection({
                           <button
                             type="button"
                             className="btn btn-sm btn-outline-danger students-button students-button-sm flex-fill"
-                            onClick={() => deleteCourse(c.id)}
+                            onClick={() => handleDeleteCourseClick(c.id)}
                           >
                             Delete
                           </button>
@@ -412,6 +433,14 @@ export default function GroupsCoursesSection({
           )}
         </div>
       </section>
+      <ConfirmationModal
+        isOpen={confirmModalState.isOpen}
+        onClose={() => setConfirmModalState({ isOpen: false, type: null, id: null })}
+        onConfirm={handleConfirmDelete}
+        title={`Confirm ${confirmModalState.type === 'group' ? 'Group' : 'Course'} Delete`}
+        message={`Are you sure you want to delete this ${confirmModalState.type}?`}
+        confirmText="Confirm Delete"
+      />
     </>
   );
 }

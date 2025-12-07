@@ -145,16 +145,16 @@ const normalizeSubjectRecord = (subject = {}, context = {}) => {
     subject.subjectNames && Array.isArray(subject.subjectNames)
       ? subject.subjectNames
       : subject.subjectName
-      ? [subject.subjectName]
-      : [];
+        ? [subject.subjectName]
+        : [];
   const subjectCodes =
     subject.subjectCodes && Array.isArray(subject.subjectCodes)
       ? subject.subjectCodes
       : subject.subjectCode
-      ? [subject.subjectCode]
-      : subject.subject_code
-      ? [subject.subject_code]
-      : [];
+        ? [subject.subjectCode]
+        : subject.subject_code
+          ? [subject.subject_code]
+          : [];
 
   const courseKey =
     subject.courseName ||
@@ -202,8 +202,8 @@ const normalizeSubjectRecord = (subject = {}, context = {}) => {
     courseName: courseMeta.courseName || courseKey,
     semester:
       semesterValue === undefined ||
-      semesterValue === null ||
-      semesterValue === ""
+        semesterValue === null ||
+        semesterValue === ""
         ? ""
         : Number(semesterValue),
     categoryId,
@@ -217,8 +217,8 @@ const normalizeSubjectRecord = (subject = {}, context = {}) => {
       "",
     feeAmount:
       feeAmountValue === undefined ||
-      feeAmountValue === null ||
-      feeAmountValue === ""
+        feeAmountValue === null ||
+        feeAmountValue === ""
         ? ""
         : Number(feeAmountValue),
     subjectNames,
@@ -409,10 +409,10 @@ export default function Setup() {
   };
 
   const editYear = (year) => {
-    setYearForm({ 
-      name: year.name, 
+    setYearForm({
+      name: year.name,
       category: year.category || "",
-      active: year.active 
+      active: year.active
     });
     setEditingYearId(year.id);
   };
@@ -476,6 +476,10 @@ export default function Setup() {
           setGroups((prev) =>
             prev.map((g) => (g.id === editingGroupId ? updated : g))
           );
+          showToast("Updated successfully", {
+            type: "success",
+            title: "Group",
+          });
         }
       } catch (error) {
         console.error("Error updating group:", error);
@@ -495,7 +499,13 @@ export default function Setup() {
 
       try {
         const created = await api.addGroup(payload);
-        if (created) setGroups((prev) => [...prev, created]);
+        if (created) {
+          setGroups((prev) => [...prev, created]);
+          showToast("Group created Successfully", {
+            type: "success",
+            title: "Group",
+          });
+        }
       } catch (error) {
         console.error("Error adding group:", error);
         showToast(error?.message || "Error adding group", { type: "danger" });
@@ -519,6 +529,10 @@ export default function Setup() {
     setGroups((prev) => prev.filter((g) => g.id !== id));
     try {
       await api.deleteGroup?.(id);
+      showToast("Group deleted successfully", {
+        type: "success",
+        title: "Group",
+      });
     } catch (error) {
       console.error("Error deleting group:", error);
       showToast(error?.message || "Error deleting group", { type: "danger" });
@@ -617,6 +631,10 @@ export default function Setup() {
           setCourses((prev) =>
             prev.map((c) => (c.id === editingCourseId ? updated : c))
           );
+          showToast("Updated successfully", {
+            type: "success",
+            title: "Course",
+          });
         }
       } catch (error) {
         console.error("Error updating course:", error);
@@ -632,6 +650,10 @@ export default function Setup() {
         const created = await api.addCourse(payload);
         if (created) {
           setCourses((prev) => [...prev, created]);
+          showToast("Course created Successfully", {
+            type: "success",
+            title: "Course",
+          });
         }
       } catch (error) {
         console.error("Error adding course:", error);
@@ -672,6 +694,10 @@ export default function Setup() {
 
     try {
       await api.deleteCourse?.(id);
+      showToast("Course deleted successfully", {
+        type: "success",
+        title: "Course",
+      });
     } catch (error) {
       console.error("Error deleting course:", error);
       showToast(error?.message || "Error deleting course", { type: "danger" });
@@ -1079,12 +1105,12 @@ export default function Setup() {
       },
       ...(Array.isArray(extraSubjectNames)
         ? extraSubjectNames.map((name, idx) => ({
-            name,
-            code:
-              Array.isArray(extraSubjectCodes) && idx < extraSubjectCodes.length
-                ? extraSubjectCodes[idx]
-                : "",
-          }))
+          name,
+          code:
+            Array.isArray(extraSubjectCodes) && idx < extraSubjectCodes.length
+              ? extraSubjectCodes[idx]
+              : "",
+        }))
         : []),
     ]
       .map((entry) => ({
@@ -1258,8 +1284,8 @@ export default function Setup() {
       rec.subjectCodes?.length
         ? rec.subjectCodes
         : rec.subjectCode
-        ? [rec.subjectCode]
-        : [];
+          ? [rec.subjectCode]
+          : [];
     const primaryCode = codes[0] || (rec.subjectCode || "");
 
     const allPreset =
@@ -1302,7 +1328,7 @@ export default function Setup() {
 
     try {
       showToast("Saving subjects to database...", { type: "info" });
-      
+
       if (subjectIdsToDelete.length) {
         try {
           await Promise.all(
@@ -1318,7 +1344,7 @@ export default function Setup() {
       }
 
       const payload = [];
-      
+
       // Process each pending subject
       for (const item of pendingSubjects) {
         const academicYearName = item.academicYearName || resolveYearName(item.academicYearId);
@@ -1339,7 +1365,7 @@ export default function Setup() {
             fees_categories: null,
             created_at: new Date().toISOString()
           };
-          
+
           // Only add if all required fields are present
           if (subjectData.subject_code && subjectData.subject_name) {
             payload.push(subjectData);
@@ -1349,11 +1375,11 @@ export default function Setup() {
         // Handle extra subjects
         const extraNames = item.extraSubjectNames || [];
         const extraCodes = item.extraSubjectCodes || [];
-        
+
         for (let i = 0; i < Math.max(extraNames.length, extraCodes.length); i++) {
           const name = extraNames[i];
           const code = extraCodes[i] || '';
-          
+
           if (name) {
             payload.push({
               academic_year: academicYearName,
@@ -1373,7 +1399,7 @@ export default function Setup() {
       // Check for duplicate subjects before saving
       const existingSubjects = await api.listSubjects?.() || [];
       const existingSubjectKeys = new Set(
-        existingSubjects.map(sub => 
+        existingSubjects.map(sub =>
           `${sub.academic_year}|${sub.course_name}|${sub.semester_number}|${sub.subject_code}`.toLowerCase()
         )
       );
@@ -1385,19 +1411,19 @@ export default function Setup() {
           console.warn('Skipping subject with missing required fields:', subject);
           return false;
         }
-        
+
         const key = `${subject.academic_year}|${subject.course_name}|${subject.semester_number}|${subject.subject_code}`.toLowerCase();
         const isNew = !existingSubjectKeys.has(key);
-        
+
         if (!isNew) {
           console.log('Skipping duplicate subject:', key);
         }
-        
+
         return isNew;
       });
 
       if (newSubjects.length === 0) {
-        showToast("All subjects already exist in the database.", { 
+        showToast("All subjects already exist in the database.", {
           type: "warning",
           title: "No new subjects to add"
         });
@@ -1419,11 +1445,11 @@ export default function Setup() {
       // Clear pending subjects and refresh the list
       setPendingSubjects([]);
       await loadSubjects();
-      
-      showToast(`Successfully added ${newSubjects.length} subject(s) to the database.`, { 
-        type: "success" 
+
+      showToast(`Successfully added ${newSubjects.length} subject(s) to the database.`, {
+        type: "success"
       });
-      
+
       // Reset the form
       setSubjectForm({
         academicYearId: "",

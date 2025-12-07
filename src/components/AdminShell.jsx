@@ -2,46 +2,40 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "../store/auth";
 import logo from "../assets/media/images.png";
-const nav = [
-  { to: "/admin/applications", label: "Exam Applications", icon: "bi-inboxes" },
+const navGroups = [
   {
-    to: "/admin/setup/years",
-    label: "Create Academic Years",
-    icon: "bi-calendar3",
+    title: "Student Portal",
+    items: [
+      { to: "/admin/applications", label: "Exam Applications", icon: "bi-inboxes" },
+      { to: "/admin/setup/years", label: "Create Academic Years", icon: "bi-calendar3" },
+      { to: "/admin/setup/groups", label: "Create Groups & Courses", icon: "bi-diagram-3" },
+      { to: "/admin/setup/subjects", label: "Create Subjects", icon: "bi-journal-text" },
+      { to: "/admin/students", label: "Students Details", icon: "bi-person-badge" },
+      { to: "/admin/departments", label: "Fees Generation", icon: "bi-mortarboard" },
+    ],
   },
   {
-    to: "/admin/setup/groups",
-    label: "Create Groups & Courses",
-    icon: "bi-diagram-3",
+    title: "Pre-Exam Portal",
+    items: [
+      { to: "/admin/exams", label: "Create Exam timetable", icon: "bi-journal-check" },
+      { to: "/admin/payments", label: "Student Mapping & Payments", icon: "bi-credit-card" },
+      { to: "/admin/payments-overview", label: "Decode", icon: "bi-bar-chart" },
+      { to: "/admin/hall-tickets", label: "Hall Ticket", icon: "bi-ticket-perforated" },
+    ],
   },
   {
-    to: "/admin/setup/subjects",
-    label: "Create Subjects",
-    icon: "bi-journal-text",
-  },
-  { to: "/admin/students", label: "Students Details", icon: "bi-person-badge" },
-  {
-    to: "/admin/departments",
-    label: "Fees Generation",
-    icon: "bi-mortarboard",
+    title: "Post-Exam Portal",
+    items: [
+      { to: "/admin/results", label: "Marks Entry", icon: "bi-award" },
+      { to: "/admin/result-publish", label: "Result Publish", icon: "bi-megaphone" },
+    ],
   },
   {
-    to: "/admin/exams",
-    label: "Create Exam timetable",
-    icon: "bi-journal-check",
+    title: "Reports",
+    items: [
+      { to: "/admin/reports", label: "Reports", icon: "bi-file-earmark-text" },
+    ],
   },
-  { to: "/admin/payments", label: "Student Mapping & Payments", icon: "bi-credit-card" },
-  {
-    to: "/admin/payments-overview",
-    label: "Decode",
-    icon: "bi-bar-chart",
-  },
-  {
-    to: "/admin/hall-tickets",
-    label: "Hall Ticket",
-    icon: "bi-ticket-perforated",
-  },
-  { to: "/admin/results", label: "Marks Entry and Result", icon: "bi-award" },
 ];
 
 const SIDEBAR_SCROLL_KEY = "admin-shell-sidebar-scroll";
@@ -59,7 +53,7 @@ export default function AdminShell({ children, onSignOut }) {
     } else {
       try {
         signOut();
-      } catch {}
+      } catch { }
     }
     navTo("/");
   };
@@ -110,9 +104,8 @@ export default function AdminShell({ children, onSignOut }) {
       style={{ gridTemplateColumns: collapsed ? "92px 1fr" : "280px 1fr" }}
     >
       <aside
-        className={`sidebar-modern d-flex flex-column ${
-          collapsed ? "collapsed" : ""
-        }`}
+        className={`sidebar-modern d-flex flex-column ${collapsed ? "collapsed" : ""
+          }`}
       >
         <div className="sidebar-header">
           <div className="sidebar-brand d-flex align-items-center gap-3">
@@ -143,9 +136,8 @@ export default function AdminShell({ children, onSignOut }) {
             title={collapsed ? "Expand navigation" : "Collapse navigation"}
           >
             <i
-              className={`bi ${
-                collapsed ? "bi-chevron-double-right" : "bi-chevron-double-left"
-              }`}
+              className={`bi ${collapsed ? "bi-chevron-double-right" : "bi-chevron-double-left"
+                }`}
             ></i>
           </button>
         </div>
@@ -156,20 +148,31 @@ export default function AdminShell({ children, onSignOut }) {
           ref={sidebarRef}
           className="sidebar-nav flex-grow-1 d-flex flex-column gap-1"
         >
-          {nav.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              title={item.label}
-              className={`nav-item-modern ${
-                pathname === item.to ? "active" : ""
-              }`}
-            >
-              <span className="icon">
-                <i className={`bi ${item.icon}`}></i>
-              </span>
-              <span className="label">{item.label}</span>
-            </Link>
+          {navGroups.map((group, groupIndex) => (
+            <div key={groupIndex} className="nav-group">
+              {!collapsed && (
+                <div className="nav-group-header px-3 mt-3 mb-1 fw-bolder text-white" style={{ fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {group.title}
+                </div>
+              )}
+              {collapsed && (
+                <div className="nav-group-divider my-2 border-top mx-3 opacity-25"></div>
+              )}
+              {group.items.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  title={item.label}
+                  className={`nav-item-modern ${pathname === item.to ? "active" : ""
+                    }`}
+                >
+                  <span className="icon">
+                    <i className={`bi ${item.icon}`}></i>
+                  </span>
+                  <span className="label">{item.label}</span>
+                </Link>
+              ))}
+            </div>
           ))}
         </nav>
 

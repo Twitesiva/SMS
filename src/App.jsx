@@ -14,6 +14,7 @@ import Exams from "./pages/Exams.jsx";
 import Payments from "./pages/Payments.jsx";
 import HallTickets from "./pages/HallTickets.jsx";
 import Results from "./pages/Results.jsx";
+import ResultPublish from "./pages/ResultPublish.jsx";
 import Setup from "./pages/Setup.jsx";
 import Departments from "./pages/Departments.jsx";
 import PaymentsOverview from "./pages/PaymentsOverview.jsx";
@@ -21,6 +22,8 @@ import GuardedRoute from "./components/GuardedRoute.jsx";
 import Preloader from "./components/Preloader.jsx";
 import ToastStack from "./components/ToastStack.jsx";
 import StudentPayOverview from "./pages/StudentPayOverview.jsx";
+import Reports from "./pages/Reports.jsx";
+
 
 export default function App() {
   const { user, signOut } = useAuth();
@@ -107,6 +110,14 @@ export default function App() {
           }
         />
         <Route
+          path="/admin/result-publish"
+          element={
+            <GuardedRoute isAuthed={isAuthed}>
+              <ResultPublish />
+            </GuardedRoute>
+          }
+        />
+        <Route
           path="/admin/departments"
           element={
             <GuardedRoute isAuthed={isAuthed}>
@@ -135,6 +146,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isAuthed}>
               <Setup />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/admin/reports"
+          element={
+            <GuardedRoute isAuthed={isAuthed}>
+              <Reports />
             </GuardedRoute>
           }
         />

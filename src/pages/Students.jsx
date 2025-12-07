@@ -1,11 +1,12 @@
 import AdminShell from "../components/AdminShell";
+import ConfirmationModal from '../components/ConfirmationModal.jsx';
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "../../supabaseClient";
 import { trackPromise, showToast } from "../store/ui";
 import { toast } from "react-toastify";
 import { validateRequiredFields } from "../lib/validation";
 import { api } from "../lib/mockApi";
- 
+
 export default function Students() {
   const [students, setStudents] = useState([]);
   const [filters, setFilters] = useState({
@@ -291,7 +292,7 @@ export default function Students() {
       if (latestPayments[studentId]) {
         const outstandingBalance = Math.max(
           (studentRegistrationTotals[studentId] || 0) -
-            (paymentTotals[studentId] || 0),
+          (paymentTotals[studentId] || 0),
           0
         );
         statuses[studentId] = formatPaymentStatusInfo(
@@ -348,71 +349,98 @@ export default function Students() {
   };
 
   const openPaymentHistoryModal = async (student) => {
-    if (!paymentSemester) {
-      showToast("Please select the payment semester first.", {
-        type: "warning",
-      });
-      return;
-    }
     setPaymentHistoryModal({
       show: true,
       student,
       payments: [],
       loading: true,
       error: null,
+      semesterData: [],
     });
     try {
-      const {
-        ids: registrationIds,
-        totalFee: registrationTotalFee,
-      } = await fetchRegistrationIdsForStudent(student, paymentSemester);
-      if (!registrationIds.length) {
+      // Fetch all registrations for this student (all semesters)
+      const { data: registrations, error: regError } = await supabase
+        .from("exam_registrations")
+        .select("id, semester, total_fee")
+        .eq("student_id", student.id);
+
+      if (regError) throw regError;
+
+      if (!registrations || registrations.length === 0) {
         setPaymentHistoryModal((prev) => ({
           ...prev,
-          payments: [],
           loading: false,
-          error: "No registration found for the selected semester.",
+          error: "No registrations found for this student.",
+          semesterData: [],
         }));
         return;
       }
-      const { data: payments, error } = await supabase
+
+      const registrationIds = registrations.map(r => r.id);
+
+      // Fetch all payments for all registrations
+      const { data: payments, error: payError } = await supabase
         .from("payments")
         .select(
-          "id, fee_type, amount_paid, payment_status, payment_type, created_at"
+          "id, exam_registration_id, fee_type, amount_paid, payment_status, payment_type, created_at"
         )
         .in("exam_registration_id", registrationIds)
         .order("created_at", { ascending: true });
-      if (error) throw error;
-      const orderedPayments = (payments || [])
-        .map((payment) => payment || {})
-        .sort((a, b) => {
-          const dateA = new Date(a.created_at || 0).getTime();
-          const dateB = new Date(b.created_at || 0).getTime();
-          return dateA - dateB;
+
+      if (payError) throw payError;
+
+      // Group payments by semester
+      const semesterMap = new Map();
+
+      registrations.forEach(reg => {
+        if (!semesterMap.has(reg.semester)) {
+          semesterMap.set(reg.semester, {
+            semester: reg.semester,
+            totalFee: 0,
+            payments: [],
+            registrationIds: []
+          });
+        }
+        const semData = semesterMap.get(reg.semester);
+        semData.totalFee += Number(reg.total_fee || 0);
+        semData.registrationIds.push(reg.id);
+      });
+
+      // Add payments to their respective semesters
+      (payments || []).forEach(payment => {
+        const registration = registrations.find(r => r.id === payment.exam_registration_id);
+        if (registration && semesterMap.has(registration.semester)) {
+          semesterMap.get(registration.semester).payments.push(payment);
+        }
+      });
+
+      // Convert to array and calculate totals
+      const semesterData = Array.from(semesterMap.values())
+        .map(semData => {
+          const totalPaid = semData.payments
+            .filter(p => p.payment_status === "success")
+            .reduce((sum, p) => sum + Number(p.amount_paid || 0), 0);
+
+          return {
+            ...semData,
+            totalPaid,
+            balance: Math.max(semData.totalFee - totalPaid, 0)
+          };
         })
-        .map((payment, index) => ({
-          ...payment,
-          sequence: index + 1,
-        }));
-      const totalPaid = orderedPayments
-        .filter((payment) => payment.payment_status === "success")
-        .reduce((sum, payment) => sum + Number(payment.amount_paid || 0), 0);
+        .sort((a, b) => a.semester - b.semester);
+
       setPaymentHistoryModal((prev) => ({
         ...prev,
-        payments: orderedPayments,
         loading: false,
-        balance: Math.max(registrationTotalFee - totalPaid, 0),
-        totalFee: registrationTotalFee,
+        semesterData,
       }));
     } catch (error) {
       console.error("Unable to load payment history:", error);
       setPaymentHistoryModal((prev) => ({
         ...prev,
-        payments: [],
         loading: false,
         error: error?.message || "Unable to load payment history.",
-        balance: 0,
-        totalFee: 0,
+        semesterData: [],
       }));
     }
   };
@@ -607,7 +635,7 @@ export default function Students() {
     status: "ACTIVE",
     category: "",
   });
- 
+
   // Load initial data
   useEffect(() => {
     const loadData = async () => {
@@ -625,25 +653,25 @@ export default function Students() {
           `
           )
           .order("full_name");
- 
+
         if (studentsError) throw studentsError;
- 
+
         // Fetch groups
         const { data: groupsData, error: groupsError } = await supabase
           .from("groups")
           .select("group_id, group_code, group_name")
           .order("group_name");
- 
+
         if (groupsError) throw groupsError;
- 
+
         // Fetch courses
         const { data: coursesData, error: coursesError } = await supabase
           .from("courses")
           .select("course_id, course_code, course_name")
           .order("course_name");
- 
+
         if (coursesError) throw coursesError;
- 
+
         // Fetch academic years
         const { data: yearsData, error: yearsError } = await supabase
           .from("academic_year")
@@ -759,11 +787,11 @@ export default function Students() {
     };
     updateStatuses();
   }, [filteredStudents, paymentSemester]);
- 
+
   const handleFilterChange = (field, value) => {
     setFilters((prev) => ({ ...prev, [field]: value }));
   };
- 
+
   const handleEdit = (student) => {
     setEditingStudent(student);
     setEditForm({
@@ -801,39 +829,39 @@ export default function Students() {
       status: student.status || "ACTIVE",
     });
   };
- 
+
   const handleEditChange = (e) => {
     const { name, value } = e.target;
     setEditForm((prev) => {
-    if (name === "group_code") {
-      const match = groups.find((g) => g.group_code === value);
-      return {
-        ...prev,
-        group_code: value,
-        group_name: match?.group_name || "",
+      if (name === "group_code") {
+        const match = groups.find((g) => g.group_code === value);
+        return {
+          ...prev,
+          group_code: value,
+          group_name: match?.group_name || "",
         };
       }
-    if (name === "course_code") {
-      const match = courses.find((c) => c.course_code === value);
-      return {
-        ...prev,
-        course_code: value,
-        course_name: match?.course_name || "",
-      };
-    }
-    if (name === "category") {
-      return {
-        ...prev,
-        category: value.toUpperCase(),
-      };
-    }
+      if (name === "course_code") {
+        const match = courses.find((c) => c.course_code === value);
+        return {
+          ...prev,
+          course_code: value,
+          course_name: match?.course_name || "",
+        };
+      }
+      if (name === "category") {
+        return {
+          ...prev,
+          category: value.toUpperCase(),
+        };
+      }
       return {
         ...prev,
         [name]: value,
       };
     });
   };
- 
+
   const handleUpdateStudent = async () => {
     if (!editingStudent) return;
     const essentialFields = {
@@ -848,7 +876,7 @@ export default function Students() {
       notify: ({ message }) => toast.warn(message),
     });
     if (!valid) return;
- 
+
     try {
       setLoading(true);
       const payload = {
@@ -881,9 +909,9 @@ export default function Students() {
         .from("students")
         .update(payload)
         .eq("id", editingStudent.id);
- 
+
       if (error) throw error;
- 
+
       const groupDisplayName =
         groups.find((g) => g.group_code === editForm.group_code)?.group_name ||
         editForm.group_code;
@@ -895,18 +923,18 @@ export default function Students() {
         prev.map((student) =>
           student.id === editingStudent.id
             ? {
-                ...student,
-                ...editForm,
-                ...payload,
-                group_name: groupDisplayName,
-                course_name: courseDisplayName,
-                group_code: editForm.group_code,
-                course_code: editForm.course_code,
-              }
+              ...student,
+              ...editForm,
+              ...payload,
+              group_name: groupDisplayName,
+              course_name: courseDisplayName,
+              group_code: editForm.group_code,
+              course_code: editForm.course_code,
+            }
             : student
         )
       );
- 
+
       toast.success("Student updated successfully");
       setEditingStudent(null);
     } catch (error) {
@@ -916,11 +944,11 @@ export default function Students() {
       setLoading(false);
     }
   };
- 
+
   const handleCancelEdit = () => {
     setEditingStudent(null);
   };
- 
+
   const [deleteModal, setDeleteModal] = useState({
     show: false,
     student: null,
@@ -959,7 +987,7 @@ export default function Students() {
       closeDeleteModal();
     }
   };
- 
+
   // Open status modal with current student's status
   const openStatusModal = (student) => {
     setStatusModal({
@@ -968,7 +996,7 @@ export default function Students() {
       selectedStatus: student.status || 'CONTINUE'
     });
   };
- 
+
   // Close status modal
   const closeStatusModal = () => {
     setStatusModal(prev => ({
@@ -976,26 +1004,26 @@ export default function Students() {
       show: false
     }));
   };
- 
+
   // Update student status in database and local state
   const updateStudentStatus = async () => {
     if (!statusModal.student) return;
-   
+
     try {
       const { error } = await supabase
         .from("students")
         .update({ status: statusModal.selectedStatus })
         .eq("id", statusModal.student.id);
- 
+
       if (error) throw error;
- 
+
       // Update local state
       setStudents(students.map(student =>
         student.id === statusModal.student.id
           ? { ...student, status: statusModal.selectedStatus }
           : student
       ));
- 
+
       toast.success("Student status updated successfully");
       closeStatusModal();
     } catch (error) {
@@ -1017,11 +1045,11 @@ export default function Students() {
     : null;
   const viewingMedia = viewingStudent
     ? {
-        photoUrl: viewingStudent.photo_url?.toString().trim() || null,
-        initials: getStudentInitials(
-          viewingStudent.full_name || viewingStudent.student_id || "Student"
-        ),
-      }
+      photoUrl: viewingStudent.photo_url?.toString().trim() || null,
+      initials: getStudentInitials(
+        viewingStudent.full_name || viewingStudent.student_id || "Student"
+      ),
+    }
     : { photoUrl: null, initials: "ST" };
 
   useEffect(() => {
@@ -1171,117 +1199,82 @@ export default function Students() {
               </div>
             </div>
           </div>
-        <div className="row g-3">
-          <div className="col-12 col-md-6 col-lg-3">
-            <label className="form-label">Hall ticket / Student ID</label>
-            <input
-              type="text"
-              className="form-control"
-              value={studentIdSearch}
-              onChange={(e) => setStudentIdSearch(e.target.value)}
-            />
-          </div>
-          <div className="col-12 col-sm-6 col-md-4 col-lg-2">
-            <label className="form-label">Category</label>
-            <select
-              className="form-select"
-              value={filters.category}
-              onChange={(e) => handleFilterChange("category", e.target.value)}
-            >
-              <option value="">All Categories</option>
-              {categoryOptions.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="col-12 col-sm-6 col-md-4 col-lg-2">
-            <label className="form-label">Academic Year</label>
-            <select
-              className="form-select"
-              value={filters.academic_year}
-              onChange={(e) =>
-                handleFilterChange("academic_year", e.target.value)
-              }
-            >
-              <option value="">All Years</option>
-              {academicYearOptions.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="col-12 col-sm-6 col-md-4 col-lg-2">
-            <label className="form-label">Group</label>
-            <select
-              className="form-select"
-              value={filters.group_name}
-              onChange={(e) => handleFilterChange("group_name", e.target.value)}
-            >
-              <option value="">All Groups</option>
-              {filteredGroupOptions.map((group) => (
-                <option key={group.group_id} value={group.group_code}>
-                  {group.group_name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="col-12 col-sm-6 col-md-4 col-lg-2">
-            <label className="form-label">Course</label>
-            <select
-              className="form-select"
-              value={filters.course_name}
-              onChange={(e) =>
-                handleFilterChange("course_name", e.target.value)
-              }
-            >
-              <option value="">All Courses</option>
-              {filteredCourseOptions.map((course) => (
-                <option key={course.course_id} value={course.course_code}>
-                  {course.course_name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="col-12 col-sm-6 col-md-4 col-lg-3">
-            <label className="form-label">Payment Semester</label>
-            <select
-              className="form-select"
-              value={paymentSemester}
-              onChange={(e) => setPaymentSemester(e.target.value)}
-            >
-              <option value="">Select Semester</option>
-              {semesterOptions.map((semester) => (
-                <option key={semester} value={semester}>
-                  Semester {semester}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        {paymentSemester && (
-          <div className="mt-4 border-top pt-3">
-            <div className="d-flex flex-wrap justify-content-between align-items-center gap-3">
-              <span className="small text-muted">
-                Payment insights are scoped to Semester {paymentSemester}.
-              </span>
-              <span
-                className={`badge rounded-pill px-3 py-2 ${
-                  studentStats.flagged
-                    ? "bg-warning text-dark"
-                    : "bg-success text-white"
-                }`}
+          <div className="row g-3">
+            <div className="col-12 col-md-6 col-lg-3">
+              <label className="form-label">Hall ticket / Student ID</label>
+              <input
+                type="text"
+                className="form-control"
+                value={studentIdSearch}
+                onChange={(e) => setStudentIdSearch(e.target.value)}
+              />
+            </div>
+            <div className="col-12 col-sm-6 col-md-4 col-lg-2">
+              <label className="form-label">Category</label>
+              <select
+                className="form-select"
+                value={filters.category}
+                onChange={(e) => handleFilterChange("category", e.target.value)}
               >
-                {studentStats.flagged
-                  ? `${studentStats.flagged} flagged accounts`
-                  : "No payment flags"}
-              </span>
+                <option value="">All Categories</option>
+                {categoryOptions.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col-12 col-sm-6 col-md-4 col-lg-2">
+              <label className="form-label">Academic Year</label>
+              <select
+                className="form-select"
+                value={filters.academic_year}
+                onChange={(e) =>
+                  handleFilterChange("academic_year", e.target.value)
+                }
+              >
+                <option value="">All Years</option>
+                {academicYearOptions.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col-12 col-sm-6 col-md-4 col-lg-2">
+              <label className="form-label">Group</label>
+              <select
+                className="form-select"
+                value={filters.group_name}
+                onChange={(e) => handleFilterChange("group_name", e.target.value)}
+              >
+                <option value="">All Groups</option>
+                {filteredGroupOptions.map((group) => (
+                  <option key={group.group_id} value={group.group_code}>
+                    {group.group_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col-12 col-sm-6 col-md-4 col-lg-2">
+              <label className="form-label">Course</label>
+              <select
+                className="form-select"
+                value={filters.course_name}
+                onChange={(e) =>
+                  handleFilterChange("course_name", e.target.value)
+                }
+              >
+                <option value="">All Courses</option>
+                {filteredCourseOptions.map((course) => (
+                  <option key={course.course_id} value={course.course_code}>
+                    {course.course_name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
-        )}
-      </div>
+        </div>
 
         <div className="students-table-panel card card-soft p-4">
           <div className="students-table-panel-header mb-3">
@@ -1293,140 +1286,119 @@ export default function Students() {
                 Tap any row to review details, edit records or inspect payments.
               </p>
             </div>
-          <div className="students-table-panel-meta text-end">
-            {loading ? "Refreshing data..." : `${filteredStudents.length} students listed`}
+            <div className="students-table-panel-meta text-end">
+              {loading ? "Refreshing data..." : `${filteredStudents.length} students listed`}
+            </div>
           </div>
-        </div>
-        <div className="table-responsive">
-          <table className="table table-borderless table-hover align-middle mb-0">
-            <thead className="table-light">
-              <tr>
-                <th>Student ID</th>
-                <th>Name</th>
-                <th>Hall Ticket</th>
-                <th>Group</th>
-                <th>Course</th>
-                <th>Academic Year</th>
-                <th>Semester</th>
-                <th>Status</th>
-                <th>Payment</th>
-                <th className="text-end">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
+          <div className="table-responsive">
+            <table className="table table-borderless table-hover align-middle mb-0">
+              <thead className="table-light">
                 <tr>
-                  <td colSpan="10" className="text-center py-4">
-                    <div className="spinner-border text-primary" role="status">
-                      <span className="visually-hidden">Loading...</span>
-                    </div>
-                  </td>
+                  <th>Student ID</th>
+                  <th>Name</th>
+                  <th>Hall Ticket</th>
+                  <th>Group</th>
+                  <th>Course</th>
+                  <th>Academic Year</th>
+                  <th>Semester</th>
+                  <th>Status</th>
+                  <th>Payment</th>
+                  <th className="text-end">Actions</th>
                 </tr>
-              ) : filteredStudents.length > 0 ? (
-                filteredStudents.map((student) => (
-                  <tr
-                    key={student.id}
-                    role="button"
-                    onClick={() => openStudentDetails(student)}
-                    style={{ cursor: "pointer" }}
-                  >
-                    <td>{student.student_id}</td>
-                    <td>{student.full_name}</td>
-                    <td>{student.hall_ticket_no || "-"}</td>
-                    <td>{student.group?.group_name || student.group_name}</td>
-                    <td>{student.course?.course_name || student.course_name}</td>
-                    <td>{student.academic_year}</td>
-                    <td>{formatDerivedSemesterLabel(student.academic_year)}</td>
-                    <td>
-                      <button
-                        className={`btn btn-sm ${
-                          student.status === "DISCONTINUE"
-                            ? "btn-danger"
-                            : student.status === "HOLD"
-                            ? "btn-warning"
-                            : "btn-success"
-                        }`}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          openStatusModal(student);
-                        }}
-                        style={{ minWidth: "110px" }}
-                      >
-                        {student.status === "DISCONTINUE"
-                          ? "Discontinued"
-                          : student.status === "HOLD"
-                          ? "On Hold"
-                          : "Active"}
-                      </button>
-                    </td>
-                    <td>
-                      {paymentSemester && paymentStatuses[student.id] ? (
-                        <div className="d-flex flex-wrap gap-2">
-                          {paymentStatuses[student.id]?.detailLines?.map(
-                            (line, index) => (
-                              <button
-                                key={`payment-detail-${student.id}-${index}`}
-                                type="button"
-                                className={`btn btn-sm ${
-                                  line.paid
-                                    ? "btn-status-paid"
-                                    : "btn-status-unpaid"
-                                }`}
-                                style={{ minWidth: "140px" }}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  openPaymentHistoryModal(student);
-                                }}
-                              >
-                                {line.paid
-                                  ? `${line.label} paid`
-                                  : `${line.label} unpaid`}
-                              </button>
-                            )
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-muted small">
-                          {paymentSemester ? 'Loading...' : 'Select semester'}
-                        </span>
-                      )}
-                    </td>
-                    <td className="text-end">
-                      <div className="d-flex justify-content-end flex-wrap gap-2">
-                        <button
-                          className="students-action-button students-action-button--edit"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleEdit(student);
-                          }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="students-action-button students-action-button--delete"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            openDeleteModal(student);
-                          }}
-                        >
-                          Delete
-                        </button>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan="10" className="text-center py-4">
+                      <div className="spinner-border text-primary" role="status">
+                        <span className="visually-hidden">Loading...</span>
                       </div>
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="10" className="text-center py-4">
-                    No students found matching the selected filters.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                ) : filteredStudents.length > 0 ? (
+                  filteredStudents.map((student) => (
+                    <tr
+                      key={student.id}
+                      role="button"
+                      onClick={() => openStudentDetails(student)}
+                      style={{ cursor: "pointer" }}
+                    >
+                      <td>{student.student_id}</td>
+                      <td>{student.full_name}</td>
+                      <td>{student.hall_ticket_no || "-"}</td>
+                      <td>{student.group?.group_name || student.group_name}</td>
+                      <td>{student.course?.course_name || student.course_name}</td>
+                      <td>{student.academic_year}</td>
+                      <td>{student.current_semester ? `Semester ${student.current_semester}` : 'Semester N/A'}</td>
+                      <td>
+                        <button
+                          className={`btn btn-sm ${student.status === "DISCONTINUE"
+                            ? "btn-danger"
+                            : student.status === "HOLD"
+                              ? "btn-warning"
+                              : "btn-success"
+                            }`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openStatusModal(student);
+                          }}
+                          style={{ minWidth: "110px" }}
+                        >
+                          {student.status === "DISCONTINUE"
+                            ? "Discontinued"
+                            : student.status === "HOLD"
+                              ? "On Hold"
+                              : "Active"}
+                        </button>
+                      </td>
+                      <td className="text-center">
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-primary"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openPaymentHistoryModal(student);
+                          }}
+                        >
+                          View
+                        </button>
+                      </td>
+                      <td className="text-end">
+                        <div className="d-flex justify-content-end flex-wrap gap-2">
+                          <button
+                            className="students-action-button students-action-button--edit"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleEdit(student);
+                            }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="students-action-button students-action-button--delete"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              openDeleteModal(student);
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="10" className="text-center py-4">
+                      No students found matching the selected filters.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </div>
 
       {viewingStudent && (
         <div className="students-modal-overlay" tabIndex="-1">
@@ -1446,8 +1418,8 @@ export default function Students() {
                       viewingStudent.course_name ||
                       viewingStudent.group?.group_name ||
                       viewingStudent.group_name) && (
-                      <span className="mx-2">•</span>
-                    )}
+                        <span className="mx-2">•</span>
+                      )}
                     <span>
                       {viewingStudent.course?.course_name ||
                         viewingStudent.course_name ||
@@ -1486,8 +1458,8 @@ export default function Students() {
                         {viewingStudent.status === "DISCONTINUE"
                           ? "Discontinued"
                           : viewingStudent.status === "HOLD"
-                          ? "On Hold"
-                          : "Active Student"}
+                            ? "On Hold"
+                            : "Active Student"}
                       </p>
                       <h6 className="text-truncate mb-0">
                         {viewingStudent.full_name || "-"}
@@ -1504,19 +1476,18 @@ export default function Students() {
                           "Payment info pending"}
                       </span>
                       <span
-                        className={`students-modal-badge students-modal-badge--${
-                          viewingStudent.status === "DISCONTINUE"
-                            ? "danger"
-                            : viewingStudent.status === "HOLD"
+                        className={`students-modal-badge students-modal-badge--${viewingStudent.status === "DISCONTINUE"
+                          ? "danger"
+                          : viewingStudent.status === "HOLD"
                             ? "warning"
                             : "success"
-                        }`}
+                          }`}
                       >
                         {viewingStudent.status === "DISCONTINUE"
                           ? "Discontinued"
                           : viewingStudent.status === "HOLD"
-                          ? "On Hold"
-                          : "Active"}
+                            ? "On Hold"
+                            : "Active"}
                       </span>
                     </div>
                     <div className="students-modal-info-grid row g-3">
@@ -1659,9 +1630,8 @@ export default function Students() {
                     </p>
                     <span className="students-modal-card-meta">
                       {viewingPaymentRecords.data.length
-                        ? `${viewingPaymentRecords.data.length} semester${
-                            viewingPaymentRecords.data.length === 1 ? "" : "s"
-                          }`
+                        ? `${viewingPaymentRecords.data.length} semester${viewingPaymentRecords.data.length === 1 ? "" : "s"
+                        }`
                         : "No registrations yet"}
                     </span>
                   </div>
@@ -1706,9 +1676,8 @@ export default function Students() {
                                 <strong>{semesterLabel}</strong>
                                 <div className="text-muted small">
                                   {payments.length
-                                    ? `${payments.length} payment${
-                                        payments.length === 1 ? "" : "s"
-                                      }`
+                                    ? `${payments.length} payment${payments.length === 1 ? "" : "s"
+                                    }`
                                     : "No payments yet"}
                                 </div>
                               </div>
@@ -1770,8 +1739,8 @@ export default function Students() {
                         );
                       })
                     )}
+                  </div>
                 </div>
-              </div>
               </div>
             </div>
           </div>
@@ -1954,7 +1923,7 @@ export default function Students() {
                     </div>
                   </div>
                 </div>
- 
+
                 <div className="row mt-3">
                   <div className="col-md-6">
                     <h6>Parent Information</h6>
@@ -2003,7 +1972,7 @@ export default function Students() {
                     </div>
                   </div>
                 </div>
- 
+
                 <div className="row mt-3">
                   <div className="col-12">
                     <h6>Address & Identity</h6>
@@ -2071,7 +2040,7 @@ export default function Students() {
                     </div>
                   </div>
                 </div>
- 
+
                 <div className="row mt-3">
                   <div className="col-md-4">
                     <div className="mb-3">
@@ -2110,7 +2079,7 @@ export default function Students() {
                     </div>
                   </div>
                 </div>
- 
+
                 <div className="row mt-3">
                   <div className="col-md-6">
                     <div className="mb-3">
@@ -2181,7 +2150,7 @@ export default function Students() {
                         id="continueOption"
                         value="CONTINUE"
                         checked={statusModal.selectedStatus === 'CONTINUE'}
-                        onChange={() => setStatusModal({...statusModal, selectedStatus: 'CONTINUE'})}
+                        onChange={() => setStatusModal({ ...statusModal, selectedStatus: 'CONTINUE' })}
                       />
                       <label className="form-check-label" htmlFor="continueOption">
                         Continue (Active)
@@ -2195,7 +2164,7 @@ export default function Students() {
                         id="discontinueOption"
                         value="DISCONTINUE"
                         checked={statusModal.selectedStatus === 'DISCONTINUE'}
-                        onChange={() => setStatusModal({...statusModal, selectedStatus: 'DISCONTINUE'})}
+                        onChange={() => setStatusModal({ ...statusModal, selectedStatus: 'DISCONTINUE' })}
                       />
                       <label className="form-check-label" htmlFor="discontinueOption">
                         Discontinue
@@ -2209,7 +2178,7 @@ export default function Students() {
                         id="holdOption"
                         value="HOLD"
                         checked={statusModal.selectedStatus === 'HOLD'}
-                        onChange={() => setStatusModal({...statusModal, selectedStatus: 'HOLD'})}
+                        onChange={() => setStatusModal({ ...statusModal, selectedStatus: 'HOLD' })}
                       />
                       <label className="form-check-label" htmlFor="holdOption">
                         Hold
@@ -2261,9 +2230,8 @@ export default function Students() {
               </div>
               <div className="modal-body">
                 <p className="text-muted mb-3">
-                  Semester {paymentSemester || "—"}{" "}
                   {paymentHistoryModal.student?.hall_ticket_no &&
-                    `• Hall Ticket ${paymentHistoryModal.student?.hall_ticket_no}`}
+                    `Hall Ticket: ${paymentHistoryModal.student?.hall_ticket_no}`}
                 </p>
                 {paymentHistoryModal.loading ? (
                   <div className="text-center py-4">
@@ -2275,53 +2243,70 @@ export default function Students() {
                   <div className="alert alert-warning mb-0">
                     {paymentHistoryModal.error}
                   </div>
-                ) : paymentHistoryModal.payments.length ? (
+                ) : paymentHistoryModal.semesterData && paymentHistoryModal.semesterData.length > 0 ? (
                   <>
-                    <div className="table-responsive">
-                    <table className="table table-sm mb-0">
-                      <thead className="table-light">
-                        <tr>
-                          <th>#</th>
-                          <th>Date</th>
-                          <th>Amount</th>
-                          <th>Type</th>
-                          <th>Fee Type</th>
-                          <th>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                            {paymentHistoryModal.payments.map((payment) => (
-                              <tr
-                                key={
-                                  payment.id ||
-                                  `${payment.payment_type}-${payment.created_at}`
-                                }
-                              >
-                                <td>{payment.sequence || "?"}</td>
-                                <td>{formatPaymentDate(payment.created_at)}</td>
-                                <td>
-                                  {payment.amount_paid
-                                    ? formatCurrency(payment.amount_paid)
-                                    : "-"}
-                                </td>
-                                <td>{payment.payment_type || "—"}</td>
-                                <td>{payment.fee_type || "—"}</td>
-                                <td className="text-capitalize">
-                                  {payment.payment_status || "—"}
-                                </td>
-                              </tr>
-                            ))}
-                      </tbody>
-                    </table>
-                    </div>
-                    {paymentHistoryModal.balance > 0 && (
-                      <div className="alert alert-info mt-3 mb-0">
-                        Balance {formatCurrency(paymentHistoryModal.balance)}
+                    {paymentHistoryModal.semesterData.map((semData) => (
+                      <div key={`semester-${semData.semester}`} className="mb-4">
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                          <h6 className="mb-0">Semester {semData.semester}</h6>
+                          <div className="text-end">
+                            <div className="fw-semibold">
+                              Total Fee: {formatCurrency(semData.totalFee)}
+                            </div>
+                            <div className="small text-muted">
+                              Paid: {formatCurrency(semData.totalPaid)}
+                              {semData.totalPaid > semData.totalFee && (
+                                <span className="text-danger ms-2">
+                                  (includes Fine: {formatCurrency(semData.totalPaid - semData.totalFee)})
+                                </span>
+                              )}
+                              {semData.balance > 0 && (
+                                <span className="text-danger ms-2">
+                                  Balance: {formatCurrency(semData.balance)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        {semData.payments && semData.payments.length > 0 ? (
+                          <div className="table-responsive">
+                            <table className="table table-sm table-bordered mb-0">
+                              <thead className="table-light">
+                                <tr>
+                                  <th>Date</th>
+                                  <th>Amount</th>
+                                  <th>Type</th>
+                                  <th>Fee Type</th>
+                                  <th>Status</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {semData.payments.map((payment, idx) => (
+                                  <tr key={payment.id || `payment-${idx}`}>
+                                    <td className="text-nowrap">{formatPaymentDate(payment.created_at)}</td>
+                                    <td>
+                                      {payment.amount_paid
+                                        ? formatCurrency(payment.amount_paid)
+                                        : "-"}
+                                    </td>
+                                    <td>{payment.payment_type || "—"}</td>
+                                    <td>{payment.fee_type || "—"}</td>
+                                    <td className="text-capitalize">
+                                      {payment.payment_status || "—"}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <div className="text-muted small">No payments recorded for this semester.</div>
+                        )}
                       </div>
-                    )}
+                    ))}
                   </>
                 ) : (
-                  <div className="text-muted">No payments have been recorded yet.</div>
+                  <div className="text-muted">No payment records found for this student.</div>
                 )}
               </div>
               <div className="modal-footer">
@@ -2337,50 +2322,17 @@ export default function Students() {
           </div>
         </div>
       )}
-      {deleteModal.show && (
-        <div className="modal d-block" tabIndex="-1" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Confirm delete</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={closeDeleteModal}
-                  disabled={deleteModal.loading}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <p className="mb-0">
-                  Are you sure you want to remove{" "}
-                  <strong>{deleteModal.student?.full_name || "this student"}</strong>?
-                  This action cannot be undone.
-                </p>
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary"
-                  onClick={closeDeleteModal}
-                  disabled={deleteModal.loading}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-danger"
-                  onClick={confirmDeleteStudent}
-                  disabled={deleteModal.loading}
-                >
-                  {deleteModal.loading ? "Deleting..." : "Delete student"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmationModal
+        isOpen={deleteModal.show}
+        onClose={closeDeleteModal}
+        onConfirm={confirmDeleteStudent}
+        title="Confirm delete"
+        message={`Are you sure you want to remove ${deleteModal.student?.full_name || "this student"}? This action cannot be undone.`}
+        confirmText={deleteModal.loading ? "Deleting..." : "Delete student"}
+        isLoading={deleteModal.loading}
+      />
     </AdminShell>
   );
 }
- 
- 
+
+

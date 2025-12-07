@@ -2,6 +2,7 @@ import AdminShell from '../components/AdminShell'
 import { useEffect, useState, useRef } from 'react'
 import { api } from '../lib/mockApi'
 import { supabase } from '../../supabaseClient'
+import { showToast } from '../store/ui'
 
 export default function Results() {
   const [students, setStudents] = useState([])
@@ -14,9 +15,9 @@ export default function Results() {
   const [decodeError, setDecodeError] = useState('')
   const [subject, setSubject] = useState(null)
   const [barcodeId, setBarcodeId] = useState(null)
+  const [scanData, setScanData] = useState(null) // { student_id, exam_id, semester, subject_id }
   const [marksForm, setMarksForm] = useState({ marks_obtained: '' })
   const [savingMarks, setSavingMarks] = useState(false)
-  const [marksSuccess, setMarksSuccess] = useState('')
   const [marksError, setMarksError] = useState('')
 
   const barcodeInputRef = useRef(null)
@@ -50,7 +51,7 @@ export default function Results() {
     const trimmed = code.trim()
     setSubject(null)
     setBarcodeId(null)
-    setMarksSuccess('')
+    setScanData(null)
     setMarksError('')
 
     if (!trimmed) {
@@ -64,11 +65,16 @@ export default function Results() {
       const { data: decodeRow, error: decodeErr } = await supabase
         .from('barcodes')
         .select(`
-          id, 
+          id,
+          student_id,
           exam_registration_subject_id, 
           barcode,
           exam_registration_subjects:exam_registration_subject_id (
-            subject_id
+            subject_id,
+            exam_registrations (
+              exam_id,
+              semester
+            )
           )
         `)
         .eq('barcode', trimmed)
@@ -100,6 +106,12 @@ export default function Results() {
 
       setSubject(subjectData)
       setBarcodeId(decodeRow.id)
+      setScanData({
+        student_id: decodeRow.student_id,
+        exam_id: decodeRow.exam_registration_subjects?.exam_registrations?.exam_id,
+        semester: decodeRow.exam_registration_subjects?.exam_registrations?.semester,
+        subject_id: decodeRow.exam_registration_subjects?.subject_id
+      })
     } catch (err) {
       console.error('Error fetching barcode details', err)
       setDecodeError('Failed to load details for this barcode')
@@ -139,7 +151,6 @@ export default function Results() {
       return
     }
     setSavingMarks(true)
-    setMarksSuccess('')
     setMarksError('')
     try {
       if (!barcodeId) {
@@ -163,10 +174,14 @@ export default function Results() {
         max_marks: max
       })
       if (error) throw error
-      setMarksSuccess('Marks saved successfully')
+
+      if (error) throw error
+
+      showToast('Marks saved successfully', { type: 'success' })
       setBarcode('')
       setSubject(null)
       setBarcodeId(null)
+      setScanData(null)
       setMarksForm({ marks_obtained: '' })
       setMarksError('')
       setDecodeError('')
@@ -194,7 +209,7 @@ export default function Results() {
                 setDecodeError('')
                 setSubject(null)
                 setBarcodeId(null)
-                setMarksSuccess('')
+                setScanData(null)
               }}
               onKeyDown={e => {
                 if (e.key === 'Enter') {
@@ -279,11 +294,6 @@ export default function Results() {
             </button>
           </div>
 
-          {marksSuccess && (
-            <div className="alert alert-success mt-3 mb-0 py-2">
-              {marksSuccess}
-            </div>
-          )}
         </div>
       )}
       {/* Original functionality preserved but commented out

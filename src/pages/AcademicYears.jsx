@@ -1,5 +1,7 @@
 import { useState } from 'react';
- 
+import { showToast } from '../store/ui.js';
+import ConfirmationModal from '../components/ConfirmationModal.jsx';
+
 const inferCategoryFromYearName = (yearName = '') => {
   if (!yearName) return 'UG';
   const sanitized = yearName.trim().replace(/[^0-9-]/g, '');
@@ -9,7 +11,7 @@ const inferCategoryFromYearName = (yearName = '') => {
   const end = Number(match[2]);
   return end - start === 2 ? 'PG' : 'UG';
 };
- 
+
 export default function AcademicYearsSection({
   yearForm,
   setYearForm,
@@ -21,20 +23,22 @@ export default function AcademicYearsSection({
   onCancelEdit,
 }) {
   const [error, setError] = useState('');
- 
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
+
   const validateYearFormat = (yearStr, category) => {
     if (!yearStr) return false;
-   
+
     // Check if the format is YYYY-YYYY
     const yearRegex = /^(\d{4})-(\d{4})$/;
     if (!yearRegex.test(yearStr)) return false;
-   
+
     const [startYear, endYear] = yearStr.split('-').map(Number);
     const expectedDuration = category === 'UG' ? 3 : 2;
-   
+
     return (endYear - startYear) === expectedDuration;
   };
- 
+
   const handleYearChange = (e) => {
     const value = e.target.value;
     const prevValue = yearForm.name || '';
@@ -57,17 +61,17 @@ export default function AcademicYearsSection({
       return;
     }
     setYearForm(prev => ({ ...prev, name: value }));
-   
+
     if (!value) {
       setError('');
       return;
     }
-   
+
     if (!yearForm.category) {
       setError('Please select a category first');
       return;
     }
-   
+
     if (!validateYearFormat(value, yearForm.category)) {
       const expectedYears = yearForm.category === 'UG' ? '3 years' : '2 years';
       setError(`Please enter a valid ${yearForm.category} duration (${expectedYears})`);
@@ -75,7 +79,7 @@ export default function AcademicYearsSection({
       setError('');
     }
   };
- 
+
   const getCategory = (year) => {
     const rawCategory =
       (year.category && String(year.category)) ||
@@ -85,7 +89,7 @@ export default function AcademicYearsSection({
     if (normalized) return normalized.toUpperCase();
     return inferCategoryFromYearName(year.name || year.academic_year);
   };
- 
+
   // Group academic years by category (normalize to uppercase)
   const groupedYears = academicYears.reduce(
     (acc, year) => {
@@ -100,23 +104,30 @@ export default function AcademicYearsSection({
   );
   const ugYears = groupedYears.UG || [];
   const pgYears = groupedYears.PG || [];
- 
+
   const handleAddYear = async () => {
     if (!yearForm.category) {
       setError('Please select a category first');
       return;
     }
-   
+
     if (!validateYearFormat(yearForm.name, yearForm.category)) {
       const expectedYears = yearForm.category === 'UG' ? '3 years' : '2 years';
       setError(`Please enter a valid ${yearForm.category} duration (${expectedYears})`);
       return;
     }
-   
+
     setError('');
-    await addYear();
+    try {
+      await addYear();
+      showToast(editingYearId ? "Academic year updated successfully" : "Academic year added successfully", { type: 'success' });
+    } catch (err) {
+      console.error(err);
+      // Assuming parent might handle error or we show generic error
+      // showToast("Failed to save academic year", { type: 'error' });
+    }
   };
- 
+
   const handleEditYear = (year) => {
     const category = getCategory(year);
     editYear(year);
@@ -127,10 +138,23 @@ export default function AcademicYearsSection({
     });
     setError('');
   };
- 
-  const handleDeleteYear = async (id) => {
-    if (window.confirm('Are you sure you want to delete this academic year?')) {
-      await deleteYear(id);
+
+  const handleDeleteClick = (id) => {
+    setDeleteTargetId(id);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (deleteTargetId) {
+      try {
+        await deleteYear(deleteTargetId);
+        showToast("Academic year deleted successfully", { type: 'success' });
+        setShowDeleteConfirm(false);
+        setDeleteTargetId(null);
+      } catch (err) {
+        console.error(err);
+        showToast("Failed to delete academic year", { type: 'error' });
+      }
     }
   };
   return (
@@ -175,8 +199,8 @@ export default function AcademicYearsSection({
                 required
               >
                 <option value="">Select Academic Year</option>
-                {Array.from({ length: 11 }, (_, i) => {
-                  const startYear = 2020 + i;
+                {Array.from({ length: 6 }, (_, i) => {
+                  const startYear = 2025 + i;
                   const endYear = yearForm.category === 'UG' ? startYear + 3 : startYear + 2;
                   const yearRange = `${startYear}-${endYear}`;
                   return (
@@ -246,7 +270,7 @@ export default function AcademicYearsSection({
                               <button
                                 type="button"
                                 className="btn btn-sm btn-outline-danger students-button students-button-sm flex-fill"
-                                onClick={() => handleDeleteYear(y.id)}
+                                onClick={() => handleDeleteClick(y.id)}
                               >
                                 Delete
                               </button>
@@ -289,7 +313,7 @@ export default function AcademicYearsSection({
                               <button
                                 type="button"
                                 className="btn btn-sm btn-outline-danger students-button students-button-sm flex-fill"
-                                onClick={() => handleDeleteYear(y.id)}
+                                onClick={() => handleDeleteClick(y.id)}
                               >
                                 Delete
                               </button>
@@ -305,6 +329,14 @@ export default function AcademicYearsSection({
           </div>
         )}
       </div>
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={confirmDelete}
+        title="Confirm Delete"
+        message="Are you sure you want to delete this academic year?"
+        confirmText="Confirm Delete"
+      />
     </section>
   );
 }

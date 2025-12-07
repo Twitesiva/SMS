@@ -8,6 +8,171 @@ import {
 import { supabase } from "../../supabaseClient";
 import collegeLogo from "../assets/media/images.png";
 import signatureImage from "../assets/media/signature.png";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
+
+const HallTicketTemplate = ({ student, papers, examLabel }) => (
+  <div style={{ width: "210mm", backgroundColor: "#fff", padding: "10mm" }}>
+    <div className="d-flex justify-content-between gap-3 flex-wrap align-items-start">
+      <img
+        src={collegeLogo}
+        alt="College logo"
+        style={{ width: 80, height: 80, objectFit: "contain" }}
+        className="rounded border"
+      />
+      <div className="text-center flex-grow-1">
+        <div className="text-uppercase text-muted fs-5 fw-bold">
+          Vijayam Arts and Science College
+        </div>
+        <h6 className="fw-bold mb-1">
+          {examLabel || "Exam Details"}
+        </h6>
+        <div className="fw-semibold fs-5">Hall Ticket</div>
+      </div>
+      <div className="text-end">
+        <img
+          src={
+            student.photo ||
+            "https://via.placeholder.com/80?text=Photo"
+          }
+          alt="Student"
+          className="rounded border mt-1"
+          style={{ width: 80, height: 80, objectFit: "cover" }}
+        />
+      </div>
+    </div>
+    <div className="d-flex flex-column gap-1 mt-3 text-start">
+      {[
+        {
+          label: "Hall Ticket Number",
+          value: student.hallTicket,
+        },
+        { label: "Student Name", value: student.name },
+        { label: "Group Name", value: student.group },
+        { label: "Course Name", value: student.course },
+      ].map((column) => (
+        <div
+          className="d-flex align-items-center gap-2"
+          key={column.label}
+        >
+          <span
+            className="text-muted fs-7"
+            style={{ width: 140 }}
+          >
+            {column.label}
+          </span>
+          <span className="text-muted">:</span>
+          <span className="fw-semibold text-body">
+            {column.value}
+          </span>
+        </div>
+      ))}
+    </div>
+    <div className="position-relative text-center my-2 mt-4">
+      <hr className="my-2" />
+      <span className="position-absolute top-50 start-50 translate-middle bg-white px-2 text-uppercase small text-muted fw-bold" style={{ fontSize: '10px' }}>
+        Appearing Papers
+      </span>
+    </div>
+    <div className="mb-2">
+      {papers.length > 0 ? (
+        <div className="table-responsive">
+          <table className="table table-bordered align-middle mb-0 table-sm" style={{ borderColor: "#dee2e6" }}>
+            <thead>
+              <tr>
+                <th>Seat No</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Subject Code</th>
+                <th>Subject</th>
+              </tr>
+            </thead>
+            <tbody>
+              {papers.map((paper) => (
+                <tr
+                  key={`${paper.subjectCode}-${paper.seatNumber}-${paper.time}`}
+                >
+                  <td className="fw-semibold">
+                    {paper.seatNumber}
+                  </td>
+                  <td>{paper.date}</td>
+                  <td>{paper.time}</td>
+                  <td>{paper.subjectCode}</td>
+                  <td>{paper.subjectName}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="text-muted">No papers found.</div>
+      )}
+    </div>
+    <div className="row text-center mt-3 align-items-end">
+      {[
+        "Signature of the Student",
+        "Signature of the Principal",
+        "Controller of Examination",
+      ].map((label) => (
+        <div
+          className="col-4 mb-2 mb-md-0 d-flex flex-column align-items-center justify-content-end"
+          key={label}
+          style={{ minHeight: 80 }}
+        >
+          {label === "Controller of Examination" && (
+            <img
+              src={signatureImage}
+              alt="Controller signature"
+              className="mb-1 w-100"
+              style={{
+                maxWidth: 120,
+                height: "auto",
+                objectFit: "contain",
+              }}
+            />
+          )}
+          <p className="mb-0 fw-semibold text-dark text-uppercase small">
+            {label}
+          </p>
+        </div>
+      ))}
+    </div>
+    <p className="text-muted fw-bold small mt-2 mb-1" style={{ fontSize: '10px' }}>
+      Note. The information furnished above is submitted by college.
+    </p>
+    <hr className="border-dark border-2 mt-0 mb-1" />
+    <h6
+      className="text-center fw-bold text-uppercase mb-0 mt-1"
+      style={{ textDecoration: "underline", textDecorationThickness: "2px", fontSize: '12px' }}
+    >
+      Instructions to the candidates
+    </h6>
+    <div className="mt-2 text-start text-muted" style={{ fontSize: '10px', lineHeight: '1.2' }}>
+      {[
+        "Candidates should occupy their seats in the examination hall at least 30 minutes before the commencement of the examination.",
+        "Write your answer on both sides of the answer booklet. No additional booklet will be issued.",
+        "Candidates should bring their Hall Ticket and Identity Card for inspection by the Chief Superintendent/ Invigilator/Observer/Squad/ University authorities.",
+        "Candidates are prohibited from writing anything on their Hall Tickets or Question Papers.",
+        "No candidate will be allowed to leave the examination hall until completion of half of the time allotted for the examination.",
+        "Candidates must use only blue/black pen for answering.",
+        "Candidates are prohibited from writing their names or Registered Numbers on any part of answer booklet except noting their Registered Numbers. Code number of Question Paper and Title of the Paper in the space provided for on the cover page of the Main Answer Booklet.",
+        "Candidates are prohibited from marking any identification marks including religious signs or symbols on the Main Answer Booklet which will be treated as a case of malpractice (SMP).",
+        "Candidates are prohibited from communicating either orally and or exchanging forbidden materials with other candidates during the course of examination. Otherwise such candidates stand the risk of being debarred from appearing for the examination(s).",
+        "Candidate should attend examination only at the examination centre allotted to him/her.",
+        "Candidate is strictly prohibited from bringing mobiles, electronic gadgets, calculators (unless specified) and forbidden materials (such as printed, handwritten, xerox or typewritten) into the examination hall which will be treated as a case of malpractice (SMP).",
+        "Mobiles and Handbags, if any, carried by candidates must be deposited voluntarily in the office of the Principal before the candidates present themselves in the examination hall.",
+        "Candidates are advised to verify the Date and Time of all examinations from the Time Tables displayed by the Principal/Chief Superintendent in the notice board of the examination centre.",
+        "Responsibility to handover the answer booklet to the invigilator is with you only.",
+        "Suits against the University if any, shall be filled in courts with in the juridiction of Chittoor district only."
+      ].map((text, index) => (
+        <div key={index} className="d-flex gap-2 mb-1">
+          <span className="fw-bold" style={{ minWidth: '15px' }}>{index + 1}.</span>
+          <span>{text}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+);
 
 export default function HallTickets() {
   const [filters, setFilters] = useState({
@@ -29,6 +194,263 @@ export default function HallTickets() {
   const [appearingPapers, setAppearingPapers] = useState([]);
   const [papersLoading, setPapersLoading] = useState(false);
   const [papersError, setPapersError] = useState("");
+
+  const [printData, setPrintData] = useState(null);
+  const [isDownloading, setIsDownloading] = useState(null);
+  const [bulkPrintQueue, setBulkPrintQueue] = useState(null);
+  const [isBulkDownloading, setIsBulkDownloading] = useState(false);
+
+  useEffect(() => {
+    if (printData) {
+      const generatePDF = async () => {
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          const element = document.getElementById("hall-ticket-print-view");
+          if (!element) return;
+
+          const canvas = await html2canvas(element, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            windowWidth: 1024
+          });
+          const imgData = canvas.toDataURL("image/png");
+          const pdf = new jsPDF("p", "mm", "a4");
+          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const pdfHeight = pdf.internal.pageSize.getHeight();
+          const imgProps = pdf.getImageProperties(imgData);
+          const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+          // Scale to fit if too tall
+          let finalWidth = pdfWidth;
+          let finalHeight = imgHeight;
+          if (imgHeight > pdfHeight) {
+            const scaleFactor = pdfHeight / imgHeight;
+            finalWidth = pdfWidth * scaleFactor;
+            finalHeight = pdfHeight;
+          }
+
+          // Center the image horizontally
+          const x = (pdfWidth - finalWidth) / 2;
+
+          pdf.addImage(imgData, "PNG", x, 0, finalWidth, finalHeight);
+
+          if (printData.action === "print") {
+            const blob = pdf.output("bloburl");
+            window.open(blob, "_blank");
+          } else {
+            pdf.save(`HallTicket_${printData.student.hallTicket}.pdf`);
+          }
+        } catch (error) {
+          console.error("PDF Generation failed", error);
+        } finally {
+          setIsDownloading(null);
+          setPrintData(null);
+        }
+      };
+      generatePDF();
+    }
+  }, [printData]);
+
+  useEffect(() => {
+    if (!bulkPrintQueue) return;
+
+    const generateBulkPDF = async () => {
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for render
+        const elements = document.getElementsByClassName("bulk-ticket-item");
+
+        const pdf = new jsPDF("p", "mm", "a4");
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+
+        for (let i = 0; i < elements.length; i++) {
+          const element = elements[i];
+          const canvas = await html2canvas(element, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            windowWidth: 1024
+          });
+
+          const imgData = canvas.toDataURL("image/png");
+          const imgProps = pdf.getImageProperties(imgData);
+          const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+          let finalWidth = pdfWidth;
+          let finalHeight = imgHeight;
+          if (imgHeight > pdfHeight) {
+            const scaleFactor = pdfHeight / imgHeight;
+            finalWidth = pdfWidth * scaleFactor;
+            finalHeight = pdfHeight;
+          }
+          const x = (pdfWidth - finalWidth) / 2;
+
+          if (i > 0) pdf.addPage();
+          pdf.addImage(imgData, "PNG", x, 0, finalWidth, finalHeight);
+        }
+
+        pdf.save(`HallTickets_Batch_${new Date().toISOString().slice(0, 10)}.pdf`);
+
+      } catch (error) {
+        console.error("Bulk PDF Generation failed", error);
+        alert("Failed to generate bulk PDF.");
+      } finally {
+        setIsBulkDownloading(false);
+        setBulkPrintQueue(null);
+      }
+    }
+
+    // Defer slightly to ensure state update renders 
+    setTimeout(generateBulkPDF, 100);
+
+  }, [bulkPrintQueue]);
+
+  const handleDownloadAll = async () => {
+    if (!registeredStudents.length || !filters.exam) return;
+    setIsBulkDownloading(true);
+    try {
+      const studentIds = registeredStudents.map(s => s.studentRowId);
+
+      // Fetch all seats for these students for this exam
+      const { data: allSeats, error: seatError } = await supabase
+        .from("student_subject_seats")
+        .select("seat_number, subject_id, student_id")
+        .eq("exam_id", filters.exam)
+        .in("student_id", studentIds);
+
+      if (seatError) throw seatError;
+
+      const subjectIds = Array.from(new Set(allSeats.map(s => s.subject_id).filter(Boolean)));
+
+      let subjectMap = new Map();
+      if (subjectIds.length) {
+        const { data: subjects } = await supabase
+          .from("subjects")
+          .select("subject_id, subject_code, subject_name")
+          .in("subject_id", subjectIds);
+        (subjects || []).forEach(s => subjectMap.set(s.subject_id, s));
+      }
+
+      const { data: scheduleRows } = await supabase
+        .from("exam_schedule")
+        .select("subject_code, exam_date, exam_start_time, exam_end_time")
+        .eq("exam_master_id", filters.exam);
+
+      const scheduleMap = new Map(
+        (scheduleRows || []).map((row) => [
+          row.subject_code?.toString().toUpperCase(),
+          row,
+        ])
+      );
+
+      const queue = registeredStudents.map(student => {
+        // Find seats for this student
+        const studentSeats = allSeats.filter(s => s.student_id === student.studentRowId);
+        const papers = studentSeats.map(row => {
+          const subject = subjectMap.get(row.subject_id);
+          const code = subject?.subject_code?.toString().toUpperCase();
+          const schedule = scheduleMap.get(code);
+
+          return {
+            seatNumber: row.seat_number ?? "—",
+            date: schedule?.exam_date ?? "—",
+            time:
+              formatScheduleTimeRange(
+                schedule?.exam_start_time,
+                schedule?.exam_end_time
+              ) || "—",
+            subjectCode: subject?.subject_code ?? "—",
+            subjectName: subject?.subject_name ?? "—",
+          };
+        });
+        return { student, papers };
+      });
+
+      setBulkPrintQueue(queue);
+
+    } catch (error) {
+      console.error("Bulk download failed", error);
+      setIsBulkDownloading(false);
+      alert("Failed to prepare bulk download.");
+    }
+  };
+
+  const handleDownloadTicket = async (student, action = "download") => {
+    if (!filters.exam) return;
+    setIsDownloading({ studentId: student.studentId, action });
+    try {
+      // If triggered from modal where we already have data
+      if (modalStudent?.studentId === student.studentId && appearingPapers.length > 0) {
+        setPrintData({ student: modalStudent, papers: appearingPapers, action });
+        return;
+      }
+
+      const { data: seatRows, error: seatError } = await supabase
+        .from("student_subject_seats")
+        .select("seat_number, subject_id")
+        .eq("student_id", student.studentRowId)
+        .eq("exam_id", filters.exam);
+      if (seatError) throw seatError;
+
+      const subjectIds = Array.from(
+        new Set(
+          (seatRows || [])
+            .map((row) => row.subject_id)
+            .filter((id) => id !== undefined && id !== null)
+        )
+      );
+      let subjectRows = [];
+      if (subjectIds.length) {
+        const { data: subjects, error: subjectError } = await supabase
+          .from("subjects")
+          .select("subject_id, subject_code, subject_name")
+          .in("subject_id", subjectIds);
+        if (subjectError) throw subjectError;
+        subjectRows = subjects || [];
+      }
+
+      const subjectMap = new Map(
+        subjectRows.map((row) => [row.subject_id, row])
+      );
+
+      const { data: scheduleRows, error: scheduleError } = await supabase
+        .from("exam_schedule")
+        .select("subject_code, exam_date, exam_start_time, exam_end_time")
+        .eq("exam_master_id", filters.exam);
+      if (scheduleError) throw scheduleError;
+
+      const scheduleMap = new Map(
+        (scheduleRows || []).map((row) => [
+          row.subject_code?.toString().toUpperCase(),
+          row,
+        ])
+      );
+
+      const papers = (seatRows || []).map((row) => {
+        const subject = subjectMap.get(row.subject_id);
+        const code = subject?.subject_code?.toString().toUpperCase();
+        const schedule = scheduleMap.get(code);
+        return {
+          seatNumber: row.seat_number ?? "—",
+          date: schedule?.exam_date ?? "—",
+          time:
+            formatScheduleTimeRange(
+              schedule?.exam_start_time,
+              schedule?.exam_end_time
+            ) || "—",
+          subjectCode: subject?.subject_code ?? "—",
+          subjectName: subject?.subject_name ?? "—",
+        };
+      });
+
+      setPrintData({ student, papers, action });
+    } catch (error) {
+      console.error("Error downloading ticket:", error);
+      setIsDownloading(null);
+      alert("Failed to download ticket data.");
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -154,10 +576,10 @@ export default function HallTickets() {
 
   const filteredCourses = filters.group
     ? options.courses.filter((course) => {
-        const groupValue = getCourseGroupValue(course);
-        if (!groupValue) return true;
-        return groupValue === filters.group;
-      })
+      const groupValue = getCourseGroupValue(course);
+      if (!groupValue) return true;
+      return groupValue === filters.group;
+    })
     : options.courses;
 
   const selectedExamLabel = useMemo(() => {
@@ -260,15 +682,15 @@ export default function HallTickets() {
           const code = subject?.subject_code?.toString().toUpperCase();
           const schedule = scheduleMap.get(code);
           return {
-            seatNumber: row.seat_number ?? "�",
-            date: schedule?.exam_date ?? "�",
+            seatNumber: row.seat_number ?? "�",
+            date: schedule?.exam_date ?? "�",
             time:
               formatScheduleTimeRange(
                 schedule?.exam_start_time,
                 schedule?.exam_end_time
-              ) || "�",
-            subjectCode: subject?.subject_code ?? "�",
-            subjectName: subject?.subject_name ?? "�",
+              ) || "�",
+            subjectCode: subject?.subject_code ?? "�",
+            subjectName: subject?.subject_name ?? "�",
           };
         });
         setAppearingPapers(papers);
@@ -352,14 +774,14 @@ export default function HallTickets() {
             studentRowId: student?.id ?? null,
           };
         });
-      const hallTicketFilter = filters.hallTicket?.toString().trim().toLowerCase();
+        const hallTicketFilter = filters.hallTicket?.toString().trim().toLowerCase();
         const finalList = hallTicketFilter
           ? combined.filter((student) =>
-              student.hallTicket
-                .toString()
-                .toLowerCase()
-                .includes(hallTicketFilter)
-            )
+            student.hallTicket
+              .toString()
+              .toLowerCase()
+              .includes(hallTicketFilter)
+          )
           : combined;
         setRegisteredStudents(finalList);
       } catch (error) {
@@ -496,7 +918,18 @@ export default function HallTickets() {
               <div className="card card-soft shadow-sm">
                 <div className="card-body">
                   <div className="d-flex justify-content-between align-items-center gap-3 mb-3 flex-wrap">
-                    <h4 className="mb-0">Registered students</h4>
+                    <div className="d-flex align-items-center gap-3">
+                      <h4 className="mb-0">Registered students</h4>
+                      {registeredStudents.length > 0 && (
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={handleDownloadAll}
+                          disabled={isBulkDownloading}
+                        >
+                          {isBulkDownloading ? "Preparing All..." : "Download All Hall Tickets"}
+                        </button>
+                      )}
+                    </div>
                     {loadingRegistrations && (
                       <span className="text-muted small">Loading students…</span>
                     )}
@@ -544,14 +977,18 @@ export default function HallTickets() {
                                   <button
                                     type="button"
                                     className="btn btn-sm btn-outline-primary"
+                                    onClick={() => handleDownloadTicket(student, "download")}
+                                    disabled={isDownloading?.studentId === student.studentId}
                                   >
-                                    Download
+                                    {isDownloading?.studentId === student.studentId && isDownloading?.action === "download" ? "Downloading..." : "Download"}
                                   </button>
                                   <button
                                     type="button"
                                     className="btn btn-sm btn-outline-secondary"
+                                    onClick={() => handleDownloadTicket(student, "print")}
+                                    disabled={isDownloading?.studentId === student.studentId}
                                   >
-                                    Print
+                                    {isDownloading?.studentId === student.studentId && isDownloading?.action === "print" ? "Printing..." : "Print"}
                                   </button>
                                 </div>
                               </td>
@@ -592,9 +1029,9 @@ export default function HallTickets() {
                       className="rounded border"
                     />
                     <div className="text-center flex-grow-1">
-                    <div className="text-uppercase text-muted fs-4 fw-bold">
-                      Vijayam Arts and Science College
-                    </div>
+                      <div className="text-uppercase text-muted fs-4 fw-bold">
+                        Vijayam Arts and Science College
+                      </div>
                       <h5 className="fw-bold mb-1">
                         {selectedExamLabel || "Exam Details"}
                       </h5>
@@ -656,7 +1093,7 @@ export default function HallTickets() {
                     )}
                     {appearingPapers.length > 0 && (
                       <div className="table-responsive">
-                        <table className="table table-borderless align-middle mb-0">
+                        <table className="table table-bordered align-middle mb-0" style={{ borderColor: "#dee2e6" }}>
                           <thead>
                             <tr>
                               <th>Seat No</th>
@@ -748,18 +1185,58 @@ export default function HallTickets() {
                       <li>Suits against the University if any, shall be filled in courts with in the juridiction of Chittoor district only.</li>
                     </ol>
                   </div>
-                  <div className="mt-3 d-flex justify-content-end">
+                  <div className="mt-3 d-flex justify-content-end gap-2">
                     <button
                       type="button"
                       className="btn btn-outline-secondary"
+                      onClick={() => handleDownloadTicket(modalStudent, "print")}
+                      disabled={isDownloading?.studentId === modalStudent.studentId}
+                    >
+                      {isDownloading?.studentId === modalStudent.studentId && isDownloading?.action === "print" ? "Printing..." : "Print"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => handleDownloadTicket(modalStudent, "download")}
+                      disabled={isDownloading?.studentId === modalStudent.studentId}
+                    >
+                      {isDownloading?.studentId === modalStudent.studentId && isDownloading?.action === "download" ? "Downloading..." : "Download"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-outline-dark"
                       onClick={() => setModalStudent(null)}
                     >
-                      Close Modal
+                      Close
                     </button>
                   </div>
-              </div>
+                </div>
               </div>
             </div>
+          </div>
+        )}
+        {printData && (
+          <div style={{ position: "absolute", top: "-10000px", left: "-10000px" }}>
+            <div id="hall-ticket-print-view">
+              <HallTicketTemplate
+                student={printData.student}
+                papers={printData.papers}
+                examLabel={selectedExamLabel}
+              />
+            </div>
+          </div>
+        )}
+        {bulkPrintQueue && (
+          <div style={{ position: "absolute", top: "-10000px", left: "-10000px" }}>
+            {bulkPrintQueue.map((item, idx) => (
+              <div className="bulk-ticket-item" key={idx}>
+                <HallTicketTemplate
+                  student={item.student}
+                  papers={item.papers}
+                  examLabel={selectedExamLabel}
+                />
+              </div>
+            ))}
           </div>
         )}
       </div>

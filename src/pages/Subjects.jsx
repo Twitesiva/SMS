@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from 'react'
 import { supabase } from '../../supabaseClient'
+import ConfirmationModal from '../components/ConfirmationModal.jsx'
 
 export default function SubjectsSection({
   subjectForm,
@@ -34,7 +35,7 @@ export default function SubjectsSection({
   const [academicYears, setAcademicYears] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-  
+
   // Fetch academic years from Supabase
   useEffect(() => {
     const fetchAcademicYears = async () => {
@@ -46,7 +47,7 @@ export default function SubjectsSection({
           .order('academic_year', { ascending: false })
 
         if (error) throw error
-        
+
         setAcademicYears(data || [])
       } catch (err) {
         console.error('Error fetching academic years:', err)
@@ -55,7 +56,7 @@ export default function SubjectsSection({
         setLoading(false)
       }
     }
-    
+
     fetchAcademicYears()
   }, [])
 
@@ -68,11 +69,11 @@ export default function SubjectsSection({
   const yearOptions = useMemo(() => {
     const activeList = (academicYears || []).filter(year => year?.active !== false)
     if (!subjectForm.academicYearId) return activeList
-    
+
     const hasSelected = activeList.some(year => String(year.id) === String(subjectForm.academicYearId))
     if (hasSelected) return activeList
-    
-    const selectedYear = (academicYears || []).find(year => 
+
+    const selectedYear = (academicYears || []).find(year =>
       String(year.id) === String(subjectForm.academicYearId)
     )
     return selectedYear ? [...activeList, selectedYear] : activeList
@@ -134,10 +135,10 @@ export default function SubjectsSection({
         item.courseCode || item.course_name || '',
         item.semester === undefined || item.semester === null ? '' : item.semester
       ].join('::')
-      
-        const base = comboMap.get(comboKey) || {
-          comboKey,
-          academicYearId: item.academicYearId || item.academic_year,
+
+      const base = comboMap.get(comboKey) || {
+        comboKey,
+        academicYearId: item.academicYearId || item.academic_year,
         academicYearName: item.academicYearName || item.academic_year,
         academicYear: item.academicYearName || item.academic_year,
         groupCode: item.groupCode || item.group_code,
@@ -146,14 +147,14 @@ export default function SubjectsSection({
         subjectIds: [],
         subjectNames: [],
         subjectCodes: [],
-          subjectSelections: [],
-          subjectId: item.subject_id || item.id,
-          category: item.category,
-          categoryId: item.category_id,
-          feeCategory: item.feeCategory || item.fee_category,
-          feeAmount: item.amount || item.feeAmount,
-          categories: [] // Initialize categories array
-        }
+        subjectSelections: [],
+        subjectId: item.subject_id || item.id,
+        category: item.category,
+        categoryId: item.category_id,
+        feeCategory: item.feeCategory || item.fee_category,
+        feeAmount: item.amount || item.feeAmount,
+        categories: [] // Initialize categories array
+      }
 
       // Add subject information
       if (item.subject_name) {
@@ -180,7 +181,7 @@ export default function SubjectsSection({
         }
         base.categories.push(catEntry)
       }
-      
+
       const itemSubjects = item.subjectNames?.length ? item.subjectNames : [item.subjectName].filter(Boolean)
       catEntry.subjects.push(...itemSubjects)
       const codeValues = item.subjectCodes?.length
@@ -228,6 +229,29 @@ export default function SubjectsSection({
       subjectIds: aggregated.subjectIds,
       subjectRecords: aggregated.subjectRecords || [source],
     }
+    return {
+      ...source,
+      category: aggregated.name,
+      subjectNames: aggregated.subjects,
+      subjectCodes: aggregated.subjectCodes,
+      subjectSelections: aggregated.subjects,
+      subjectIds: aggregated.subjectIds,
+      subjectRecords: aggregated.subjectRecords || [source],
+    }
+  }
+
+  const [confirmModalState, setConfirmModalState] = useState({ isOpen: false, type: null, payload: null });
+
+  const confirmDeleteAction = async () => {
+    const { type, payload } = confirmModalState;
+    if (type === 'CATEGORY') {
+      await deleteCategory(payload);
+    } else if (type === 'PENDING_SUBJECT') {
+      await deletePendingSubject(payload);
+    } else if (type === 'SAVED_SUBJECT') {
+      await deleteSubject(payload);
+    }
+    setConfirmModalState({ isOpen: false, type: null, payload: null });
   }
 
   const closeCategoryModal = () => setModalCategory(null)
@@ -302,15 +326,15 @@ export default function SubjectsSection({
             codeValue: extraCodes[idx] || '',
             onCodeChange: (e) => updateExtraField(idx, 'code', e.target.value),
             action: (
-            <button
-              type="button"
-              className="btn btn-outline-danger btn-sm"
-              onClick={() => removeExtraField(idx)}
-            >
-              Remove
-            </button>
-          ),
-          titlePlaceholder: `Subject ${idx + 2}`,
+              <button
+                type="button"
+                className="btn btn-outline-danger btn-sm"
+                onClick={() => removeExtraField(idx)}
+              >
+                Remove
+              </button>
+            ),
+            titlePlaceholder: `Subject ${idx + 2}`,
           })}
         </div>
       ))}
@@ -392,7 +416,6 @@ export default function SubjectsSection({
                     </div>
                     <div className="mt-auto d-flex gap-2 flex-wrap">
                       <button
-                        type="button"
                         className="btn btn-sm btn-outline-primary students-button students-button-sm flex-fill"
                         onClick={() => { setCategoryName(cat); setEditingCategory(cat) }}
                       >
@@ -401,7 +424,7 @@ export default function SubjectsSection({
                       <button
                         type="button"
                         className="btn btn-sm btn-outline-danger students-button students-button-sm flex-fill"
-                        onClick={() => deleteCategory(cat)}
+                        onClick={() => setConfirmModalState({ isOpen: true, type: 'CATEGORY', payload: cat })}
                       >
                         Delete
                       </button>
@@ -467,10 +490,10 @@ export default function SubjectsSection({
                     onChange={e => {
                       const value = e.target.value
                       const selected = academicYears.find(y => String(y.id) === String(value))
-                      setSubjectForm({ 
-                        ...subjectForm, 
-                        academicYearId: value, 
-                        academicYearName: selected?.academic_year || '' 
+                      setSubjectForm({
+                        ...subjectForm,
+                        academicYearId: value,
+                        academicYearName: selected?.academic_year || ''
                       })
                     }}
                   >
@@ -644,29 +667,29 @@ export default function SubjectsSection({
                         <div className="col-12" key={combo.comboKey}>
                           <div className="card card-soft students-section-card">
                             <div className="card-body">
-                            <div className="subjects-combo-header mb-3">
-                              <div>
-                                <strong>{combo.academicYear}</strong>
+                              <div className="subjects-combo-header mb-3">
+                                <div>
+                                  <strong>{combo.academicYear}</strong>
+                                </div>
+                                <div className="text-muted small">
+                                  {displayGroupName(combo.groupCode)} · {combo.courseName || combo.courseCode || '-'} · Sem {combo.semester}
+                                </div>
                               </div>
-                              <div className="text-muted small">
-                                {displayGroupName(combo.groupCode)} · {combo.courseName || combo.courseCode || '-'} · Sem {combo.semester}
-                              </div>
-                            </div>
-                            {combo.categories.map(cat => (
-                              <div key={`${combo.comboKey}-${cat.name}`} className="subjects-combo-category p-3 mb-2">
-                                <div className="d-flex justify-content-between align-items-center mb-2">
-                                  <span className="fw-semibold">{cat.name}</span>
-                                  <div className="d-flex gap-2">
-                                    <button type="button" className="btn btn-sm btn-outline-primary students-button students-button-sm" onClick={() => editPendingSubject(cat.source)}>Edit</button>
-                                    <button type="button" className="btn btn-sm btn-outline-danger students-button students-button-sm" onClick={() => deletePendingSubject(cat.source)}>Remove</button>
+                              {combo.categories.map(cat => (
+                                <div key={`${combo.comboKey}-${cat.name}`} className="subjects-combo-category p-3 mb-2">
+                                  <div className="d-flex justify-content-between align-items-center mb-2">
+                                    <span className="fw-semibold">{cat.name}</span>
+                                    <div className="d-flex gap-2">
+                                      <button type="button" className="btn btn-sm btn-outline-primary students-button students-button-sm" onClick={() => editPendingSubject(cat.source)}>Edit</button>
+                                      <button type="button" className="btn btn-sm btn-outline-danger students-button students-button-sm" onClick={() => setConfirmModalState({ isOpen: true, type: 'PENDING_SUBJECT', payload: cat.source })}>Remove</button>
+                                    </div>
+                                  </div>
+                                  <div className="subjects-combo-subjects text-muted small">
+                                    <span className="text-uppercase small me-1">Subjects:</span>
+                                    <span>{cat.subjects.filter(Boolean).join(', ') || '-'}</span>
                                   </div>
                                 </div>
-                                <div className="subjects-combo-subjects text-muted small">
-                                  <span className="text-uppercase small me-1">Subjects:</span>
-                                  <span>{cat.subjects.filter(Boolean).join(', ') || '-'}</span>
-                                </div>
-                              </div>
-                            ))}
+                              ))}
                             </div>
                           </div>
                         </div>
@@ -698,8 +721,8 @@ export default function SubjectsSection({
                             <th>Actions</th>
                           </tr>
                         </thead>
-                      <tbody>
-                        {(showAllSavedSubjects ? savedCombos : savedCombos.slice(0, 3)).map((combo, index) => {
+                        <tbody>
+                          {(showAllSavedSubjects ? savedCombos : savedCombos.slice(0, 3)).map((combo, index) => {
                             const categoriesByType = {};
                             combo.categories.forEach(cat => {
                               const existing = categoriesByType[cat.name];
@@ -718,7 +741,7 @@ export default function SubjectsSection({
                                 };
                               }
                             });
-                            
+
                             return (
                               <tr key={`${combo.comboKey}-${index}`}>
                                 <td>{combo.academicYear}</td>
@@ -750,15 +773,15 @@ export default function SubjectsSection({
                                   <div className="d-flex flex-column gap-2">
                                     {Object.entries(categoriesByType).map(([category, entry]) => (
                                       <div key={category} className="d-flex gap-2">
-                                        <button 
+                                        <button
                                           className="btn btn-sm btn-outline-primary students-button students-button-sm"
                                           onClick={() => editSubject(buildAggregatedCategoryPayload(combo, entry))}
                                         >
                                           Edit {category}
                                         </button>
-                                        <button 
+                                        <button
                                           className="btn btn-sm btn-outline-danger students-button students-button-sm"
-                                          onClick={() => deleteSubject(buildAggregatedCategoryPayload(combo, entry))}
+                                          onClick={() => setConfirmModalState({ isOpen: true, type: 'SAVED_SUBJECT', payload: buildAggregatedCategoryPayload(combo, entry) })}
                                         >
                                           Delete
                                         </button>
@@ -790,54 +813,68 @@ export default function SubjectsSection({
           )}
         </div>
       </section>
-      {modalCategory && (
-        <div className="students-modal-overlay" role="dialog" aria-modal="true">
-          <div className="students-modal-dialog subjects-modal-dialog">
-            <div className="students-modal-content">
-              <div className="students-modal-header">
-                <div>
-                  <div className="students-modal-header-eyebrow">
-                    Sub-category subjects
+      {
+        modalCategory && (
+          <div className="students-modal-overlay" role="dialog" aria-modal="true">
+            <div className="students-modal-dialog subjects-modal-dialog">
+              <div className="students-modal-content">
+                <div className="students-modal-header">
+                  <div>
+                    <div className="students-modal-header-eyebrow">
+                      Sub-category subjects
+                    </div>
+                    <h5 className="students-modal-header-title mb-1">
+                      {modalCategory.category}
+                    </h5>
+                    <div className="students-modal-header-meta">
+                      <span>
+                        {modalCategory.combo.academicYear} · {displayGroupName(modalCategory.combo.groupCode)}
+                      </span>
+                      <span>
+                        {modalCategory.combo.courseName || modalCategory.combo.courseCode || '-'} · Sem {modalCategory.combo.semester}
+                      </span>
+                    </div>
                   </div>
-                  <h5 className="students-modal-header-title mb-1">
-                    {modalCategory.category}
-                  </h5>
-                  <div className="students-modal-header-meta">
-                    <span>
-                      {modalCategory.combo.academicYear} · {displayGroupName(modalCategory.combo.groupCode)}
-                    </span>
-                    <span>
-                      {modalCategory.combo.courseName || modalCategory.combo.courseCode || '-'} · Sem {modalCategory.combo.semester}
-                    </span>
-                  </div>
+                  <button
+                    className="students-modal-close"
+                    type="button"
+                    onClick={closeCategoryModal}
+                  >
+                    &times;
+                  </button>
                 </div>
-                <button
-                  className="students-modal-close"
-                  type="button"
-                  onClick={closeCategoryModal}
-                >
-                  &times;
-                </button>
-              </div>
-              <div className="students-modal-body">
-                {modalCategory.subjects.length ? (
-                  <ul className="list-unstyled mb-0">
-                    {modalCategory.subjects.map((subject, idx) => (
-                      <li key={`${modalCategory.combo.comboKey}-${modalCategory.category}-${idx}`} className="mb-2 text-muted">
-                        {subject}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-muted mb-0">
-                    No subjects have been assigned to this sub-category yet.
-                  </p>
-                )}
+                <div className="students-modal-body">
+                  {modalCategory.subjects.length ? (
+                    <ul className="list-unstyled mb-0">
+                      {modalCategory.subjects.map((subject, idx) => (
+                        <li key={`${modalCategory.combo.comboKey}-${modalCategory.category}-${idx}`} className="mb-2 text-muted">
+                          {subject}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-muted mb-0">
+                      No subjects have been assigned to this sub-category yet.
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
+      <ConfirmationModal
+        isOpen={confirmModalState.isOpen}
+        onClose={() => setConfirmModalState({ isOpen: false, type: null, payload: null })}
+        onConfirm={confirmDeleteAction}
+        title="Confirm Delete"
+        message={
+          confirmModalState.type === 'CATEGORY' ? "Are you sure you want to delete this sub-category?" :
+            confirmModalState.type === 'PENDING_SUBJECT' ? "Are you sure you want to remove this pending subject?" :
+              "Are you sure you want to delete these subjects?"
+        }
+        confirmText="Confirm Delete"
+      />
     </>
   )
 }

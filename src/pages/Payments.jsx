@@ -387,10 +387,7 @@ export default function Payments() {
   }, [availableSupplementarySemesters]);
 
   useEffect(() => {
-    if (
-      !allowPaymentWithoutSelection ||
-      !savedRegistrationSubjectIds.length
-    ) {
+    if (!savedRegistrationSubjectIds.length) {
       return;
     }
     const normalizedCurrentSemester = normalizeSemesterValue(modalSemester);
@@ -893,7 +890,7 @@ export default function Payments() {
         examRegistrationId,
         insertedSubjects || []
       );
-      showToast("Selected subjects stored successfully.", {
+      showToast("Selected subjects Applied successfully.", {
         type: "success",
         title: "Exam",
       });
@@ -911,7 +908,7 @@ export default function Payments() {
       }
       closeStudentModal();
     } catch (error) {
-      console.error("Unable to store selected subjects", error);
+      console.error("Unable to Apply selected subjects", error);
       showToast("Unable to store selected subjects. Please try again.", {
         type: "danger",
         title: "Exam",
@@ -924,38 +921,29 @@ export default function Payments() {
       key={`${entry.key}-summary`}
       className="d-flex justify-content-between py-1 border-bottom"
     >
-      <span className="text-truncate">{entry.name}</span>
-      <span className="text-muted small">
-        {entry.code || "Code unavailable"}
+      <span className="text-truncate">
+        {entry.code ? `${entry.code} - ${entry.name}` : entry.name}
       </span>
     </div>
   );
 
-  const renderSubjectRow = (entry) => (
-    <tr
-      key={entry.key}
-      className="cursor-pointer"
-      onClick={() => toggleSubjectSelection(entry.key)}
-    >
-      <td className="align-middle text-center" style={{ width: "1px" }}>
-        <input
-          className="form-check-input"
-          type="checkbox"
-          id={`subject-checkbox-${entry.key}`}
-          checked={selectedSubjectKeys.has(entry.key)}
-          onChange={() => toggleSubjectSelection(entry.key)}
-          aria-label={`Select ${entry.name}`}
-          onClick={(event) => event.stopPropagation()}
-        />
-      </td>
-      <td className="align-middle text-truncate" style={{ maxWidth: 400 }}>
-        {entry.name}
-      </td>
-      <td className="align-middle text-muted small text-nowrap">
-        {entry.code || "Code unavailable"}
-      </td>
-    </tr>
-  );
+  const renderSubjectRow = (entry, index) => {
+    const isSelected = selectedSubjectKeys.has(entry.key);
+    return (
+      <tr
+        key={entry.key}
+        className={`cursor-pointer ${isSelected ? 'table-success fw-bold' : ''}`}
+        onClick={() => toggleSubjectSelection(entry.key)}
+      >
+        <td className="align-middle text-center" style={{ width: "50px" }}>
+          {index + 1}
+        </td>
+        <td className="align-middle text-truncate" style={{ maxWidth: 400 }}>
+          {entry.code ? `${entry.code} - ${entry.name}` : entry.name}
+        </td>
+      </tr>
+    );
+  };
 
   const dedupeSubjectEntries = (entries) => {
     const next = [];
@@ -1302,6 +1290,10 @@ export default function Payments() {
         matchesCategory &&
         passesStudentFilter
       );
+    }).sort((a, b) => {
+      const nameA = (a.full_name || a.name || "").toLowerCase();
+      const nameB = (b.full_name || b.name || "").toLowerCase();
+      return nameA.localeCompare(nameB);
     });
   }, [
     students,
@@ -1777,7 +1769,61 @@ export default function Payments() {
     }
   };
 
-  const openStudentModal = (student, options = {}) => {
+  const openStudentModal = async (student, options = {}) => {
+    // Check if this is a new application (not editing existing)
+    if (!options.registrationDetail && !options.skipSubjectSelection) {
+      // Get exam name and semester from form
+      const examNameValue = (form.examName || "").trim();
+      const semesterValue = form.semester;
+
+      if (examNameValue && semesterValue && student?.id) {
+        try {
+          // Get exam_id for the selected exam
+          const { data: examData, error: examError } = await supabase
+            .from("exam_master")
+            .select("id")
+            .eq("exam_name", examNameValue)
+            .maybeSingle();
+
+          if (!examError && examData?.id) {
+            // Check if student has already applied for this exam
+            const { data: existingRegs, error: regError } = await supabase
+              .from("exam_registrations")
+              .select("id, semester")
+              .eq("student_id", student.id)
+              .eq("exam_id", examData.id);
+
+            if (!regError && existingRegs && existingRegs.length > 0) {
+              const currentSemester = Number(semesterValue);
+
+              // Check for exact match (same exam, same semester)
+              const exactMatch = existingRegs.find(reg => reg.semester === currentSemester);
+              if (exactMatch) {
+                showToast(
+                  "This student has already applied for this exam in the selected semester.",
+                  { type: "warning", title: "Already Applied" }
+                );
+                return;
+              }
+
+              // Check for different semester (same exam, different semester)
+              const differentSemester = existingRegs.find(reg => reg.semester !== currentSemester);
+              if (differentSemester) {
+                showToast(
+                  `This student has already applied for this exam in Semester ${differentSemester.semester}. Cannot apply for the same exam in a different semester.`,
+                  { type: "danger", title: "Already Applied for this Exam" }
+                );
+                return;
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error checking existing application:", error);
+          // Continue to open modal even if check fails
+        }
+      }
+    }
+
     prepareStudentPaymentContext(student, options);
     setModalOpen(true);
   };
@@ -1800,15 +1846,46 @@ export default function Payments() {
       setDeletingRegistrationId(registrationId);
 
       // Check for existing marks first
-      const { data: existingMarks, error: marksError } = await supabase
-        .from('marks')
+      // We need to traverse: marks -> barcodes -> exam_registration_subjects -> exam_registrations
+
+      // 1. Get relevant exam_registration_subjects IDs
+      const { data: subjectData, error: subjectError } = await supabase
+        .from('exam_registration_subjects')
         .select('id')
-        .eq('exam_registration_id', registrationId)
-        .limit(1);
+        .eq('exam_registration_id', registrationId);
 
-      if (marksError) throw marksError;
+      if (subjectError) throw subjectError;
 
-      if (existingMarks && existingMarks.length > 0) {
+      const subjectIdsToCheck = (subjectData || []).map(s => s.id);
+      let marksExist = false;
+
+      if (subjectIdsToCheck.length > 0) {
+        // 2. Get barcodes linked to these subjects
+        const { data: barcodeData, error: barcodeError } = await supabase
+          .from('barcodes')
+          .select('id')
+          .in('exam_registration_subject_id', subjectIdsToCheck);
+
+        if (barcodeError) throw barcodeError;
+
+        const barcodeIds = (barcodeData || []).map(b => b.id);
+
+        if (barcodeIds.length > 0) {
+          // 3. Check for marks linked to these barcodes
+          const { data: marksData, error: marksCheckError } = await supabase
+            .from('marks')
+            .select('id')
+            .in('barcode_id', barcodeIds)
+            .limit(1);
+
+          if (marksCheckError) throw marksCheckError;
+          if (marksData && marksData.length > 0) {
+            marksExist = true;
+          }
+        }
+      }
+
+      if (marksExist) {
         // If marks exist, show a warning and don't allow deletion
         showToast(
           `Cannot delete subjects for ${studentName} because marks have already been recorded. ` +
@@ -1818,17 +1895,54 @@ export default function Payments() {
         return;
       }
 
-      // If no marks exist, proceed with deletion
-      const { error: deleteError } = await supabase.rpc('delete_exam_registration', {
-        p_registration_id: registrationId
-      });
+      // Step 1: Get all subject IDs related to this registration to clean up barcodes
+      const { data: regSubjects, error: fetchSubjectsError } = await supabase
+        .from('exam_registration_subjects')
+        .select('id')
+        .eq('exam_registration_id', registrationId);
 
-      if (deleteError) throw deleteError;
+      if (fetchSubjectsError) throw fetchSubjectsError;
+
+      const subjectIds = (regSubjects || []).map(r => r.id);
+
+      // Step 2: Delete barcodes associated with these subjects
+      if (subjectIds.length > 0) {
+        const { error: deleteBarcodesError } = await supabase
+          .from('barcodes')
+          .delete()
+          .in('exam_registration_subject_id', subjectIds);
+
+        if (deleteBarcodesError) throw deleteBarcodesError;
+      }
+
+      // Step 3: Delete exam registration subjects
+      const { error: deleteSubjectsError } = await supabase
+        .from('exam_registration_subjects')
+        .delete()
+        .eq('exam_registration_id', registrationId);
+
+      if (deleteSubjectsError) throw deleteSubjectsError;
+
+      // Step 4: Delete payments associated (if any, usually none if we are here but good to clean up)
+      const { error: deletePaymentsError } = await supabase
+        .from('payments')
+        .delete()
+        .eq('exam_registration_id', registrationId);
+
+      if (deletePaymentsError) throw deletePaymentsError;
+
+      // Step 5: Finally delete the registration
+      const { error: deleteRegError } = await supabase
+        .from('exam_registrations')
+        .delete()
+        .eq('id', registrationId);
+
+      if (deleteRegError) throw deleteRegError;
 
       const nextDetails = await buildAppliedRegistrationDetails();
       setAppliedRegistrationDetails(nextDetails);
 
-      showToast(`Stored subjects removed for ${studentName}.`, {
+      showToast(`Applied subjects removed for ${studentName}.`, {
         type: "success",
         title: "Exam",
       });
@@ -1893,49 +2007,96 @@ export default function Payments() {
     subjectEntries,
     examMasterId
   ) => {
-    if (!subjectEntries?.length || !activePaymentStudent?.id) return;
+    // If we have an existing registration but no subjects selected, 
+    // it implies we should delete all subjects (if that's the intention),
+    // but typically we expect at least one subject. 
+    // Assuming handling '0 subjects' is valid (removing all).
+
+    if (!activePaymentStudent?.id) return;
 
     try {
-      // Prepare subject entries with unique subject IDs
-      const uniqueSubjects = [];
-      const seenSubjectIds = new Set();
-
-      subjectEntries.forEach((entry) => {
+      // 1. Identify Target Subjects (Unique IDs)
+      const targetSubjectIds = new Set();
+      (subjectEntries || []).forEach((entry) => {
         const subjectId = entry.subjectReferenceId ?? entry.subjectId ?? null;
-        if (subjectId && !seenSubjectIds.has(subjectId)) {
-          seenSubjectIds.add(subjectId);
-          uniqueSubjects.push({ subject_id: subjectId });
-        }
+        if (subjectId) targetSubjectIds.add(String(subjectId));
       });
 
-      // Call the database function to handle the transaction
-      // Replaced RPC with direct upsert as the function was missing
-      const subjectsToInsert = uniqueSubjects.map(s => ({
-        exam_registration_id: examRegistrationId,
-        subject_id: s.subject_id
-      }));
-
-      const { data, error } = await supabase
+      // 2. Fetch Existing Subjects for this Registration
+      const { data: existingRows, error: fetchError } = await supabase
         .from('exam_registration_subjects')
-        .upsert(subjectsToInsert, {
-          onConflict: 'exam_registration_id, subject_id',
-          ignoreDuplicates: true
-        })
-        .select();
+        .select('id, subject_id')
+        .eq('exam_registration_id', examRegistrationId);
 
-      if (error) {
-        console.error('Error processing exam registration:', error);
-        throw error;
+      if (fetchError) throw fetchError;
+
+      const existingMap = new Map(); // subject_id -> id (primary key of exam_registration_subjects)
+      (existingRows || []).forEach(row => {
+        if (row.subject_id) existingMap.set(String(row.subject_id), row.id);
+      });
+
+      const existingSubjectIds = new Set(existingMap.keys());
+
+      // 3. Determine deletions and insertions
+      const toDeleteSubjectIds = [...existingSubjectIds].filter(sid => !targetSubjectIds.has(sid));
+      const toInsertSubjectIds = [...targetSubjectIds].filter(sid => !existingSubjectIds.has(sid));
+
+      // 4. Perform Deletions
+      if (toDeleteSubjectIds.length > 0) {
+        const idsToDelete = toDeleteSubjectIds.map(sid => existingMap.get(sid));
+
+        // 4a. Delete barcodes linked to these exam_registration_subjects
+        const { error: delBarcodeError } = await supabase
+          .from('barcodes')
+          .delete()
+          .in('exam_registration_subject_id', idsToDelete);
+
+        if (delBarcodeError) throw delBarcodeError;
+
+        // 4b. Delete the exam_registration_subjects rows
+        const { error: delSubError } = await supabase
+          .from('exam_registration_subjects')
+          .delete()
+          .in('id', idsToDelete);
+
+        if (delSubError) throw delSubError;
       }
 
-      console.log('Exam registration subjects processed successfully:', data);
-      return data;
+      // 5. Perform Insertions
+      let insertedData = [];
+      if (toInsertSubjectIds.length > 0) {
+        const rowsToInsert = toInsertSubjectIds.map(sid => ({
+          exam_registration_id: examRegistrationId,
+          subject_id: sid
+        }));
+
+        const { data: inserted, error: insertError } = await supabase
+          .from('exam_registration_subjects')
+          .insert(rowsToInsert)
+          .select();
+
+        if (insertError) throw insertError;
+        insertedData = inserted;
+      }
+
+      // Return unified list of current subjects (existing kept + inserted)
+      // This is used by subsequent calls (e.g. ensureBarcodes)
+      const combined = [
+        ...existingRows.filter(row => targetSubjectIds.has(String(row.subject_id))),
+        ...(insertedData || [])
+      ];
+
+      console.log('Exam registration subjects synced.', {
+        added: toInsertSubjectIds.length,
+        removed: toDeleteSubjectIds.length
+      });
+
+      return combined;
     } catch (error) {
       console.error('Error in persistExamRegistrationSubjects:', {
         error,
         examRegistrationId,
         subjectEntries,
-        examMasterId,
         studentId: activePaymentStudent?.id
       });
       throw error;
@@ -2360,11 +2521,6 @@ export default function Payments() {
               `Generated barcodes for ${successCount} subject(s) but failed for ${failureCount}. Check console for details.`,
               { type: 'warning' }
             );
-          } else if (successCount > 0) {
-            showToast(
-              `Successfully generated barcodes for ${successCount} subject(s).`,
-              { type: 'success' }
-            );
           }
         } catch (error) {
           console.error('Error in barcode generation process:', error);
@@ -2415,8 +2571,6 @@ export default function Payments() {
     closePaymentModal();
     closeStudentModal();
   };
-
-  const matchedStudentCount = hasActiveFilters ? filteredStudents.length : 0;
 
   const limitedStudents = displayCount
     ? filteredStudents.slice(
@@ -2726,7 +2880,7 @@ export default function Payments() {
           <div>
             <h5 className="fw-bold mb-1">Filtered students</h5>
             <p className="text-muted small mb-0">
-              Select a student to review or apply payments.
+              Find a student to review or apply payments.
             </p>
           </div>
           <span className="text-muted small">
@@ -2840,11 +2994,16 @@ export default function Payments() {
                           const skipSelection =
                             hasStoredSubjects ||
                             (detail && detail.paidTotal > 0 && !detail.fullyPaid);
-                          const openModal = () =>
+                          const openModal = () => {
+                            if (!detail?.applied && !form.semester) {
+                              showToast("Please select a semester first.", { type: "warning" });
+                              return;
+                            }
                             openStudentModal(s, {
                               skipSubjectSelection: skipSelection,
                               registrationDetail: detail,
                             });
+                          };
                           return (
                             <Fragment key={`${s.student_id}-payment`}>
                               <td className="text-center">
@@ -2853,10 +3012,16 @@ export default function Payments() {
                                     type="button"
                                     className={`btn btn-sm ${isApplied ? "btn-success" : "btn-outline-success"
                                       }`}
-                                    onClick={openModal}
-                                    disabled={isApplied}
+                                    onClick={() => {
+                                      if (!detail?.applied) {
+                                        showToast("Please apply for the exam first before making payment.", { type: "warning" });
+                                        return;
+                                      }
+                                      openModal();
+                                    }}
+                                    disabled={isApplied || !detail?.applied}
                                   >
-                                    {isApplied ? "Payment recorded" : "Pay now"}
+                                    {isApplied ? "Successfully Paid" : "Pay now"}
                                   </button>
                                 </div>
                               </td>
@@ -3126,14 +3291,13 @@ export default function Payments() {
                                     <table className="table table-sm table-hover mb-0">
                                       <thead>
                                         <tr>
-                                          <th scope="col" className="text-center" style={{ width: "1px" }}>
-                                            Select
+                                          <th scope="col" className="text-center" style={{ width: "50px" }}>
+                                            S.No
                                           </th>
                                           <th scope="col">Subject</th>
-                                          <th scope="col">Subject code</th>
                                         </tr>
                                       </thead>
-                                      <tbody>{visibleCurrentSubjectEntries.map(renderSubjectRow)}</tbody>
+                                      <tbody>{visibleCurrentSubjectEntries.map((entry, index) => renderSubjectRow(entry, index))}</tbody>
                                     </table>
                                   </div>
                                 </div>
@@ -3167,14 +3331,13 @@ export default function Payments() {
                                           <table className="table table-sm table-hover mb-0">
                                             <thead>
                                               <tr>
-                                                <th scope="col" className="text-center" style={{ width: "1px" }}>
-                                                  Select
+                                                <th scope="col" className="text-center" style={{ width: "50px" }}>
+                                                  S.No
                                                 </th>
                                                 <th scope="col">Subject</th>
-                                                <th scope="col">Subject code</th>
                                               </tr>
                                             </thead>
-                                            <tbody>{group.entries.map(renderSubjectRow)}</tbody>
+                                            <tbody>{group.entries.map((entry, index) => renderSubjectRow(entry, index))}</tbody>
                                           </table>
                                         ) : (
                                           <div className="p-3 text-muted small">
@@ -3219,15 +3382,25 @@ export default function Payments() {
                                 <div className="text-muted small mb-2 fw-semibold">
                                   Current semester
                                 </div>
-                                <div className="d-flex flex-column gap-2">
-                                  {currentSelectedEntries.map((entry) => (
-                                    <div key={`review-current-${entry.key}`} className="border-bottom pb-2">
-                                      <div className="fw-semibold">{entry.name}</div>
-                                      <div className="text-muted small">
-                                        {entry.code || "Code unavailable"}
-                                      </div>
-                                    </div>
-                                  ))}
+                                <div className="table-responsive">
+                                  <table className="table table-sm table-hover mb-0">
+                                    <thead>
+                                      <tr>
+                                        <th scope="col" style={{ width: "50px" }} className="text-center">Serial Number</th>
+                                        <th scope="col">Subject</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {currentSelectedEntries.map((entry, index) => (
+                                        <tr key={`review-current-${entry.key}`}>
+                                          <td className="text-center fw-semibold">{index + 1}</td>
+                                          <td className="fw-semibold">
+                                            {entry.code ? `${entry.code} - ${entry.name}` : entry.name}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
                                 </div>
                               </div>
                             )}
@@ -3238,15 +3411,25 @@ export default function Payments() {
                                     <div className="text-muted small mb-2 fw-semibold">
                                       Supplementary Semester {group.semester} - {group.entries.length} selected
                                     </div>
-                                    <div className="d-flex flex-column gap-2">
-                                      {group.entries.map((entry) => (
-                                        <div key={`review-suppl-entry-${entry.key}`} className="border-bottom pb-2">
-                                          <div className="fw-semibold">{entry.name}</div>
-                                          <div className="text-muted small">
-                                            {entry.code || "Code unavailable"}
-                                          </div>
-                                        </div>
-                                      ))}
+                                    <div className="table-responsive">
+                                      <table className="table table-sm table-hover mb-0">
+                                        <thead>
+                                          <tr>
+                                            <th scope="col" style={{ width: "50px" }} className="text-center">S.NO</th>
+                                            <th scope="col">Subject</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {group.entries.map((entry, index) => (
+                                            <tr key={`review-suppl-entry-${entry.key}`}>
+                                              <td className="text-center fw-semibold">{index + 1}</td>
+                                              <td className="fw-semibold">
+                                                {entry.code ? `${entry.code} - ${entry.name}` : entry.name}
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
                                     </div>
                                   </div>
                                 ))}
@@ -3262,7 +3445,7 @@ export default function Payments() {
                   {modalStep === 2 && (
                     <button
                       type="button"
-                      className="btn btn-outline-secondary me-auto"
+                      className="btn btn-outline-secondary"
                       onClick={() => setModalStep(1)}
                     >
                       Back

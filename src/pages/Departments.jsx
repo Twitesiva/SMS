@@ -1,4 +1,5 @@
 import AdminShell from "../components/AdminShell";
+import ConfirmationModal from '../components/ConfirmationModal.jsx';
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../lib/mockApi";
 import { supabase } from "../../supabaseClient";
@@ -40,6 +41,7 @@ export default function Departments() {
   const categoryDropdownRef = useRef(null);
 
   const [appliedFilter, setAppliedFilter] = useState(null);
+  const [confirmModalState, setConfirmModalState] = useState({ isOpen: false, type: null, payload: null, isLoading: false });
 
   const normalizeCategory = (value) => (value || "").trim().toLowerCase();
 
@@ -192,12 +194,12 @@ export default function Departments() {
       selectedGroup !== undefined
         ? filterCoursesByGroup(selectedGroup)
         : categoryFilterValue
-        ? courses.filter(
+          ? courses.filter(
             (course) =>
               categoriesGroupCodes.has(String(course.group_code || "")) ||
               categoriesGroupCodes.has(String(course.groupCode || ""))
           )
-        : courses;
+          : courses;
 
     setFilteredYears(nextYears);
     setFilteredGroups(nextGroups);
@@ -480,10 +482,10 @@ export default function Departments() {
 
   const fetchCategoryFees = async () => {
     try {
-    const { data, error } = await supabase
-      .from("fee_structure")
-      .select("*")
-      .order("created_at", { ascending: false });
+      const { data, error } = await supabase
+        .from("fee_structure")
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
 
@@ -719,12 +721,12 @@ export default function Departments() {
 
     const derivedCategory = matchingYear
       ? (
-          matchingYear.category ||
-          matchingYear.Category ||
-          matchingYear.category_name ||
-          matchingYear.categoryName ||
-          ""
-        ).trim()
+        matchingYear.category ||
+        matchingYear.Category ||
+        matchingYear.category_name ||
+        matchingYear.categoryName ||
+        ""
+      ).trim()
       : "";
 
     const amounts = {};
@@ -986,7 +988,7 @@ export default function Departments() {
       const { data: examsData, error: examsError } = await supabase
         .from('exam_master')
         .select('*');
-      
+
       if (examsError) {
         console.error('Error loading exams:', examsError);
         showToast('Failed to load exams', { type: 'danger' });
@@ -998,7 +1000,7 @@ export default function Departments() {
       const { data: fineData, error: fineError } = await supabase
         .from('global_settings')
         .select('*');
-      
+
       if (fineError) {
         console.error('Error loading fine amounts:', fineError);
       } else {
@@ -1015,7 +1017,7 @@ export default function Departments() {
           *,
           exam:exam_master(exam_name)
         `);
-      
+
       if (deadlinesError) {
         console.error('Error loading exam deadlines:', deadlinesError);
       } else {
@@ -1051,6 +1053,59 @@ export default function Departments() {
   // ======================================================
   // ====================== UI ============================
   // ======================================================
+
+  /* ---------------- DELETE CONFIRMATION HANDLERS ---------------- */
+  const confirmDeleteAction = async () => {
+    const { type, payload } = confirmModalState;
+    if (!type || !payload) return;
+
+    setConfirmModalState(prev => ({ ...prev, isLoading: true }));
+
+    try {
+      if (type === 'CATEGORY_FEE') {
+        await deleteCategoryFee(payload.id);
+      } else if (type === 'SUPPLEMENTARY_FEE') {
+        await deleteSupplementaryFee(payload.id);
+      } else if (type === 'FINE_AMOUNT') {
+        await deleteFineAmount(payload.id);
+      } else if (type === 'DEADLINE') {
+        const { error } = await supabase.from('exam_deadlines').delete().eq('id', payload.id);
+        if (error) throw error;
+        setExamDeadlines(prev => prev.filter(d => d.id !== payload.id));
+        showToast("Deadline deleted successfully", { type: "success" });
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setConfirmModalState({ isOpen: false, type: null, payload: null, isLoading: false });
+    }
+  };
+
+  const deleteFineAmount = async (id) => {
+    try {
+      const { error } = await supabase
+        .from('global_settings')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      showToast("Fine amount deleted.", { type: "success" });
+      // Refresh fine amounts
+      const { data } = await supabase
+        .from('global_settings')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      setFineAmounts(data || []);
+      if (id === editingFineId) {
+        setFineAmount("");
+        setEditingFineId(null);
+      }
+
+    } catch (error) {
+      console.error("Error deleting fine amount:", error);
+      showToast("Failed to delete fine amount", { type: "danger" });
+    }
+  };
 
   return (
     <AdminShell>
@@ -1104,48 +1159,48 @@ export default function Departments() {
                     {editingFeeCategoryId
                       ? "Edit fee category"
                       : "Add a fee category"}
-                </label>
-                <input
-                  className="form-control"
-                  placeholder="e.g., Tuition"
-                  value={feeCategoryName}
-                  onChange={(e) => setFeeCategoryName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      saveFeeCategory();
-                    }
-                  }}
-                />
-              </div>
-              <div className="col-md-3 col-lg-2">
-                <button
-                  type="button"
-                  className="btn btn-primary students-button w-100 mt-md-4"
-                  onClick={saveFeeCategory}
-                >
-                  {editingFeeCategoryId ? "Update Category" : "Add Category"}
-                </button>
-              </div>
-              {editingFeeCategoryId && (
+                  </label>
+                  <input
+                    className="form-control"
+                    placeholder="e.g., Tuition"
+                    value={feeCategoryName}
+                    onChange={(e) => setFeeCategoryName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        saveFeeCategory();
+                      }
+                    }}
+                  />
+                </div>
                 <div className="col-md-3 col-lg-2">
                   <button
                     type="button"
-                    className="btn btn-outline-secondary students-button w-100 mt-md-4"
-                    onClick={() => {
-                      setFeeCategoryName("");
-                      setEditingFeeCategoryId(null);
-                    }}
+                    className="btn btn-primary students-button w-100 mt-md-4"
+                    onClick={saveFeeCategory}
                   >
-                    Cancel
+                    {editingFeeCategoryId ? "Update Category" : "Add Category"}
                   </button>
                 </div>
-              )}
-          </div>
-        </div>
+                {editingFeeCategoryId && (
+                  <div className="col-md-3 col-lg-2">
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary students-button w-100 mt-md-4"
+                      onClick={() => {
+                        setFeeCategoryName("");
+                        setEditingFeeCategoryId(null);
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
 
-        <div className="row g-3">
-            {filteredFeeCategories.map((cat) => (
+            <div className="row g-3">
+              {filteredFeeCategories.map((cat) => (
                 <div key={cat.id} className="col-md-6 col-lg-4">
                   <div className="card h-100 students-category-card">
                     <div className="card-body">
@@ -1200,808 +1255,787 @@ export default function Departments() {
           </div>
           <div className="card-body">
             <div className="students-filter-control-panel">
-        <div className="row g-3">
-        {/* Category */}
-        <div className="col-md-3">
-          <label className="form-label fw-bold">Category</label>
-          <select
-            className="form-select"
-            value={form.category}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                category: e.target.value,
-                year: "",
-                group: "",
-                courseCode: "",
-                semester: "",
-              })
-            }
-          >
-            <option value="">Category</option>
-            {categoryOptions.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
-        </div>
+              <div className="row g-3">
+                {/* Category */}
+                <div className="col-md-3">
+                  <label className="form-label fw-bold">Category</label>
+                  <select
+                    className="form-select"
+                    value={form.category}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        category: e.target.value,
+                        year: "",
+                        group: "",
+                        courseCode: "",
+                        semester: "",
+                      })
+                    }
+                  >
+                    <option value="">Category</option>
+                    {categoryOptions.map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-        {/* Academic Year */}
-        <div className="col-md-3">
-          <label className="form-label fw-bold">Academic Year</label>
-          <select
-            className="form-select"
-            disabled={!canSelectYear}
-            value={form.year}
-            onChange={(e) => setForm({ ...form, year: e.target.value })}
-          >
-            <option value="">Academic Year</option>
-            {filteredYears.map((y) => {
-              const label = y.name || y.academic_year;
-              return (
-                <option key={y.id} value={label}>
-                  {label}
-                </option>
-              );
-            })}
-          </select>
-        </div>
+                {/* Academic Year */}
+                <div className="col-md-3">
+                  <label className="form-label fw-bold">Academic Year</label>
+                  <select
+                    className="form-select"
+                    disabled={!canSelectYear}
+                    value={form.year}
+                    onChange={(e) => setForm({ ...form, year: e.target.value })}
+                  >
+                    <option value="">Academic Year</option>
+                    {filteredYears.map((y) => {
+                      const label = y.name || y.academic_year;
+                      return (
+                        <option key={y.id} value={label}>
+                          {label}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
 
-        {/* Group */}
-        <div className="col-md-3">
-          <label className="form-label fw-bold">Group</label>
-          <select
-            className="form-select"
-            disabled={!canSelectGroup}
-            value={form.group}
-            onChange={(e) =>
-              setForm({ ...form, group: e.target.value, courseCode: "" })
-            }
-          >
-            <option value="">Group</option>
-            {filteredGroups.map((g) => (
-              <option key={g.id} value={g.code}>
-                {g.name}
-              </option>
-            ))}
-          </select>
-        </div>
+                {/* Group */}
+                <div className="col-md-3">
+                  <label className="form-label fw-bold">Group</label>
+                  <select
+                    className="form-select"
+                    disabled={!canSelectGroup}
+                    value={form.group}
+                    onChange={(e) =>
+                      setForm({ ...form, group: e.target.value, courseCode: "" })
+                    }
+                  >
+                    <option value="">Group</option>
+                    {filteredGroups.map((g) => (
+                      <option key={g.id} value={g.code}>
+                        {g.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-        {/* Course */}
-        <div className="col-md-3">
-          <label className="form-label fw-bold">Course</label>
-          <select
-            className="form-select"
-            disabled={!canSelectCourse}
-            value={form.courseCode}
-            onChange={(e) =>
-              setForm({ ...form, courseCode: e.target.value, semester: "" })
-            }
-          >
-            <option value="">Course</option>
-            {filteredCourses.map((c) => (
-              <option key={c.id} value={c.code}>
-                {c.courseName || c.name || c.course_name || "Unnamed course"}
-              </option>
-            ))}
-          </select>
-          </div>
+                {/* Course */}
+                <div className="col-md-3">
+                  <label className="form-label fw-bold">Course</label>
+                  <select
+                    className="form-select"
+                    disabled={!canSelectCourse}
+                    value={form.courseCode}
+                    onChange={(e) =>
+                      setForm({ ...form, courseCode: e.target.value, semester: "" })
+                    }
+                  >
+                    <option value="">Course</option>
+                    {filteredCourses.map((c) => (
+                      <option key={c.id} value={c.code}>
+                        {c.courseName || c.name || c.course_name || "Unnamed course"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-        {/* Semester */}
-        <div className="col-md-2">
-          <label className="form-label fw-bold">Semester</label>
-          <select
-            className="form-select"
-            disabled={!canSelectSemester}
-            value={form.semester}
-            onChange={(e) => setForm({ ...form, semester: e.target.value })}
-          >
-            <option value="">Semester</option>
-            {[1, 2, 3, 4, 5, 6].map((n) => (
-              <option key={n} value={n}>
-                Sem {n}
-              </option>
-            ))}
-          </select>
-        </div>
+                {/* Semester */}
+                <div className="col-md-2">
+                  <label className="form-label fw-bold">Semester</label>
+                  <select
+                    className="form-select"
+                    disabled={!canSelectSemester}
+                    value={form.semester}
+                    onChange={(e) => setForm({ ...form, semester: e.target.value })}
+                  >
+                    <option value="">Semester</option>
+                    {[1, 2, 3, 4, 5, 6].map((n) => (
+                      <option key={n} value={n}>
+                        Sem {n}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-        {/* Fee Categories Dropdown Selector */}
-        <div className="col-md-3 position-relative" ref={categoryDropdownRef}>
-          <label className="form-label fw-bold">Fee Categories</label>
-          <button
-            type="button"
-            className="btn btn-outline-secondary students-button w-100 text-start d-flex justify-content-between align-items-center"
-            disabled={!canOpenCategoryDropdown}
-            aria-disabled={!canOpenCategoryDropdown}
-            onClick={(e) => {
-              if (!canOpenCategoryDropdown) return;
-              e.stopPropagation();
-              setCategoryDropdownOpen((prev) => !prev);
-            }}
-            aria-haspopup="true"
-            aria-expanded={categoryDropdownOpen}
-          >
-            <span className="me-2">{categoryButtonLabel}</span>
-            <span className="text-muted">&#9662;</span>
-          </button>
-            {categoryDropdownOpen && (
-              <div
-                className="bg-white border rounded mt-2 shadow-sm"
-                style={{
-                  position: "absolute",
-                  zIndex: 50,
-                  width: "100%",
-                  maxHeight: "300px",
-                  overflowY: "auto",
-                }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="p-3 d-flex flex-column gap-2">
-                  {feeCats.map((cat) => (
-                    <div key={cat.id} className="form-check">
-                      <input
-                        className="form-check-input"
-                        type="checkbox"
-                        id={`cat-dropdown-${cat.id}`}
-                        checked={selectedCategories.includes(cat.id)}
-                        onChange={() => toggleCategory(cat.id)}
-                      />
-                      <label
-                        className="form-check-label"
-                        htmlFor={`cat-dropdown-${cat.id}`}
-                      >
-                        {cat.name}
-                      </label>
+                {/* Fee Categories Dropdown Selector */}
+                <div className="col-md-3 position-relative" ref={categoryDropdownRef}>
+                  <label className="form-label fw-bold">Fee Categories</label>
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary students-button w-100 text-start d-flex justify-content-between align-items-center"
+                    disabled={!canOpenCategoryDropdown}
+                    aria-disabled={!canOpenCategoryDropdown}
+                    onClick={(e) => {
+                      if (!canOpenCategoryDropdown) return;
+                      e.stopPropagation();
+                      setCategoryDropdownOpen((prev) => !prev);
+                    }}
+                    aria-haspopup="true"
+                    aria-expanded={categoryDropdownOpen}
+                  >
+                    <span className="me-2">{categoryButtonLabel}</span>
+                    <span className="text-muted">&#9662;</span>
+                  </button>
+                  {categoryDropdownOpen && (
+                    <div
+                      className="bg-white border rounded mt-2 shadow-sm"
+                      style={{
+                        position: "absolute",
+                        zIndex: 50,
+                        width: "100%",
+                        maxHeight: "300px",
+                        overflowY: "auto",
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="p-3 d-flex flex-column gap-2">
+                        {feeCats.map((cat) => (
+                          <div key={cat.id} className="form-check">
+                            <input
+                              className="form-check-input"
+                              type="checkbox"
+                              id={`cat-dropdown-${cat.id}`}
+                              checked={selectedCategories.includes(cat.id)}
+                              onChange={() => toggleCategory(cat.id)}
+                            />
+                            <label
+                              className="form-check-label"
+                              htmlFor={`cat-dropdown-${cat.id}`}
+                            >
+                              {cat.name}
+                            </label>
+                          </div>
+                        ))}
+                        {feeCats.length === 0 && (
+                          <div className="text-muted">No categories available</div>
+                        )}
+                      </div>
                     </div>
-                  ))}
-                  {feeCats.length === 0 && (
-                    <div className="text-muted">No categories available</div>
+                  )}
+                </div>
+
+                {/* Amount Input with Submit Button */}
+                <div className="col-md-3 d-flex flex-column">
+                  <div className="flex-grow-1">
+                    {selectedCategories.length === 0 ? (
+                      <div className="border rounded p-3 text-muted text-center">
+                        Select at least one fee category to set amounts.
+                      </div>
+                    ) : (
+                      selectedCategories.map((catId) => {
+                        const category = feeCats.find((cat) => cat.id === catId);
+                        return (
+                          <div key={catId} className="mb-2">
+                            <label className="form-label mb-1">
+                              {category?.name || "Category"} Amount
+                            </label>
+                            <div className="input-group">
+                              <span className="input-group-text">₹</span>
+                              <input
+                                type="number"
+                                className="form-control"
+                                placeholder="Amount"
+                                value={categoryAmounts[catId] ?? ""}
+                                onChange={(e) =>
+                                  handleCategoryAmountChange(catId, e.target.value)
+                                }
+                              />
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                  <div className="mt-auto d-flex gap-2">
+                    <button
+                      className="btn btn-primary students-button flex-grow-1"
+                      onClick={handleCategoryOK}
+                    >
+                      Submit
+                    </button>
+                    {isEditingCategoryEntry && (
+                      <button
+                        type="button"
+                        className="btn btn-outline-secondary students-button flex-grow-1"
+                        onClick={cancelCategoryEdit}
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ---------------- CATEGORY FEE TABLE ---------------- */}
+            {filteredCategoryFees.length > 0 && (
+              <div className="students-table-panel card card-soft mb-4 p-4">
+                <div className="students-table-panel-header mb-3">
+                  <div>
+                    <p className="students-table-panel-title text-white mb-1">Fee Category Records</p>
+                  </div>
+                </div>
+                <div className="table-responsive">
+                  <table className="table table-bordered align-middle">
+                    <thead>
+                      <tr>
+                        <th>Academic Year</th>
+                        <th>Group</th>
+                        <th>Course</th>
+                        <th>Semester</th>
+                        <th>Categories</th>
+                        <th>Total Amount (₹)</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredCategoryFees
+                        .slice(0, showAllFeeCategories ? filteredCategoryFees.length : 6)
+                        .map((fees) => {
+                          const categoryDisplays = fees.feeCategories || [];
+                          return (
+                            <tr key={fees.id}>
+                              <td>{fees.academic_year}</td>
+                              <td>
+                                {groups.find((g) => g.code === fees.group)?.name ||
+                                  fees.group}
+                              </td>
+                              <td>
+                                {courses.find((c) => c.code === fees.course_code)?.name ||
+                                  fees.course_code}
+                              </td>
+                              <td>{fees.semester}</td>
+                              <td>
+                                {categoryDisplays.length === 0 ? (
+                                  <span className="text-muted">No categories</span>
+                                ) : (
+                                  categoryDisplays.map((cat, index) => (
+                                    <div
+                                      key={cat.id || `category-${index}`}
+                                      className="mb-1 d-flex align-items-center"
+                                    >
+                                      <span className="fw-semibold">{cat.name}</span>
+                                    </div>
+                                  ))
+                                )}
+                              </td>
+                              <td>
+                                <span className="fw-semibold">
+                                  &#8377;
+                                  {parseInt(Number(fees.amount || 0)).toLocaleString(
+                                    "en-IN"
+                                  )}
+                                </span>
+                              </td>
+                              <td>
+                                <div className="d-flex gap-2">
+                                  <button
+                                    className="btn btn-sm btn-outline-primary students-button students-button-sm"
+                                    onClick={() => handleEditCategoryFee(fees)}
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    className="btn btn-sm btn-outline-danger students-button students-button-sm"
+                                    onClick={() => setConfirmModalState({ isOpen: true, type: 'CATEGORY_FEE', payload: fees })}
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+
+                  {filteredCategoryFees.length > 6 && (
+                    <div className="d-flex justify-content-center mt-3">
+                      <button
+                        className="btn btn-outline-primary"
+                        onClick={() => setShowAllFeeCategories(!showAllFeeCategories)}
+                      >
+                        {showAllFeeCategories ? (
+                          <>
+                            <i className="fas fa-arrow-left me-2"></i>
+                            Back to Top
+                          </>
+                        ) : (
+                          `View All (${filteredCategoryFees.length})`
+                        )}
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
             )}
-          </div>
-
-          {/* Amount Input with Submit Button */}
-          <div className="col-md-3 d-flex flex-column">
-            <div className="flex-grow-1">
-              {selectedCategories.length === 0 ? (
-                <div className="border rounded p-3 text-muted text-center">
-                  Select at least one fee category to set amounts.
+            {/* Exam Deadlines Section */}
+            <div className="students-table-panel card card-soft mb-4 p-4">
+              <div className="students-table-panel-header mb-3">
+                <div>
+                  <p className="students-table-panel-title mb-1" style={{ color: 'white' }}>Exam Deadlines</p>
+                  <p className="students-table-panel-copy small mb-0">
+                    Manage last dates for exam registrations.
+                  </p>
                 </div>
-              ) : (
-                selectedCategories.map((catId) => {
-                  const category = feeCats.find((cat) => cat.id === catId);
-                  return (
-                    <div key={catId} className="mb-2">
-                      <label className="form-label mb-1">
-                        {category?.name || "Category"} Amount
-                      </label>
+              </div>
+
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!selectedExam || !lastDate) {
+                    showToast("Please select an exam and set a last date", { type: "warning" });
+                    return;
+                  }
+
+                  try {
+                    if (editingDeadlineId) {
+                      // Update existing deadline
+                      const { error } = await supabase
+                        .from('exam_deadlines')
+                        .update({
+                          exam_id: selectedExam,
+                          last_date: lastDate
+                        })
+                        .eq('id', editingDeadlineId);
+
+                      if (error) throw error;
+                      showToast("Exam deadline updated successfully", { type: "success" });
+                    } else {
+                      // Create new deadline
+                      const { error } = await supabase
+                        .from('exam_deadlines')
+                        .insert([{
+                          exam_id: selectedExam,
+                          last_date: lastDate
+                        }]);
+
+                      if (error) throw error;
+                      showToast("Exam deadline added successfully", { type: "success" });
+                    }
+
+                    // Refresh deadlines
+                    const { data: deadlinesData } = await supabase
+                      .from('exam_deadlines')
+                      .select(`
+                  *,
+                  exam:exam_master(exam_name)
+                `);
+
+                    setExamDeadlines(deadlinesData || []);
+                    setSelectedExam("");
+                    setLastDate("");
+                    setEditingDeadlineId(null);
+                  } catch (error) {
+                    console.error("Error saving exam deadline:", error);
+                    showToast("Failed to save exam deadline", { type: "danger" });
+                  }
+                }}
+                className="mb-4"
+              >
+                <div className="row g-3">
+                  <div className="col-md-5">
+                    <div className="form-group">
+                      <label className="form-label">Exam</label>
+                      <select
+                        className="form-select"
+                        value={selectedExam}
+                        onChange={(e) => setSelectedExam(e.target.value)}
+                        required
+                      >
+                        <option value="">Select Exam</option>
+                        {exams.map((exam) => (
+                          <option key={exam.id} value={exam.id}>
+                            {exam.exam_name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="col-md-5">
+                    <div className="form-group">
+                      <label className="form-label">Last Date</label>
+                      <input
+                        type="date"
+                        className="form-control"
+                        value={lastDate}
+                        onChange={(e) => setLastDate(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="col-md-2 d-flex align-items-end">
+                    <button type="submit" className="btn btn-primary students-button w-100">
+                      {editingDeadlineId ? "Update" : "Add"}
+                    </button>
+                  </div>
+                </div>
+              </form>
+
+              {examDeadlines.length > 0 && (
+                <div className="table-responsive">
+                  <table className="table table-bordered align-middle">
+                    <thead>
+                      <tr>
+                        <th>Exam</th>
+                        <th>Last Date</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {examDeadlines
+                        .slice(0, showAllExamDeadlines ? examDeadlines.length : 3)
+                        .map((deadline) => (
+                          <tr key={deadline.id}>
+                            <td>{deadline.exam?.exam_name || 'N/A'}</td>
+                            <td>{new Date(deadline.last_date).toLocaleDateString()}</td>
+                            <td>
+                              <div className="d-flex gap-2">
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-primary students-button students-button-sm"
+                                  onClick={() => {
+                                    setSelectedExam(deadline.exam_id);
+                                    setLastDate(deadline.last_date.split('T')[0]);
+                                    setEditingDeadlineId(deadline.id);
+                                  }}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-danger students-button students-button-sm"
+                                  onClick={async () => {
+                                    setConfirmModalState({ isOpen: true, type: 'DEADLINE', payload: deadline });
+                                  }}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Fine Amount Section */}
+            <div className="students-table-panel card card-soft mb-4 p-4">
+              <div className="students-table-panel-header mb-3">
+                <div>
+                  <p className="students-table-panel-title mb-1" style={{ color: 'white' }}>Fine Amount</p>
+                  <p className="students-table-panel-copy small mb-0">
+                    Configure the fine amount for late fee payments.
+                  </p>
+                </div>
+              </div>
+
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!fineAmount) {
+                    showToast("Please enter a fine amount", { type: "warning" });
+                    return;
+                  }
+
+                  if (fineAmounts.length > 0 && !editingFineId) {
+                    showToast(
+                      "Only one fine amount entry is allowed. Please edit or delete the existing record.",
+                      { type: "warning", title: "Fine Amount" }
+                    );
+                    return;
+                  }
+
+                  try {
+                    if (editingFineId) {
+                      // Update existing fine amount
+                      const { error } = await supabase
+                        .from('global_settings')
+                        .update({
+                          fine_amount: parseFloat(fineAmount)
+                          // Removed updated_at since it doesn't exist in the table
+                        })
+                        .eq('id', editingFineId);
+
+                      if (error) throw error;
+                      showToast("Fine amount updated successfully", { type: "success" });
+                    } else {
+                      // Create new fine amount
+                      const { error } = await supabase
+                        .from('global_settings')
+                        .insert([{
+                          fine_amount: parseFloat(fineAmount),
+                          created_at: new Date().toISOString()
+                        }]);
+
+                      if (error) throw error;
+                      showToast("Fine amount saved successfully", { type: "success" });
+                    }
+
+                    // Refresh fine amounts
+                    const { data } = await supabase
+                      .from('global_settings')
+                      .select('*')
+                      .order('created_at', { ascending: false });
+
+                    setFineAmounts(data || []);
+                    setFineAmount("");
+                    setEditingFineId(null);
+                  } catch (error) {
+                    console.error("Error saving fine amount:", error);
+                    showToast("Failed to save fine amount", { type: "danger" });
+                  }
+                }}
+                className="mb-4"
+              >
+                <div className="row g-3">
+                  <div className="col-md-4">
+                    <div className="form-group">
+                      <label className="form-label">Fine Amount (₹)</label>
                       <div className="input-group">
                         <span className="input-group-text">₹</span>
                         <input
                           type="number"
                           className="form-control"
-                          placeholder="Amount"
-                          value={categoryAmounts[catId] ?? ""}
-                          onChange={(e) =>
-                            handleCategoryAmountChange(catId, e.target.value)
-                          }
+                          value={fineAmount}
+                          onChange={(e) => setFineAmount(e.target.value)}
+                          placeholder="Enter fine amount"
+                          min="0"
+                          step="0.01"
+                          required
+                          disabled={fineAmounts.length > 0 && !editingFineId}
                         />
                       </div>
                     </div>
-                  );
-                })
-              )}
-            </div>
-            <div className="mt-auto d-flex gap-2">
-              <button
-                className="btn btn-primary students-button flex-grow-1"
-                onClick={handleCategoryOK}
-              >
-                Submit
-              </button>
-              {isEditingCategoryEntry && (
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary students-button flex-grow-1"
-                  onClick={cancelCategoryEdit}
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+                  </div>
+                  <div className="col-md-8 d-flex align-items-end gap-2">
+                    <button
+                      type="submit"
+                      className="btn btn-primary students-button"
+                      disabled={fineAmounts.length > 0 && !editingFineId}
+                    >
+                      {editingFineId ? "Update" : "Save"}
+                    </button>
+                    {editingFineId && (
+                      <button
+                        type="button"
+                        className="btn btn-outline-secondary students-button"
+                        onClick={() => {
+                          setFineAmount("");
+                          setEditingFineId(null);
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </form>
 
-      {/* ---------------- CATEGORY FEE TABLE ---------------- */}
-      {filteredCategoryFees.length > 0 && (
-        <div className="students-table-panel card card-soft mb-4 p-4">
-          <div className="students-table-panel-header mb-3">
-            <div>
-              <p className="students-table-panel-title text-white mb-1">Fee Category Records</p>
-            </div>
-          </div>
-          <div className="table-responsive">
-            <table className="table table-bordered align-middle">
-              <thead>
-                <tr>
-                  <th>Academic Year</th>
-                  <th>Group</th>
-                  <th>Course</th>
-                  <th>Semester</th>
-                  <th>Categories</th>
-                  <th>Total Amount (₹)</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredCategoryFees
-                  .slice(0, showAllFeeCategories ? filteredCategoryFees.length : 6)
-                  .map((fees) => {
-                    const categoryDisplays = fees.feeCategories || [];
-                    return (
-                      <tr key={fees.id}>
-                        <td>{fees.academic_year}</td>
-                      <td>
-                        {groups.find((g) => g.code === fees.group)?.name ||
-                          fees.group}
-                      </td>
-                      <td>
-                        {courses.find((c) => c.code === fees.course_code)?.name ||
-                          fees.course_code}
-                      </td>
-                      <td>{fees.semester}</td>
-                      <td>
-                        {categoryDisplays.length === 0 ? (
-                          <span className="text-muted">No categories</span>
-                        ) : (
-                          categoryDisplays.map((cat, index) => (
-                            <div
-                              key={cat.id || `category-${index}`}
-                              className="mb-1 d-flex align-items-center"
-                            >
-                              <span className="fw-semibold">{cat.name}</span>
+              {fineAmounts.length > 0 && (
+                <div className="table-responsive">
+                  <table className="table table-bordered align-middle">
+                    <thead>
+                      <tr>
+                        <th>Fine Amount (₹)</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {fineAmounts.slice(0, 1).map((item) => (
+                        <tr key={item.id}>
+                          <td>₹{parseFloat(item.fine_amount || 0).toFixed(2)}</td>
+                          <td>
+                            <div className="d-flex gap-2">
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-primary students-button students-button-sm"
+                                onClick={() => {
+                                  setFineAmount(item.fine_amount || "");
+                                  setEditingFineId(item.id);
+                                }}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-danger students-button students-button-sm"
+                                onClick={async () => {
+                                  setConfirmModalState({ isOpen: true, type: 'FINE_AMOUNT', payload: item });
+                                }}
+                              >
+                                Delete
+                              </button>
                             </div>
-                          ))
-                        )}
-                      </td>
-                      <td>
-                        <span className="fw-semibold">
-                          &#8377;
-                          {parseInt(Number(fees.amount || 0)).toLocaleString(
-                            "en-IN"
-                          )}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="d-flex gap-2">
-                          <button
-                            className="btn btn-sm btn-outline-primary students-button students-button-sm"
-                            onClick={() => handleEditCategoryFee(fees)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="btn btn-sm btn-outline-danger students-button students-button-sm"
-                            onClick={() => {
-                              if (!fees.id) {
-                                showToast(
-                                  "Unable to delete fee record: missing id.",
-                                  { type: "warning", title: "Delete categories" }
-                                );
-                                return;
-                              }
-                              showToast(
-                                "Deleting fee category record for this semester.",
-                                {
-                                  type: "warning",
-                                  title: "Delete categories",
-                                }
-                              );
-                              deleteCategoryFee(fees.id);
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            
-            {filteredCategoryFees.length > 6 && (
-              <div className="d-flex justify-content-center mt-3">
-                <button 
-                  className="btn btn-outline-primary"
-                  onClick={() => setShowAllFeeCategories(!showAllFeeCategories)}
-                >
-                  {showAllFeeCategories ? (
-                    <>
-                      <i className="fas fa-arrow-left me-2"></i>
-                      Back to Top
-                    </>
-                  ) : (
-                    `View All (${filteredCategoryFees.length})`
-                  )}
-                </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )
+              }
+            </div >
+
+            {/* Supplementary Fees Section */}
+
+            <div className="students-table-panel card card-soft mb-4 p-4">
+              <div className="students-table-panel-header mb-3">
+                <div>
+                  <p className="students-table-panel-title mb-1" style={{ color: 'white' }}>Supplementary Fees</p>
+                  <p className="students-table-panel-copy small mb-0">
+                    Configure fees for supplementary examinations by paper count.
+                  </p>
+                </div>
               </div>
-            )}
-          </div>
-        </div>
-      )}
-      {/* Exam Deadlines Section */}
-      <div className="students-table-panel card card-soft mb-4 p-4">
-        <div className="students-table-panel-header mb-3">
-          <div>
-            <p className="students-table-panel-title mb-1" style={{ color: 'white' }}>Exam Deadlines</p>
-            <p className="students-table-panel-copy small mb-0">
-              Manage last dates for exam registrations.
-            </p>
-          </div>
-        </div>
 
-        <form 
-          onSubmit={async (e) => {
-            e.preventDefault();
-            if (!selectedExam || !lastDate) {
-              showToast("Please select an exam and set a last date", { type: "warning" });
-              return;
-            }
+              <form onSubmit={handleSupplementarySubmit} className="mb-4">
+                <div className="row g-3 students-supplementary-grid">
+                  <div className="col-md-3">
+                    <div className="students-supplementary-field">
+                      <label className="form-label">1 Paper Fee (₹)</label>
+                      <input
+                        type="number"
+                        value={paper1}
+                        onChange={(e) => setPaper1(e.target.value)}
+                        className="form-control"
+                        required
+                        disabled={!canSubmitSupplementary}
+                      />
+                    </div>
+                  </div>
+                  <div className="col-md-3">
+                    <div className="students-supplementary-field">
+                      <label className="form-label">2 Papers Fee (₹)</label>
+                      <input
+                        type="number"
+                        value={paper2}
+                        onChange={(e) => setPaper2(e.target.value)}
+                        className="form-control"
+                        required
+                        disabled={!canSubmitSupplementary}
+                      />
+                    </div>
+                  </div>
+                  <div className="col-md-3">
+                    <div className="students-supplementary-field">
+                      <label className="form-label">3 & above Papers Fee (₹)</label>
+                      <input
+                        type="number"
+                        value={paper3Plus}
+                        onChange={(e) => setPaper3Plus(e.target.value)}
+                        className="form-control"
+                        required
+                        disabled={!canSubmitSupplementary}
+                      />
+                    </div>
+                  </div>
+                  <div className="col-md-3 d-flex flex-column justify-content-end">
+                    <div className="d-flex gap-2">
+                      <button
+                        type="submit"
+                        className="btn btn-primary students-button flex-grow-1"
+                        disabled={!canSubmitSupplementary}
+                      >
+                        {editingFeeId ? "Update Fee" : "Add Supplementary Fee"}
+                      </button>
+                    </div>
+                    {!canSubmitSupplementary && (
+                      <small className="text-muted mt-2">
+                        Only one supplementary fee entry is allowed; edit or delete the
+                        existing record to replace it.
+                      </small>
+                    )}
+                  </div>
+                </div>
+              </form>
 
-            try {
-              if (editingDeadlineId) {
-                // Update existing deadline
-                const { error } = await supabase
-                  .from('exam_deadlines')
-                  .update({ 
-                    exam_id: selectedExam,
-                    last_date: lastDate
-                  })
-                  .eq('id', editingDeadlineId);
-                
-                if (error) throw error;
-                showToast("Exam deadline updated successfully", { type: "success" });
-              } else {
-                // Create new deadline
-                const { error } = await supabase
-                  .from('exam_deadlines')
-                  .insert([{ 
-                    exam_id: selectedExam,
-                    last_date: lastDate
-                  }]);
-                
-                if (error) throw error;
-                showToast("Exam deadline added successfully", { type: "success" });
+              {
+                supplementaryFees.length > 0 && (
+                  <div className="overflow-x-auto students-table-panel-table-wrapper">
+                    <table className="table table-bordered align-middle students-table-panel-table students-supplementary-table">
+                      <thead>
+                        <tr>
+                          <th>1 PAPER (₹)</th>
+                          <th>2 PAPERS (₹)</th>
+                          <th>3+ PAPERS (₹)</th>
+                          <th>ACTIONS</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {supplementaryFees.map((fee) => (
+                          <tr key={fee.id}>
+                            <td>
+                              <div className="students-supplementary-cell">
+                                <span className="fw-semibold">₹{fee["Paper-1"]}</span>
+                              </div>
+                            </td>
+                            <td>
+                              <div className="students-supplementary-cell">
+                                <span className="fw-semibold">₹{fee["Paper-2"]}</span>
+                              </div>
+                            </td>
+                            <td>
+                              <div className="students-supplementary-cell">
+                                <span className="fw-semibold">₹{fee["Paper-3"]}</span>
+                              </div>
+                            </td>
+                            <td>
+                              <div className="d-flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleEditFee(fee)}
+                                  className="btn btn-sm btn-outline-primary students-button students-button-sm"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => setConfirmModalState({ isOpen: true, type: 'SUPPLEMENTARY_FEE', payload: fee })}
+                                  className="btn btn-sm btn-outline-danger students-button students-button-sm"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )
               }
 
-              // Refresh deadlines
-              const { data: deadlinesData } = await supabase
-                .from('exam_deadlines')
-                .select(`
-                  *,
-                  exam:exam_master(exam_name)
-                `);
-              
-              setExamDeadlines(deadlinesData || []);
-              setSelectedExam("");
-              setLastDate("");
-              setEditingDeadlineId(null);
-            } catch (error) {
-              console.error("Error saving exam deadline:", error);
-              showToast("Failed to save exam deadline", { type: "danger" });
-            }
-          }}
-          className="mb-4"
-        >
-          <div className="row g-3">
-            <div className="col-md-5">
-              <div className="form-group">
-                <label className="form-label">Exam</label>
-                <select
-                  className="form-select"
-                  value={selectedExam}
-                  onChange={(e) => setSelectedExam(e.target.value)}
-                  required
-                >
-                  <option value="">Select Exam</option>
-                  {exams.map((exam) => (
-                    <option key={exam.id} value={exam.id}>
-                      {exam.exam_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="col-md-5">
-              <div className="form-group">
-                <label className="form-label">Last Date</label>
-                <input
-                  type="date"
-                  className="form-control"
-                  value={lastDate}
-                  onChange={(e) => setLastDate(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-            <div className="col-md-2 d-flex align-items-end">
-              <button type="submit" className="btn btn-primary students-button w-100">
-                {editingDeadlineId ? "Update" : "Add"}
-              </button>
-            </div>
-          </div>
-        </form>
-
-        {examDeadlines.length > 0 && (
-          <div className="table-responsive">
-            <table className="table table-bordered align-middle">
-              <thead>
-                <tr>
-                  <th>Exam</th>
-                  <th>Last Date</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {examDeadlines
-                  .slice(0, showAllExamDeadlines ? examDeadlines.length : 3)
-                  .map((deadline) => (
-                  <tr key={deadline.id}>
-                    <td>{deadline.exam?.exam_name || 'N/A'}</td>
-                    <td>{new Date(deadline.last_date).toLocaleDateString()}</td>
-                    <td>
-                      <div className="d-flex gap-2">
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-primary students-button students-button-sm"
-                          onClick={() => {
-                            setSelectedExam(deadline.exam_id);
-                            setLastDate(deadline.last_date.split('T')[0]);
-                            setEditingDeadlineId(deadline.id);
-                          }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-danger students-button students-button-sm"
-                          onClick={async () => {
-                            if (window.confirm("Are you sure you want to delete this deadline?")) {
-                              try {
-                                const { error } = await supabase
-                                  .from('exam_deadlines')
-                                  .delete()
-                                  .eq('id', deadline.id);
-                                
-                                if (error) throw error;
-                                
-                                setExamDeadlines(examDeadlines.filter(d => d.id !== deadline.id));
-                                showToast("Deadline deleted successfully", { type: "success" });
-                              } catch (error) {
-                                console.error("Error deleting deadline:", error);
-                                showToast("Failed to delete deadline", { type: "danger" });
-                              }
-                            }
-                          }}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Fine Amount Section */}
-      <div className="students-table-panel card card-soft mb-4 p-4">
-        <div className="students-table-panel-header mb-3">
-          <div>
-            <p className="students-table-panel-title mb-1" style={{ color: 'white' }}>Fine Amount</p>
-            <p className="students-table-panel-copy small mb-0">
-              Configure the fine amount for late fee payments.
-            </p>
-          </div>
-        </div>
-
-        <form 
-          onSubmit={async (e) => {
-            e.preventDefault();
-            if (!fineAmount) {
-              showToast("Please enter a fine amount", { type: "warning" });
-              return;
-            }
-
-            if (fineAmounts.length > 0 && !editingFineId) {
-              showToast(
-                "Only one fine amount entry is allowed. Please edit or delete the existing record.",
-                { type: "warning", title: "Fine Amount" }
-              );
-              return;
-            }
-
-            try {
-              if (editingFineId) {
-                // Update existing fine amount
-                const { error } = await supabase
-                  .from('global_settings')
-                  .update({ 
-                    fine_amount: parseFloat(fineAmount)
-                    // Removed updated_at since it doesn't exist in the table
-                  })
-                  .eq('id', editingFineId);
-                
-                if (error) throw error;
-                showToast("Fine amount updated successfully", { type: "success" });
-              } else {
-                // Create new fine amount
-                const { error } = await supabase
-                  .from('global_settings')
-                  .insert([{ 
-                    fine_amount: parseFloat(fineAmount),
-                    created_at: new Date().toISOString()
-                  }]);
-                
-                if (error) throw error;
-                showToast("Fine amount saved successfully", { type: "success" });
-              }
-
-              // Refresh fine amounts
-              const { data } = await supabase
-                .from('global_settings')
-                .select('*')
-                .order('created_at', { ascending: false });
-              
-              setFineAmounts(data || []);
-              setFineAmount("");
-              setEditingFineId(null);
-            } catch (error) {
-              console.error("Error saving fine amount:", error);
-              showToast("Failed to save fine amount", { type: "danger" });
-            }
-          }}
-          className="mb-4"
-        >
-          <div className="row g-3">
-            <div className="col-md-4">
-              <div className="form-group">
-                <label className="form-label">Fine Amount (₹)</label>
-                <div className="input-group">
-                  <span className="input-group-text">₹</span>
-                  <input
-                    type="number"
-                    className="form-control"
-                    value={fineAmount}
-                    onChange={(e) => setFineAmount(e.target.value)}
-                    placeholder="Enter fine amount"
-                    min="0"
-                    step="0.01"
-                    required
-                    disabled={fineAmounts.length > 0 && !editingFineId}
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="col-md-8 d-flex align-items-end gap-2">
-              <button 
-                type="submit" 
-                className="btn btn-primary students-button"
-                disabled={fineAmounts.length > 0 && !editingFineId}
-              >
-                {editingFineId ? "Update" : "Save"}
-              </button>
-              {editingFineId && (
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary students-button"
-                  onClick={() => {
-                    setFineAmount("");
-                    setEditingFineId(null);
-                  }}
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-          </div>
-        </form>
-
-        {fineAmounts.length > 0 && (
-          <div className="table-responsive">
-            <table className="table table-bordered align-middle">
-              <thead>
-                <tr>
-                  <th>Fine Amount (₹)</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {fineAmounts.slice(0, 1).map((item) => (
-                  <tr key={item.id}>
-                    <td>₹{parseFloat(item.fine_amount || 0).toFixed(2)}</td>
-                    <td>
-                      <div className="d-flex gap-2">
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-primary students-button students-button-sm"
-                          onClick={() => {
-                            setFineAmount(item.fine_amount || "");
-                            setEditingFineId(item.id);
-                          }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-danger students-button students-button-sm"
-                          onClick={async () => {
-                            if (window.confirm("Are you sure you want to delete this fine amount?")) {
-                              try {
-                                const { error } = await supabase
-                                  .from('global_settings')
-                                  .delete()
-                                  .eq('id', item.id);
-                                
-                                if (error) throw error;
-                                
-                                setFineAmounts(fineAmounts.filter(i => i.id !== item.id));
-                                showToast("Fine amount deleted successfully", { type: "success" });
-                              } catch (error) {
-                                console.error("Error deleting fine amount:", error);
-                                showToast("Failed to delete fine amount", { type: "danger" });
-                              }
-                            }
-                          }}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Supplementary Fees Section */}
-      <div className="students-table-panel card card-soft mb-4 p-4">
-        <div className="students-table-panel-header mb-3">
-          <div>
-            <p className="students-table-panel-title mb-1" style={{ color: 'white' }}>Supplementary Fees</p>
-            <p className="students-table-panel-copy small mb-0">
-              Configure fees for supplementary examinations by paper count.
-            </p>
-          </div>
-        </div>
-
-        <form onSubmit={handleSupplementarySubmit} className="mb-4">
-          <div className="row g-3 students-supplementary-grid">
-              <div className="col-md-3">
-                <div className="students-supplementary-field">
-                  <label className="form-label">1 Paper Fee (₹)</label>
-                  <input
-                    type="number"
-                    value={paper1}
-                    onChange={(e) => setPaper1(e.target.value)}
-                    className="form-control"
-                    required
-                    disabled={!canSubmitSupplementary}
-                  />
-                </div>
-              </div>
-              <div className="col-md-3">
-                <div className="students-supplementary-field">
-                  <label className="form-label">2 Papers Fee (₹)</label>
-                  <input
-                    type="number"
-                    value={paper2}
-                    onChange={(e) => setPaper2(e.target.value)}
-                    className="form-control"
-                    required
-                    disabled={!canSubmitSupplementary}
-                  />
-                </div>
-              </div>
-              <div className="col-md-3">
-                <div className="students-supplementary-field">
-                  <label className="form-label">3 & above Papers Fee (₹)</label>
-                  <input
-                    type="number"
-                    value={paper3Plus}
-                    onChange={(e) => setPaper3Plus(e.target.value)}
-                    className="form-control"
-                    required
-                    disabled={!canSubmitSupplementary}
-                  />
-                </div>
-              </div>
-            <div className="col-md-3 d-flex flex-column justify-content-end">
-              <div className="d-flex gap-2">
-                <button
-                  type="submit"
-                  className="btn btn-primary students-button flex-grow-1"
-                  disabled={!canSubmitSupplementary}
-                >
-                  {editingFeeId ? "Update Fee" : "Add Supplementary Fee"}
-                </button>
-              </div>
-              {!canSubmitSupplementary && (
-                <small className="text-muted mt-2">
-                  Only one supplementary fee entry is allowed; edit or delete the
-                  existing record to replace it.
-                </small>
-              )}
-            </div>
-          </div>
-        </form>
-
-        {supplementaryFees.length > 0 && (
-          <div className="overflow-x-auto students-table-panel-table-wrapper">
-            <table className="table table-bordered align-middle students-table-panel-table students-supplementary-table">
-              <thead>
-                <tr>
-                  <th>1 PAPER (₹)</th>
-                  <th>2 PAPERS (₹)</th>
-                  <th>3+ PAPERS (₹)</th>
-                  <th>ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {supplementaryFees.map((fee) => (
-                  <tr key={fee.id}>
-                    <td>
-                      <div className="students-supplementary-cell">
-                        <span className="fw-semibold">₹{fee["Paper-1"]}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="students-supplementary-cell">
-                        <span className="fw-semibold">₹{fee["Paper-2"]}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="students-supplementary-cell">
-                        <span className="fw-semibold">₹{fee["Paper-3"]}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="d-flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleEditFee(fee)}
-                          className="btn btn-sm btn-outline-primary students-button students-button-sm"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => deleteSupplementaryFee(fee.id)}
-                          className="btn btn-sm btn-outline-danger students-button students-button-sm"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        </div>
-      </div>
-    </div>
-  </div>
-</AdminShell>
+            </div >
+          </div >
+        </div >
+      </div >
+      <ConfirmationModal
+        isOpen={confirmModalState.isOpen}
+        onClose={() => setConfirmModalState({ isOpen: false, type: null, payload: null, isLoading: false })}
+        onConfirm={confirmDeleteAction}
+        title={
+          confirmModalState.type === 'CATEGORY_FEE' ? "Delete Fee Record" :
+            confirmModalState.type === 'SUPPLEMENTARY_FEE' ? "Delete Supplementary Fee" :
+              confirmModalState.type === 'FINE_AMOUNT' ? "Delete Fine Amount" :
+                confirmModalState.type === 'DEADLINE' ? "Delete Exam Deadline" :
+                  "Confirm Delete"
+        }
+        message={
+          confirmModalState.type === 'CATEGORY_FEE' ? "Are you sure you want to delete this fee record? This will remove fees for the selected academic year, group, and course." :
+            confirmModalState.type === 'SUPPLEMENTARY_FEE' ? "Are you sure you want to delete this supplementary fee entry?" :
+              confirmModalState.type === 'FINE_AMOUNT' ? "Are you sure you want to delete this fine amount?" :
+                confirmModalState.type === 'DEADLINE' ? "Are you sure you want to delete this deadline?" :
+                  "Are you sure you want to delete this item?"
+        }
+        isLoading={confirmModalState.isLoading}
+      />
+    </AdminShell >
   );
 }
+

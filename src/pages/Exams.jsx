@@ -1,4 +1,5 @@
 import AdminShell from '../components/AdminShell'
+import ConfirmationModal from '../components/ConfirmationModal.jsx'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '../lib/mockApi'
 import { showToast } from '../store/ui.js'
@@ -88,7 +89,8 @@ export default function Exams() {
   const [examsLoading, setExamsLoading] = useState(false)
   const [completeRegistrationModalOpen, setCompleteRegistrationModalOpen] = useState(false)
   const [completionTargetExam, setCompletionTargetExam] = useState(null)
-  const [completedExamIds, setCompletedExamIds] = useState([])
+  const [confirmDeleteModal, setConfirmDeleteModal] = useState({ show: false, exam: null })
+  const [timetableModalState, setTimetableModalState] = useState({ open: false, exam: null, schedules: [], loading: false })
 
   // Fetch exams from exam_master table
   const refreshExams = useCallback(async () => {
@@ -124,7 +126,9 @@ export default function Exams() {
   }, [exams, selectedExam])
 
   const handleSelectSavedExam = (exam) => {
-    setExamNameInput(exam.exam_name)
+    const prefix = 'Regular and Supplementary Examinations - '
+    const name = exam.exam_name.startsWith(prefix) ? exam.exam_name.substring(prefix.length) : exam.exam_name
+    setExamNameInput(name)
     setEditingExam(exam)
     setSelectedExam(String(exam.id))
   }
@@ -164,7 +168,7 @@ export default function Exams() {
         setSelectedExam(String(data.id))
       }
       setExamNameInput('')
-      showToast('Exam name saved.', { type: 'success' })
+      showToast('Exam Created Successfully.', { type: 'success' })
     } catch (error) {
       console.error('Failed to save exam name:', error)
       showToast('Unable to save exam name.', { type: 'danger' })
@@ -216,12 +220,10 @@ export default function Exams() {
     }
   }
 
-  const handleDeleteExamName = async (examEntry) => {
-    const target = examEntry ?? editingExam
-    if (!target) {
-      showToast('Select an exam to delete.', { type: 'warning' })
-      return
-    }
+  const confirmDeleteAction = async () => {
+    const target = confirmDeleteModal.exam
+    if (!target) return
+
     try {
       const { error } = await supabase
         .from('exam_master')
@@ -232,12 +234,16 @@ export default function Exams() {
       if (String(selectedExam) === String(target.id)) {
         setSelectedExam('')
       }
-      setEditingExam(null)
-      setExamNameInput('')
+      if (editingExam?.id === target.id) {
+        setEditingExam(null)
+        setExamNameInput('')
+      }
       showToast('Exam name removed.', { type: 'success' })
     } catch (error) {
       console.error('Failed to delete exam name:', error)
       showToast('Unable to delete exam name.', { type: 'danger' })
+    } finally {
+      setConfirmDeleteModal({ show: false, exam: null })
     }
   }
 
@@ -249,6 +255,29 @@ export default function Exams() {
   const closeCompleteRegistrationModal = () => {
     setCompleteRegistrationModalOpen(false)
     setCompletionTargetExam(null)
+  }
+
+  const openTimetableModal = async (exam) => {
+    setTimetableModalState({ open: true, exam, schedules: [], loading: true })
+    try {
+      const { data, error } = await supabase
+        .from('exam_schedule')
+        .select('*')
+        .eq('exam_master_id', exam.id)
+        .order('exam_date', { ascending: true })
+        .order('exam_start_time', { ascending: true })
+
+      if (error) throw error
+      setTimetableModalState({ open: true, exam, schedules: data || [], loading: false })
+    } catch (error) {
+      console.error('Failed to fetch timetable:', error)
+      showToast('Failed to load timetable.', { type: 'error' })
+      setTimetableModalState({ open: false, exam: null, schedules: [], loading: false })
+    }
+  }
+
+  const closeTimetableModal = () => {
+    setTimetableModalState({ open: false, exam: null, schedules: [], loading: false })
   }
 
   const assignSeatNumbersForExam = useCallback(async (examMasterId) => {
@@ -326,19 +355,68 @@ export default function Exams() {
     if (!validEntries.length) {
       return 0
     }
-    const grouped = new Map()
-    validEntries.forEach((entry) => {
-      const key = String(entry.subject_id)
-      if (!grouped.has(key)) grouped.set(key, [])
-      grouped.get(key).push(entry)
-    })
-    const seatAssignments = []
-    grouped.forEach((entries) => {
-      entries.sort((a, b) => {
-        const comparison = a.studentName.localeCompare(b.studentName)
-        if (comparison !== 0) return comparison
-        return String(a.subject_id).localeCompare(String(b.subject_id))
+    // Fetch exam schedules to map subjects to dates
+    const { data: scheduleData, error: scheduleError } = await supabase
+      .from('exam_schedule')
+      .select('subject_code, exam_date')
+      .eq('exam_master_id', examMasterId)
+
+    if (scheduleError) {
+      console.error('Error fetching exam schedules:', scheduleError)
+      throw new Error('Failed to fetch exam schedules')
+    }
+
+    // Map subject code to exam date
+    const subjectDateMap = new Map()
+    if (scheduleData) {
+      scheduleData.forEach(sch => {
+        if (sch.subject_code) {
+          subjectDateMap.set(sch.subject_code.trim().toUpperCase(), sch.exam_date)
+        }
       })
+    }
+
+    // Need to get subject codes for the subject_ids to look up dates
+    const subjectIds = Array.from(new Set(validEntries.map(e => e.subject_id)))
+    const { data: subjectDetails, error: subjectDetailsError } = await supabase
+      .from('subjects')
+      .select('subject_id, subject_code')
+      .in('subject_id', subjectIds)
+
+    if (subjectDetailsError) throw subjectDetailsError
+
+    const subjectIdToCodeMap = new Map()
+    subjectDetails.forEach(s => {
+      if (s.subject_code) subjectIdToCodeMap.set(s.subject_id, s.subject_code.trim().toUpperCase())
+    })
+
+    // Group by Date
+    const entriesByDate = new Map()
+    // Keep track of entries without dates to handle them gracefully (maybe group them under 'Unscheduled')
+    const unscheduledEntries = []
+
+    validEntries.forEach((entry) => {
+      const code = subjectIdToCodeMap.get(entry.subject_id)
+      const date = code ? subjectDateMap.get(code) : null
+
+      if (date) {
+        if (!entriesByDate.has(date)) entriesByDate.set(date, [])
+        entriesByDate.get(date).push(entry)
+      } else {
+        unscheduledEntries.push(entry)
+      }
+    })
+
+    const seatAssignments = []
+
+    // Process each date
+    entriesByDate.forEach((entries, date) => {
+      // Sort alphabetically by student name
+      entries.sort((a, b) => {
+        return a.studentName.localeCompare(b.studentName)
+      })
+
+      // Assign numeric seat numbers (S0001, S0002...)
       entries.forEach((entry, index) => {
         seatAssignments.push({
           exam_id: examMasterId,
@@ -348,6 +426,19 @@ export default function Exams() {
         })
       })
     })
+
+    // Handle unscheduled entries if any - maybe group by subject as fallback or just alphabetical
+    if (unscheduledEntries.length > 0) {
+      unscheduledEntries.sort((a, b) => a.studentName.localeCompare(b.studentName))
+      unscheduledEntries.forEach((entry, index) => {
+        seatAssignments.push({
+          exam_id: examMasterId,
+          student_id: entry.student_id,
+          subject_id: entry.subject_id,
+          seat_number: `U${String(index + 1).padStart(4, '0')}`, // Prefix U for Unscheduled
+        })
+      })
+    }
     // Delete existing seat assignments directly
     const { error: deleteError } = await supabase
       .from('student_subject_seats')
@@ -407,11 +498,7 @@ export default function Exams() {
 
       if (updateError) throw updateError
 
-      setCompletedExamIds((prev) =>
-        prev.includes(completionTargetExam.id)
-          ? prev
-          : [...prev, completionTargetExam.id]
-      )
+
 
       const message = assignedCount > 0
         ? `Successfully assigned ${assignedCount} seat numbers for the exam.`
@@ -550,7 +637,9 @@ export default function Exams() {
     return semesters;
   }, [courseSemesterCount])
 
-  // Filter semesters to show only even or odd based on selection, with selected semester first
+  // Filter semesters to specific user requirement:
+  // If a semester is selected, show it and all lower semesters of the same parity (Odd/Even), sorted descending.
+  // e.g. Select 5 -> Show 5, 3, 1. Select 4 -> Show 4, 2.
   const sortedSemesters = useMemo(() => {
     if (!availableSemesters.length) return [];
 
@@ -559,19 +648,13 @@ export default function Exams() {
     const selectedSem = Number(semesterFocus);
     const isEvenSelected = selectedSem % 2 === 0;
 
-    // Filter semesters to only include those with the same parity as selected
-    const filteredSemesters = availableSemesters
-      .filter(sem => isEvenSelected ? sem % 2 === 0 : sem % 2 !== 0)
+    return availableSemesters
+      .filter(sem => {
+        const isSameParity = (sem % 2 === 0) === isEvenSelected;
+        const isLowerOrEqual = sem <= selectedSem;
+        return isSameParity && isLowerOrEqual;
+      })
       .sort((a, b) => b - a); // Sort in descending order
-
-    // Move selected semester to the front
-    const selectedIndex = filteredSemesters.indexOf(selectedSem);
-    if (selectedIndex > -1) {
-      filteredSemesters.splice(selectedIndex, 1);
-      filteredSemesters.unshift(selectedSem);
-    }
-
-    return filteredSemesters;
   }, [availableSemesters, semesterFocus]);
 
   useEffect(() => {
@@ -803,7 +886,7 @@ export default function Exams() {
                 <h4 className="fw-bold mb-1">Exam details</h4>
                 <p className="text-muted small mb-0">Create, rename, or finalize exams before assigning schedules.</p>
               </div>
-              <div className="row g-3">
+              <div className="row g-3 align-items-end">
                 <div className="col-md-8">
                   <label className="form-label">Exam name</label>
                   <div className="input-group">
@@ -824,6 +907,27 @@ export default function Exams() {
                       return <option key={exam.id} value={displayValue} />;
                     })}
                   </datalist>
+                </div>
+                <div className="col-md-4 d-flex flex-wrap gap-2 justify-content-end">
+                  <button
+                    className="btn btn-primary students-button"
+                    type="button"
+                    onClick={editingExam ? handleUpdateExamName : handleSaveExamName}
+                  >
+                    {editingExam ? "Update" : "Create Exam"}
+                  </button>
+                  {editingExam && (
+                    <button
+                      className="btn btn-outline-secondary students-button"
+                      type="button"
+                      onClick={() => {
+                        setEditingExam(null);
+                        setExamNameInput('');
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  )}
                 </div>
               </div>
               <div className="mt-3">
@@ -858,17 +962,24 @@ export default function Exams() {
                           <button
                             type="button"
                             className="btn btn-sm btn-outline-danger rounded-pill px-3"
-                            onClick={() => handleDeleteExamName(exam)}
+                            onClick={() => setConfirmDeleteModal({ show: true, exam })}
                           >
                             Delete
                           </button>
                           <button
                             type="button"
-                            className={"btn btn-sm rounded-pill px-3 " + (completedExamIds.includes(exam.id) ? 'btn-outline-secondary' : 'btn-outline-success')}
+                            className={"btn btn-sm rounded-pill px-3 " + (exam.registration_completed ? 'btn-outline-secondary' : 'btn-outline-success')}
                             onClick={() => openCompleteRegistrationModal(exam)}
-                            disabled={completedExamIds.includes(exam.id)}
+                            disabled={!!exam.registration_completed}
                           >
-                            {completedExamIds.includes(exam.id) ? 'Completed' : 'Complete Registration'}
+                            {exam.registration_completed ? 'Completed' : 'Complete Registration'}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-info rounded-pill px-3"
+                            onClick={() => openTimetableModal(exam)}
+                          >
+                            View Time Table
                           </button>
                         </div>
                       </div>
@@ -878,26 +989,10 @@ export default function Exams() {
                   )}
                 </div>
               </div>
-              <div className="mt-3 d-flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className="btn btn-sm btn-primary"
-                  onClick={handleSaveExamName}
-                  disabled={Boolean(editingExam)}
-                >
-                  Save
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-primary"
-                  onClick={handleUpdateExamName}
-                  disabled={!editingExam}
-                >
-                  Update
-                </button>
-              </div>
+
             </div>
             <div className="card card-soft p-3 mb-4">
+              <h5 className="mb-3 text-dark fw-bold">Create Exam Time Table</h5>
               <div className="row g-3">
                 <div className="col-md-2">
                   <label className="form-label">Category</label>
@@ -1159,8 +1254,7 @@ export default function Exams() {
                 <thead className="bg-light">
                   <tr>
                     <th>Semester</th>
-                    <th>Subject Code</th>
-                    <th>Subject Name</th>
+                    <th>Subject</th>
                     <th>Date</th>
                     <th>Time</th>
                   </tr>
@@ -1178,8 +1272,7 @@ export default function Exams() {
                       return (
                         <tr key={id}>
                           <td>{subject.semester}</td>
-                          <td>{subject.subjectCode || subject.subjectName}</td>
-                          <td>{subject.subjectName || subject.subjectCode}</td>
+                          <td>{subject.subjectCode} - {subject.subjectName}</td>
                           <td>{entry.date}</td>
                           <td>{startTimeDisplay} - {endTimeDisplay}</td>
                         </tr>
@@ -1220,8 +1313,7 @@ export default function Exams() {
             <div className="modal-content border-0 shadow-lg">
               <div className="modal-header border-0">
                 <div>
-                  <h5 className="modal-title fw-bold">Complete registration?</h5>
-                  <p className="text-muted small mb-0">Assign seat numbers for the selected exam before printing hall tickets.</p>
+                  <h5 className="modal-title fw-bold">Confirm Registration Completion</h5>
                 </div>
                 <button
                   type="button"
@@ -1232,9 +1324,8 @@ export default function Exams() {
               </div>
               <div className="modal-body">
                 <div className="p-3 rounded-3 border border-success bg-light">
-                  <div className="fw-semibold text-success mb-2">Exam record</div>
-                  <p className="mb-1 text-muted small">
-                    Students tied to <strong>{completionTargetExam?.exam_name || 'this exam'}</strong> will be marked completed.
+                  <p className="mb-0">
+                    Are you sure you want to complete registration for <strong>{completionTargetExam?.exam_name || 'this exam'}</strong>?
                   </p>
                 </div>
               </div>
@@ -1243,13 +1334,105 @@ export default function Exams() {
                   Cancel
                 </button>
                 <button type="button" className="btn btn-success" onClick={handleCompleteRegistrationConfirm}>
-                  Confirm completion
+                  Confirm
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
+      {timetableModalState.open && (
+        <div
+          className="modal d-block"
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+          style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
+        >
+          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div className="modal-content border-0 shadow-lg">
+              <div className="modal-header border-0 pb-0">
+                <div>
+                  <h5 className="modal-title fw-bold">Exam Time Table</h5>
+                  <p className="text-muted small mb-0">{timetableModalState.exam?.exam_name}</p>
+                </div>
+                <button
+                  type="button"
+                  className="btn-close"
+                  aria-label="Close"
+                  onClick={closeTimetableModal}
+                ></button>
+              </div>
+              <div className="modal-body">
+                {timetableModalState.loading ? (
+                  <div className="text-center py-4">
+                    <div className="spinner-border text-primary" role="status">
+                      <span className="visually-hidden">Loading...</span>
+                    </div>
+                  </div>
+                ) : timetableModalState.schedules.length === 0 ? (
+                  <div className="text-center py-4 text-muted">No schedules found for this exam.</div>
+                ) : (
+                  <div className="table-responsive">
+                    <table className="table table-bordered table-sm align-middle">
+                      <thead className="bg-light">
+                        <tr>
+                          <th>Date</th>
+                          <th>Time</th>
+                          <th>Subject</th>
+                          {/* <th>Semester</th> */}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {timetableModalState.schedules.map((sch) => {
+                          // Lookup subject name from the subjects list
+                          const foundSubject = subjects.find(s =>
+                            s.subjectCode === sch.subject_code ||
+                            (s.subjectCodes && s.subjectCodes.includes(sch.subject_code)) ||
+                            s.subject_code === sch.subject_code
+                          )
+                          let subjectName = '-'
+                          if (foundSubject) {
+                            if (foundSubject.subjectName) subjectName = foundSubject.subjectName
+                            else if (foundSubject.subject_name) subjectName = foundSubject.subject_name
+                            else if (foundSubject.subjectNames && foundSubject.subjectCodes) {
+                              const idx = foundSubject.subjectCodes.indexOf(sch.subject_code)
+                              if (idx !== -1) subjectName = foundSubject.subjectNames[idx]
+                            }
+                          }
+                          return (
+                            <tr key={sch.schedule_id}>
+                              <td>{sch.exam_date ? new Date(sch.exam_date).toLocaleDateString('en-GB') : '-'}</td>
+                              <td>
+                                {TIME_SLOTS.find(t => t.value === sch.exam_start_time.slice(0, 5))?.displayTime || sch.exam_start_time} - {TIME_SLOTS.find(t => t.value === sch.exam_end_time.slice(0, 5))?.displayTime || sch.exam_end_time}
+                              </td>
+                              <td>{sch.subject_code} - {subjectName}</td>
+                              {/* <td>{sch.semester_number}</td> */}
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+              <div className="modal-footer border-0 pt-0">
+                <button type="button" className="btn btn-outline-secondary" onClick={closeTimetableModal}>
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      <ConfirmationModal
+        isOpen={confirmDeleteModal.show}
+        onClose={() => setConfirmDeleteModal({ show: false, exam: null })}
+        onConfirm={confirmDeleteAction}
+        title="Confirm Delete Exam"
+        message={`Are you sure you want to delete "${confirmDeleteModal.exam?.exam_name}"? This action cannot be undone.`}
+        confirmText="Delete Exam"
+      />
     </AdminShell>
   )
 }
