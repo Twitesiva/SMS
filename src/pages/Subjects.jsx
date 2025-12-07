@@ -184,14 +184,20 @@ export default function SubjectsSection({
 
       const itemSubjects = item.subjectNames?.length ? item.subjectNames : [item.subjectName].filter(Boolean)
       catEntry.subjects.push(...itemSubjects)
-      const codeValues = item.subjectCodes?.length
-        ? item.subjectCodes
-        : item.subjectCode
-          ? [item.subjectCode]
-          : item.code
-            ? [item.code]
-            : []
+      // Ensure codes align with subjects
+      let codeValues = []
+      if (item.subjectNames?.length) {
+        // If we have array of names/codes, assume they are parallel or provide fallbacks
+        codeValues = item.subjectCodes || Array(itemSubjects.length).fill('')
+      } else {
+        // For single item, if we added a subject, we must add a code (even if empty)
+        // itemSubjects matches [item.subjectName].filter(Boolean)
+        if (itemSubjects.length > 0) {
+          codeValues = [item.subjectCode || item.code || '']
+        }
+      }
       catEntry.subjectCodes.push(...codeValues)
+
       const idValue = item.subject_id || item.id || item.subjectId || null
       if (idValue) {
         catEntry.subjectIds.push(idValue)
@@ -211,7 +217,7 @@ export default function SubjectsSection({
     setModalCategory({
       combo,
       category,
-      subjects,
+      subjects, // Expecting array of { name, code } objects
     })
   }
 
@@ -755,11 +761,20 @@ export default function SubjectsSection({
                                         type="button"
                                         className="btn btn-outline-secondary students-button students-button-sm text-start"
                                         key={category}
-                                        onClick={() => openCategoryModal(
-                                          combo,
-                                          category,
-                                          entry.subjects.filter(Boolean)
-                                        )}
+                                        onClick={() => {
+                                          const subjects = entry.subjects || []
+                                          const codes = entry.subjectCodes || []
+                                          const subjectObjects = subjects.map((s, i) => ({
+                                            name: s,
+                                            code: codes[i] || ''
+                                          })).filter(obj => obj.name)
+
+                                          openCategoryModal(
+                                            combo,
+                                            category,
+                                            subjectObjects
+                                          )
+                                        }}
                                       >
                                         <span className="fw-semibold">{category}</span>
                                         <span className="text-muted small d-block">
@@ -845,13 +860,22 @@ export default function SubjectsSection({
                 </div>
                 <div className="students-modal-body">
                   {modalCategory.subjects.length ? (
-                    <ul className="list-unstyled mb-0">
-                      {modalCategory.subjects.map((subject, idx) => (
-                        <li key={`${modalCategory.combo.comboKey}-${modalCategory.category}-${idx}`} className="mb-2 text-muted">
-                          {subject}
-                        </li>
-                      ))}
-                    </ul>
+                    <>
+                      <div className="d-flex text-muted fw-bold mb-2 pb-2 border-bottom">
+                        <div style={{ width: '60px' }}>S.No</div>
+                        <div className="flex-grow-1">Subjects</div>
+                      </div>
+                      <ul className="list-unstyled mb-0">
+                        {modalCategory.subjects.map((subject, idx) => (
+                          <li key={`${modalCategory.combo.comboKey}-${modalCategory.category}-${idx}`} className="d-flex mb-2 text-muted">
+                            <div style={{ width: '60px' }}>{idx + 1}</div>
+                            <div className="flex-grow-1">
+                              {subject.code ? `${subject.code} - ` : ''}{subject.name}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
                   ) : (
                     <p className="text-muted mb-0">
                       No subjects have been assigned to this sub-category yet.
