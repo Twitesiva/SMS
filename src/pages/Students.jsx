@@ -14,6 +14,7 @@ export default function Students() {
     group_name: "",
     course_name: "",
     category: "",
+    current_semester: "",
   });
   const [studentIdSearch, setStudentIdSearch] = useState("");
   const [paymentSemester, setPaymentSemester] = useState("");
@@ -485,18 +486,7 @@ export default function Students() {
         : students;
 
     years.forEach((year) => {
-      if (
-        normalizedCategoryFilter &&
-        !categoryMatchesFilter(
-          normalizedCategoryFilter,
-          year.category,
-          year.Category,
-          year.year_category,
-          year.yearCategory
-        )
-      ) {
-        return;
-      }
+      // Show all years from master table since academic_year table doesn't have category
       addLabel(year.academic_year ?? year.name);
     });
 
@@ -527,6 +517,7 @@ export default function Students() {
         : students;
     sourceStudents.forEach((student) => {
       const rawSemester =
+        student.current_semester ??
         student.semester ??
         student.semester_number ??
         student.semesterNo ??
@@ -555,25 +546,18 @@ export default function Students() {
 
   const filteredGroupOptions = useMemo(() => {
     if (!normalizedCategoryFilter) return groups;
-    if (!studentsForCategory.length) return groups;
-    const codes = new Set();
-    const names = new Set();
-    studentsForCategory.forEach((student) => {
-      if (student.group_code) codes.add(student.group_code);
-      const groupName =
-        student.group?.group_name ||
-        student.group_name ||
-        student.group ||
-        "";
-      if (groupName) names.add(groupName);
+
+    // Filter groups strictly based on their Category field
+    const relevantGroups = groups.filter(group => {
+      const groupCat = group.Category || group.category;
+      return groupCat && groupCat.toString().toUpperCase() === normalizedCategoryFilter;
     });
-    if (!codes.size && !names.size) return groups;
-    return groups.filter(
-      (group) =>
-        (!!group.group_code && codes.has(group.group_code)) ||
-        (!!group.group_name && names.has(group.group_name))
-    );
-  }, [groups, studentsForCategory, normalizedCategoryFilter]);
+
+    if (relevantGroups.length > 0) return relevantGroups;
+
+    // Fallback? Or just return empty/relevantGroups
+    return relevantGroups;
+  }, [groups, normalizedCategoryFilter]);
 
   const filteredCourseOptions = useMemo(() => {
     if (!normalizedCategoryFilter && !filters.group_name) return courses;
@@ -659,7 +643,7 @@ export default function Students() {
         // Fetch groups
         const { data: groupsData, error: groupsError } = await supabase
           .from("groups")
-          .select("group_id, group_code, group_name")
+          .select("group_id, group_code, group_name, Category")
           .order("group_name");
 
         if (groupsError) throw groupsError;
@@ -675,7 +659,7 @@ export default function Students() {
         // Fetch academic years
         const { data: yearsData, error: yearsError } = await supabase
           .from("academic_year")
-          .select("id, academic_year, status, category")
+          .select("id, academic_year")
           .order("academic_year", { ascending: false });
 
         if (yearsError) throw yearsError;
@@ -688,13 +672,11 @@ export default function Students() {
           course_name: student.course?.course_name || student.course_name,
           course_code: student.course?.course_code,
           academic_year: student.year?.academic_year || student.academic_year,
+          category: student.Category || student.category, // Normalize category here too if beneficial
         }));
 
         setStudents(transformedStudents);
-        const activeYears = (yearsData || []).filter((year) =>
-          year.status === undefined ? true : Boolean(year.status)
-        );
-        setYears(activeYears);
+        setYears(yearsData || []);
         setGroups(groupsData || []);
         setCourses(coursesData || []);
       } catch (error) {
@@ -709,6 +691,19 @@ export default function Students() {
   // Filter students based on selected filters
   const filteredStudents = useMemo(() => {
     const searchTerm = (studentIdSearch || "").toString().trim().toLowerCase();
+
+    const hasActiveFilters =
+      searchTerm ||
+      filters.academic_year ||
+      filters.group_name ||
+      filters.course_name ||
+      filters.category ||
+      filters.current_semester;
+
+    if (!hasActiveFilters) {
+      return [];
+    }
+
     return students.filter((student) => {
       const matchesYear =
         !filters.academic_year ||
@@ -717,6 +712,9 @@ export default function Students() {
         !filters.group_name || student.group_code === filters.group_name;
       const matchesCourse =
         !filters.course_name || student.course_code === filters.course_name;
+      const matchesSemester =
+        !filters.current_semester ||
+        String(student.current_semester || "") === String(filters.current_semester);
 
       const matchesCategory = categoryMatchesFilter(
         normalizedCategoryFilter,
@@ -725,19 +723,32 @@ export default function Students() {
         student.year?.category,
         student.year?.year_category
       );
-      const matchesStudentId =
+      const matchesSearch =
         !searchTerm ||
         (student.student_id || "")
           .toString()
           .toLowerCase()
-          .includes(searchTerm);
+          .includes(searchTerm) ||
+        (student.hall_ticket_no || "")
+          .toString()
+          .toLowerCase()
+          .includes(searchTerm) ||
+        (student.full_name || "")
+          .toString()
+          .toLowerCase()
+          .includes(searchTerm) ||
+        String(student.id || "").includes(searchTerm);
+
+      if (searchTerm) {
+        return matchesSearch;
+      }
 
       return (
         matchesYear &&
         matchesGroup &&
         matchesCourse &&
-        matchesCategory &&
-        matchesStudentId
+        matchesSemester &&
+        matchesCategory
       );
     });
   }, [students, filters, normalizedCategoryFilter, studentIdSearch]);
@@ -827,6 +838,7 @@ export default function Students() {
       photo_url: student.photo_url || "",
       cert_url: student.cert_url || "",
       status: student.status || "ACTIVE",
+      current_semester: student.current_semester || "",
     });
   };
 
@@ -1210,21 +1222,6 @@ export default function Students() {
               />
             </div>
             <div className="col-12 col-sm-6 col-md-4 col-lg-2">
-              <label className="form-label">Category</label>
-              <select
-                className="form-select"
-                value={filters.category}
-                onChange={(e) => handleFilterChange("category", e.target.value)}
-              >
-                <option value="">All Categories</option>
-                {categoryOptions.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="col-12 col-sm-6 col-md-4 col-lg-2">
               <label className="form-label">Academic Year</label>
               <select
                 className="form-select"
@@ -1237,6 +1234,21 @@ export default function Students() {
                 {academicYearOptions.map((year) => (
                   <option key={year} value={year}>
                     {year}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col-12 col-sm-6 col-md-4 col-lg-2">
+              <label className="form-label">Category</label>
+              <select
+                className="form-select"
+                value={filters.category}
+                onChange={(e) => handleFilterChange("category", e.target.value)}
+              >
+                <option value="">All Categories</option>
+                {categoryOptions.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
                   </option>
                 ))}
               </select>
@@ -1269,6 +1281,23 @@ export default function Students() {
                 {filteredCourseOptions.map((course) => (
                   <option key={course.course_id} value={course.course_code}>
                     {course.course_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col-12 col-sm-6 col-md-4 col-lg-2">
+              <label className="form-label">Semester</label>
+              <select
+                className="form-select"
+                value={filters.current_semester}
+                onChange={(e) =>
+                  handleFilterChange("current_semester", e.target.value)
+                }
+              >
+                <option value="">All Semesters</option>
+                {semesterOptions.map((sem) => (
+                  <option key={sem} value={sem}>
+                    Semester {sem}
                   </option>
                 ))}
               </select>
