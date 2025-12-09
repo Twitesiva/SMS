@@ -11,6 +11,7 @@ import Batches from "./pages/Batches.jsx";
 import Courses from "./pages/Courses.jsx";
 import Students from "./pages/Students.jsx";
 import Exams from "./pages/Exams.jsx";
+import ExamNameCreation from "./pages/ExamNameCreation.jsx";
 import Payments from "./pages/Payments.jsx";
 import HallTickets from "./pages/HallTickets.jsx";
 import Results from "./pages/Results.jsx";
@@ -66,6 +67,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isAuthed}>
               <Students />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/admin/exam-name-creation"
+          element={
+            <GuardedRoute isAuthed={isAuthed}>
+              <ExamNameCreation />
             </GuardedRoute>
           }
         />

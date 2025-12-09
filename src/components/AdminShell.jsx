@@ -17,9 +17,9 @@ const navGroups = [
   {
     title: "Pre-Exam Portal",
     items: [
+      { to: "/admin/exam-name-creation", label: "Exam name creation", icon: "bi-pencil-square" },
+      { to: "/admin/payments", label: "Subject Mapping & Payments", icon: "bi-credit-card" },
       { to: "/admin/exams", label: "Create Exam timetable", icon: "bi-journal-check" },
-      { to: "/admin/payments", label: "Student Mapping & Payments", icon: "bi-credit-card" },
-      { to: "/admin/payments-overview", label: "Decoding", icon: "bi-bar-chart" },
       { to: "/admin/hall-tickets", label: "Hall Ticket", icon: "bi-ticket-perforated" },
     ],
   },
@@ -28,6 +28,7 @@ const navGroups = [
     items: [
       { to: "/admin/results", label: "Marks Entry", icon: "bi-award" },
       { to: "/admin/result-publish", label: "Result Publish", icon: "bi-megaphone" },
+      { to: "/admin/payments-overview", label: "Decoding", icon: "bi-bar-chart" },
     ],
   },
   {
