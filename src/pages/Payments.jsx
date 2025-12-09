@@ -379,11 +379,7 @@ export default function Payments() {
   }, [subjects]);
 
   useEffect(() => {
-    setSelectedSupplementarySemesters((prev) =>
-      prev.filter((sem) =>
-        availableSupplementarySemesters.includes(Number(sem))
-      )
-    );
+    setSelectedSupplementarySemesters(availableSupplementarySemesters.map(String));
   }, [availableSupplementarySemesters]);
 
   useEffect(() => {
@@ -3189,19 +3185,19 @@ export default function Payments() {
                         <div className="d-flex align-items-start justify-content-between flex-wrap gap-3">
                           <div>
                             <h5 className="fw-semibold mb-1">Step 1: Pick subjects</h5>
-                            <p className="text-muted small mb-0">
+                            <p className="text-muted fs-5 mb-0">
                               Tap each subject you want to store for the exam, then continue to review before confirming.
                             </p>
                           </div>
-                          <div className="text-end small text-muted">
-                            Selected {selectedSubjectCount} / Available {activeSubjectCategory ? visibleSubjectCountForCategory : "-"}
+                          <div className="text-end align-self-center">
+                            <span className="fw-bold fs-4 text-primary">Selected : {selectedSubjectCount}</span>
                           </div>
                         </div>
                         <div className="mt-2 d-flex flex-wrap gap-2">
                           {activeSubjectCategory ? (
                             <>
                               <span className="badge bg-light text-dark border">
-                                Current semester {visibleCurrentSubjectEntries.length} subjects
+                                Current Semester {modalSemester}
                               </span>
                               {visibleSupplementarySubjectGroups.map((group) => (
                                 <span
@@ -3358,7 +3354,7 @@ export default function Payments() {
                           <div className="d-flex align-items-start justify-content-between flex-wrap gap-3">
                             <div>
                               <h5 className="fw-semibold mb-1">Step 2: Review selections</h5>
-                              <p className="text-muted small mb-0">
+                              <p className="text-muted fs-5 mb-0">
                                 Confirm the subjects you picked - no payment amounts are shown here so you can focus on the papers themselves.
                               </p>
                             </div>

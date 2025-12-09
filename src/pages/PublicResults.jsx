@@ -24,7 +24,15 @@ export default function PublicResults() {
       // 1. Find student by Hall Ticket
       const { data: studentData, error: studentError } = await supabase
         .from('students')
-        .select('*')
+        .select(`
+          *,
+          group:groups!students_group_name_fkey (
+            group_name
+          ),
+          course:courses!students_course_name_fkey (
+            course_name
+          )
+        `)
         .ilike('hall_ticket_no', hallTicket.trim())
         .single()
 
@@ -41,12 +49,14 @@ export default function PublicResults() {
         .select(`
           marks_obtained,
           max_marks,
+          semester,
           exam:exam_master (
             exam_name
           ),
           subject:subjects (
             subject_name,
-            subject_code
+            subject_code,
+            semester_number
           )
         `)
         .eq('student_id', studentData.id)
@@ -149,22 +159,22 @@ export default function PublicResults() {
               <div className="card shadow-sm border-0 mb-4">
                 <div className="card-body p-4">
                   <h5 className="card-title fw-bold mb-3 border-bottom pb-2">Student Information</h5>
-                  <div className="row g-3">
-                    <div className="col-sm-6 col-md-3">
-                      <small className="text-muted d-block text-uppercase" style={{ fontSize: '0.75rem' }}>Name</small>
-                      <span className="fw-semibold">{student.full_name}</span>
+                  <div className="d-flex flex-column gap-2">
+                    <div className="row">
+                      <div className="col-md-3 col-4 text-muted text-uppercase small">Student Name</div>
+                      <div className="col-md-9 col-8 fw-semibold text-dark">: {student.full_name}</div>
                     </div>
-                    <div className="col-sm-6 col-md-3">
-                      <small className="text-muted d-block text-uppercase" style={{ fontSize: '0.75rem' }}>Hall Ticket No</small>
-                      <span className="fw-semibold">{student.hall_ticket_no}</span>
+                    <div className="row">
+                      <div className="col-md-3 col-4 text-muted text-uppercase small">Hall Ticket No</div>
+                      <div className="col-md-9 col-8 fw-semibold text-dark">: {student.hall_ticket_no}</div>
                     </div>
-                    <div className="col-sm-6 col-md-3">
-                      <small className="text-muted d-block text-uppercase" style={{ fontSize: '0.75rem' }}>Course</small>
-                      <span className="fw-semibold">{student.course_name || '-'}</span>
+                    <div className="row">
+                      <div className="col-md-3 col-4 text-muted text-uppercase small">Group</div>
+                      <div className="col-md-9 col-8 fw-semibold text-dark">: {student.group?.group_name || student.group_name || '-'}</div>
                     </div>
-                    <div className="col-sm-6 col-md-3">
-                      <small className="text-muted d-block text-uppercase" style={{ fontSize: '0.75rem' }}>Group</small>
-                      <span className="fw-semibold">{student.group_name || '-'}</span>
+                    <div className="row">
+                      <div className="col-md-3 col-4 text-muted text-uppercase small">Course</div>
+                      <div className="col-md-9 col-8 fw-semibold text-dark">: {student.course?.course_name || student.course_name || '-'}</div>
                     </div>
                   </div>
                 </div>
@@ -185,9 +195,9 @@ export default function PublicResults() {
                       <table className="table table-hover mb-0 align-middle">
                         <thead className="bg-light">
                           <tr>
-                            <th className="ps-4">Subject Code</th>
-                            <th>Subject Name</th>
-                            <th className="text-center">Max Marks</th>
+                            <th className="text-center" style={{ width: '60px' }}>S.No</th>
+                            <th className="ps-4">Subject</th>
+                            <th className="text-center">Semester</th>
                             <th className="text-center">Marks Obtained</th>
                             <th className="text-center">Status</th>
                           </tr>
@@ -201,9 +211,11 @@ export default function PublicResults() {
 
                             return (
                               <tr key={idx} className={rowClass}>
-                                <td className="ps-4 fw-semibold text-muted">{res.subject?.subject_code || '-'}</td>
-                                <td>{res.subject?.subject_name}</td>
-                                <td className="text-center">{res.max_marks}</td>
+                                <td className="text-center">{idx + 1}</td>
+                                <td className="ps-4">
+                                  {res.subject?.subject_code || '-'} - {res.subject?.subject_name}
+                                </td>
+                                <td className="text-center">{res.subject?.semester_number || res.semester || '-'}</td>
                                 <td className="text-center fw-bold">{res.marks_obtained}</td>
                                 <td className="text-center">
                                   <span className={`badge ${status === 'PASS' ? 'bg-success' : 'bg-danger'}`}>

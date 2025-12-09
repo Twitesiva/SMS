@@ -19,7 +19,7 @@ const navGroups = [
     items: [
       { to: "/admin/exams", label: "Create Exam timetable", icon: "bi-journal-check" },
       { to: "/admin/payments", label: "Student Mapping & Payments", icon: "bi-credit-card" },
-      { to: "/admin/payments-overview", label: "Decode", icon: "bi-bar-chart" },
+      { to: "/admin/payments-overview", label: "Decoding", icon: "bi-bar-chart" },
       { to: "/admin/hall-tickets", label: "Hall Ticket", icon: "bi-ticket-perforated" },
     ],
   },
@@ -45,7 +45,28 @@ export default function AdminShell({ children, onSignOut }) {
   const navTo = useNavigate();
   const { signOut } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState({});
   const sidebarRef = useRef(null);
+
+  // Automatically expand the group that contains the current active route
+  useEffect(() => {
+    const activeGroupIndex = navGroups.findIndex((group) =>
+      group.items.some((item) => item.to === pathname)
+    );
+    if (activeGroupIndex !== -1) {
+      setExpandedGroups((prev) => ({
+        ...prev,
+        [activeGroupIndex]: true,
+      }));
+    }
+  }, [pathname]);
+
+  const toggleGroup = (index) => {
+    setExpandedGroups((prev) => ({
+      ...prev,
+      [index]: !prev[index],
+    }));
+  };
 
   const handleSignOut = () => {
     if (typeof onSignOut === "function") {
@@ -148,32 +169,71 @@ export default function AdminShell({ children, onSignOut }) {
           ref={sidebarRef}
           className="sidebar-nav flex-grow-1 d-flex flex-column gap-1"
         >
-          {navGroups.map((group, groupIndex) => (
-            <div key={groupIndex} className="nav-group">
-              {!collapsed && (
-                <div className="nav-group-header px-3 mt-3 mb-1 fw-bolder text-white" style={{ fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  {group.title}
+          {navGroups.map((group, groupIndex) => {
+            // Check if this group contains the active route to highlight the header if needed
+            const isActiveGroup = group.items.some((item) => item.to === pathname);
+            const isExpanded = expandedGroups[groupIndex];
+
+            return (
+              <div key={groupIndex} className="nav-group">
+                {!collapsed && (
+                  <div
+                    className="nav-group-header item-box fw-bold d-flex justify-content-between align-items-center user-select-none"
+                    style={{
+                      margin: "10px 12px 4px",
+                      padding: "12px 16px",
+                      borderRadius: "12px",
+                      background: "rgba(255, 255, 255, 0.08)",
+                      border: "1px solid rgba(255, 255, 255, 0.05)",
+                      fontSize: "0.9rem",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                      color: isActiveGroup ? "#fff" : "rgba(255,255,255,0.75)",
+                    }}
+                    onClick={() => toggleGroup(groupIndex)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "rgba(255, 255, 255, 0.15)";
+                      e.currentTarget.style.color = "#fff";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
+                      e.currentTarget.style.color = isActiveGroup ? "#fff" : "rgba(255,255,255,0.75)";
+                    }}
+                  >
+                    <div className="d-flex align-items-center gap-2">
+                      <i className="bi bi-grid-fill" style={{ fontSize: "0.9rem", opacity: 0.8 }}></i>
+                      {group.title}
+                    </div>
+                    <i
+                      className={`bi bi-chevron-${isExpanded ? "up" : "down"}`}
+                      style={{ fontSize: "0.85rem", opacity: 0.7 }}
+                    ></i>
+                  </div>
+                )}
+                {collapsed && (
+                  <div className="nav-group-divider my-2 border-top mx-3 opacity-25"></div>
+                )}
+                <div className={!collapsed && !isExpanded ? "d-none" : ""}>
+                  {group.items.map((item) => (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      title={item.label}
+                      className={`nav-item-modern ${pathname === item.to ? "active" : ""
+                        }`}
+                    >
+                      <span className="icon">
+                        <i className={`bi ${item.icon}`}></i>
+                      </span>
+                      <span className="label">{item.label}</span>
+                    </Link>
+                  ))}
                 </div>
-              )}
-              {collapsed && (
-                <div className="nav-group-divider my-2 border-top mx-3 opacity-25"></div>
-              )}
-              {group.items.map((item) => (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  title={item.label}
-                  className={`nav-item-modern ${pathname === item.to ? "active" : ""
-                    }`}
-                >
-                  <span className="icon">
-                    <i className={`bi ${item.icon}`}></i>
-                  </span>
-                  <span className="label">{item.label}</span>
-                </Link>
-              ))}
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </nav>
 
 

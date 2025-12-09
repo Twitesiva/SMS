@@ -155,10 +155,10 @@ const ensureNoDuplicate = async (table, row = {}, opts = {}) => {
             return false;
           return String(r[col]) === String(val);
         });
-          if (found) {
-            const pretty = col.replace(/_/g, " ");
-            throw new Error(`${pretty} already exists`);
-          }
+        if (found) {
+          const pretty = col.replace(/_/g, " ");
+          throw new Error(`${pretty} already exists`);
+        }
       } catch (fallbackErr) {
         console.error("Duplicate check failed (fallback)", fallbackErr);
         throw fallbackErr;
@@ -168,27 +168,19 @@ const ensureNoDuplicate = async (table, row = {}, opts = {}) => {
 };
 
 const mapYear = (row = {}) => {
-  const statusValue = row.status;
-  const isInactive =
-    statusValue === 0 || statusValue === "0" || statusValue === false;
   const academicYear = row.academic_year ?? row.name ?? "";
-  const rawCategory = row.category || row.year_category || "";
-  const category = rawCategory
-    ? String(rawCategory).toUpperCase()
-    : "UG";
+  // Category/Status columns removed from DB, defaulting to inferred values
   return {
     id: row.id,
     academic_year: academicYear,
     name: academicYear,
-    active: !isInactive,
-    category,
+    active: true,
+    category: "UG",
   };
 };
 
-const toYearRow = ({ name, active, category }) => ({
+const toYearRow = ({ name }) => ({
   academic_year: name,
-  status: active ? 1 : 0,
-  category: category || null,
 });
 
 const mapGroup = (row = {}) => ({
@@ -259,7 +251,7 @@ const parseSubjectList = (value) => {
     try {
       const parsed = JSON.parse(trimmed);
       if (Array.isArray(parsed)) return parsed.filter(Boolean);
-    } catch {}
+    } catch { }
     return trimmed
       .split(/[\r\n,]+/)
       .map((entry) => entry.trim())
@@ -268,7 +260,7 @@ const parseSubjectList = (value) => {
   try {
     const parsed = JSON.parse(value);
     if (Array.isArray(parsed)) return parsed.filter(Boolean);
-  } catch {}
+  } catch { }
   return [];
 };
 
@@ -309,8 +301,8 @@ const mapSubject = (row = {}) => {
     courseName: row.course_name || row.courseName || row.course_code || "",
     semester:
       semesterValue === "" ||
-      semesterValue === undefined ||
-      semesterValue === null
+        semesterValue === undefined ||
+        semesterValue === null
         ? ""
         : Number(semesterValue),
     categoryId: row.category_id ?? row.categoryId ?? "",
@@ -330,8 +322,8 @@ const mapSubject = (row = {}) => {
       row.fee_category || row.feeCategory || row.fees_categories || "",
     feeAmount:
       feeAmountValue === undefined ||
-      feeAmountValue === null ||
-      feeAmountValue === ""
+        feeAmountValue === null ||
+        feeAmountValue === ""
         ? ""
         : Number(feeAmountValue),
   };
@@ -351,8 +343,8 @@ const toSubjectRow = (subject = {}) => {
     subject.amount ?? subject.feeAmount ?? subject.fee_amount;
   const normalizedFee =
     feeAmountValue === "" ||
-    feeAmountValue === undefined ||
-    feeAmountValue === null
+      feeAmountValue === undefined ||
+      feeAmountValue === null
       ? null
       : Number(feeAmountValue);
   const subjectId = subject.subject_id || subject.subjectId || subject.id;
@@ -674,7 +666,7 @@ export const api = {
     const rows = await runQuery(
       supabase
         .from(TABLES.academicYears)
-        .select("id, academic_year, status, category")
+        .select("id, academic_year")
         .order("academic_year"),
       "Unable to fetch academic years"
     );
@@ -687,7 +679,7 @@ export const api = {
       supabase
         .from(TABLES.academicYears)
         .insert(toYearRow(payload))
-        .select("id, academic_year, status, category")
+        .select("id, academic_year")
         .single(),
       "Unable to add academic year"
     );
@@ -703,7 +695,7 @@ export const api = {
         .from(TABLES.academicYears)
         .update(toYearRow(payload))
         .eq("id", id)
-        .select("id, academic_year, status, category")
+        .select("id, academic_year")
         .single(),
       "Unable to update academic year"
     );
@@ -890,13 +882,13 @@ export const api = {
 
   addSubjects: async (subjects = []) => {
     if (!Array.isArray(subjects) || !subjects.length) return [];
-    
+
     // First, check for existing subjects to avoid duplicates
     const existingSubjects = await runQuery(
       supabase.from(TABLES.subjects).select('*'),
       "Unable to fetch existing subjects"
     );
-    
+
     // Create a map of existing subject codes to their IDs for quick lookup
     const existingSubjectMap = new Map(
       existingSubjects.map(sub => [
@@ -904,15 +896,15 @@ export const api = {
         sub.subject_id
       ])
     );
-    
+
     // Prepare the final list of subjects to insert
     const subjectsToInsert = [];
     const subjectsToUpdate = [];
-    
+
     for (const subject of subjects) {
       const subjectRow = toSubjectRow(subject);
       const subjectKey = `${subjectRow.academic_year}|${subjectRow.course_name}|${subjectRow.semester_number}|${subjectRow.subject_code}`.toLowerCase();
-      
+
       if (existingSubjectMap.has(subjectKey)) {
         // Subject exists, prepare for update
         const existingId = existingSubjectMap.get(subjectKey);
@@ -928,7 +920,7 @@ export const api = {
         subjectsToInsert.push(subjectRow);
       }
     }
-    
+
     // Process updates
     const updatedSubjects = [];
     if (subjectsToUpdate.length > 0) {
@@ -939,18 +931,18 @@ export const api = {
           .update(updateData)
           .eq('subject_id', subject_id)
           .select();
-          
+
         if (error) {
           console.error('Error updating subject:', error);
           throw new Error(`Error updating subject: ${error.message}`);
         }
-        
+
         if (updated && updated.length > 0) {
           updatedSubjects.push(...updated);
         }
       }
     }
-    
+
     // Process inserts
     let insertedSubjects = [];
     if (subjectsToInsert.length > 0) {
@@ -958,17 +950,17 @@ export const api = {
         .from(TABLES.subjects)
         .insert(subjectsToInsert)
         .select();
-        
+
       if (error) {
         console.error('Error inserting subjects:', error);
         throw new Error(`Error inserting subjects: ${error.message}`);
       }
-      
+
       if (inserted) {
         insertedSubjects = inserted;
       }
     }
-    
+
     // Return combined results
     return [...updatedSubjects, ...insertedSubjects].map(mapSubject);
   },

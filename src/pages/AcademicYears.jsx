@@ -2,16 +2,6 @@ import { useState } from 'react';
 import { showToast } from '../store/ui.js';
 import ConfirmationModal from '../components/ConfirmationModal.jsx';
 
-const inferCategoryFromYearName = (yearName = '') => {
-  if (!yearName) return 'UG';
-  const sanitized = yearName.trim().replace(/[^0-9-]/g, '');
-  const match = sanitized.match(/^(\d{4})-(\d{4})$/);
-  if (!match) return 'UG';
-  const start = Number(match[1]);
-  const end = Number(match[2]);
-  return end - start === 2 ? 'PG' : 'UG';
-};
-
 export default function AcademicYearsSection({
   yearForm,
   setYearForm,
@@ -26,94 +16,31 @@ export default function AcademicYearsSection({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
 
-  const validateYearFormat = (yearStr, category) => {
+  const validateYearFormat = (yearStr) => {
     if (!yearStr) return false;
-
     // Check if the format is YYYY-YYYY
     const yearRegex = /^(\d{4})-(\d{4})$/;
-    if (!yearRegex.test(yearStr)) return false;
+    const match = yearStr.match(yearRegex);
+    if (!match) return false;
 
-    const [startYear, endYear] = yearStr.split('-').map(Number);
-    const expectedDuration = category === 'UG' ? 3 : 2;
+    const startYear = parseInt(match[1], 10);
+    const endYear = parseInt(match[2], 10);
 
-    return (endYear - startYear) === expectedDuration;
+    // Enforce 1 year gap (e.g. 2025-2026)
+    return (endYear - startYear) === 1;
   };
 
   const handleYearChange = (e) => {
     const value = e.target.value;
-    const prevValue = yearForm.name || '';
-    if (yearForm.category && /^\d{4}$/.test(value)) {
-      if (value.length <= prevValue.length) {
-        setYearForm(prev => ({ ...prev, name: value }));
-        setError('');
-        return;
-      }
-      const duration = yearForm.category === 'UG' ? 3 : 2;
-      const startYear = Number(value);
-      const autofilled = `${value}-${startYear + duration}`;
-      setYearForm(prev => ({ ...prev, name: autofilled }));
-      if (!validateYearFormat(autofilled, yearForm.category)) {
-        const expectedYears = yearForm.category === 'UG' ? '3 years' : '2 years';
-        setError(`Please enter a valid ${yearForm.category} duration (${expectedYears})`);
-      } else {
-        setError('');
-      }
-      return;
-    }
     setYearForm(prev => ({ ...prev, name: value }));
-
-    if (!value) {
-      setError('');
-      return;
-    }
-
-    if (!yearForm.category) {
-      setError('Please select a category first');
-      return;
-    }
-
-    if (!validateYearFormat(value, yearForm.category)) {
-      const expectedYears = yearForm.category === 'UG' ? '3 years' : '2 years';
-      setError(`Please enter a valid ${yearForm.category} duration (${expectedYears})`);
-    } else {
-      setError('');
-    }
+    // Clear error on change
+    if (value) setError('');
   };
-
-  const getCategory = (year) => {
-    const rawCategory =
-      (year.category && String(year.category)) ||
-      (year.year_category && String(year.year_category)) ||
-      "";
-    const normalized = rawCategory.trim();
-    if (normalized) return normalized.toUpperCase();
-    return inferCategoryFromYearName(year.name || year.academic_year);
-  };
-
-  // Group academic years by category (normalize to uppercase)
-  const groupedYears = academicYears.reduce(
-    (acc, year) => {
-      const category = getCategory(year);
-      if (!acc[category]) {
-        acc[category] = [];
-      }
-      acc[category].push(year);
-      return acc;
-    },
-    { UG: [], PG: [] } // Ensure both buckets exist
-  );
-  const ugYears = groupedYears.UG || [];
-  const pgYears = groupedYears.PG || [];
 
   const handleAddYear = async () => {
-    if (!yearForm.category) {
-      setError('Please select a category first');
-      return;
-    }
-
-    if (!validateYearFormat(yearForm.name, yearForm.category)) {
-      const expectedYears = yearForm.category === 'UG' ? '3 years' : '2 years';
-      setError(`Please enter a valid ${yearForm.category} duration (${expectedYears})`);
+    // Validate format before submitting
+    if (!validateYearFormat(yearForm.name)) {
+      setError('Please select a valid academic year (e.g. 2025-2026)');
       return;
     }
 
@@ -123,17 +50,16 @@ export default function AcademicYearsSection({
       showToast(editingYearId ? "Academic year updated successfully" : "Academic year added successfully", { type: 'success' });
     } catch (err) {
       console.error(err);
-      // Assuming parent might handle error or we show generic error
-      // showToast("Failed to save academic year", { type: 'error' });
     }
   };
 
   const handleEditYear = (year) => {
-    const category = getCategory(year);
     editYear(year);
+    // When editing, we populate the name. 
+    // We update yearForm which is in parent.
+    // Ensure we don't carry over category if it exists in year object but not in form requirements.
     setYearForm({
       name: year.name || year.academic_year,
-      category,
       active: year.active,
     });
     setError('');
@@ -157,6 +83,17 @@ export default function AcademicYearsSection({
       }
     }
   };
+
+  // Create a Set of existing year names for efficient lookup
+  const existingYears = new Set(academicYears.map(y => y.name || y.academic_year));
+
+  // Generate options starting from 2025 to 2030 (6 years)
+  const startBaseYear = 2025;
+  const yearOptions = Array.from({ length: 6 }, (_, i) => {
+    const start = startBaseYear + i;
+    return `${start}-${start + 1}`;
+  });
+
   return (
     <section className="setup-section mb-4">
       <div className="students-section-shell card card-soft mb-4">
@@ -164,62 +101,34 @@ export default function AcademicYearsSection({
           <div>
             <h5 className="section-title mb-1">Academic Years</h5>
             <p className="students-section-copy small mb-0">
-              Define and organize academic spans by category so groups and fees stay aligned.
+              Define academic years to organize batches and curriculum.
             </p>
           </div>
         </div>
 
         <div className="students-section-form row g-2 align-items-end">
-          <div className="col-md-2">
-            <label className="form-label fw-bold mb-1">Category</label>
-            <select
-              className="form-select"
-              value={yearForm.category || ''}
-              onChange={(e) => {
-                setYearForm({ ...yearForm, category: e.target.value, name: '' });
-                setError('');
-              }}
-              required
-            >
-              <option value="">Select Category</option>
-              <option value="UG">UG</option>
-              <option value="PG">PG</option>
-            </select>
-          </div>
           <div className="col-md-5">
             <label className="form-label fw-bold mb-1">Academic Year</label>
-            {yearForm.category ? (
-              <select
-                className={`form-select ${error && 'is-invalid'}`}
-                value={yearForm.name}
-                onChange={(e) => {
-                  setYearForm(prev => ({ ...prev, name: e.target.value }));
-                  setError('');
-                }}
-                required
-              >
-                <option value="">Select Academic Year</option>
-                {Array.from({ length: 6 }, (_, i) => {
-                  const startYear = 2025 + i;
-                  const endYear = yearForm.category === 'UG' ? startYear + 3 : startYear + 2;
-                  const yearRange = `${startYear}-${endYear}`;
-                  return (
-                    <option key={yearRange} value={yearRange}>
-                      {yearRange}
-                    </option>
-                  );
-                })}
-              </select>
-            ) : (
-              <input
-                className="form-control"
-                placeholder="Select category first"
-                disabled
-              />
-            )}
+            <select
+              className={`form-select ${error && 'is-invalid'}`}
+              value={yearForm.name || ''}
+              onChange={handleYearChange}
+              required
+            >
+              <option value="">Select Academic Year</option>
+              {yearOptions.map((opt) => {
+                // Check if this option is already in the list
+                const isDisabled = existingYears.has(opt);
+                return (
+                  <option key={opt} value={opt} disabled={isDisabled}>
+                    {opt} {isDisabled ? '(Created)' : ''}
+                  </option>
+                );
+              })}
+            </select>
             {error && <div className="invalid-feedback d-block">{error}</div>}
           </div>
-          <div className="col-md-5 d-flex flex-wrap gap-2 justify-content-end">
+          <div className="col-md-5 d-flex flex-wrap gap-2 justify-content-start">
             <button
               className="btn btn-primary students-button"
               onClick={handleAddYear}
@@ -237,94 +146,39 @@ export default function AcademicYearsSection({
           </div>
         </div>
 
-        {(ugYears.length > 0 || pgYears.length > 0) && (
+        {academicYears.length > 0 && (
           <div className="students-section-list mt-4">
-            <div className="row g-4">
-              {ugYears.length > 0 && (
-                <div className="col-12">
-                  <div className="d-flex justify-content-between align-items-center mb-3">
-                    <h6 className="fw-bold mb-0">UG Years</h6>
-                  </div>
-                  <div className="row g-3">
-                    {ugYears.map((y) => (
-                      <div className="col-md-4" key={y.id || y.academic_year || y.name}>
-                        <div className="card h-100 students-category-card">
-                          <div className="card-body d-flex flex-column gap-3">
-                            <div>
-                              <p className="fw-bold mb-1">{y.name || y.academic_year}</p>
-                              <p className="text-muted mb-2 text-uppercase small">
-                                {getCategory(y)} Academic Year
-                              </p>
-                              <span className="students-section-badge students-section-badge-category">
-                                {getCategory(y)}
-                              </span>
-                            </div>
-                            <div className="mt-auto d-flex gap-2">
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-outline-primary students-button students-button-sm flex-fill"
-                                onClick={() => handleEditYear(y)}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-outline-danger students-button students-button-sm flex-fill"
-                                onClick={() => handleDeleteClick(y.id)}
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </div>
-                        </div>
+            <div className="row g-3">
+              {academicYears.map((y) => (
+                <div className="col-md-4" key={y.id || y.academic_year || y.name}>
+                  <div className="card h-100 students-category-card">
+                    <div className="card-body d-flex flex-column gap-3">
+                      <div>
+                        <p className="fw-bold mb-1">{y.name || y.academic_year}</p>
+                        <p className="text-muted mb-2 text-uppercase small">
+                          Academic Year
+                        </p>
                       </div>
-                    ))}
+                      <div className="mt-auto d-flex gap-2">
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-primary students-button students-button-sm flex-fill"
+                          onClick={() => handleEditYear(y)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-danger students-button students-button-sm flex-fill"
+                          onClick={() => handleDeleteClick(y.id)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              )}
-
-              {pgYears.length > 0 && (
-                <div className="col-12">
-                  <div className="d-flex justify-content-between align-items-center mb-3">
-                    <h6 className="fw-bold mb-0">PG Years</h6>
-                  </div>
-                  <div className="row g-3">
-                    {pgYears.map((y) => (
-                      <div className="col-md-4" key={y.id || y.academic_year || y.name}>
-                        <div className="card h-100 students-category-card">
-                          <div className="card-body d-flex flex-column gap-3">
-                            <div>
-                              <p className="fw-bold mb-1">{y.name || y.academic_year}</p>
-                              <p className="text-muted mb-2 text-uppercase small">
-                                {getCategory(y)} Academic Year
-                              </p>
-                              <span className="students-section-badge students-section-badge-course">
-                                {getCategory(y)}
-                              </span>
-                            </div>
-                            <div className="mt-auto d-flex gap-2">
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-outline-primary students-button students-button-sm flex-fill"
-                                onClick={() => handleEditYear(y)}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-outline-danger students-button students-button-sm flex-fill"
-                                onClick={() => handleDeleteClick(y.id)}
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              ))}
             </div>
           </div>
         )}

@@ -1377,6 +1377,7 @@ export default function Exams() {
                     <table className="table table-bordered table-sm align-middle">
                       <thead className="bg-light">
                         <tr>
+                          <th>S.NO</th>
                           <th>Date</th>
                           <th>Time</th>
                           <th>Subject</th>
@@ -1384,7 +1385,7 @@ export default function Exams() {
                         </tr>
                       </thead>
                       <tbody>
-                        {timetableModalState.schedules.map((sch) => {
+                        {timetableModalState.schedules.map((sch, index) => {
                           // Lookup subject name from the subjects list
                           const foundSubject = subjects.find(s =>
                             s.subjectCode === sch.subject_code ||
@@ -1402,6 +1403,7 @@ export default function Exams() {
                           }
                           return (
                             <tr key={sch.schedule_id}>
+                              <td>{index + 1}</td>
                               <td>{sch.exam_date ? new Date(sch.exam_date).toLocaleDateString('en-GB') : '-'}</td>
                               <td>
                                 {TIME_SLOTS.find(t => t.value === sch.exam_start_time.slice(0, 5))?.displayTime || sch.exam_start_time} - {TIME_SLOTS.find(t => t.value === sch.exam_end_time.slice(0, 5))?.displayTime || sch.exam_end_time}

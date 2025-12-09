@@ -9,7 +9,6 @@ export default function ResultPublish() {
     const [selectedExamId, setSelectedExamId] = useState("");
     const [loading, setLoading] = useState(false);
     const [publishing, setPublishing] = useState(false);
-    const [showConfirm, setShowConfirm] = useState(false);
 
     useEffect(() => {
         loadExams();
@@ -34,22 +33,33 @@ export default function ResultPublish() {
             return;
         }
 
-        setShowConfirm(true);
-    };
-
-    const confirmPublish = async () => {
-        setShowConfirm(false);
-
         setPublishing(true);
         try {
-            // 1. Fetch all data related to this exam to construct results
+            // Check for existing results to prevent duplicates
+            const { count, error: existingError } = await supabase
+                .from('results')
+                .select('*', { count: 'exact', head: true })
+                .eq('exam_id', selectedExamId);
+
+            if (existingError) throw existingError;
+
+            if (count > 0) {
+                showToast("Results are already published for this exam.", { type: "warning" });
+                setPublishing(false);
+                return;
+            }
+
+            // 1. Fetch registrations with nested marks data
+            // We fetch the core structure but remove the direct relation joins to avoid schema errors.
             const { data: registrations, error: fetchError } = await supabase
                 .from('exam_registrations')
                 .select(`
+                    id,
                     student_id,
                     exam_id,
                     semester,
                     exam_registration_subjects (
+                        id,
                         subject_id,
                         barcodes (
                             id,
@@ -65,12 +75,52 @@ export default function ResultPublish() {
 
             if (fetchError) throw fetchError;
 
-            // 2. Flatten and transform into results format
-            const resultsPayload = [];
+            // 2. Extract IDs for manual fetching
+            const studentIds = new Set();
+            const subjectIds = new Set();
+
             (registrations || []).forEach(reg => {
+                if (reg.student_id) studentIds.add(reg.student_id);
+                if (reg.exam_registration_subjects) {
+                    reg.exam_registration_subjects.forEach(sub => {
+                        if (sub.subject_id) subjectIds.add(sub.subject_id);
+                    });
+                }
+            });
+
+            // 3. Fetch Students and Subjects in parallel
+            const [studentsRes, subjectsRes] = await Promise.all([
+                studentIds.size > 0
+                    ? supabase.from('students').select('id, full_name, hall_ticket_no').in('id', Array.from(studentIds))
+                    : { data: [] },
+                subjectIds.size > 0
+                    ? supabase.from('subjects').select('subject_id, subject_name, subject_code').in('subject_id', Array.from(subjectIds))
+                    : { data: [] }
+            ]);
+
+            if (studentsRes.error) throw studentsRes.error;
+            if (subjectsRes.error) throw subjectsRes.error;
+
+            const studentMap = new Map((studentsRes.data || []).map(s => [s.id, s]));
+            const subjectMap = new Map((subjectsRes.data || []).map(s => [s.subject_id, s]));
+
+            // 4. Flatten and transform into results format
+            const resultsPayload = [];
+            const previewList = [];
+
+            (registrations || []).forEach(reg => {
+                const student = studentMap.get(reg.student_id);
+                const studentName = student?.full_name || "Unknown";
+                const hallTicket = student?.hall_ticket_no || "N/A";
+
                 (reg.exam_registration_subjects || []).forEach(sub => {
+                    const subject = subjectMap.get(sub.subject_id);
+                    const subjectCode = subject?.subject_code || "N/A";
+                    const subjectName = subject?.subject_name || "Unknown";
+
                     (sub.barcodes || []).forEach(barcode => {
                         (barcode.marks || []).forEach(mark => {
+                            // Payload for DB
                             resultsPayload.push({
                                 student_id: reg.student_id,
                                 exam_id: reg.exam_id,
@@ -80,13 +130,28 @@ export default function ResultPublish() {
                                 max_marks: mark.max_marks || 100,
                                 barcode_id: mark.barcode_id
                             });
+
+                            // Preview for UI
+                            previewList.push({
+                                hallTicket,
+                                studentName,
+                                subject: `${subjectCode} - ${subjectName}`,
+                                marks: mark.marks_obtained
+                            });
                         });
                     });
                 });
             });
 
+            if (previewList.length === 0) {
+                showToast("No results found to publish for this exam.", { type: "info" });
+                setPublishing(false);
+                return;
+            }
+
+            // Directly publish without confirmation
             if (resultsPayload.length > 0) {
-                // 3. Upsert into results table
+                // Upsert into results table
                 const { error: insertError } = await supabase
                     .from('results')
                     .upsert(resultsPayload, { onConflict: 'student_id, exam_id, subject_id' });
@@ -94,7 +159,7 @@ export default function ResultPublish() {
                 if (insertError) throw insertError;
             }
 
-            // 4. Update exam master status
+            // Update exam master status
             const { error } = await supabase
                 .from("exam_master")
                 .update({ results_published: true })
@@ -103,8 +168,9 @@ export default function ResultPublish() {
             if (error) throw error;
 
             showToast("Results published successfully", { type: "success" });
-            loadExams();
             setSelectedExamId("");
+            loadExams();
+
         } catch (error) {
             console.error("Failed to publish results", error);
             showToast("Failed to publish results: " + error.message, { type: "error" });
@@ -145,32 +211,12 @@ export default function ResultPublish() {
                                 onClick={handlePublish}
                                 disabled={!selectedExamId || publishing}
                             >
-                                {publishing ? "Publishing..." : "Publish Results"}
+                                {publishing ? "Processing..." : "Publish Results"}
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
-
-            {showConfirm && (
-                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <div className="modal-dialog modal-dialog-centered">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h5 className="modal-title">Confirm Publish</h5>
-                                <button type="button" className="btn-close" onClick={() => setShowConfirm(false)}></button>
-                            </div>
-                            <div className="modal-body">
-                                <p>Are you sure you want to publish results for this exam?</p>
-                            </div>
-                            <div className="modal-footer">
-                                <button className="btn btn-secondary" onClick={() => setShowConfirm(false)}>Cancel</button>
-                                <button className="btn btn-primary" onClick={confirmPublish}>Confirm Publish</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </AdminShell>
     );
 }

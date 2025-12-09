@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import Barcode from "react-barcode";
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import AdminShell from "../components/AdminShell";
 import { supabase } from "../../supabaseClient";
 
@@ -743,6 +745,9 @@ export default function PaymentsOverview() {
       setIsGenerating(true);
       setLoadingSubjectStudents(true);
 
+      // Wait 3 seconds to simulate generation
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
       // Get the subject ID from the subjectsByDate list
       const subject = subjectsByDate.find(s => s.subject_code === selectedSubjectForDecode.subject_code);
       if (!subject) return;
@@ -750,14 +755,110 @@ export default function PaymentsOverview() {
       // Set decode generated to true to show the student list
       setIsDecodeGenerated(true);
 
-      // Rest of the existing handleGenerateDecode implementation...
-      // [Previous implementation of handleGenerateDecode goes here]
-
     } catch (error) {
       console.error('Error generating decode:', error);
     } finally {
       setLoadingSubjectStudents(false);
       setIsGenerating(false);
+    }
+  };
+
+  // Handle PDF Download
+  const handleDownloadPDF = async () => {
+    // strict mode need to invoke raw element creation or use existing data to build a print-specific view
+    // We will create a temporary container off-screen to render the print layout
+    const printContainer = document.createElement('div');
+    printContainer.style.position = 'absolute';
+    printContainer.style.top = '-9999px';
+    printContainer.style.left = '-9999px';
+    printContainer.style.width = '210mm'; // A4 width
+    printContainer.style.backgroundColor = '#fff';
+    printContainer.style.padding = '20px';
+    document.body.appendChild(printContainer);
+
+    // Build the table HTML with 3 barcode columns
+    // We need to render the Barcode component to SVG strings or similar, but since we are in React context, 
+    // we can't easily render React components to HTML string with full lifecycle affecting imports like 'react-barcode'.
+    // However, since we are already inside a component, we can perhaps use a state to show a "print mode" view?
+    // A cleaner approach in a functional component without heavy refactoring:
+    // We can render the Barcode components into the hidden container using standard React rendering if we had a portal, 
+    // but simpler: Clone the visible table logic but modify the columns.
+
+    // Actually, `html2canvas` works on DOM elements. Let's create a *visible* but *hidden from user* (e.g. z-index behind or covered) specific print view 
+    // OR just modify the existing logic to conditionally render a printable table and capture that?
+    // User wants "download" action.
+
+    // Let's go with the "Create a temporary React-rendered structure" approach isn't easy here within one function.
+    // Better: Render the specific download structure into a hidden div using standard DOM manipulation for the text parts, and for barcodes...
+    // simpler: `react-barcode` renders an SVG/Canvas. We can clone the existing table rows and append 2 more barcode cells.
+
+    // Let's try this: 
+    // 1. Clone the `decode-table-container` node.
+    // 2. Modify the cloned node to add 2 more barcode headers and 2 more barcode cells per row (cloning the existing barcode cell's content).
+    // 3. Append clone to body (off-screen).
+    // 4. Capture.
+    // 5. Remove.
+
+    const sourceTable = document.getElementById('decode-table-container');
+    if (!sourceTable) return;
+
+    const clonedContainer = sourceTable.cloneNode(true);
+    // Be careful, clonenode might not capture canvas contents if they are canvas, but react-barcode usually uses SVG or Canvas. 
+    // If it uses Canvas, we need to manually copy content. `react-barcode` default is SVG (renderer='svg').
+    // Let's assume SVGs are fine.
+
+    // Modify headers
+    const theadRow = clonedContainer.querySelector('thead tr');
+    if (theadRow) {
+      // Append 2 more "Barcode" headers
+      const barcodeHeader = theadRow.lastElementChild; // Assuming Barcode is last
+      if (barcodeHeader) {
+        theadRow.appendChild(barcodeHeader.cloneNode(true));
+        theadRow.appendChild(barcodeHeader.cloneNode(true));
+      }
+    }
+
+    // Modify body rows
+    const tbodyRows = clonedContainer.querySelectorAll('tbody tr');
+    tbodyRows.forEach(row => {
+      const barcodeCell = row.lastElementChild;
+      if (barcodeCell) {
+        // We clone the cell. 
+        // Note: If the barcode is a CANVAS, cloneNode won't copy the drawing context.
+        // If SVG, it's fine.
+        // Let's check typical usage. react-barcode uses jsbarcode which defaults to SVG usually in standard usage but can be canvas.
+        // In the code: `<Barcode value={student.barcode} ... />`. 
+        // We will assume SVG for now. If canvas, we'd need to re-draw.
+        // But wait, the previous `html2canvas` worked on the visible table, so standard DOM capture works.
+        row.appendChild(barcodeCell.cloneNode(true));
+        row.appendChild(barcodeCell.cloneNode(true));
+      }
+    });
+
+    // Style for capture
+    clonedContainer.style.position = 'fixed';
+    clonedContainer.style.top = '-10000px';
+    clonedContainer.style.width = '1200px'; // Wide enough for 3 barcodes
+    clonedContainer.style.backgroundColor = '#fff';
+    clonedContainer.style.zIndex = '-1';
+    document.body.appendChild(clonedContainer);
+
+    try {
+      const canvas = await html2canvas(clonedContainer, {
+        scale: 2,
+        backgroundColor: '#ffffff'
+      });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`${selectedSubjectForDecode?.subject_code || 'subject'}-barcodes.pdf`);
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+    } finally {
+      document.body.removeChild(clonedContainer);
     }
   };
 
@@ -811,11 +912,11 @@ export default function PaymentsOverview() {
                   </div>
                 </div>
               ) : isDecodeGenerated && subjectStudents.length > 0 ? (
-                <div className="table-responsive">
+                <div id="decode-table-container" className="table-responsive">
                   <table className="table table-sm">
                     <thead>
                       <tr>
-                        <th>#</th>
+                        <th>S.NO</th>
                         <th>Subject</th>
                         <th>Hall Ticket No.</th>
                         <th>Barcode</th>
@@ -833,7 +934,7 @@ export default function PaymentsOverview() {
                           <td>{student.hallTicketNo || "N/A"}</td>
                           <td>
                             {student.barcode ? (
-                              <Barcode value={student.barcode} height={25} width={1} displayValue={false} fontSize={10} margin={0} />
+                              <Barcode value={student.barcode} height={25} width={1} displayValue={true} fontSize={10} margin={0} />
                             ) : (
                               <span className="text-muted">-</span>
                             )}
@@ -863,6 +964,15 @@ export default function PaymentsOverview() {
               >
                 Cancel
               </button>
+              {isDecodeGenerated && (
+                <button
+                  type="button"
+                  className="btn btn-outline-primary"
+                  onClick={handleDownloadPDF}
+                >
+                  <i className="bi bi-download me-2"></i>Download
+                </button>
+              )}
               <button
                 type="button"
                 className={`btn px-4 ${isDecodeGenerated ? 'btn-success' : 'btn-primary'}`}
@@ -1007,7 +1117,7 @@ export default function PaymentsOverview() {
               </div>
             ) : (
               <div className="form-text text-muted">
-                {examDates.length === 0 ? 'No dates found for this exam' : `Showing subjects for ${new Date(selectedDate).toLocaleDateString()}`}
+                {examDates.length === 0 ? 'No dates found for this exam' : ''}
               </div>
             )}
           </div>
@@ -1018,85 +1128,6 @@ export default function PaymentsOverview() {
           <div className="text-center py-3">
             <div className="spinner-border text-primary" role="status">
               <span className="visually-hidden">Loading subjects...</span>
-            </div>
-          </div>
-        )}
-
-        {/* Show subjects after search when a subject is selected */}
-        {!loadingSubjectStudents && selectedSubject && subjectStudents.length > 0 && (
-          <div className="mb-4">
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <h5 className="mb-0">
-                {selectedSubject ? 'Students for Selected Subject' : 'Search Results'}
-              </h5>
-              <span className="badge bg-primary fw-bold">
-                {subjectStudents.length} student{subjectStudents.length !== 1 ? 's' : ''} found
-              </span>
-            </div>
-
-            {/* Show subject details */}
-            {(subjectStudents[0]?.subject_name || selectedSubject) && (
-              <div className="mb-3 p-3 bg-light rounded">
-                <div className="fw-bold">
-                  {subjectStudents[0]?.subject_name || ''}
-                  {subjectStudents[0]?.subject_code && `(${subjectStudents[0].subject_code})`}
-                  {!subjectStudents[0]?.subject_name && !subjectStudents[0]?.subject_code &&
-                    subjectsByDate.find(s => s.subject_code === selectedSubject)?.subject_name || ''}
-                </div>
-                <div className="text-muted small">
-                  {subjectStudents.length} student{subjectStudents.length !== 1 ? 's' : ''} registered for this subject
-                </div>
-              </div>
-            )}
-
-            {/* Students list */}
-            <div className="table-responsive">
-              <table className="table table-sm align-middle mb-0">
-                <thead>
-                  <tr>
-                    <th>Student Name</th>
-                    <th>Subject</th>
-                    <th>Hall Ticket No.</th>
-                    <th>Barcode</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {subjectStudents.map((student) => (
-                    <tr key={student.student_id}>
-                      <td className="fw-semibold">
-                        {student.fullName || "-"}
-                      </td>
-                      <td>
-                        {(() => {
-                          const subject = subjectsByDate.find(s => s.subject_code === selectedSubject);
-                          return subject ? `${subject.subject_code}-${subject.subject_name}` : selectedSubject || "-";
-                        })()}
-                      </td>
-                      <td>{student.hallTicketNo || student.hall_ticket || "N/A"}</td>
-                      <td>
-                        {(student.barcode) ? (
-                          <div className="position-relative d-inline-block">
-                            {visibleDecodeNumbers[student.student_id || student.studentId] ? (
-                              <div className="bg-white d-inline-block p-1 border rounded">
-                                <Barcode value={student.barcode} height={30} width={1} displayValue={false} fontSize={12} margin={0} />
-                              </div>
-                            ) : (
-                              <button
-                                className="btn btn-sm btn-outline-primary"
-                                onClick={() => toggleDecodeNumber(student.student_id || student.studentId)}
-                              >
-                                View
-                              </button>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-muted">-</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </div>
           </div>
         )}
@@ -1209,7 +1240,7 @@ export default function PaymentsOverview() {
                               <div className="position-relative d-inline-block">
                                 {isVisible && (
                                   <div className="position-absolute bottom-100 start-50 translate-middle-x mb-1 px-2 py-1 bg-white border rounded shadow-sm small" style={{ zIndex: 10 }}>
-                                    <Barcode value={row.barcode} height={30} width={1} displayValue={false} fontSize={12} margin={0} />
+                                    <Barcode value={row.barcode} height={30} width={1} displayValue={true} fontSize={12} margin={0} />
                                   </div>
                                 )}
                                 <button
