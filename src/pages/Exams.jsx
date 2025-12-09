@@ -290,50 +290,50 @@ export default function Exams() {
 
   const [showPreview, setShowPreview] = useState(false)
 
-  const handlePreview = () => {
-    setFeedback({ message: '', type: '' })
+  const showValidationError = (message) => {
+    setFeedback({ type: 'error', message })
+    showToast(message, { type: 'error' })
+  }
+
+  const validateScheduleForm = () => {
     if (!category || !academicYear) {
-      setFeedback({
-        type: 'error',
-        message: 'Choose a category and academic year before scheduling.',
-      })
-      return
+      showValidationError('Choose a category and academic year before scheduling.')
+      return false
     }
     if (!selectedExam) {
-      setFeedback({
-        type: 'error',
-        message: 'Please select an exam from the dropdown.',
-      })
-      return
+      showValidationError('Please select an exam from the dropdown.')
+      return false
     }
 
     const selectedEntries = Object.entries(schedules).filter(([, entry]) => entry.selected)
 
     if (!selectedEntries.length) {
-      setFeedback({ type: 'error', message: 'Select at least one subject to schedule.' })
-      return
+      showValidationError('Select at least one subject to schedule.')
+      return false
     }
 
     for (const [id, entry] of selectedEntries) {
       const subject = subjectMap[id]
       if (!subject) continue
       if (!entry.date || !entry.startTime || !entry.endTime) {
-        setFeedback({
-          type: 'error',
-          message: `Enter date and time for ${subject.subjectName || subject.subjectCode || 'selected subject'}.`,
-        })
-        return
+        showValidationError(
+          `Enter date and time for ${subject.subjectName || subject.subjectCode || 'selected subject'}.`
+        )
+        return false
       }
       const subjectCodeRaw = subject.subjectCodeRaw?.trim() ?? subject.subjectCode?.trim()
       if (!subjectCodeRaw) {
-        setFeedback({
-          type: 'error',
-          message: `Subject code is missing for ${subject.subjectName || 'the selected subject'}.`,
-        })
-        return
+        showValidationError(`Subject code is missing for ${subject.subjectName || 'the selected subject'}.`)
+        return false
       }
     }
 
+    return true
+  }
+
+  const handlePreview = () => {
+    setFeedback({ message: '', type: '' })
+    if (!validateScheduleForm()) return
     setShowPreview(true)
   }
 
@@ -345,13 +345,11 @@ export default function Exams() {
       if (!subject) continue
 
       const subjectCodeRaw = subject.subjectCodeRaw?.trim() ?? subject.subjectCode?.trim()
-      const subjectGroupCode = subject.groupCode || subject.group_code || ''
-      const subjectCourseCode = subject.courseCode || subject.course_code || ''
+      const subjectGroupCode = subject.groupCode || subject.group_code
+      const subjectCourseCode = subject.courseCode || subject.course_code
 
-      entries.push({
+      const record = {
         academic_year: academicYear,
-        group_code: subjectGroupCode,
-        course_code: subjectCourseCode,
         semester_number: subject.semester,
         subject_code: subjectCodeRaw,
         exam_date: entry.date,
@@ -359,14 +357,24 @@ export default function Exams() {
         exam_end_time: entry.endTime,
         category,
         exam_master_id: selectedExam,
-      })
+      }
+
+      if (subjectGroupCode) {
+        record.group_code = subjectGroupCode
+      }
+      if (subjectCourseCode) {
+        record.course_code = subjectCourseCode
+      }
+
+      entries.push(record)
     }
 
     try {
       setSaving(true)
-      await api.saveExamSchedule(entries)
+      const { error } = await supabase.from('exam_schedule').insert(entries)
+      if (error) throw error
       const successMessage = 'Exam schedule saved successfully.'
-      setFeedback({ message: successMessage, type: 'success' })
+      setFeedback({ message: '', type: '' })
       showToast(successMessage, { type: 'success' })
 
       // Reset form fields
@@ -386,6 +394,12 @@ export default function Exams() {
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleSaveSchedule = async () => {
+    setFeedback({ message: '', type: '' })
+    if (!validateScheduleForm()) return
+    await handleConfirmSave()
   }
 
   const filtersReady = Boolean(category && academicYear)
@@ -496,17 +510,16 @@ export default function Exams() {
                 No semesters found for the selected academic year.
               </p>
             )}
-            {filtersReady && availableSemesters.length > 0 && (
-              <div className="mb-3">
-                <small className="text-muted">
-                  {semesterFocus
-                    ? `Focusing on semester ${semesterFocus}`
-                    : 'Showing all semesters'}
-                </small>
-              </div>
+            {filtersReady && availableSemesters.length > 0 && !semesterFocus && (
+              <p className="text-muted mb-3">
+                Select a semester to view and schedule subjects.
+              </p>
             )}
-            {filtersReady && availableSemesters.length > 0 && (
+            {filtersReady && availableSemesters.length > 0 && semesterFocus && (
               <>
+                <div className="mb-3">
+                  <small className="text-muted">Focusing on semester {semesterFocus}</small>
+                </div>
                 {sortedSemesters.map((semesterNumber) => {
                   const semesterSubjects = subjectsBySemester[semesterNumber] || []
                   return (
@@ -623,9 +636,16 @@ export default function Exams() {
                 })}
               </>
             )}
-            <div className="d-flex justify-content-end">
+            <div className="d-flex justify-content-end gap-2">
               <button className="btn btn-brand" disabled={saveDisabled} onClick={handlePreview}>
                 Preview
+              </button>
+              <button
+                className="btn btn-success"
+                disabled={saveDisabled}
+                onClick={handleSaveSchedule}
+              >
+                {saving ? 'Saving...' : 'Save Schedule'}
               </button>
             </div>
           </>
@@ -669,20 +689,13 @@ export default function Exams() {
               </table>
             </div>
 
-            <div className="d-flex justify-content-end gap-2">
+            <div className="d-flex justify-content-end">
               <button
                 className="btn btn-outline-secondary"
                 onClick={() => setShowPreview(false)}
                 disabled={saving}
               >
                 Back
-              </button>
-              <button
-                className="btn btn-brand"
-                onClick={handleConfirmSave}
-                disabled={saving}
-              >
-                {saving ? 'Saving...' : 'Create Exam Schedule'}
               </button>
             </div>
           </div>

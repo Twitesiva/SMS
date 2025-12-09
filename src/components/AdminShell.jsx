@@ -21,7 +21,6 @@ const navGroups = [
       { to: "/admin/payments", label: "Subject Mapping & Payments", icon: "bi-credit-card" },
       { to: "/admin/exams", label: "Create Exam timetable", icon: "bi-journal-check" },
       { to: "/admin/hall-tickets", label: "Hall Ticket", icon: "bi-ticket-perforated" },
-      { to: "/admin/payments-overview", label: "Decoding", icon: "bi-bar-chart" },
     ],
   },
   {
@@ -29,6 +28,7 @@ const navGroups = [
     items: [
       { to: "/admin/results", label: "Marks Entry", icon: "bi-award" },
       { to: "/admin/result-publish", label: "Result Publish", icon: "bi-megaphone" },
+      { to: "/admin/payments-overview", label: "Decoding", icon: "bi-bar-chart" },
     ],
   },
   {
