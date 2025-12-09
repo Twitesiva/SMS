@@ -159,12 +159,12 @@ export default function PaymentsOverview() {
       if (decodeError) throw decodeError;
 
       // Get student details
-      const { data: students, error: studentError } = await supabase
+      const { data: students, error: studentErrorRef } = await supabase
         .from('students')
         .select('id, student_id, hall_ticket_no, full_name')
         .in('id', studentIds);
 
-      if (studentError) throw studentError;
+      if (studentErrorRef) throw studentErrorRef;
 
       // Combine all the data
       const studentData = regSubjects.map(regSubj => {
@@ -189,6 +189,8 @@ export default function PaymentsOverview() {
       setLoadingSubjectStudents(false);
     }
   };
+
+
 
   // Handle date change
   const handleDateChange = async (date) => {
@@ -541,7 +543,7 @@ export default function PaymentsOverview() {
       return;
     }
 
-    const subjectCodeToSearch = selectedSubject;
+    const subjectCodeToSearch = subjectCodeOverride || selectedSubject;
 
     setSubjectSearchLoading(true);
     setSubjectSearchError("");
@@ -1075,16 +1077,6 @@ export default function PaymentsOverview() {
                             {index + 1}.
                           </div>
                           <div className="d-flex align-items-center flex-grow-1">
-                            <input
-                              type="radio"
-                              className="form-check-input me-2 flex-shrink-0"
-                              name="subjectSelect"
-                              value={subject.subject_code}
-                              checked={selectedSubject === subject.subject_code}
-                              onChange={() => { }}
-                              onClick={(e) => e.stopPropagation()}
-                              style={{ cursor: 'pointer' }}
-                            />
                             <div>
                               <div className="fw-semibold">
                                 {subject.subject_code} - {subject.subject_name}
@@ -1099,14 +1091,7 @@ export default function PaymentsOverview() {
               </div>
             )}
 
-            <button
-              className="btn btn-primary mt-2"
-              type="button"
-              onClick={handleSearchBySubjectCode}
-              disabled={subjectSearchLoading || !selectedExam || !selectedDate || !selectedSubject}
-            >
-              {subjectSearchLoading ? 'Searching...' : 'Search Students'}
-            </button>
+
             {!selectedExam ? (
               <div className="form-text text-muted">
                 Please select an exam first

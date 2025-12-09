@@ -10,6 +10,7 @@ import AdminLogin from "./pages/AdminLogin.jsx";
 import Batches from "./pages/Batches.jsx";
 import Courses from "./pages/Courses.jsx";
 import Students from "./pages/Students.jsx";
+import Promote from "./pages/Promote.jsx";
 import Exams from "./pages/Exams.jsx";
 import ExamNameCreation from "./pages/ExamNameCreation.jsx";
 import Payments from "./pages/Payments.jsx";
@@ -123,6 +124,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isAuthed}>
               <ResultPublish />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/admin/promote"
+          element={
+            <GuardedRoute isAuthed={isAuthed}>
+              <Promote />
             </GuardedRoute>
           }
         />
