@@ -136,14 +136,15 @@ export default function SubjectsSection({
         item.semester === undefined || item.semester === null ? '' : item.semester
       ].join('::')
 
-      const base = comboMap.get(comboKey) || {
-        comboKey,
-        academicYearId: item.academicYearId || item.academic_year,
-        academicYearName: item.academicYearName || item.academic_year,
-        academicYear: item.academicYearName || item.academic_year,
-        groupCode: item.groupCode || item.group_code,
-        courseCode: item.courseCode || item.course_name,
-        semester: item.semester,
+        const base = comboMap.get(comboKey) || {
+          comboKey,
+          academicYearId: item.academicYearId || item.academic_year,
+          academicYearName: item.academicYearName || item.academic_year,
+          academicYear: item.academicYearName || item.academic_year,
+          groupCode: item.groupCode || item.group_code,
+          courseCode: item.courseCode || item.course_name,
+          courseName: item.courseName || item.course_name || item.course_name_display || '',
+          semester: item.semester,
         subjectIds: [],
         subjectNames: [],
         subjectCodes: [],

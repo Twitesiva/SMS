@@ -43,6 +43,11 @@ const buildDefaultSchedule = () => ({
   endTime: '',
 })
 
+const normalizeYearName = (value) => {
+  if (value === undefined || value === null) return ''
+  return String(value).trim()
+}
+
 const parseCategoryValues = (value) => {
   if (value === undefined || value === null || value === '') return []
   if (Array.isArray(value)) return value.map((v) => String(v).trim().toUpperCase()).filter(Boolean)
@@ -68,14 +73,10 @@ const parseCategoryValues = (value) => {
 
 export default function Exams() {
   const [academicYears, setAcademicYears] = useState([])
-  const [groups, setGroups] = useState([])
-  const [courses, setCourses] = useState([])
   const [subjects, setSubjects] = useState([])
   const [category, setCategory] = useState('')
   const [currentSemesterNumber, setCurrentSemesterNumber] = useState(null)
   const [academicYear, setAcademicYear] = useState('')
-  const [groupCode, setGroupCode] = useState('')
-  const [courseCode, setCourseCode] = useState('')
   const [semesterFocus, setSemesterFocus] = useState('')
   const [schedules, setSchedules] = useState({})
   const [loading, setLoading] = useState(true)
@@ -530,16 +531,12 @@ export default function Exams() {
     setLoading(true)
     Promise.all([
       api.listAcademicYears(),
-      api.listGroups(),
-      api.listCourses(),
       api.listSubjects(),
       api.getCurrentSemesterNumber(),
     ])
-      .then(([years, groupsList, coursesList, subjectList, semesterNumber]) => {
+      .then(([years, subjectList, semesterNumber]) => {
         if (!isMounted) return
         setAcademicYears(years)
-        setGroups(groupsList)
-        setCourses(coursesList)
         setSubjects(subjectList)
         if (semesterNumber !== null && semesterNumber !== undefined) {
           const normalized = Number(semesterNumber)
@@ -590,52 +587,19 @@ export default function Exams() {
     return ordered
   }, [academicYears])
 
-  const selectedGroup = useMemo(
-    () => groups.find((group) => group.code === groupCode) ?? null,
-    [groups, groupCode]
-  )
-
-  // Filter courses based on selected group
-  const filteredCourses = useMemo(() => {
-    if (!groupCode) return [];
-    console.log('Selected Group Code:', groupCode);
-    console.log('Available Groups:', groups);
-    console.log('All Courses:', courses);
-
-    const selectedGroup = groups.find(g => g.code === groupCode || g.group_code === groupCode);
-    if (!selectedGroup) {
-      console.log('No matching group found for code:', groupCode);
-      return [];
-    }
-
-    const groupName = selectedGroup.name || selectedGroup.group_name;
-    console.log('Filtering courses for group:', groupName);
-
-    const filtered = courses.filter(course => {
-      const matches = (course.group_name === groupName || course.group_name === groupCode);
-      console.log(`Course: ${course.name} (${course.code}), Group: ${course.group_name}, Matches: ${matches}`);
-      return matches;
-    });
-
-    console.log('Filtered Courses:', filtered);
-    return filtered;
-  }, [courses, groupCode, groups]);
-
-  const selectedCourse = useMemo(
-    () => filteredCourses.find((course) => course.code === courseCode) ?? null,
-    [filteredCourses, courseCode]
-  )
-
-  const courseSemesterCount = selectedCourse ? Number(selectedCourse.semesters) || 0 : 0
-
   const availableSemesters = useMemo(() => {
-    if (!courseSemesterCount) return [];
-    const semesters = [];
-    for (let i = 1; i <= courseSemesterCount; i += 1) {
-      semesters.push(i);
-    }
-    return semesters;
-  }, [courseSemesterCount])
+    const normalizedAcademicYear = normalizeYearName(academicYear)
+    if (!normalizedAcademicYear) return []
+    const semesterSet = new Set()
+    subjects.forEach((subject) => {
+      const subjectYear = normalizeYearName(subject.academicYearName || subject.academic_year || subject.academicYear)
+      if (!subjectYear || subjectYear !== normalizedAcademicYear) return
+      const semesterNumber = Number(subject.semester)
+      if (!semesterNumber || Number.isNaN(semesterNumber)) return
+      semesterSet.add(semesterNumber)
+    })
+    return Array.from(semesterSet).sort((a, b) => a - b)
+  }, [subjects, academicYear])
 
   // Filter semesters to specific user requirement:
   // If a semester is selected, show it and all lower semesters of the same parity (Odd/Even), sorted descending.
@@ -659,7 +623,7 @@ export default function Exams() {
 
   useEffect(() => {
     setSchedules({})
-  }, [category, academicYear, groupCode, courseCode])
+  }, [category, academicYear])
 
   useEffect(() => {
     if (!semesterFocus) return
@@ -670,16 +634,16 @@ export default function Exams() {
   }, [availableSemesters, semesterFocus])
 
   const filteredSubjectRows = useMemo(() => {
-    if (!selectedCourse || !academicYear) return []
+    const normalizedAcademicYear = normalizeYearName(academicYear)
+    if (!normalizedAcademicYear) return []
     return subjects.filter((subject) => {
+      const subjectYear = normalizeYearName(subject.academicYearName || subject.academic_year || subject.academicYear)
+      if (subjectYear !== normalizedAcademicYear) return false
       const semesterNumber = Number(subject.semester)
       if (!availableSemesters.includes(semesterNumber)) return false
-      if (subject.courseCode && subject.courseCode !== selectedCourse.code) return false
-      if (selectedGroup && subject.groupCode && subject.groupCode !== selectedGroup.code) return false
-      if (academicYear && subject.academicYearName !== academicYear) return false
       return true
     })
-  }, [subjects, selectedCourse, selectedGroup, academicYear, availableSemesters])
+  }, [subjects, academicYear, availableSemesters])
 
   const expandedSubjects = useMemo(() => {
     const entries = []
@@ -760,10 +724,10 @@ export default function Exams() {
 
   const handlePreview = () => {
     setFeedback({ message: '', type: '' })
-    if (!category || !academicYear || !groupCode || !courseCode) {
+    if (!category || !academicYear) {
       setFeedback({
         type: 'error',
-        message: 'Choose category, academic year, group and course before scheduling.',
+        message: 'Choose a category and academic year before scheduling.',
       })
       return
     }
@@ -813,11 +777,13 @@ export default function Exams() {
       if (!subject) continue
 
       const subjectCodeRaw = subject.subjectCodeRaw?.trim() ?? subject.subjectCode?.trim()
+      const subjectGroupCode = subject.groupCode || subject.group_code || ''
+      const subjectCourseCode = subject.courseCode || subject.course_code || ''
 
       entries.push({
         academic_year: academicYear,
-        group_code: groupCode,
-        course_code: courseCode,
+        group_code: subjectGroupCode,
+        course_code: subjectCourseCode,
         semester_number: subject.semester,
         subject_code: subjectCodeRaw,
         exam_date: entry.date,
@@ -839,8 +805,6 @@ export default function Exams() {
       setSchedules({})
       setSelectedExam('')
       setSemesterFocus('')
-      setCourseCode('')
-      setGroupCode('')
       setAcademicYear('')
       setCategory('')
       setExamParity('')
@@ -856,7 +820,7 @@ export default function Exams() {
     }
   }
 
-  const filtersReady = Boolean(category && academicYear && groupCode && courseCode)
+  const filtersReady = Boolean(category && academicYear)
   const semesterHasSubjects = availableSemesters.some(
     (sem) => (subjectsBySemester[sem] || []).length > 0
   )
@@ -868,7 +832,7 @@ export default function Exams() {
       <div className="container py-4">
         <h2 className="fw-bold mb-1">Exam Scheduling</h2>
         <p className="text-muted mb-4">
-          Choose the exam cycle, academic year, group and course so you can assign dates to the relevant
+          Choose the exam cycle and academic year so you can assign dates to the relevant
           subjects.
         </p>
         {feedback.message ? (
@@ -993,120 +957,85 @@ export default function Exams() {
             </div>
             <div className="card card-soft p-3 mb-4">
               <h5 className="mb-3 text-dark fw-bold">Create Exam Time Table</h5>
-              <div className="row g-3">
-                <div className="col-md-2">
-                  <label className="form-label">Category</label>
-                  <select
-                    className="form-select"
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                  >
-                    <option value="">Select category</option>
-                    {categoryOptions.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-md-3">
-                  <label className="form-label">Exam Name</label>
-                  <select
-                    className="form-select"
-                    value={selectedExam}
-                    onChange={(e) => setSelectedExam(e.target.value)}
-                    disabled={examsLoading || exams.length === 0}
-                  >
-                    <option value="">
-                      {examsLoading ? 'Loading exams...' : exams.length === 0 ? 'No exams available' : 'Select exam'}
+            <div className="row g-3">
+              <div className="col-12 col-md-3">
+                <label className="form-label">Category</label>
+                <select
+                  className="form-select"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                >
+                  <option value="">Select category</option>
+                  {categoryOptions.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
                     </option>
-                    {exams.map((exam) => (
-                      <option key={exam.id} value={exam.id}>
-                        {exam.exam_name}
-                      </option>
-                    ))}
-                  </select>
-                  {examsLoading && <div className="form-text">Loading exam data...</div>}
-                  {!examsLoading && exams.length === 0 && (
-                    <div className="form-text text-warning">No exams found. Please create an exam first.</div>
-                  )}
-                </div>
-                <div className="col-md-3">
-                  <label className="form-label">Academic Year</label>
-                  <select
-                    className="form-select"
-                    value={academicYear}
-                    onChange={(e) => setAcademicYear(e.target.value)}
-                  >
-                    <option value="">Select academic year</option>
-                    {academicYears.map((year) => (
-                      <option key={year.id} value={year.academic_year}>
-                        {year.academic_year}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-md-4">
-                  <label className="form-label">Group</label>
-                  <select className="form-select" value={groupCode} onChange={(e) => setGroupCode(e.target.value)}>
-                    <option value="">Select group</option>
-                    {groups.map((group) => (
-                      <option key={group.id} value={group.code}>
-                        {group.name} ({group.code})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                  ))}
+                </select>
               </div>
-              <div className="row g-3 mt-1">
-                <div className="col-md-6">
-                  <label className="form-label">Course</label>
-                  <select
-                    className="form-select"
-                    value={courseCode}
-                    onChange={(e) => setCourseCode(e.target.value)}
-                    disabled={!groupCode}
-                  >
-                    <option value="">
-                      {groupCode ? 'Select course' : 'Select a group first'}
+              <div className="col-12 col-md-3">
+                <label className="form-label">Exam Name</label>
+                <select
+                  className="form-select"
+                  value={selectedExam}
+                  onChange={(e) => setSelectedExam(e.target.value)}
+                  disabled={examsLoading || exams.length === 0}
+                >
+                  <option value="">
+                    {examsLoading ? 'Loading exams...' : exams.length === 0 ? 'No exams available' : 'Select exam'}
+                  </option>
+                  {exams.map((exam) => (
+                    <option key={exam.id} value={exam.id}>
+                      {exam.exam_name}
                     </option>
-                    {filteredCourses.map((course) => (
-                      <option key={course.id} value={course.code}>
-                        {course.name} ({course.code})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-md-6">
-                  <label className="form-label">Semester</label>
-                  <select
-                    className="form-select"
-                    value={semesterFocus}
-                    onChange={(e) => setSemesterFocus(e.target.value)}
-                  >
-                    <option value="">
-                      {availableSemesters.length
-                        ? 'All semesters'
-                        : 'Select course first'}
-                    </option>
-                    {availableSemesters.map((sem) => (
-                      <option key={sem} value={sem}>
-                        Semester {sem}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                  ))}
+                </select>
+                {examsLoading && <div className="form-text">Loading exam data...</div>}
+                {!examsLoading && exams.length === 0 && (
+                  <div className="form-text text-warning">No exams found. Please create an exam first.</div>
+                )}
               </div>
+              <div className="col-12 col-md-3">
+                <label className="form-label">Academic Year</label>
+                <select
+                  className="form-select"
+                  value={academicYear}
+                  onChange={(e) => setAcademicYear(e.target.value)}
+                >
+                  <option value="">Select academic year</option>
+                  {academicYears.map((year) => (
+                    <option key={year.id} value={year.academic_year}>
+                      {year.academic_year}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-12 col-md-3">
+                <label className="form-label">Semester</label>
+                <select
+                  className="form-select"
+                  value={semesterFocus}
+                  onChange={(e) => setSemesterFocus(e.target.value)}
+                >
+                  <option value="">Select semester</option>
+                  {availableSemesters.map((sem) => (
+                    <option key={sem} value={sem}>
+                      Semester {sem}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
             </div>
             {loading && <p className="text-muted mb-3">Loading exam metadata...</p>}
             {!loading && !filtersReady && (
               <p className="text-muted mb-3">
-                Select the academic year, group and course to load subjects.
+                Select a category and academic year to load subjects.
               </p>
             )}
             {filtersReady && !availableSemesters.length && (
               <p className="text-muted mb-3">
-                This course does not define any semesters yet.
+                No semesters found for the selected academic year.
               </p>
             )}
             {filtersReady && availableSemesters.length > 0 && (

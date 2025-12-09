@@ -18,7 +18,7 @@ const navGroups = [
     title: "Pre-Exam Portal",
     items: [
       { to: "/admin/exams", label: "Create Exam timetable", icon: "bi-journal-check" },
-      { to: "/admin/payments", label: "Student Mapping & Payments", icon: "bi-credit-card" },
+      { to: "/admin/payments", label: "Subject Mapping & Payments", icon: "bi-credit-card" },
       { to: "/admin/payments-overview", label: "Decoding", icon: "bi-bar-chart" },
       { to: "/admin/hall-tickets", label: "Hall Ticket", icon: "bi-ticket-perforated" },
     ],
