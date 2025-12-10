@@ -4,6 +4,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import AdminShell from "../components/AdminShell";
 import { supabase } from "../../supabaseClient";
+import { showToast } from "../store/ui";
 
 export default function PaymentsOverview() {
   const [studentIdInput, setStudentIdInput] = useState("");
@@ -93,6 +94,54 @@ export default function PaymentsOverview() {
 
       if (subjectsError) throw subjectsError;
 
+
+
+      // Check for barcode status for these subjects
+      // We need to know if there are generated barcodes for these subjects for the CURRENT EXAM
+      // We have `examId` and `subjectCodes`.
+
+      const { data: subjectIdsData } = await supabase
+        .from('subjects')
+        .select('subject_id, subject_code')
+        .in('subject_code', subjectCodes);
+
+      if (subjectIdsData && subjectIdsData.length > 0) {
+        const sIds = subjectIdsData.map(s => s.subject_id);
+
+        // Get registrations
+        const { data: regs } = await supabase
+          .from('exam_registration_subjects')
+          .select('id, subject_id, exam_registrations!inner(exam_id)')
+          .in('subject_id', sIds)
+          .eq('exam_registrations.exam_id', examId);
+
+        if (regs && regs.length > 0) {
+          const regIds = regs.map(r => r.id);
+          const { data: bcs } = await supabase
+            .from('barcodes')
+            .select('exam_registration_subject_id')
+            .in('exam_registration_subject_id', regIds)
+            .eq('is_generated', true);
+
+          const generatedSet = new Set(bcs?.map(b => b.exam_registration_subject_id));
+
+          // Map back to subjects
+          const subjectGeneratedMap = {};
+          regs.forEach(r => {
+            if (generatedSet.has(r.id)) {
+              subjectGeneratedMap[r.subject_id] = true;
+            }
+          });
+
+          // Merge into subjectsData
+          if (subjectsData) {
+            subjectsData.forEach(s => {
+              s.isGenerated = subjectGeneratedMap[s.subject_id] || false;
+            });
+          }
+        }
+      }
+
       setSubjectsByDate(subjectsData || []);
       setSelectedSubject('');
       setSubjectStudents([]);
@@ -153,10 +202,14 @@ export default function PaymentsOverview() {
       const subjectRegIds = regSubjects.map(rs => rs.id);
       const { data: decodes, error: decodeError } = await supabase
         .from('barcodes')
-        .select('id, exam_registration_subject_id, barcode')
+        .select('id, exam_registration_subject_id, barcode, is_generated')
         .in('exam_registration_subject_id', subjectRegIds);
 
       if (decodeError) throw decodeError;
+
+      // Check if any decode is generated to set initial state
+      const anyGenerated = decodes?.some(d => d.is_generated) || false;
+      setIsDecodeGenerated(anyGenerated);
 
       // Get student details
       const { data: students, error: studentErrorRef } = await supabase
@@ -174,6 +227,8 @@ export default function PaymentsOverview() {
         const decode = decodes?.find(d => d.exam_registration_subject_id === regSubj.id);
 
         return {
+          examRegistrationSubjectId: regSubj.id,
+          studentInternalId: student.id,
           studentId: student.student_id,
           hallTicketNo: student.hall_ticket_no,
           fullName: student.full_name,
@@ -303,11 +358,24 @@ export default function PaymentsOverview() {
 
         // Get all subjects details
         const { data: subjects, error: subjectsError } = await supabase
-          .from('subjects')
           .select('*')
           .in('subject_id', subjectIds);
 
         if (subjectsError) throw subjectsError;
+
+        // Fetch barcodes status for these subjects
+        const { data: barcodeData, error: barcodeCheckError } = await supabase
+          .from('barcodes')
+          .select('exam_registration_subject_id, is_generated')
+          .in('exam_registration_subject_id', subjectRegistrations.map(sr => sr.id))
+          .eq('is_generated', true);
+
+        if (barcodeCheckError) console.error("Error fetching barcode status", barcodeCheckError);
+
+        const generatedMap = new Set();
+        (barcodeData || []).forEach(b => {
+          generatedMap.add(b.exam_registration_subject_id);
+        });
 
         // Get subjects for the selected date if a date is selected
         let filteredSubjects = [...subjects];
@@ -344,6 +412,28 @@ export default function PaymentsOverview() {
         // Combine the data
         const result = Object.entries(subjectCounts).map(([subjectId, count]) => {
           const subject = subjectDetails[subjectId] || {};
+          const regSubject = subjectRegistrations.find(sr => sr.subject_id === subjectId);
+          const isGenerated = regSubject && generatedMap.has(regSubject.id);
+
+          // Check if ANY registration for this subject has a generated barcode? 
+          // Or all? The user interface groups by subject. 
+          // Let's assume if we find *any* generated barcode for this subject in this exam batch, we show "View".
+          // To be more precise, we should check if count matches generated count, but "isGenerated" for the subject row 
+          // usually implies the batch is processed.
+          // Let's verify based on the `generatedMap`. 
+
+          // We need to know if *this* specific group of registrations (grouped by subject) has barcodes.
+          // `subjectRegistrations` contains all IDs. 
+          // We can count how many in this subject group are in `generatedMap`.
+          const subjectRegIds = subjectRegistrations
+            .filter(sr => sr.subject_id === subjectId)
+            .map(sr => sr.id);
+
+          const generatedCount = subjectRegIds.filter(id => generatedMap.has(id)).length;
+          const totalCount = subjectRegIds.length;
+          // We consider it generated if at least one is generated (or all? usually all). 
+          // Let's say > 0.
+
           return {
             subject_id: subjectId,
             subject_code: subject.subject_code || '',
@@ -351,7 +441,8 @@ export default function PaymentsOverview() {
             academic_year: subject.academic_year || '',
             semester_number: subject.semester_number || 0,
             count: count,
-            exam_registration_subject_id: subjectRegistrations.find(sr => sr.subject_id === subjectId)?.id || ''
+            exam_registration_subject_id: regSubject?.id || '',
+            isGenerated: generatedCount > 0
           };
         });
 
@@ -747,18 +838,63 @@ export default function PaymentsOverview() {
       setIsGenerating(true);
       setLoadingSubjectStudents(true);
 
-      // Wait 3 seconds to simulate generation
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Generate barcodes for each student
+      const updates = subjectStudents.map(student => {
+        // If barcode exists, we update is_generated to true
+        // If not, we generate a new one
+        const exists = student.barcode && student.barcode !== 'N/A';
+        const barcode = exists
+          ? student.barcode
+          : `BC${Date.now()}${Math.floor(Math.random() * 1000)}`;
 
-      // Get the subject ID from the subjectsByDate list
-      const subject = subjectsByDate.find(s => s.subject_code === selectedSubjectForDecode.subject_code);
-      if (!subject) return;
+        return {
+          exam_registration_subject_id: student.examRegistrationSubjectId,
+          student_id: student.studentInternalId,
+          barcode: barcode,
+          is_generated: true
+        };
+      });
 
-      // Set decode generated to true to show the student list
-      setIsDecodeGenerated(true);
+      // Show progress
+      console.log('Generating barcodes for', updates.length, 'students');
+
+      // Simulate delay as requested
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const { data, error } = await supabase
+        .from('barcodes')
+        .upsert(updates, {
+          onConflict: 'barcode',
+          ignoreDuplicates: false
+        })
+        .select();
+
+      if (error) {
+        console.error("Upsert error", error);
+        throw error;
+      }
+
+      // Update local state with new barcodes
+      const updatedStudents = subjectStudents.map(student => {
+        const update = updates.find(u => u.exam_registration_subject_id === student.examRegistrationSubjectId);
+        return {
+          ...student,
+          barcode: update ? update.barcode : student.barcode
+        };
+      });
+
+      setSubjectStudents(updatedStudents);
+      setShowDecodePopup(false);
+      showToast("Successfully Generated Barcode", { type: 'success' });
+
+      // Refresh the subjects list to show the "View" button
+      if (selectedExam && selectedDate) {
+        await fetchSubjectsByDate(selectedExam, selectedDate);
+      }
 
     } catch (error) {
       console.error('Error generating decode:', error);
+      alert("Failed to generate barcodes. Please try again.");
     } finally {
       setLoadingSubjectStudents(false);
       setIsGenerating(false);
@@ -894,7 +1030,7 @@ export default function PaymentsOverview() {
             <div className="d-flex justify-content-between align-items-center p-3 border-bottom">
               <div>
                 <h5 className="mb-0 fw-bold">
-                  {selectedSubjectForDecode.subject_code} - {selectedSubjectForDecode.subject_name}
+                  Subject: {selectedSubjectForDecode.subject_code} - {selectedSubjectForDecode.subject_name}
                 </h5>
               </div>
               <button
@@ -975,23 +1111,23 @@ export default function PaymentsOverview() {
                   <i className="bi bi-download me-2"></i>Download
                 </button>
               )}
-              <button
-                type="button"
-                className={`btn px-4 ${isDecodeGenerated ? 'btn-success' : 'btn-primary'}`}
-                onClick={handleGenerateDecode}
-                disabled={loadingSubjectStudents || isGenerating}
-              >
-                {loadingSubjectStudents || isGenerating ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    {isGenerating ? 'Processing...' : 'Generating...'}
-                  </>
-                ) : isDecodeGenerated ? (
-                  'Completed'
-                ) : (
-                  'Generate Barcode'
-                )}
-              </button>
+              {!isDecodeGenerated && (
+                <button
+                  type="button"
+                  className="btn btn-primary px-4"
+                  onClick={handleGenerateDecode}
+                  disabled={loadingSubjectStudents || isGenerating}
+                >
+                  {loadingSubjectStudents || isGenerating ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      {isGenerating ? 'Processing...' : 'Generating...'}
+                    </>
+                  ) : (
+                    'Generate Barcode'
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -1064,28 +1200,44 @@ export default function PaymentsOverview() {
                     No subjects found for the selected date
                   </div>
                 ) : (
-                  <div className="list-group" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                    {subjectsByDate.map((subject, index) => (
-                      <div
-                        key={subject.subject_code}
-                        className={`list-group-item d-flex align-items-center p-2 ${selectedSubject === subject.subject_code ? 'active' : ''}`}
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => handleSubjectSelect(subject.subject_code)}
-                      >
-                        <div className="d-flex align-items-center w-100">
-                          <div className="me-3 text-muted" style={{ minWidth: '24px', textAlign: 'right' }}>
-                            {index + 1}.
-                          </div>
-                          <div className="d-flex align-items-center flex-grow-1">
-                            <div>
+                  <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                    {subjectsByDate.map((subject, index) => {
+                      const isDisabled = subject.isGenerated;
+                      return (
+                        <div key={subject.subject_code} className="d-flex align-items-center mb-2">
+                          <div
+                            className={`flex-grow-1 p-2 border rounded d-flex align-items-center ${selectedSubject === subject.subject_code ? 'bg-primary text-white border-primary' : isDisabled ? 'bg-light border-secondary-subtle opacity-75' : 'bg-light border-secondary-subtle'}`}
+                            onClick={() => !isDisabled && handleSubjectSelect(subject.subject_code)}
+                            style={{ cursor: isDisabled ? 'default' : 'pointer' }}
+                          >
+                            <div className={`me-3 ${selectedSubject === subject.subject_code ? 'text-white-50' : 'text-muted'}`} style={{ minWidth: '24px', textAlign: 'right' }}>
+                              {index + 1}.
+                            </div>
+                            <div className="flex-grow-1">
                               <div className="fw-semibold">
                                 {subject.subject_code} - {subject.subject_name}
+                                {subject.isGenerated && (
+                                  <span className="ms-2 badge bg-success-subtle text-success border border-success-subtle rounded-pill" style={{ fontSize: '0.7em' }}>
+                                    Generated Barcode
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>
+                          {subject.isGenerated && (
+                            <button
+                              className="btn btn-sm btn-outline-primary ms-2"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSubjectSelect(subject.subject_code);
+                              }}
+                            >
+                              View
+                            </button>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
