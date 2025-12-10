@@ -160,11 +160,33 @@ export default function Exams() {
       api.listAcademicYears(),
       api.listSubjects(),
       api.getCurrentSemesterNumber(),
+      api.listCourses(),
     ])
-      .then(([years, subjectList, semesterNumber]) => {
+      .then(([years, subjectList, semesterNumber, courses]) => {
         if (!isMounted) return
+
+        const courseGroupMap = {}
+        const courseNameMap = {}
+        if (courses) {
+          courses.forEach((c) => {
+            if (c.courseName) courseGroupMap[c.courseName] = c.groupName
+            if (c.courseCode) courseGroupMap[c.courseCode] = c.groupName
+            if (c.courseCode && c.courseName) courseNameMap[c.courseCode] = c.courseName
+          })
+        }
+
+        const enrichedSubjects = (subjectList || []).map((s) => {
+          const gName = courseGroupMap[s.courseName] || courseGroupMap[s.courseCode]
+          const cName = courseNameMap[s.courseCode] || s.courseName
+          return {
+            ...s,
+            groupName: s.groupName || gName || '',
+            courseName: cName,
+          }
+        })
+
         setAcademicYears(years)
-        setSubjects(subjectList)
+        setSubjects(enrichedSubjects)
         if (semesterNumber !== null && semesterNumber !== undefined) {
           const normalized = Number(semesterNumber)
           if (!Number.isNaN(normalized)) {
@@ -336,27 +358,34 @@ export default function Exams() {
       const group =
         normalizeDisplayValue(
           matched?.groupCode ||
-            matched?.group_code ||
-            matched?.groupName ||
-            matched?.group_name ||
-            matched?.group
+          matched?.group_code ||
+          matched?.groupName ||
+          matched?.group_name ||
+          matched?.group
         ) || ''
       const course =
         normalizeDisplayValue(
           matched?.courseName ||
-            matched?.course_name ||
-            matched?.courseCode ||
-            matched?.course_code ||
-            matched?.course
+          matched?.course_name ||
+          matched?.courseCode ||
+          matched?.course_code ||
+          matched?.course
         ) || ''
+
+      const courseCode = normalizeDisplayValue(
+        matched?.courseCode || matched?.course_code || matched?.course || ''
+      )
+      const courseName = normalizeDisplayValue(
+        matched?.courseName || matched?.course_name || matched?.course || ''
+      )
       const semester =
         normalizeDisplayValue(
           matched?.semester ||
-            matched?.semester_number ||
-            matched?.semesterNumber ||
-            matched?.semesterNo
+          matched?.semester_number ||
+          matched?.semesterNumber ||
+          matched?.semesterNo
         ) || ''
-      return { label, group, course, semester, subject: matched }
+      return { label, group, course, courseCode, courseName, semester, subject: matched }
     },
     [subjectLookup]
   )
@@ -423,6 +452,8 @@ export default function Exams() {
           label: subjectLabel,
           group: subjectGroupValue,
           course: subjectCourseValue,
+          courseCode: subjectCourseCodeValue,
+          courseName: subjectCourseNameValue,
           semester: subjectSemesterValue,
         } = getSubjectDetails(subjectCode)
         return {
@@ -439,6 +470,8 @@ export default function Exams() {
           subjectName: subjectLabel || subjectCode,
           subjectGroup: subjectGroupValue,
           subjectCourse: subjectCourseValue,
+          subjectCourseCode: subjectCourseCodeValue,
+          subjectCourseName: subjectCourseNameValue,
           subjectSemester: subjectSemesterValue,
         }
       })
@@ -537,7 +570,11 @@ export default function Exams() {
         exam_master_id: entry.exam_master_id,
       }
       if (entry.subjectGroup) record.group_code = entry.subjectGroup
-      if (entry.subjectCourse) record.course_code = entry.subjectCourse
+      if (entry.subjectCourseCode) {
+        record.course_code = entry.subjectCourseCode
+      } else if (entry.subjectCourse) {
+        record.course_code = entry.subjectCourse
+      }
       return record
     })
 
@@ -597,61 +634,79 @@ export default function Exams() {
 
   const previewFilterOptions = useMemo(() => {
     const groups = new Set()
-    const courses = new Set()
+    const courses = new Map() // Use Map to store code -> name
     const semesters = new Set()
+
     queuedEntries.forEach((entry) => {
+      // 1. Groups: Always all available groups
       if (entry.subjectGroup) groups.add(entry.subjectGroup)
-      if (entry.subjectCourse) courses.add(entry.subjectCourse)
-      if (
-        entry.subjectSemester !== undefined &&
-        entry.subjectSemester !== null &&
-        entry.subjectSemester !== ''
-      ) {
-        semesters.add(Number(entry.subjectSemester))
-      } else if (
-        entry.semester_number !== undefined &&
-        entry.semester_number !== null
-      ) {
-        semesters.add(Number(entry.semester_number))
+
+      // 2. Courses: Filter by selected group
+      const matchesGroup = !previewFilterGroup || entry.subjectGroup === previewFilterGroup
+      if (matchesGroup) {
+        // Prefer explicit course code, fallback to legacy subjectCourse
+        const code = entry.subjectCourseCode || entry.subjectCourse
+        const name = entry.subjectCourseName || entry.subjectCourse
+        if (code) {
+          courses.set(code, name)
+        }
+      }
+
+      // 3. Semesters: Filter by selected group AND selected course
+      const entryCourseCode = entry.subjectCourseCode || entry.subjectCourse
+      const matchesCourse = !previewFilterCourse || entryCourseCode === previewFilterCourse
+      if (matchesGroup && matchesCourse) {
+        if (
+          entry.subjectSemester !== undefined &&
+          entry.subjectSemester !== null &&
+          entry.subjectSemester !== ''
+        ) {
+          semesters.add(Number(entry.subjectSemester))
+        } else if (
+          entry.semester_number !== undefined &&
+          entry.semester_number !== null
+        ) {
+          semesters.add(Number(entry.semester_number))
+        }
       }
     })
-    filteredSubjectRows.forEach((subject) => {
-      const group = normalizeDisplayValue(
-        subject.groupCode ||
-          subject.group_code ||
-          subject.groupName ||
-          subject.group_name ||
-          subject.group
-      )
-      if (group) groups.add(group)
-      const course = normalizeDisplayValue(
-        subject.courseName ||
-          subject.course_name ||
-          subject.courseCode ||
-          subject.course_code ||
-          subject.course
-      )
-      if (course) courses.add(course)
-      const semesterVal =
-        subject.semester ||
-        subject.semester_number ||
-        subject.semesterNumber ||
-        subject.semesterNo
-      if (semesterVal !== undefined && semesterVal !== null && semesterVal !== '') {
-        semesters.add(Number(semesterVal))
-      }
-    })
+
+    const courseList = Array.from(courses.entries()).map(([code, name]) => ({
+      code,
+      name,
+    })).sort((a, b) => a.name.localeCompare(b.name))
+
     return {
       groups: Array.from(groups).sort(),
-      courses: Array.from(courses).sort(),
+      courses: courseList,
       semesters: Array.from(semesters).sort((a, b) => a - b),
     }
-  }, [filteredSubjectRows, queuedEntries])
+  }, [queuedEntries, previewFilterGroup, previewFilterCourse])
+
+  // Reset course/semester filters if they become invalid due to upstream changes
+  useEffect(() => {
+    if (previewFilterGroup && previewFilterCourse) {
+      // Check if current course is still valid for this group
+      const validCourse = previewFilterOptions.courses.some(c => c.code === previewFilterCourse)
+      if (!validCourse) {
+        setPreviewFilterCourse('')
+      }
+    }
+    if (previewFilterSemester) {
+      const validSemester = previewFilterOptions.semesters.includes(Number(previewFilterSemester))
+      if (!validSemester) {
+        setPreviewFilterSemester('')
+      }
+    }
+  }, [previewFilterGroup, previewFilterOptions, previewFilterCourse, previewFilterSemester])
 
   const filteredPreviewEntries = useMemo(() => {
     return queuedEntries.filter((entry) => {
       if (previewFilterGroup && entry.subjectGroup !== previewFilterGroup) return false
-      if (previewFilterCourse && entry.subjectCourse !== previewFilterCourse) return false
+      if (previewFilterCourse) {
+        const entryCode = entry.subjectCourseCode || entry.subjectCourse
+        if (entryCode !== previewFilterCourse) return false
+      }
       if (
         previewFilterSemester &&
         String(entry.semester_number) !== String(previewFilterSemester)
@@ -956,8 +1011,8 @@ export default function Exams() {
                 >
                   <option value="">All courses</option>
                   {previewFilterOptions.courses.map((course) => (
-                    <option key={course} value={course}>
-                      {course}
+                    <option key={course.code} value={course.code}>
+                      {course.name}
                     </option>
                   ))}
                 </select>
