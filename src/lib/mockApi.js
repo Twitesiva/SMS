@@ -462,7 +462,9 @@ const mapStudent = (row = {}) => ({
   photo_url: row.photo_url,
   cert_url: row.cert_url,
   status: row.status || "ACTIVE",
+  status: row.status || "ACTIVE",
   created_at: row.created_at,
+  current_semester: row.current_semester,
 });
 
 const toStudentRow = (student = {}) => ({
@@ -487,7 +489,9 @@ const toStudentRow = (student = {}) => ({
   sub_caste: student.sub_caste || null,
   photo_url: student.photo_url || null,
   cert_url: student.cert_url || null,
+  cert_url: student.cert_url || null,
   status: student.status || "ACTIVE",
+  current_semester: student.current_semester || null,
 });
 
 const mapBatch = (row = {}) => ({
@@ -1022,7 +1026,7 @@ export const api = {
       supabase
         .from(TABLES.students)
         .select(
-          "id, student_id, hall_ticket_no, academic_year, group_name, course_name, full_name, gender, date_of_birth, phone_number, email, address, father_name, mother_name, nationality, state, aadhar_number, pincode, religion, caste, sub_caste, photo_url, cert_url, status, created_at"
+          "id, student_id, hall_ticket_no, academic_year, group_name, course_name, full_name, gender, date_of_birth, phone_number, email, address, father_name, mother_name, nationality, state, aadhar_number, pincode, religion, caste, sub_caste, photo_url, cert_url, status, created_at, current_semester"
         )
         .order("created_at", { ascending: false }),
       "Unable to fetch students"

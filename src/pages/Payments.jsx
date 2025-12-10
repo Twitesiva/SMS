@@ -1376,7 +1376,7 @@ export default function Payments() {
           group_code: s.group_code || s.group || s.group_name || "",
           course_name: s.course_name || s.course_id || s.courseCode || "",
           course_code: s.course_code || s.course_name || s.course_id || "",
-          semester: s.semester ?? s.semester_number ?? "",
+          semester: s.semester ?? s.semester_number ?? s.current_semester ?? "",
           category: studentCategory,
         };
       });
@@ -2906,6 +2906,7 @@ export default function Payments() {
                   <th scope="col">Name</th>
                   <th scope="col">Group</th>
                   <th scope="col">Course</th>
+                  <th scope="col">Semester</th>
                   <th scope="col">Payment status</th>
                   <th scope="col" className="text-end">
                     Action
@@ -2978,6 +2979,7 @@ export default function Payments() {
                         <td>{studentName}</td>
                         <td>{groupLabel}</td>
                         <td>{courseLabel}</td>
+                        <td>{s.current_semester}</td>
                         {(() => {
                           const key = getAppliedRegistrationKey(s);
                           const detail = key ? appliedRegistrationDetails[key] : null;
