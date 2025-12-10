@@ -24,6 +24,8 @@ export default function ExamNameCreation() {
     loading: false,
   })
   const [subjects, setSubjects] = useState([])
+  const [groups, setGroups] = useState([])
+  const [courses, setCourses] = useState([])
 
   const refreshExams = useCallback(async () => {
     setExamsLoading(true)
@@ -49,15 +51,20 @@ export default function ExamNameCreation() {
 
   useEffect(() => {
     let mounted = true
-    api
-      .listSubjects()
-      .then((subjectList) => {
+    Promise.all([
+      api.listSubjects(),
+      api.listGroups(),
+      api.listCourses()
+    ])
+      .then(([subjectList, groupList, courseList]) => {
         if (mounted) {
           setSubjects(subjectList || [])
+          setGroups(groupList || [])
+          setCourses(courseList || [])
         }
       })
       .catch((err) => {
-        console.error('Failed to load subjects for timetable view:', err)
+        console.error('Failed to load data for timetable view:', err)
       })
     return () => {
       mounted = false
@@ -613,51 +620,125 @@ export default function ExamNameCreation() {
                   <div className="text-center py-4 text-muted">No schedules found for this exam.</div>
                 ) : (
                   <div className="table-responsive">
-                    <table className="table table-bordered table-sm align-middle">
-                      <thead className="bg-light">
-                        <tr>
-                          <th>S.NO</th>
-                          <th>Date</th>
-                          <th>Time</th>
-                          <th>Subject</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {timetableModalState.schedules.map((sch, index) => {
-                          const foundSubject = subjects.find(
-                            (s) =>
-                              s.subjectCode === sch.subject_code ||
-                              (s.subjectCodes && s.subjectCodes.includes(sch.subject_code)) ||
-                              s.subject_code === sch.subject_code
-                          )
-                          let subjectName = '-'
-                          if (foundSubject) {
-                            if (foundSubject.subjectName) subjectName = foundSubject.subjectName
-                            else if (foundSubject.subject_name) subjectName = foundSubject.subject_name
-                            else if (foundSubject.subjectNames && foundSubject.subjectCodes) {
-                              const idx = foundSubject.subjectCodes.indexOf(sch.subject_code)
-                              if (idx !== -1) subjectName = foundSubject.subjectNames[idx]
-                            }
+                    {(() => {
+                      // Group schedules by group_code and course_code strictly based on subject association
+                      // If schedule has them, user them. But user requested "based on subject id" (likely subject code link)
+                      // So we prioritize looking up the subject first.
+
+                      const grouped = {}
+
+                      timetableModalState.schedules.forEach(sch => {
+                        // Find the subject to get accurate group/course info
+                        const foundSubject = subjects.find(
+                          (s) =>
+                            s.subjectCode === sch.subject_code ||
+                            (s.subjectCodes && s.subjectCodes.includes(sch.subject_code)) ||
+                            s.subject_code === sch.subject_code
+                        )
+
+                        // Determine Group and Course codes
+                        // Priority: Subject's Group/Course -> Schedule's Group/Course -> Course's Group -> 'N/A'
+                        let cCode = foundSubject?.courseCode || foundSubject?.course_code || sch.course_code || null
+                        let gCode = foundSubject?.groupCode || foundSubject?.group_code || sch.group_code || null
+
+                        // If Group is missing but we have Course, try to find Group from Course list
+                        if ((!gCode || gCode === 'N/A') && cCode) {
+                          const linkedCourse = courses.find(c => c.code === cCode || c.courseCode === cCode || c.course_code === cCode || c.courseName === cCode || c.name === cCode)
+                          if (linkedCourse) {
+                            gCode = linkedCourse.group_code || linkedCourse.groupCode || linkedCourse.group_name
+                            // Also standardize course code if we found the object
+                            if (!cCode) cCode = linkedCourse.courseCode || linkedCourse.code
                           }
-                          return (
-                            <tr key={sch.schedule_id}>
-                              <td>{index + 1}</td>
-                              <td>{sch.exam_date ? new Date(sch.exam_date).toLocaleDateString('en-GB') : '-'}</td>
-                              <td>
-                                {TIME_SLOTS.find((t) => t.value === sch.exam_start_time.slice(0, 5))?.displayTime ||
-                                  sch.exam_start_time}{' '}
-                                -{' '}
-                                {TIME_SLOTS.find((t) => t.value === sch.exam_end_time.slice(0, 5))?.displayTime ||
-                                  sch.exam_end_time}
-                              </td>
-                              <td>
-                                {sch.subject_code} - {subjectName}
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
+                        }
+
+                        gCode = gCode || 'N/A'
+                        cCode = cCode || 'N/A'
+
+                        const key = `${gCode}|${cCode}`
+
+                        if (!grouped[key]) grouped[key] = []
+                        grouped[key].push(sch)
+                      })
+
+                      const sortedKeys = Object.keys(grouped).sort()
+
+                      if (sortedKeys.length === 0) return <div className="text-center text-muted">No valid schedules found.</div>
+
+                      return sortedKeys.map((key) => {
+                        const [gCode, cCode] = key.split('|')
+                        // Look up display names
+                        const groupObj = groups.find(g => g.code === gCode || g.group_code === gCode)
+                        const courseObj = courses.find(c => c.code === cCode || c.courseCode === cCode || c.course_code === cCode)
+
+                        const groupName = groupObj?.name || groupObj?.group_name || gCode
+                        const courseName = courseObj?.name || courseObj?.courseName || courseObj?.course_name || cCode
+
+                        const groupSchedules = grouped[key]
+
+                        return (
+                          <div key={key} className="mb-4">
+                            <div className="alert alert-soft-primary px-3 py-2 mb-2 d-flex align-items-center gap-2">
+                              <h6 className="fw-bold mb-0 text-primary">
+                                {groupName}
+                              </h6>
+                              <span className="text-muted mx-1">•</span>
+                              <h6 className="fw-bold mb-0 text-dark">
+                                {courseName}
+                              </h6>
+                            </div>
+                            <table className="table table-bordered table-sm align-middle mb-0">
+                              <thead className="bg-light">
+                                <tr>
+                                  <th style={{ width: '60px' }}>S.No</th>
+                                  <th style={{ width: '120px' }}>Date</th>
+                                  <th style={{ width: '150px' }}>Time</th>
+                                  <th>Subject</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {groupSchedules.map((sch, index) => {
+                                  const foundSubject = subjects.find(
+                                    (s) =>
+                                      s.subjectCode === sch.subject_code ||
+                                      (s.subjectCodes && s.subjectCodes.includes(sch.subject_code)) ||
+                                      s.subject_code === sch.subject_code
+                                  )
+                                  let subjectName = '-'
+                                  if (foundSubject) {
+                                    // Try to find the specific name if it's a composite subject
+                                    if (foundSubject.subjectNames && foundSubject.subjectCodes) {
+                                      const idx = foundSubject.subjectCodes.indexOf(sch.subject_code)
+                                      if (idx !== -1) subjectName = foundSubject.subjectNames[idx]
+                                    }
+                                    // Fallback to main name
+                                    if (subjectName === '-') {
+                                      subjectName = foundSubject.subjectName || foundSubject.subject_name || '-'
+                                    }
+                                  }
+
+                                  const dateStr = sch.exam_date ? new Date(sch.exam_date).toLocaleDateString('en-GB') : '-'
+                                  const startTime = TIME_SLOTS.find((t) => t.value === sch.exam_start_time.slice(0, 5))?.displayTime || sch.exam_start_time
+                                  const endTime = TIME_SLOTS.find((t) => t.value === sch.exam_end_time.slice(0, 5))?.displayTime || sch.exam_end_time
+
+                                  return (
+                                    <tr key={sch.schedule_id}>
+                                      <td className="text-center">{index + 1}</td>
+                                      <td>{dateStr}</td>
+                                      <td>{startTime} - {endTime}</td>
+                                      <td>
+                                        <span className="fw-semibold text-dark">{sch.subject_code}</span>
+                                        <br />
+                                        <small className="text-muted">{subjectName}</small>
+                                      </td>
+                                    </tr>
+                                  )
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        )
+                      })
+                    })()}
                   </div>
                 )}
               </div>
