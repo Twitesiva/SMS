@@ -7,17 +7,14 @@ import { TIME_SLOTS } from '../lib/timeSlots'
 
 const DEFAULT_CATEGORY_ORDER = ['UG', 'PG']
 
-const buildDefaultSchedule = () => ({
-  selected: false,
+const buildDefaultSchedule = (overrides = {}) => ({
   date: '',
   startTime: '',
   endTime: '',
+  subjectCode: '',
+  semester: null,
+  ...overrides,
 })
-
-const normalizeYearName = (value) => {
-  if (value === undefined || value === null) return ''
-  return String(value).trim()
-}
 
 const parseCategoryValues = (value) => {
   if (value === undefined || value === null || value === '') return []
@@ -47,7 +44,6 @@ export default function Exams() {
   const [subjects, setSubjects] = useState([])
   const [category, setCategory] = useState('')
   const [currentSemesterNumber, setCurrentSemesterNumber] = useState(null)
-  const [academicYear, setAcademicYear] = useState('')
   const [semesterFocus, setSemesterFocus] = useState('')
   const [schedules, setSchedules] = useState({})
   const [loading, setLoading] = useState(true)
@@ -57,6 +53,10 @@ export default function Exams() {
   const [selectedExam, setSelectedExam] = useState('')
   const [examParity, setExamParity] = useState('')
   const [examsLoading, setExamsLoading] = useState(false)
+  const [customRowsBySemester, setCustomRowsBySemester] = useState({})
+  const [selectedDateBySemester, setSelectedDateBySemester] = useState({})
+  const [queuedEntries, setQueuedEntries] = useState([])
+  const defaultAcademicYear = academicYears[0]?.academic_year || ''
 
   // Fetch exams from exam_master table
   const refreshExams = useCallback(async () => {
@@ -90,6 +90,10 @@ export default function Exams() {
     if (!firstExamId) return
     setSelectedExam(String(firstExamId))
   }, [exams, selectedExam])
+
+  useEffect(() => {
+    setQueuedEntries([])
+  }, [selectedExam])
 
 
 
@@ -156,18 +160,19 @@ export default function Exams() {
   }, [academicYears])
 
   const availableSemesters = useMemo(() => {
-    const normalizedAcademicYear = normalizeYearName(academicYear)
-    if (!normalizedAcademicYear) return []
+    if (!category) return []
+    const normalizedCategory = String(category).trim().toUpperCase()
+    if (!normalizedCategory) return []
     const semesterSet = new Set()
     subjects.forEach((subject) => {
-      const subjectYear = normalizeYearName(subject.academicYearName || subject.academic_year || subject.academicYear)
-      if (!subjectYear || subjectYear !== normalizedAcademicYear) return
+      const subjectCategory = String(subject.category || '').trim().toUpperCase()
+      if (subjectCategory && subjectCategory !== normalizedCategory) return
       const semesterNumber = Number(subject.semester)
       if (!semesterNumber || Number.isNaN(semesterNumber)) return
       semesterSet.add(semesterNumber)
     })
     return Array.from(semesterSet).sort((a, b) => a - b)
-  }, [subjects, academicYear])
+  }, [subjects, category])
 
   // Filter semesters to specific user requirement:
   // If a semester is selected, show it and all lower semesters of the same parity (Odd/Even), sorted descending.
@@ -191,7 +196,10 @@ export default function Exams() {
 
   useEffect(() => {
     setSchedules({})
-  }, [category, academicYear])
+    setCustomRowsBySemester({})
+    setSelectedDateBySemester({})
+    setQueuedEntries([])
+  }, [category])
 
   useEffect(() => {
     if (!semesterFocus) return
@@ -202,16 +210,17 @@ export default function Exams() {
   }, [availableSemesters, semesterFocus])
 
   const filteredSubjectRows = useMemo(() => {
-    const normalizedAcademicYear = normalizeYearName(academicYear)
-    if (!normalizedAcademicYear) return []
+    if (!category) return []
+    const normalizedCategory = String(category).trim().toUpperCase()
+    if (!normalizedCategory) return []
     return subjects.filter((subject) => {
-      const subjectYear = normalizeYearName(subject.academicYearName || subject.academic_year || subject.academicYear)
-      if (subjectYear !== normalizedAcademicYear) return false
+      const subjectCategory = String(subject.category || '').trim().toUpperCase()
+      if (subjectCategory && subjectCategory !== normalizedCategory) return false
       const semesterNumber = Number(subject.semester)
       if (!availableSemesters.includes(semesterNumber)) return false
       return true
     })
-  }, [subjects, academicYear, availableSemesters])
+  }, [subjects, category, availableSemesters])
 
   const expandedSubjects = useMemo(() => {
     const entries = []
@@ -256,33 +265,164 @@ export default function Exams() {
     return grouped
   }, [expandedSubjects])
 
-  const subjectMap = useMemo(() => {
-    const map = {}
-    expandedSubjects.forEach((subject) => {
-      map[String(subject.id)] = subject
-    })
-    return map
-  }, [expandedSubjects])
-
-  const handleToggleSubject = (subjectId) => {
-    const key = String(subjectId)
+  const updateDateForSemesterEntries = (semesterNumber, dateValue) => {
     setSchedules((prev) => {
-      const current = prev[key] || buildDefaultSchedule()
-      const updated = { ...current, selected: !current.selected }
-      return { ...prev, [key]: updated }
+      const next = { ...prev }
+      Object.entries(next).forEach(([key, entry]) => {
+        if (Number(entry.semester) === semesterNumber) {
+          next[key] = { ...entry, date: dateValue }
+        }
+      })
+      return next
     })
   }
 
-  const handleScheduleChange = (subjectId, field, value) => {
+  const handleSemesterDateChange = (semesterNumber, value) => {
+    setSelectedDateBySemester((prev) => ({
+      ...prev,
+      [String(semesterNumber)]: value,
+    }))
+    updateDateForSemesterEntries(semesterNumber, value)
+  }
+
+  const getRowsForSemester = (semesterNumber) => {
+    const semesterSubjects = subjectsBySemester[semesterNumber] || []
+    return [
+      ...semesterSubjects.map((subject) => ({
+        key: String(subject.id),
+        semester: subject.semester,
+        subject,
+      })),
+      ...(customRowsBySemester[semesterNumber] || []).map((rowId) => ({
+        key: rowId,
+        semester: semesterNumber,
+        subject: null,
+        isCustom: true,
+      })),
+    ]
+  }
+
+  const semesterAcademicYear = useMemo(() => {
+    const map = {}
+    Object.entries(subjectsBySemester).forEach(([sem, list]) => {
+      const first = list[0]
+      if (!first) return
+      const year =
+        first.academicYearName ||
+        first.academic_year ||
+        first.academicYear ||
+        ''
+      if (year) {
+        map[Number(sem)] = year
+      }
+    })
+    return map
+  }, [subjectsBySemester])
+
+  const createCustomRowId = (semesterNumber) =>
+    `custom-${semesterNumber}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+
+  const addCustomRow = (semesterNumber) => {
+    const dateValue = selectedDateBySemester[String(semesterNumber)] || ''
+    if (!dateValue) return
+    const rowId = createCustomRowId(semesterNumber)
+    setCustomRowsBySemester((prev) => {
+      const existing = prev[semesterNumber] || []
+      return { ...prev, [semesterNumber]: [...existing, rowId] }
+    })
+    setSchedules((prev) => ({
+      ...prev,
+      [rowId]: buildDefaultSchedule({ semester: semesterNumber, date: dateValue }),
+    }))
+  }
+
+  const removeCustomRow = (semesterNumber, rowId) => {
+    setCustomRowsBySemester((prev) => {
+      const existing = prev[semesterNumber] || []
+      return { ...prev, [semesterNumber]: existing.filter((id) => id !== rowId) }
+    })
+    setSchedules((prev) => {
+      const next = { ...prev }
+      delete next[rowId]
+      return next
+    })
+  }
+
+  const handleAddEntry = (semesterNumber) => {
+    if (!selectedExam) {
+      showValidationError('Select an exam before adding entries.')
+      return
+    }
+    const dateValue = selectedDateBySemester[String(semesterNumber)]
+    if (!dateValue) {
+      showValidationError('Select a date before saving the entry.')
+      return
+    }
+    const rows = getRowsForSemester(semesterNumber)
+    const newEntries = rows
+      .map((row) => {
+        const entry =
+          schedules[row.key] ||
+          buildDefaultSchedule({ semester: row.semester, date: dateValue })
+        const subjectCode = (entry.subjectCode ?? '').trim()
+        if (!subjectCode || !entry.startTime || !entry.endTime || !entry.date) return null
+        const semesterNumberForEntry = entry.semester ?? row.semester ?? semesterNumber
+        const academicYear =
+          row.subject?.academicYearName ||
+          row.subject?.academic_year ||
+          row.subject?.academicYear ||
+          semesterAcademicYear[semesterNumberForEntry] ||
+          defaultAcademicYear ||
+          ''
+        return {
+          id: `${row.key}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          academic_year: academicYear,
+          semester_number: semesterNumberForEntry,
+          subject_code: subjectCode,
+          exam_date: entry.date,
+          exam_start_time: entry.startTime,
+          exam_end_time: entry.endTime,
+          category,
+          exam_master_id: selectedExam,
+          subjectName: row.subject?.subjectName || row.subject?.subjectCode || 'Manual entry',
+          subjectGroupCode: row.subject?.groupCode || row.subject?.group_code,
+          subjectCourseCode: row.subject?.courseCode || row.subject?.course_code,
+        }
+      })
+      .filter(Boolean)
+    if (!newEntries.length) {
+      showValidationError('Add at least one subject with code, date, and time before adding an entry.')
+      return
+    }
+    setQueuedEntries((prev) => [...prev, ...newEntries])
+    setSchedules((prev) => {
+      const next = { ...prev }
+      rows.forEach((row) => {
+        next[row.key] = buildDefaultSchedule({ semester: row.semester })
+      })
+      return next
+    })
+    setSelectedDateBySemester((prev) => ({
+      ...prev,
+      [String(semesterNumber)]: '',
+    }))
+    showToast('Entry added. You can select another date now.', { type: 'success' })
+  }
+
+  const handleScheduleChange = (subjectId, field, value, semesterOverride = null) => {
     const key = String(subjectId)
     setSchedules((prev) => {
-      const current = prev[key] || buildDefaultSchedule()
+      const current = prev[key] || buildDefaultSchedule({ semester: semesterOverride })
       return {
         ...prev,
         [key]: {
           ...current,
-          selected: true,
           [field]: value,
+          semester: current.semester ?? semesterOverride,
+          date:
+            current.date ||
+            selectedDateBySemester[String(current.semester ?? semesterOverride ?? '')] ||
+            current.date,
         },
       }
     })
@@ -296,8 +436,8 @@ export default function Exams() {
   }
 
   const validateScheduleForm = () => {
-    if (!category || !academicYear) {
-      showValidationError('Choose a category and academic year before scheduling.')
+    if (!category) {
+      showValidationError('Choose a category before scheduling.')
       return false
     }
     if (!selectedExam) {
@@ -305,27 +445,9 @@ export default function Exams() {
       return false
     }
 
-    const selectedEntries = Object.entries(schedules).filter(([, entry]) => entry.selected)
-
-    if (!selectedEntries.length) {
-      showValidationError('Select at least one subject to schedule.')
+    if (!queuedEntries.length) {
+      showValidationError('Add at least one entry before proceeding.')
       return false
-    }
-
-    for (const [id, entry] of selectedEntries) {
-      const subject = subjectMap[id]
-      if (!subject) continue
-      if (!entry.date || !entry.startTime || !entry.endTime) {
-        showValidationError(
-          `Enter date and time for ${subject.subjectName || subject.subjectCode || 'selected subject'}.`
-        )
-        return false
-      }
-      const subjectCodeRaw = subject.subjectCodeRaw?.trim() ?? subject.subjectCode?.trim()
-      if (!subjectCodeRaw) {
-        showValidationError(`Subject code is missing for ${subject.subjectName || 'the selected subject'}.`)
-        return false
-      }
     }
 
     return true
@@ -338,36 +460,21 @@ export default function Exams() {
   }
 
   const handleConfirmSave = async () => {
-    const entries = []
-    for (const [id, entry] of Object.entries(schedules)) {
-      if (!entry.selected) continue
-      const subject = subjectMap[id]
-      if (!subject) continue
-
-      const subjectCodeRaw = subject.subjectCodeRaw?.trim() ?? subject.subjectCode?.trim()
-      const subjectGroupCode = subject.groupCode || subject.group_code
-      const subjectCourseCode = subject.courseCode || subject.course_code
-
+    const entries = queuedEntries.map((entry) => {
       const record = {
-        academic_year: academicYear,
-        semester_number: subject.semester,
-        subject_code: subjectCodeRaw,
-        exam_date: entry.date,
-        exam_start_time: entry.startTime,
-        exam_end_time: entry.endTime,
-        category,
-        exam_master_id: selectedExam,
+        academic_year: entry.academic_year,
+        semester_number: entry.semester_number,
+        subject_code: entry.subject_code,
+        exam_date: entry.exam_date,
+        exam_start_time: entry.exam_start_time,
+        exam_end_time: entry.exam_end_time,
+        category: entry.category,
+        exam_master_id: entry.exam_master_id,
       }
-
-      if (subjectGroupCode) {
-        record.group_code = subjectGroupCode
-      }
-      if (subjectCourseCode) {
-        record.course_code = subjectCourseCode
-      }
-
-      entries.push(record)
-    }
+      if (entry.subjectGroupCode) record.group_code = entry.subjectGroupCode
+      if (entry.subjectCourseCode) record.course_code = entry.subjectCourseCode
+      return record
+    })
 
     try {
       setSaving(true)
@@ -381,11 +488,13 @@ export default function Exams() {
       setSchedules({})
       setSelectedExam('')
       setSemesterFocus('')
-      setAcademicYear('')
       setCategory('')
       setExamParity('')
       setCurrentSemesterNumber(null)
       setShowPreview(false)
+      setQueuedEntries([])
+      setCustomRowsBySemester({})
+      setSelectedDateBySemester({})
     } catch (err) {
       console.error(err)
       const errorMessage = err.message || 'Unable to save exam schedule.'
@@ -402,19 +511,19 @@ export default function Exams() {
     await handleConfirmSave()
   }
 
-  const filtersReady = Boolean(category && academicYear)
+  const filtersReady = Boolean(category && selectedExam)
   const semesterHasSubjects = availableSemesters.some(
     (sem) => (subjectsBySemester[sem] || []).length > 0
   )
-  const selectedCount = Object.values(schedules).filter((entry) => entry.selected).length
-  const saveDisabled = saving || !filtersReady || !semesterHasSubjects || !selectedCount
+  const queuedCount = queuedEntries.length
+  const saveDisabled = saving || !filtersReady || !semesterHasSubjects || !queuedCount
 
   return (
     <AdminShell>
       <div className="container py-4">
         <h2 className="fw-bold mb-1">Exam Scheduling</h2>
         <p className="text-muted mb-4">
-          Choose the exam cycle and academic year so you can assign dates to the relevant
+          Choose the exam cycle and semester so you can assign dates to the relevant
           subjects.
         </p>
         {feedback.message ? (
@@ -429,85 +538,70 @@ export default function Exams() {
           <>
             <div className="card card-soft p-3 mb-4">
               <h5 className="mb-3 text-dark fw-bold">Create Exam Time Table</h5>
-            <div className="row g-3">
-              <div className="col-12 col-md-3">
-                <label className="form-label">Category</label>
-                <select
-                  className="form-select"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                >
-                  <option value="">Select category</option>
-                  {categoryOptions.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
+              <div className="row g-3">
+                <div className="col-12 col-md-4">
+                  <label className="form-label">Category</label>
+                  <select
+                    className="form-select"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                  >
+                    <option value="">Select category</option>
+                    {categoryOptions.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-12 col-md-4">
+                  <label className="form-label">Exam Name</label>
+                  <select
+                    className="form-select"
+                    value={selectedExam}
+                    onChange={(e) => setSelectedExam(e.target.value)}
+                    disabled={examsLoading || exams.length === 0}
+                  >
+                    <option value="">
+                      {examsLoading ? 'Loading exams...' : exams.length === 0 ? 'No exams available' : 'Select exam'}
                     </option>
-                  ))}
-                </select>
+                    {exams.map((exam) => (
+                      <option key={exam.id} value={exam.id}>
+                        {exam.exam_name}
+                      </option>
+                    ))}
+                  </select>
+                  {examsLoading && <div className="form-text">Loading exam data...</div>}
+                  {!examsLoading && exams.length === 0 && (
+                    <div className="form-text text-warning">No exams found. Please create an exam first.</div>
+                  )}
+                </div>
+                <div className="col-12 col-md-4">
+                  <label className="form-label">Semester</label>
+                  <select
+                    className="form-select"
+                    value={semesterFocus}
+                    onChange={(e) => setSemesterFocus(e.target.value)}
+                  >
+                    <option value="">Select semester</option>
+                    {availableSemesters.map((sem) => (
+                      <option key={sem} value={sem}>
+                        Semester {sem}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              <div className="col-12 col-md-3">
-                <label className="form-label">Exam Name</label>
-                <select
-                  className="form-select"
-                  value={selectedExam}
-                  onChange={(e) => setSelectedExam(e.target.value)}
-                  disabled={examsLoading || exams.length === 0}
-                >
-                  <option value="">
-                    {examsLoading ? 'Loading exams...' : exams.length === 0 ? 'No exams available' : 'Select exam'}
-                  </option>
-                  {exams.map((exam) => (
-                    <option key={exam.id} value={exam.id}>
-                      {exam.exam_name}
-                    </option>
-                  ))}
-                </select>
-                {examsLoading && <div className="form-text">Loading exam data...</div>}
-                {!examsLoading && exams.length === 0 && (
-                  <div className="form-text text-warning">No exams found. Please create an exam first.</div>
-                )}
-              </div>
-              <div className="col-12 col-md-3">
-                <label className="form-label">Academic Year</label>
-                <select
-                  className="form-select"
-                  value={academicYear}
-                  onChange={(e) => setAcademicYear(e.target.value)}
-                >
-                  <option value="">Select academic year</option>
-                  {academicYears.map((year) => (
-                    <option key={year.id} value={year.academic_year}>
-                      {year.academic_year}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="col-12 col-md-3">
-                <label className="form-label">Semester</label>
-                <select
-                  className="form-select"
-                  value={semesterFocus}
-                  onChange={(e) => setSemesterFocus(e.target.value)}
-                >
-                  <option value="">Select semester</option>
-                  {availableSemesters.map((sem) => (
-                    <option key={sem} value={sem}>
-                      Semester {sem}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
             </div>
             {loading && <p className="text-muted mb-3">Loading exam metadata...</p>}
             {!loading && !filtersReady && (
               <p className="text-muted mb-3">
-                Select a category and academic year to load subjects.
+                Select a category and exam to load subjects.
               </p>
             )}
             {filtersReady && !availableSemesters.length && (
               <p className="text-muted mb-3">
-                No semesters found for the selected academic year.
+                No semesters found for the selected category.
               </p>
             )}
             {filtersReady && availableSemesters.length > 0 && !semesterFocus && (
@@ -521,105 +615,120 @@ export default function Exams() {
                   <small className="text-muted">Focusing on semester {semesterFocus}</small>
                 </div>
                 {sortedSemesters.map((semesterNumber) => {
-                  const semesterSubjects = subjectsBySemester[semesterNumber] || []
+                  const dateValue = selectedDateBySemester[String(semesterNumber)] || ''
+                  const rows = getRowsForSemester(semesterNumber)
+                  const readyRowCount = rows.filter((row) => {
+                    const entry =
+                      schedules[row.key] ||
+                      buildDefaultSchedule({ semester: row.semester, date: dateValue })
+                    const subjectCode = (entry.subjectCode ?? '').trim()
+                    return subjectCode && entry.startTime && entry.endTime && entry.date
+                  }).length
+                  const addEntryDisabled = !dateValue || !readyRowCount || !selectedExam
                   return (
                     <div className="card card-soft mb-3" key={semesterNumber}>
                       <div className="card-body">
-                        <div className="d-flex justify-content-between align-items-start mb-3">
-                          <h5 className="mb-0">Semester {semesterNumber}</h5>
-                          <span className="text-muted">
-                            {semesterSubjects.length} subject{semesterSubjects.length === 1 ? '' : 's'}
-                          </span>
+                        <div className="d-flex flex-column flex-sm-row gap-3 align-items-center justify-content-between mb-3">
+                          <h5 className="fw-semibold text-dark mb-0">Add exam time table</h5>
+                          <div className="d-flex align-items-center gap-2">
+                            <label className="small text-muted mb-0">Select date</label>
+                            <input
+                              type="date"
+                              className="form-control form-control-sm"
+                              value={dateValue}
+                              onChange={(e) => handleSemesterDateChange(semesterNumber, e.target.value)}
+                            />
+                          </div>
                         </div>
-                        {semesterSubjects.length ? (
+                        {!dateValue ? (
+                          <p className="text-muted mb-0">
+                            Choose a date to add subjects for semester {semesterNumber}.
+                          </p>
+                        ) : rows.length ? (
                           <div className="table-responsive">
                             <table className="table mb-0">
                               <thead>
                                 <tr>
-                                  <th style={{ width: '120px' }}>Select</th>
                                   <th>Subject Code</th>
-                                  <th>Subject Name</th>
                                   <th>Date</th>
                                   <th>Start Time</th>
                                   <th>End Time</th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {semesterSubjects.map((subject) => {
-                                  const entry = schedules[String(subject.id)] || buildDefaultSchedule()
+                                {rows.map((row) => {
+                                  const entry =
+                                    schedules[row.key] ||
+                                    buildDefaultSchedule({
+                                      semester: row.semester,
+                                      date: dateValue,
+                                    })
+                                  const subjectCodeValue = entry.subjectCode ?? ''
+                                  const startTimeVal = entry.startTime ?? ''
                                   return (
-                                    <tr key={subject.id}>
+                                    <tr key={row.key}>
                                       <td>
-                                        <div className="form-check">
+                                        <div className="d-flex flex-column gap-1">
                                           <input
-                                            className="form-check-input"
-                                            type="checkbox"
-                                            id={`subject-${subject.id}`}
-                                            checked={entry.selected}
-                                            onChange={() => handleToggleSubject(subject.id)}
-                                          />
-                                          <label className="form-check-label" htmlFor={`subject-${subject.id}`}>
-                                            {entry.selected ? 'Scheduled' : 'Select'}
-                                          </label>
-                                        </div>
-                                      </td>
-                                      <td>{subject.subjectCode || subject.subjectName}</td>
-                                      <td>{subject.subjectName || subject.subjectCode}</td>
-                                      <td>
-                                        <div className="input-group input-group-sm">
-                                          <input
-                                            type="date"
+                                            type="text"
                                             className="form-control form-control-sm"
-                                            value={entry.date}
-                                            min={new Date().toISOString().split('T')[0]}
-                                            disabled={!entry.selected}
-                                            onChange={(e) => handleScheduleChange(subject.id, 'date', e.target.value)}
-                                            style={{ minWidth: '120px' }}
+                                            value={subjectCodeValue}
+                                            placeholder="Enter subject code"
+                                            onChange={(e) =>
+                                              handleScheduleChange(row.key, 'subjectCode', e.target.value, row.semester)
+                                            }
                                           />
+                                          {row.isCustom && (
+                                            <button
+                                              type="button"
+                                              className="btn btn-link btn-sm text-danger p-0"
+                                              onClick={() => removeCustomRow(semesterNumber, row.key)}
+                                            >
+                                              Remove row
+                                            </button>
+                                          )}
                                         </div>
                                       </td>
                                       <td>
-                                        <div className="input-group input-group-sm">
-                                          <select
-                                            className="form-select form-select-sm"
-                                            value={entry.startTime}
-                                            disabled={!entry.selected}
-                                            onChange={(e) => handleScheduleChange(subject.id, 'startTime', e.target.value)}
-                                            style={{ minWidth: '120px' }}
-                                          >
-                                            <option value="">Select start time</option>
-                                            {TIME_SLOTS.map((time) => (
-                                              <option key={`start-${time.value}`} value={time.value}>
-                                                {time.displayTime}
-                                              </option>
-                                            ))}
-                                          </select>
-                                        </div>
+                                        <input
+                                          type="date"
+                                          className="form-control form-control-sm"
+                                          value={entry.date}
+                                          disabled
+                                        />
                                       </td>
                                       <td>
-                                        <div className="input-group input-group-sm">
-                                          <select
-                                            className="form-select form-select-sm"
-                                            value={entry.endTime}
-                                            disabled={!entry.selected || !entry.startTime}
-                                            onChange={(e) => handleScheduleChange(subject.id, 'endTime', e.target.value)}
-                                            style={{ minWidth: '120px' }}
-                                          >
-                                            <option value="">Select end time</option>
-                                            {TIME_SLOTS
-                                              .filter(time => {
-                                                if (!entry.startTime) return true;
-                                                const [startH, startM] = entry.startTime.split(':').map(Number);
-                                                const [endH, endM] = time.value.split(':').map(Number);
-                                                return (endH > startH) || (endH === startH && endM > startM);
-                                              })
-                                              .map((time) => (
-                                                <option key={`end-${time.value}`} value={time.value}>
-                                                  {time.displayTime}
-                                                </option>
-                                              ))}
-                                          </select>
-                                        </div>
+                                        <select
+                                          className="form-select form-select-sm"
+                                          value={startTimeVal}
+                                          onChange={(e) => handleScheduleChange(row.key, 'startTime', e.target.value, row.semester)}
+                                        >
+                                          <option value="">Select start time</option>
+                                          {TIME_SLOTS.map((time) => (
+                                            <option key={`start-${row.key}-${time.value}`} value={time.value}>
+                                              {time.displayTime}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </td>
+                                      <td>
+                                        <select
+                                          className="form-select form-select-sm"
+                                          value={entry.endTime}
+                                          onChange={(e) => handleScheduleChange(row.key, 'endTime', e.target.value, row.semester)}
+                                        >
+                                          <option value="">Select end time</option>
+                                          {TIME_SLOTS.filter((time) => {
+                                            if (!startTimeVal) return true
+                                            const [startH, startM] = startTimeVal.split(':').map(Number)
+                                            const [endH, endM] = time.value.split(':').map(Number)
+                                            return endH > startH || (endH === startH && endM > startM)
+                                          }).map((time) => (
+                                            <option key={`end-${row.key}-${time.value}`} value={time.value}>
+                                              {time.displayTime}
+                                            </option>
+                                          ))}
+                                        </select>
                                       </td>
                                     </tr>
                                   )
@@ -630,22 +739,48 @@ export default function Exams() {
                         ) : (
                           <p className="text-muted mb-0">No subjects defined for this semester yet.</p>
                         )}
+                        <div className="mt-3 d-flex flex-wrap gap-2 align-items-center">
+                          <button
+                            type="button"
+                            className="btn btn-outline-secondary btn-sm"
+                            onClick={() => addCustomRow(semesterNumber)}
+                            disabled={!dateValue}
+                          >
+                            + Add another row
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-outline-primary btn-sm"
+                            onClick={() => handleAddEntry(semesterNumber)}
+                          >
+                            + Add entry
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )
                 })}
               </>
             )}
+            {queuedEntries.length ? (
+              <p className="small text-muted mb-2">
+                {queuedEntries.length} {queuedEntries.length === 1 ? 'entry' : 'entries'} ready for preview or save.
+              </p>
+            ) : (
+              <p className="small text-muted mb-2">
+                Use “+ Add entry” per semester to buffer each day before previewing or submitting.
+              </p>
+            )}
             <div className="d-flex justify-content-end gap-2">
               <button className="btn btn-brand" disabled={saveDisabled} onClick={handlePreview}>
-                Preview
+                Preview entries
               </button>
               <button
                 className="btn btn-success"
                 disabled={saveDisabled}
                 onClick={handleSaveSchedule}
               >
-                {saving ? 'Saving...' : 'Save Schedule'}
+                {saving ? 'Saving...' : 'Submit entries'}
               </button>
             </div>
           </>
@@ -667,24 +802,22 @@ export default function Exams() {
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.entries(schedules)
-                    .filter(([, entry]) => entry.selected)
-                    .map(([id, entry]) => {
-                      const subject = subjectMap[id];
-                      if (!subject) return null;
-
-                      const startTimeDisplay = TIME_SLOTS.find(t => t.value === entry.startTime)?.displayTime || entry.startTime;
-                      const endTimeDisplay = TIME_SLOTS.find(t => t.value === entry.endTime)?.displayTime || entry.endTime;
-
-                      return (
-                        <tr key={id}>
-                          <td>{subject.semester}</td>
-                          <td>{subject.subjectCode} - {subject.subjectName}</td>
-                          <td>{entry.date}</td>
-                          <td>{startTimeDisplay} - {endTimeDisplay}</td>
-                        </tr>
-                      );
-                    })}
+                  {queuedEntries.map((entry) => {
+                    const startTimeDisplay =
+                      TIME_SLOTS.find((t) => t.value === entry.exam_start_time)?.displayTime ||
+                      entry.exam_start_time
+                    const endTimeDisplay =
+                      TIME_SLOTS.find((t) => t.value === entry.exam_end_time)?.displayTime ||
+                      entry.exam_end_time
+                    return (
+                      <tr key={entry.id}>
+                        <td>{entry.semester_number}</td>
+                        <td>{entry.subjectName || entry.subject_code}</td>
+                        <td>{entry.exam_date}</td>
+                        <td>{startTimeDisplay} - {endTimeDisplay}</td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
