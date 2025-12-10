@@ -12,10 +12,34 @@ const buildDefaultSchedule = (overrides = {}) => ({
   startTime: '',
   endTime: '',
   subjectCode: '',
-  semester: null,
   ...overrides,
 })
 
+const BASE_TABLE_ROW_ID = 'row-base'
+const createTableRowId = () => `row-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+
+const normalizeSubjectCode = (value) => {
+  if (value === undefined || value === null) return ''
+  return String(value).trim().toUpperCase()
+}
+
+const normalizeDisplayValue = (value) => {
+  if (value === undefined || value === null) return ''
+  return String(value).trim()
+}
+
+const getSubjectDisplayName = (subject) => {
+  if (!subject) return ''
+  const candidates = []
+  if (Array.isArray(subject.subjectNames)) {
+    candidates.push(...subject.subjectNames)
+  }
+  candidates.push(subject.subjectName, subject.subject_name, subject.name)
+  for (const candidate of candidates) {
+    if (candidate) return String(candidate).trim()
+  }
+  return ''
+}
 const parseCategoryValues = (value) => {
   if (value === undefined || value === null || value === '') return []
   if (Array.isArray(value)) return value.map((v) => String(v).trim().toUpperCase()).filter(Boolean)
@@ -51,11 +75,16 @@ export default function Exams() {
   const [feedback, setFeedback] = useState({ message: '', type: '' })
   const [exams, setExams] = useState([])
   const [selectedExam, setSelectedExam] = useState('')
+  const [examDate, setExamDate] = useState('')
   const [examParity, setExamParity] = useState('')
   const [examsLoading, setExamsLoading] = useState(false)
-  const [customRowsBySemester, setCustomRowsBySemester] = useState({})
-  const [selectedDateBySemester, setSelectedDateBySemester] = useState({})
+  const [tableRowIds, setTableRowIds] = useState([BASE_TABLE_ROW_ID])
+  const [entryDate, setEntryDate] = useState('')
   const [queuedEntries, setQueuedEntries] = useState([])
+  const [editingEntryId, setEditingEntryId] = useState(null)
+  const [previewFilterGroup, setPreviewFilterGroup] = useState('')
+  const [previewFilterCourse, setPreviewFilterCourse] = useState('')
+  const [previewFilterSemester, setPreviewFilterSemester] = useState('')
   const defaultAcademicYear = academicYears[0]?.academic_year || ''
 
   // Fetch exams from exam_master table
@@ -90,6 +119,32 @@ export default function Exams() {
     if (!firstExamId) return
     setSelectedExam(String(firstExamId))
   }, [exams, selectedExam])
+
+  useEffect(() => {
+    if (!selectedExam) {
+      setExamDate('')
+      return
+    }
+    const exam = exams.find((item) => String(item.id) === String(selectedExam))
+    if (!exam) {
+      setExamDate('')
+      return
+    }
+    const normalized = new Date(exam.date)
+    setExamDate(
+      Number.isNaN(normalized.getTime())
+        ? ''
+        : normalized.toISOString().split('T')[0]
+    )
+  }, [selectedExam, exams])
+
+  useEffect(() => {
+    if (!examDate) {
+      setEntryDate('')
+      return
+    }
+    setEntryDate(examDate)
+  }, [examDate])
 
   useEffect(() => {
     setQueuedEntries([])
@@ -174,40 +229,23 @@ export default function Exams() {
     return Array.from(semesterSet).sort((a, b) => a - b)
   }, [subjects, category])
 
-  // Filter semesters to specific user requirement:
-  // If a semester is selected, show it and all lower semesters of the same parity (Odd/Even), sorted descending.
-  // e.g. Select 5 -> Show 5, 3, 1. Select 4 -> Show 4, 2.
-  const sortedSemesters = useMemo(() => {
-    if (!availableSemesters.length) return [];
-
-    if (!semesterFocus) return availableSemesters;
-
-    const selectedSem = Number(semesterFocus);
-    const isEvenSelected = selectedSem % 2 === 0;
-
-    return availableSemesters
-      .filter(sem => {
-        const isSameParity = (sem % 2 === 0) === isEvenSelected;
-        const isLowerOrEqual = sem <= selectedSem;
-        return isSameParity && isLowerOrEqual;
-      })
-      .sort((a, b) => b - a); // Sort in descending order
-  }, [availableSemesters, semesterFocus]);
+  useEffect(() => {
+    if (!availableSemesters.length) {
+      setSemesterFocus('')
+      return
+    }
+    const highest = String(Math.max(...availableSemesters))
+    setSemesterFocus((prev) =>
+      prev && availableSemesters.includes(Number(prev)) ? prev : highest
+    )
+  }, [availableSemesters])
 
   useEffect(() => {
     setSchedules({})
-    setCustomRowsBySemester({})
-    setSelectedDateBySemester({})
+    setTableRowIds([BASE_TABLE_ROW_ID])
+    setEntryDate('')
     setQueuedEntries([])
   }, [category])
-
-  useEffect(() => {
-    if (!semesterFocus) return
-    const focused = Number(semesterFocus)
-    if (!availableSemesters.includes(focused)) {
-      setSemesterFocus('')
-    }
-  }, [availableSemesters, semesterFocus])
 
   const filteredSubjectRows = useMemo(() => {
     if (!category) return []
@@ -265,43 +303,63 @@ export default function Exams() {
     return grouped
   }, [expandedSubjects])
 
-  const updateDateForSemesterEntries = (semesterNumber, dateValue) => {
-    setSchedules((prev) => {
-      const next = { ...prev }
-      Object.entries(next).forEach(([key, entry]) => {
-        if (Number(entry.semester) === semesterNumber) {
-          next[key] = { ...entry, date: dateValue }
-        }
+  const subjectLookup = useMemo(() => {
+    const map = {}
+    subjects.forEach((subject) => {
+      if (!subject) return
+      const candidateCodes = new Set()
+      if (Array.isArray(subject.subjectCodes)) {
+        subject.subjectCodes.forEach((code) => candidateCodes.add(code))
+      }
+      if (subject.subjectCode) candidateCodes.add(subject.subjectCode)
+      if (subject.subjectCodeRaw) candidateCodes.add(subject.subjectCodeRaw)
+      candidateCodes.forEach((code) => {
+        const normalized = normalizeSubjectCode(code)
+        if (normalized) map[normalized] = subject
       })
-      return next
     })
-  }
+    return map
+  }, [subjects])
 
-  const handleSemesterDateChange = (semesterNumber, value) => {
-    setSelectedDateBySemester((prev) => ({
-      ...prev,
-      [String(semesterNumber)]: value,
-    }))
-    updateDateForSemesterEntries(semesterNumber, value)
-  }
-
-  const getRowsForSemester = (semesterNumber) => {
-    const baseRowId = `base-${semesterNumber}`
-    const customRows = (customRowsBySemester[semesterNumber] || []).map((rowId) => ({
-      key: rowId,
-      semester: semesterNumber,
-      subject: null,
-      isCustom: true,
-    }))
-    return [
-      {
-        key: baseRowId,
-        semester: semesterNumber,
-        subject: null,
-      },
-      ...customRows,
-    ]
-  }
+  const getSubjectDetails = useCallback(
+    (inputCode) => {
+      const trimmed = inputCode ? String(inputCode).trim() : ''
+      const normalized = normalizeSubjectCode(trimmed)
+      const matched = normalized ? subjectLookup[normalized] : null
+      const name = getSubjectDisplayName(matched)
+      let label = normalized
+      if (trimmed && name) {
+        label = `${trimmed}-${name}`
+      } else if (trimmed) {
+        label = trimmed
+      }
+      const group =
+        normalizeDisplayValue(
+          matched?.groupCode ||
+            matched?.group_code ||
+            matched?.groupName ||
+            matched?.group_name ||
+            matched?.group
+        ) || ''
+      const course =
+        normalizeDisplayValue(
+          matched?.courseName ||
+            matched?.course_name ||
+            matched?.courseCode ||
+            matched?.course_code ||
+            matched?.course
+        ) || ''
+      const semester =
+        normalizeDisplayValue(
+          matched?.semester ||
+            matched?.semester_number ||
+            matched?.semesterNumber ||
+            matched?.semesterNo
+        ) || ''
+      return { label, group, course, semester, subject: matched }
+    },
+    [subjectLookup]
+  )
 
   const semesterAcademicYear = useMemo(() => {
     const map = {}
@@ -320,28 +378,13 @@ export default function Exams() {
     return map
   }, [subjectsBySemester])
 
-  const createCustomRowId = (semesterNumber) =>
-    `custom-${semesterNumber}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
-
-  const addCustomRow = (semesterNumber) => {
-    const dateValue = selectedDateBySemester[String(semesterNumber)] || ''
-    if (!dateValue) return
-    const rowId = createCustomRowId(semesterNumber)
-    setCustomRowsBySemester((prev) => {
-      const existing = prev[semesterNumber] || []
-      return { ...prev, [semesterNumber]: [...existing, rowId] }
-    })
-    setSchedules((prev) => ({
-      ...prev,
-      [rowId]: buildDefaultSchedule({ semester: semesterNumber, date: dateValue }),
-    }))
+  const addTableRow = () => {
+    setTableRowIds((prev) => [...prev, createTableRowId()])
   }
 
-  const removeCustomRow = (semesterNumber, rowId) => {
-    setCustomRowsBySemester((prev) => {
-      const existing = prev[semesterNumber] || []
-      return { ...prev, [semesterNumber]: existing.filter((id) => id !== rowId) }
-    })
+  const removeTableRow = (rowId) => {
+    if (rowId === BASE_TABLE_ROW_ID) return
+    setTableRowIds((prev) => prev.filter((id) => id !== rowId))
     setSchedules((prev) => {
       const next = { ...prev }
       delete next[rowId]
@@ -349,49 +392,54 @@ export default function Exams() {
     })
   }
 
-  const handleAddEntry = (semesterNumber) => {
+  const handleAddEntry = () => {
     if (!selectedExam) {
       showValidationError('Select an exam before adding entries.')
       return
     }
-    const dateValue = selectedDateBySemester[String(semesterNumber)]
-    if (!dateValue) {
+    if (!entryDate) {
       showValidationError('Select a date before saving the entry.')
       return
     }
-    const rows = getRowsForSemester(semesterNumber)
+    const rows = tableRowIds
+    const targetSemesterNumber =
+      (semesterFocus && !Number.isNaN(Number(semesterFocus)) && Number(semesterFocus)) ||
+      (availableSemesters.length ? Math.max(...availableSemesters) : null) ||
+      currentSemesterNumber ||
+      null
+    const academicYearValue =
+      targetSemesterNumber && semesterAcademicYear[targetSemesterNumber]
+        ? semesterAcademicYear[targetSemesterNumber]
+        : defaultAcademicYear
     const newEntries = rows
-      .map((row) => {
+      .map((rowKey) => {
         const entry =
-          schedules[row.key] ||
-          buildDefaultSchedule({ semester: row.semester, date: dateValue })
-        const subjectCode = (entry.subjectCode ?? '').trim()
-        if (!subjectCode || !entry.startTime || !entry.endTime || !entry.date) return null
-        const semesterNumberForEntry = entry.semester ?? row.semester ?? semesterNumber
-        const academicYear =
-          row.subject?.academicYearName ||
-          row.subject?.academic_year ||
-          row.subject?.academicYear ||
-          semesterAcademicYear[semesterNumberForEntry] ||
-          defaultAcademicYear ||
-          ''
+          schedules[rowKey] ||
+          buildDefaultSchedule({ date: entryDate })
+        const dateValue = entry.date || entryDate || examDate
+        const subjectCode = String(entry.subjectCode ?? '').trim()
+        if (!subjectCode || !entry.startTime || !entry.endTime || !dateValue) return null
+        const {
+          label: subjectLabel,
+          group: subjectGroupValue,
+          course: subjectCourseValue,
+          semester: subjectSemesterValue,
+        } = getSubjectDetails(subjectCode)
         return {
-          id: `${row.key}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          academic_year: academicYear,
-          semester_number: semesterNumberForEntry,
+          id: `${rowKey}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          academic_year: academicYearValue,
+          semester_number:
+            subjectSemesterValue || targetSemesterNumber || null,
           subject_code: subjectCode,
-          exam_date: entry.date,
+          exam_date: dateValue,
           exam_start_time: entry.startTime,
           exam_end_time: entry.endTime,
           category,
           exam_master_id: selectedExam,
-          subjectName:
-            row.subject?.subjectName ||
-            row.subject?.subjectCode ||
-            subjectCode ||
-            'Manual entry',
-          subjectGroupCode: row.subject?.groupCode || row.subject?.group_code,
-          subjectCourseCode: row.subject?.courseCode || row.subject?.course_code,
+          subjectName: subjectLabel || subjectCode,
+          subjectGroup: subjectGroupValue,
+          subjectCourse: subjectCourseValue,
+          subjectSemester: subjectSemesterValue,
         }
       })
       .filter(Boolean)
@@ -399,35 +447,47 @@ export default function Exams() {
       showValidationError('Add at least one subject with code, date, and time before adding an entry.')
       return
     }
+    const wasEditing = Boolean(editingEntryId)
     setQueuedEntries((prev) => [...prev, ...newEntries])
-    setSchedules((prev) => {
-      const next = { ...prev }
-      rows.forEach((row) => {
-        next[row.key] = buildDefaultSchedule({ semester: row.semester })
-      })
-      return next
-    })
-    setSelectedDateBySemester((prev) => ({
-      ...prev,
-      [String(semesterNumber)]: '',
-    }))
-    showToast('Entry added. You can select another date now.', { type: 'success' })
+    setTableRowIds([BASE_TABLE_ROW_ID])
+    setSchedules({})
+    setEntryDate('')
+    setEditingEntryId(null)
+    const toastMessage = wasEditing
+      ? 'Entry updated. You can select another date now.'
+      : 'Entry added. You can select another date now.'
+    showToast(toastMessage, { type: 'success' })
   }
 
-  const handleScheduleChange = (subjectId, field, value, semesterOverride = null) => {
-    const key = String(subjectId)
+  const handleEditEntry = (entryId) => {
+    const entry = queuedEntries.find((item) => item.id === entryId)
+    if (!entry) return
+    setQueuedEntries((prev) => prev.filter((item) => item.id !== entryId))
+    setEntryDate(entry.exam_date)
+    setSchedules({
+      [BASE_TABLE_ROW_ID]: {
+        date: entry.exam_date,
+        startTime: entry.exam_start_time,
+        endTime: entry.exam_end_time,
+        subjectCode: entry.subject_code,
+      },
+    })
+    setTableRowIds([BASE_TABLE_ROW_ID])
+    setEditingEntryId(entryId)
+    setShowPreview(false)
+    showToast('Entry moved back to the table for editing.', { type: 'info' })
+  }
+
+  const handleScheduleChange = (rowId, field, value) => {
+    const key = String(rowId)
     setSchedules((prev) => {
-      const current = prev[key] || buildDefaultSchedule({ semester: semesterOverride })
+      const current = prev[key] || buildDefaultSchedule()
       return {
         ...prev,
         [key]: {
           ...current,
           [field]: value,
-          semester: current.semester ?? semesterOverride,
-          date:
-            current.date ||
-            selectedDateBySemester[String(current.semester ?? semesterOverride ?? '')] ||
-            current.date,
+          date: current.date || entryDate || examDate || '',
         },
       }
     })
@@ -476,8 +536,8 @@ export default function Exams() {
         category: entry.category,
         exam_master_id: entry.exam_master_id,
       }
-      if (entry.subjectGroupCode) record.group_code = entry.subjectGroupCode
-      if (entry.subjectCourseCode) record.course_code = entry.subjectCourseCode
+      if (entry.subjectGroup) record.group_code = entry.subjectGroup
+      if (entry.subjectCourse) record.course_code = entry.subjectCourse
       return record
     })
 
@@ -492,14 +552,17 @@ export default function Exams() {
       // Reset form fields
       setSchedules({})
       setSelectedExam('')
-      setSemesterFocus('')
       setCategory('')
       setExamParity('')
       setCurrentSemesterNumber(null)
       setShowPreview(false)
       setQueuedEntries([])
-      setCustomRowsBySemester({})
-      setSelectedDateBySemester({})
+      setTableRowIds([BASE_TABLE_ROW_ID])
+      setEntryDate('')
+      setPreviewFilterGroup('')
+      setPreviewFilterCourse('')
+      setPreviewFilterSemester('')
+      setEditingEntryId(null)
     } catch (err) {
       console.error(err)
       const errorMessage = err.message || 'Unable to save exam schedule.'
@@ -516,12 +579,95 @@ export default function Exams() {
     await handleConfirmSave()
   }
 
-  const filtersReady = Boolean(category && selectedExam)
+  const categorySelected = Boolean(category)
+  const examDateSelected = Boolean(examDate)
+  const filtersReady = categorySelected && Boolean(selectedExam) && examDateSelected
   const semesterHasSubjects = availableSemesters.some(
     (sem) => (subjectsBySemester[sem] || []).length > 0
   )
   const queuedCount = queuedEntries.length
+  const readyRowCount = tableRowIds.filter((rowKey) => {
+    const entry = schedules[rowKey] || buildDefaultSchedule()
+    const subjectCode = (entry.subjectCode ?? '').trim()
+    const dateValue = entry.date || entryDate || examDate
+    return subjectCode && entry.startTime && entry.endTime && dateValue
+  }).length
+  const addEntryDisabled = !entryDate || !readyRowCount || !selectedExam
   const saveDisabled = saving || !filtersReady || !semesterHasSubjects || !queuedCount
+
+  const previewFilterOptions = useMemo(() => {
+    const groups = new Set()
+    const courses = new Set()
+    const semesters = new Set()
+    queuedEntries.forEach((entry) => {
+      if (entry.subjectGroup) groups.add(entry.subjectGroup)
+      if (entry.subjectCourse) courses.add(entry.subjectCourse)
+      if (
+        entry.subjectSemester !== undefined &&
+        entry.subjectSemester !== null &&
+        entry.subjectSemester !== ''
+      ) {
+        semesters.add(Number(entry.subjectSemester))
+      } else if (
+        entry.semester_number !== undefined &&
+        entry.semester_number !== null
+      ) {
+        semesters.add(Number(entry.semester_number))
+      }
+    })
+    filteredSubjectRows.forEach((subject) => {
+      const group = normalizeDisplayValue(
+        subject.groupCode ||
+          subject.group_code ||
+          subject.groupName ||
+          subject.group_name ||
+          subject.group
+      )
+      if (group) groups.add(group)
+      const course = normalizeDisplayValue(
+        subject.courseName ||
+          subject.course_name ||
+          subject.courseCode ||
+          subject.course_code ||
+          subject.course
+      )
+      if (course) courses.add(course)
+      const semesterVal =
+        subject.semester ||
+        subject.semester_number ||
+        subject.semesterNumber ||
+        subject.semesterNo
+      if (semesterVal !== undefined && semesterVal !== null && semesterVal !== '') {
+        semesters.add(Number(semesterVal))
+      }
+    })
+    return {
+      groups: Array.from(groups).sort(),
+      courses: Array.from(courses).sort(),
+      semesters: Array.from(semesters).sort((a, b) => a - b),
+    }
+  }, [filteredSubjectRows, queuedEntries])
+
+  const filteredPreviewEntries = useMemo(() => {
+    return queuedEntries.filter((entry) => {
+      if (previewFilterGroup && entry.subjectGroup !== previewFilterGroup) return false
+      if (previewFilterCourse && entry.subjectCourse !== previewFilterCourse) return false
+      if (
+        previewFilterSemester &&
+        String(entry.semester_number) !== String(previewFilterSemester)
+      ) {
+        return false
+      }
+      return true
+    })
+  }, [queuedEntries, previewFilterGroup, previewFilterCourse, previewFilterSemester])
+
+  useEffect(() => {
+    if (queuedEntries.length) return
+    setPreviewFilterGroup('')
+    setPreviewFilterCourse('')
+    setPreviewFilterSemester('')
+  }, [queuedEntries.length])
 
   return (
     <AdminShell>
@@ -582,101 +728,89 @@ export default function Exams() {
                   )}
                 </div>
                 <div className="col-12 col-md-4">
-                  <label className="form-label">Semester</label>
-                  <select
-                    className="form-select"
-                    value={semesterFocus}
-                    onChange={(e) => setSemesterFocus(e.target.value)}
-                  >
-                    <option value="">Select semester</option>
-                    {availableSemesters.map((sem) => (
-                      <option key={sem} value={sem}>
-                        Semester {sem}
-                      </option>
-                    ))}
-                  </select>
+                  {selectedExam ? (
+                    <>
+                      <label className="form-label">Exam Date</label>
+                      <input
+                        type="date"
+                        className="form-control"
+                        value={examDate}
+                        onChange={(e) => setExamDate(e.target.value)}
+                        aria-label="Exam date"
+                      />
+                    </>
+                  ) : (
+                    <div className="mt-3 mt-md-0">
+                      <p className="form-text text-muted mb-0">
+                        Select an exam to show the date picker.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
             {loading && <p className="text-muted mb-3">Loading exam metadata...</p>}
-            {!loading && !filtersReady && (
+            {!loading && !categorySelected && (
               <p className="text-muted mb-3">
-                Select a category and exam to load subjects.
+                Select a category to load subjects and reveal the exam time table.
               </p>
             )}
-            {filtersReady && !availableSemesters.length && (
+            {categorySelected && !selectedExam && (
+              <p className="text-muted mb-3">Select an exam to load the exam date picker.</p>
+            )}
+            {selectedExam && !examDateSelected && (
+              <p className="text-muted mb-3">Choose the exam date to access the scheduling table.</p>
+            )}
+            {selectedExam && examDateSelected && !availableSemesters.length && (
               <p className="text-muted mb-3">
                 No semesters found for the selected category.
               </p>
             )}
-            {filtersReady && availableSemesters.length > 0 && !semesterFocus && (
-              <p className="text-muted mb-3">
-                Select a semester to view and schedule subjects.
-              </p>
-            )}
-            {filtersReady && availableSemesters.length > 0 && semesterFocus && (
-              <>
-                <div className="mb-3">
-                  <small className="text-muted">Focusing on semester {semesterFocus}</small>
-                </div>
-                {sortedSemesters.map((semesterNumber) => {
-                  const dateValue = selectedDateBySemester[String(semesterNumber)] || ''
-                  const rows = getRowsForSemester(semesterNumber)
-                  const readyRowCount = rows.filter((row) => {
-                    const entry =
-                      schedules[row.key] ||
-                      buildDefaultSchedule({ semester: row.semester, date: dateValue })
-                    const subjectCode = (entry.subjectCode ?? '').trim()
-                    return subjectCode && entry.startTime && entry.endTime && entry.date
-                  }).length
-                  const addEntryDisabled = !dateValue || !readyRowCount || !selectedExam
-                  return (
-                    <div className="card card-soft mb-3" key={semesterNumber}>
-                      <div className="card-body">
-                        <div className="d-flex flex-column flex-sm-row gap-3 align-items-center justify-content-between mb-3">
-                          <h5 className="fw-semibold text-dark mb-0">Add exam time table</h5>
-                          <div className="d-flex align-items-center gap-2">
-                            <label className="small text-muted mb-0">Select date</label>
-                            <input
-                              type="date"
-                              className="form-control form-control-sm"
-                              value={dateValue}
-                              onChange={(e) => handleSemesterDateChange(semesterNumber, e.target.value)}
-                            />
-                          </div>
-                        </div>
-                        {!dateValue ? (
-                          <p className="text-muted mb-0">
-                            Choose a date to add subjects for semester {semesterNumber}.
-                          </p>
-                        ) : rows.length ? (
-                          <div className="table-responsive">
-                            <table className="table mb-0">
-                              <thead>
-                                <tr>
-                                  <th>Date</th>
-                                  <th>Subject Code</th>
-                                  <th>Start Time</th>
-                                  <th>End Time</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {rows.map((row) => {
-                                  const entry =
-                                    schedules[row.key] ||
-                                    buildDefaultSchedule({
-                                      semester: row.semester,
-                                      date: dateValue,
-                                    })
-                                  const subjectCodeValue = entry.subjectCode ?? ''
-                                  const startTimeVal = entry.startTime ?? ''
-                                  return (
-                                <tr key={row.key}>
+            {selectedExam && examDateSelected && availableSemesters.length > 0 && (
+              <div className="card card-soft mb-3">
+                <div className="card-body">
+                  <div className="d-flex flex-column flex-sm-row gap-3 align-items-center justify-content-between mb-3">
+                    <h4 className="fw-semibold text-dark mb-0 display-6">Add exam time table</h4>
+                    <div className="d-flex align-items-center gap-2">
+                      <label className="small text-muted mb-0">Select date</label>
+                      <input
+                        type="date"
+                        className="form-control form-control-sm"
+                        value={entryDate}
+                        onChange={(e) => setEntryDate(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  {!entryDate ? (
+                    <p className="text-muted mb-0">Choose a date to add subjects.</p>
+                  ) : (
+                    <>
+                      <div className="table-responsive">
+                        <table className="table mb-0">
+                          <thead>
+                            <tr>
+                              <th>Date</th>
+                              <th>Subject Code</th>
+                              <th>Start Time</th>
+                              <th>End Time</th>
+                              <th />
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {tableRowIds.map((rowKey) => {
+                              const entry =
+                                schedules[rowKey] ||
+                                buildDefaultSchedule()
+                              const subjectCodeValue = entry.subjectCode ?? ''
+                              const startTimeVal = entry.startTime ?? ''
+                              const rowDate = entry.date || entryDate || examDate
+                              return (
+                                <tr key={rowKey}>
                                   <td>
                                     <input
                                       type="date"
                                       className="form-control form-control-sm"
-                                      value={entry.date}
+                                      value={rowDate}
                                       disabled
                                     />
                                   </td>
@@ -688,18 +822,9 @@ export default function Exams() {
                                         value={subjectCodeValue}
                                         placeholder="Enter subject code"
                                         onChange={(e) =>
-                                          handleScheduleChange(row.key, 'subjectCode', e.target.value, row.semester)
+                                          handleScheduleChange(rowKey, 'subjectCode', e.target.value)
                                         }
                                       />
-                                      {row.isCustom && (
-                                        <button
-                                          type="button"
-                                          className="btn btn-link btn-sm text-danger p-0"
-                                          onClick={() => removeCustomRow(semesterNumber, row.key)}
-                                        >
-                                          Remove row
-                                        </button>
-                                      )}
                                     </div>
                                   </td>
                                   <td>
@@ -707,12 +832,12 @@ export default function Exams() {
                                       className="form-select form-select-sm"
                                       value={startTimeVal}
                                       onChange={(e) =>
-                                        handleScheduleChange(row.key, 'startTime', e.target.value, row.semester)
+                                        handleScheduleChange(rowKey, 'startTime', e.target.value)
                                       }
                                     >
                                       <option value="">Select start time</option>
                                       {TIME_SLOTS.map((time) => (
-                                        <option key={`start-${row.key}-${time.value}`} value={time.value}>
+                                        <option key={`start-${rowKey}-${time.value}`} value={time.value}>
                                           {time.displayTime}
                                         </option>
                                       ))}
@@ -723,7 +848,7 @@ export default function Exams() {
                                       className="form-select form-select-sm"
                                       value={entry.endTime}
                                       onChange={(e) =>
-                                        handleScheduleChange(row.key, 'endTime', e.target.value, row.semester)
+                                        handleScheduleChange(rowKey, 'endTime', e.target.value)
                                       }
                                     >
                                       <option value="">Select end time</option>
@@ -733,43 +858,50 @@ export default function Exams() {
                                         const [endH, endM] = time.value.split(':').map(Number)
                                         return endH > startH || (endH === startH && endM > startM)
                                       }).map((time) => (
-                                        <option key={`end-${row.key}-${time.value}`} value={time.value}>
+                                        <option key={`end-${rowKey}-${time.value}`} value={time.value}>
                                           {time.displayTime}
                                         </option>
                                       ))}
                                     </select>
                                   </td>
+                                  <td className="text-end">
+                                    {rowKey !== BASE_TABLE_ROW_ID && (
+                                      <button
+                                        type="button"
+                                        className="btn btn-link btn-sm text-danger p-0"
+                                        onClick={() => removeTableRow(rowKey)}
+                                      >
+                                        Remove row
+                                      </button>
+                                    )}
+                                  </td>
                                 </tr>
                               )
                             })}
                           </tbody>
-                            </table>
-                          </div>
-                        ) : (
-                          <p className="text-muted mb-0">No subjects defined for this semester yet.</p>
-                        )}
-                        <div className="mt-3 d-flex flex-wrap gap-2 align-items-center">
-                          <button
-                            type="button"
-                            className="btn btn-outline-secondary btn-sm"
-                            onClick={() => addCustomRow(semesterNumber)}
-                            disabled={!dateValue}
-                          >
-                            + Add another row
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-outline-primary btn-sm"
-                            onClick={() => handleAddEntry(semesterNumber)}
-                          >
-                            + Add entry
-                          </button>
-                        </div>
+                        </table>
                       </div>
-                    </div>
-                  )
-                })}
-              </>
+                      <div className="mt-3 d-flex flex-wrap gap-2 align-items-center justify-content-between">
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary btn-sm"
+                          onClick={addTableRow}
+                        >
+                          + Add another row
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-outline-primary btn-sm"
+                          onClick={handleAddEntry}
+                          disabled={addEntryDisabled}
+                        >
+                          + Add entry
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
             )}
             {queuedEntries.length ? (
               <p className="small text-muted mb-2">
@@ -777,7 +909,7 @@ export default function Exams() {
               </p>
             ) : (
               <p className="small text-muted mb-2">
-                Use “+ Add entry” per semester to buffer each day before previewing or submitting.
+                Use "+ Add entry" to buffer each day before previewing or submitting.
               </p>
             )}
             <div className="d-flex justify-content-end gap-2">
@@ -799,6 +931,53 @@ export default function Exams() {
               <h4 className="fw-bold mb-1">Preview Schedule</h4>
               <p className="text-muted small mb-0">Review the exam schedule before saving.</p>
             </div>
+            <div className="row g-3 mb-3">
+              <div className="col-12 col-md-4">
+                <label className="form-label small mb-1">Group</label>
+                <select
+                  className="form-select form-select-sm"
+                  value={previewFilterGroup}
+                  onChange={(e) => setPreviewFilterGroup(e.target.value)}
+                >
+                  <option value="">All groups</option>
+                  {previewFilterOptions.groups.map((group) => (
+                    <option key={group} value={group}>
+                      {group}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-12 col-md-4">
+                <label className="form-label small mb-1">Course</label>
+                <select
+                  className="form-select form-select-sm"
+                  value={previewFilterCourse}
+                  onChange={(e) => setPreviewFilterCourse(e.target.value)}
+                >
+                  <option value="">All courses</option>
+                  {previewFilterOptions.courses.map((course) => (
+                    <option key={course} value={course}>
+                      {course}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-12 col-md-4">
+                <label className="form-label small mb-1">Semester</label>
+                <select
+                  className="form-select form-select-sm"
+                  value={previewFilterSemester}
+                  onChange={(e) => setPreviewFilterSemester(e.target.value)}
+                >
+                  <option value="">All semesters</option>
+                  {previewFilterOptions.semesters.map((sem) => (
+                    <option key={sem} value={sem}>
+                      Semester {sem}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
             <div className="table-responsive mb-4">
               <table className="table table-bordered">
@@ -808,25 +987,43 @@ export default function Exams() {
                     <th>Subject</th>
                     <th>Date</th>
                     <th>Time</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {queuedEntries.map((entry) => {
-                    const startTimeDisplay =
-                      TIME_SLOTS.find((t) => t.value === entry.exam_start_time)?.displayTime ||
-                      entry.exam_start_time
-                    const endTimeDisplay =
-                      TIME_SLOTS.find((t) => t.value === entry.exam_end_time)?.displayTime ||
-                      entry.exam_end_time
-                    return (
-                      <tr key={entry.id}>
-                        <td>{entry.semester_number}</td>
-                        <td>{entry.subjectName || entry.subject_code}</td>
-                        <td>{entry.exam_date}</td>
-                        <td>{startTimeDisplay} - {endTimeDisplay}</td>
-                      </tr>
-                    )
-                  })}
+                  {filteredPreviewEntries.length ? (
+                    filteredPreviewEntries.map((entry) => {
+                      const startTimeDisplay =
+                        TIME_SLOTS.find((t) => t.value === entry.exam_start_time)?.displayTime ||
+                        entry.exam_start_time
+                      const endTimeDisplay =
+                        TIME_SLOTS.find((t) => t.value === entry.exam_end_time)?.displayTime ||
+                        entry.exam_end_time
+                      return (
+                        <tr key={entry.id}>
+                          <td>{entry.semester_number}</td>
+                          <td>{entry.subjectName || entry.subject_code}</td>
+                          <td>{entry.exam_date}</td>
+                          <td>{startTimeDisplay} - {endTimeDisplay}</td>
+                          <td>
+                            <button
+                              type="button"
+                              className="btn btn-link btn-sm"
+                              onClick={() => handleEditEntry(entry.id)}
+                            >
+                              Edit
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan="5" className="text-center text-muted">
+                        No entries match the selected filters.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
