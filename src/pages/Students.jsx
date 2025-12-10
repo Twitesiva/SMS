@@ -675,7 +675,7 @@ export default function Students() {
         // Fetch academic years
         const { data: yearsData, error: yearsError } = await supabase
           .from("academic_year")
-          .select("id, academic_year, status, category")
+          .select("id, academic_year")
           .order("academic_year", { ascending: false });
 
         if (yearsError) throw yearsError;
@@ -691,10 +691,7 @@ export default function Students() {
         }));
 
         setStudents(transformedStudents);
-        const activeYears = (yearsData || []).filter((year) =>
-          year.status === undefined ? true : Boolean(year.status)
-        );
-        setYears(activeYears);
+        setYears(yearsData || []);
         setGroups(groupsData || []);
         setCourses(coursesData || []);
       } catch (error) {
@@ -2334,5 +2331,3 @@ export default function Students() {
     </AdminShell>
   );
 }
-
-
