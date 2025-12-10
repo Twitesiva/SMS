@@ -26,9 +26,10 @@ const navGroups = [
   {
     title: "Post-Exam Portal",
     items: [
+      { to: "/admin/payments-overview", label: "Decoding", icon: "bi-bar-chart" },
       { to: "/admin/results", label: "Marks Entry", icon: "bi-award" },
       { to: "/admin/result-publish", label: "Result Publish", icon: "bi-megaphone" },
-      { to: "/admin/payments-overview", label: "Decoding", icon: "bi-bar-chart" },
+      { to: "/admin/promote", label: "Promotion", icon: "bi-people" },
     ],
   },
   {

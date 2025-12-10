@@ -5,13 +5,13 @@ import AdminShell from '../components/AdminShell'
 import crestPrimary from '../assets/media/images.png'
 import { validateRequiredFields } from '../lib/validation'
 import { showToast } from '../store/ui'
- 
+
 export default function AdminApplications() {
   const GENDERS = ['Male', 'Female', 'Other']
   const CASTES = ['General', 'OBC', 'SC', 'ST', 'Others']
   const RELIGIONS = ['Hindu', 'Muslim', 'Christian', 'Sikh', 'Buddhist', 'Jain', 'Others']
   const STATES = ['Tamil Nadu', 'Andhra Pradesh', 'Karnataka', 'Kerala', 'Telangana', 'Maharashtra', 'Other']
- 
+
   const initialForm = {
     student_id: '',
     ht_no: '',
@@ -34,9 +34,10 @@ export default function AdminApplications() {
     email: '',
     religion: '',
     caste: '',
-    sub_caste: ''
+    sub_caste: '',
+    current_semester: ''
   }
- 
+
   const [form, setForm] = useState({
     ...initialForm,
     course_name: ''
@@ -52,9 +53,9 @@ export default function AdminApplications() {
   const [filteredYears, setFilteredYears] = useState([])
   const [filteredGroups, setFilteredGroups] = useState([])
   const [filteredCourses, setFilteredCourses] = useState([])
- 
+
   const handle = (key, value) => setForm((prev) => ({ ...prev, [key]: value }))
- 
+
   useEffect(() => {
     const bootstrap = async () => {
       try {
@@ -80,32 +81,32 @@ export default function AdminApplications() {
     }
     bootstrap()
   }, [])
- 
+
   useEffect(() => {
     if (category) {
       // Filter years based on UG/PG category
       const filteredYrs = years.filter(year => {
         return (category === 'UG' && year.category === 'UG') ||
-               (category === 'PG' && year.category === 'PG')
+          (category === 'PG' && year.category === 'PG')
       })
-     
+
       // Filter groups based on UG/PG category
       const filteredGrps = groups.filter(group => {
         return (category === 'UG' && (group.category === 'UG' || group.Category === 'UG')) ||
-               (category === 'PG' && (group.category === 'PG' || group.Category === 'PG'))
+          (category === 'PG' && (group.category === 'PG' || group.Category === 'PG'))
       })
-     
+
       // Get the selected group to filter courses
       const selectedGroup = filteredGrps.find(g => g.code === form.group_code || g.group_code === form.group_code);
-     
+
       // Filter courses based on the selected group's code
       const filteredCrs = courses.filter(course => {
         // If no group is selected, show all courses for the category
         if (!selectedGroup) return true;
-       
+
         // Get the group code from the selected group (trying both possible properties)
         const groupCode = selectedGroup.code || selectedGroup.group_code;
-       
+
         // Match course's group with the selected group's code
         // Check all possible group-related properties in the course
         return (
@@ -115,11 +116,11 @@ export default function AdminApplications() {
           (course.groupName && (course.groupName === selectedGroup.name || course.groupName === selectedGroup.group_name))
         );
       });
-     
+
       setFilteredYears(filteredYrs)
       setFilteredGroups(filteredGrps)
       setFilteredCourses(filteredCrs)
-     
+
       // Reset selections if current selection is not in filtered lists
       if (form.academic_year && !filteredYrs.some(y => y.academic_year === form.academic_year || y.name === form.academic_year)) {
         handle('academic_year', '')
@@ -141,7 +142,7 @@ export default function AdminApplications() {
       setFilteredCourses(courses)
     }
   }, [category, years, groups, courses, form.academic_year, form.group_code, form.course_id])
- 
+
   const resetAll = () => {
     setForm(initialForm)
     setCategory('')
@@ -152,14 +153,14 @@ export default function AdminApplications() {
     setCert(null)
     setMsg('')
   }
- 
+
   const onNumericChange = (key, max) => (event) => {
     const sanitized = (event.target.value || '').replace(/\D/g, '').slice(0, max)
     handle(key, sanitized)
   }
- 
+
   const isDigits = (value, len) => new RegExp(`^\\d{${len}}$`).test(value)
- 
+
   const submit = async (event) => {
     event.preventDefault()
     setMsg('')
@@ -174,7 +175,8 @@ export default function AdminApplications() {
       'Mobile Number': form.mobile,
       'Parent Mobile': form.Parent_no,
       'Postal Code': form.postal_code,
-      'Address': form.address
+      'Address': form.address,
+      'Semester': form.current_semester
     }
     if (!validateRequiredFields(requiredFields, { title: 'Incomplete application' })) return
     if (!isDigits(form.mobile, 10)) {
@@ -189,24 +191,25 @@ export default function AdminApplications() {
       showToast('Aadhar number must contain 12 digits.', { type: 'warning', title: 'Invalid Aadhar' })
       return
     }
- 
+
     setLoading(true)
     try {
       const selectedCourse = courses.find((course) => String(course.id || course.course_id) === String(form.course_id))
       if (!selectedCourse) throw new Error('Select a valid course')
- 
+
       const courseCode = selectedCourse.courseCode || selectedCourse.code
       if (!courseCode) throw new Error('Selected course is missing a course code reference')
       const courseLabel = form.course_name || selectedCourse.courseName || selectedCourse.course_name || ''
- 
-        const payload = {
-          student_id: form.student_id || `STU${Date.now().toString().slice(-6)}`,
-          hall_ticket_no: form.ht_no || null,
-          academic_year: form.academic_year,
-          group_name: form.group_code || form.group,
-          course_name: courseCode,
-          Category: category || null,
-          full_name: form.full_name,
+
+      const payload = {
+        student_id: form.student_id || `STU${Date.now().toString().slice(-6)}`,
+        hall_ticket_no: form.ht_no || null,
+        academic_year: form.academic_year,
+        group_name: form.group_code || form.group,
+        course_name: courseCode,
+        current_semester: form.current_semester,
+        Category: category || null,
+        full_name: form.full_name,
         gender: form.gender,
         date_of_birth: form.dob,
         father_name: form.father_name || null,
@@ -227,10 +230,10 @@ export default function AdminApplications() {
         status: 'ACTIVE',
         created_at: new Date().toISOString()
       }
- 
+
       const { error } = await supabase.from('students').insert([payload])
       if (error) throw error
- 
+
       showToast('Application submitted successfully!', { type: 'success', title: 'Success' })
       setMsg('Application saved successfully.')
       resetAll()
@@ -241,7 +244,7 @@ export default function AdminApplications() {
       setLoading(false)
     }
   }
- 
+
   return (
     <AdminShell>
       <div className="desktop-container" style={{ overflowX: 'hidden' }}>
@@ -259,7 +262,7 @@ export default function AdminApplications() {
             </div>
           </div>
         </section>
- 
+
         <div className="row g-4 justify-content-center mx-0">
           <div className="col-12 col-lg-11 col-xl-10">
             <div className="card card-soft p-4 mb-4">
@@ -270,12 +273,12 @@ export default function AdminApplications() {
                 </div>
                 <button type="button" className="btn btn-outline-secondary" onClick={resetAll}>Reset Form</button>
               </div>
- 
+
               <form onSubmit={submit}>
                 <div className="application-section mb-4">
                   <h6 className="text-uppercase text-muted fw-bold small">Programme Selection</h6>
                   <div className="row g-3 mt-1">
-                    <div className="col-md-3">
+                    <div className="col-md-2">
                       <label className="form-label">Category</label>
                       <select
                         className="form-select"
@@ -288,7 +291,7 @@ export default function AdminApplications() {
                         <option value="PG">PG</option>
                       </select>
                     </div>
-                    <div className="col-md-3">
+                    <div className="col-md-2">
                       <label className="form-label">Academic Year</label>
                       <select
                         className="form-select"
@@ -305,7 +308,7 @@ export default function AdminApplications() {
                         ))}
                       </select>
                     </div>
-                    <div className="col-md-4">
+                    <div className="col-md-3">
                       <label className="form-label">Group</label>
                       <select
                         className="form-select"
@@ -327,7 +330,7 @@ export default function AdminApplications() {
                         ))}
                       </select>
                     </div>
-                    <div className="col-md-4">
+                    <div className="col-md-3">
                       <label className="form-label">Course</label>
                       <select
                         className="form-select"
@@ -351,9 +354,22 @@ export default function AdminApplications() {
                         ))}
                       </select>
                     </div>
+                    <div className="col-md-2">
+                      <label className="form-label">Semester</label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        value={form.current_semester}
+                        onChange={(e) => handle('current_semester', e.target.value)}
+                        placeholder="Sem No"
+                        min="1"
+                        max="8"
+                        required
+                      />
+                    </div>
                   </div>
                 </div>
- 
+
                 <div className="application-section mb-4">
                   <h6 className="text-uppercase text-muted fw-bold small">Identity & Guardians</h6>
                   <div className="row g-3 mt-1">
@@ -366,7 +382,7 @@ export default function AdminApplications() {
                       <input className="form-control" value={form.ht_no} onChange={(e) => handle('ht_no', e.target.value)} placeholder="Optional" />
                     </div>
                     <div className="col-md-8">
-                      <label className="form-label">Full Name</label>
+                      <label className="form-label">Student Full Name</label>
                       <input className="form-control" value={form.full_name} onChange={(e) => handle('full_name', e.target.value)} required />
                     </div>
                     <div className="col-md-2">
@@ -392,7 +408,7 @@ export default function AdminApplications() {
                     </div>
                   </div>
                 </div>
- 
+
                 <div className="application-section mb-4">
                   <h6 className="text-uppercase text-muted fw-bold small">Contact & Address</h6>
                   <div className="row g-3 mt-1">
@@ -457,7 +473,7 @@ export default function AdminApplications() {
                     </div>
                   </div>
                 </div>
- 
+
                 <div className="application-section mb-3">
                   <h6 className="text-uppercase text-muted fw-bold small">Uploads</h6>
                   <div className="row g-3 mt-1">
@@ -471,17 +487,17 @@ export default function AdminApplications() {
                     </div>
                   </div>
                 </div>
- 
+
                 <div className="d-flex justify-content-end gap-2 mt-4">
                   <button type="button" className="btn btn-outline-secondary" onClick={resetAll}>Clear</button>
                   <button className="btn btn-brand" disabled={loading}>{loading ? 'Submitting...' : 'Submit Application'}</button>
                 </div>
               </form>
- 
+
               {msg && <div className="alert alert-info mt-3 mb-0">{msg}</div>}
             </div>
           </div>
- 
+
         </div>
       </div>
     </AdminShell>

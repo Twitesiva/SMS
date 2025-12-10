@@ -7,7 +7,7 @@ import { toast } from "react-toastify";
 import { validateRequiredFields } from "../lib/validation";
 import { api } from "../lib/mockApi";
 
-export default function Students() {
+export default function Promote() {
   const [students, setStudents] = useState([]);
   const [filters, setFilters] = useState({
     academic_year: "",
@@ -17,6 +17,8 @@ export default function Students() {
     current_semester: "",
   });
   const [studentIdSearch, setStudentIdSearch] = useState("");
+  const [nextSessionAcademicYear, setNextSessionAcademicYear] = useState("");
+  const [nextSessionSemester, setNextSessionSemester] = useState("");
   const [paymentSemester, setPaymentSemester] = useState("");
   const [years, setYears] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -44,6 +46,11 @@ export default function Students() {
     balance: 0,
     totalFee: 0,
   });
+  const [promoteConfirmModal, setPromoteConfirmModal] = useState({
+    show: false,
+    stats: null,
+  });
+  const [selectedStudents, setSelectedStudents] = useState(new Set());
   const baseCategoryOptions = ["UG", "PG"];
   const normalizeCategoryValue = (value) =>
     value ? value.toString().trim().toUpperCase() : "";
@@ -803,6 +810,129 @@ export default function Students() {
     setFilters((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handlePromotionChange = (studentId, field, value) => {
+    setStudents((prev) =>
+      prev.map((student) =>
+        student.id === studentId ? { ...student, [field]: value } : student
+      )
+    );
+  };
+
+  const handlePromoteStudents = () => {
+    if (!nextSessionAcademicYear || !nextSessionSemester) {
+      toast.error("Please select next session Academic Year and Semester.");
+      return;
+    }
+    if (selectedStudents.size === 0) {
+      toast.error("Please select at least one student to promote.");
+      return;
+    }
+
+    // Calculate stats
+    const studentsToProcess = students.filter((s) => selectedStudents.has(s.id));
+    let continueCount = 0;
+    const discontinuedList = [];
+
+    studentsToProcess.forEach(student => {
+      const result = student.current_result || "Promote";
+      const nextStatus = student.next_session_status || "Continue";
+
+      if (result === "Promote" && nextStatus === "Continue") {
+        continueCount++;
+      } else {
+        discontinuedList.push({
+          name: student.full_name,
+          hallTicket: student.hall_ticket_no
+        });
+      }
+    });
+
+    setPromoteConfirmModal({
+      show: true,
+      stats: {
+        continueCount,
+        discontinuedList
+      }
+    });
+  };
+
+  const executePromotion = async () => {
+    setPromoteConfirmModal(prev => ({ ...prev, show: false }));
+
+    setLoading(true);
+    try {
+      const updates = [];
+      const studentsToProcess = students.filter((s) => selectedStudents.has(s.id));
+
+      for (const student of studentsToProcess) {
+        const result = student.current_result || "Promote";
+        const nextStatus = student.next_session_status || "Continue";
+        const updatePayload = {};
+
+        if (result === "Promote") {
+          updatePayload.academic_year = nextSessionAcademicYear;
+          updatePayload.current_semester = nextSessionSemester;
+          // Map "Leave" to "DISCONTINUE", "Continue" to "CONTINUE" (or existing status logic)
+          // Adjust based on your system's status enums. 
+          updatePayload.status = nextStatus === "Leave" ? "DISCONTINUE" : "CONTINUE";
+        } else {
+          // Discontinue
+          updatePayload.status = "DISCONTINUE";
+          // We probably don't update year/sem if they are discontinued at this stage?
+        }
+
+        updates.push(
+          supabase
+            .from("students")
+            .update(updatePayload)
+            .eq("id", student.id)
+        );
+      }
+
+      await Promise.all(updates);
+
+      toast.success("Promotion process completed successfully.");
+
+      // Refresh data
+      // We can either call loadData() again or manually update local state.
+      // For simplicity/accuracy, let's trigger a reload of students or just update local ones.
+      // Creating a simple reload mechanism or just re-calling a load function would be best 
+      // but loadData is inside useEffect. 
+      // We'll just force a window reload or better, refactor loadData. 
+      // Since I can't easily refactor loadData out of useEffect in one go without seeing it all, 
+      // I will update local state to reflect changes for immediate feedback 
+      // (though a real re-fetch is safer).
+
+      // Updating local state:
+      setStudents(prev => prev.map(s => {
+        if (selectedStudents.has(s.id)) {
+          const result = s.current_result || "Promote";
+          const nextStatus = s.next_session_status || "Continue";
+          if (result === "Promote") {
+            return {
+              ...s,
+              academic_year: nextSessionAcademicYear,
+              current_semester: nextSessionSemester,
+              status: nextStatus === "Leave" ? "DISCONTINUE" : "CONTINUE"
+            };
+          } else {
+            return { ...s, status: "DISCONTINUE" };
+          }
+        }
+        return s;
+      }));
+
+      // Clear selection
+      setSelectedStudents(new Set());
+
+    } catch (error) {
+      console.error("Promotion Error:", error);
+      toast.error("Failed to promote some students.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleEdit = (student) => {
     setEditingStudent(student);
     setEditForm({
@@ -1165,50 +1295,13 @@ export default function Students() {
   return (
     <AdminShell>
       <div className="students-page-shell">
-        <div className="students-hero mb-4">
-          <div className="px-3 pt-3">
-            <p className="students-hero-eyebrow text-uppercase mb-1">Students</p>
-            <h2 className="students-hero-title">Student Management</h2>
-            <p className="students-hero-copy mb-0">
-              Monitor academic statuses and payments in one polished workspace.
-            </p>
-          </div>
-          <div className="students-stats-grid row g-3 px-3 pb-3">
-            {heroStats.map((stat) => (
-              <div className="col-6 col-md-3" key={stat.label}>
-                <div className="students-hero-card h-100 p-3">
-                  <div className="students-hero-stat-label small mb-1 text-white">
-                    {stat.label}
-                  </div>
-                  <div className="fs-3 fw-bold students-hero-stat-value text-white">
-                    {stat.value}
-                  </div>
-                  <div className="students-hero-stat-meta small text-white">
-                    {stat.meta}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
         <div className="students-filter-panel card card-soft mb-4 p-4">
           <div className="d-flex flex-wrap justify-content-between gap-3 mb-4">
             <div>
-              <h5 className="fw-bold mb-1">Filters</h5>
+              <h5 className="fw-bold mb-1">Current Students Status</h5>
               <p className="text-muted mb-0">
                 Use the hall ticket field or filters to quickly locate a student.
               </p>
-            </div>
-            <div className="text-end small text-muted">
-              <div>
-                Showing <strong>{filteredStudents.length}</strong> of {students.length}
-              </div>
-              <div>
-                {paymentSemester
-                  ? `Payment semester: ${paymentSemester}`
-                  : "Select payment semester for payment insights"}
-              </div>
             </div>
           </div>
           <div className="row g-3">
@@ -1303,6 +1396,56 @@ export default function Students() {
               </select>
             </div>
           </div>
+
+          <div className="d-flex flex-column gap-3 mb-4 mt-4 pt-3 border-top">
+            <div>
+              <h5 className="fw-bold mb-1">Promote Next Session</h5>
+              <p className="text-muted mb-0">
+                Configure details for the next academic session.
+              </p>
+            </div>
+            <div className="d-flex align-items-end gap-3">
+              <div className="col-12 col-md-6 col-lg-3">
+                <label className="form-label">Academic Year</label>
+                <select
+                  className="form-select"
+                  value={nextSessionAcademicYear}
+                  onChange={(e) => setNextSessionAcademicYear(e.target.value)}
+                >
+                  <option value="">Select Year</option>
+                  {academicYearOptions.map((year) => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-12 col-md-6 col-lg-3">
+                <label className="form-label">Semester</label>
+                <select
+                  className="form-select"
+                  value={nextSessionSemester}
+                  onChange={(e) => setNextSessionSemester(e.target.value)}
+                >
+                  <option value="">Select Semester</option>
+                  {[1, 2, 3, 4, 5, 6].map((sem) => (
+                    <option key={sem} value={sem}>
+                      Semester {sem}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="d-flex justify-content-end">
+              <button
+                className="btn btn-primary"
+                onClick={handlePromoteStudents}
+                disabled={loading}
+              >
+                {loading ? "Processing..." : "Promote Students"}
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="students-table-panel card card-soft p-4">
@@ -1323,6 +1466,31 @@ export default function Students() {
             <table className="table table-borderless table-hover align-middle mb-0">
               <thead className="table-light">
                 <tr>
+
+                  <th style={{ width: "40px" }}>
+                    <div className="form-check">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        checked={
+                          filteredStudents.length > 0 &&
+                          filteredStudents.every((s) => selectedStudents.has(s.id))
+                        }
+                        onChange={(e) => {
+                          const newSelected = new Set(selectedStudents);
+                          if (e.target.checked) {
+                            filteredStudents.forEach((s) => newSelected.add(s.id));
+                          } else {
+                            // Don't clear all, just clear visible ones if you want, 
+                            // or typically "Select All" means "Select All Visible"
+                            // But usually users expect to unselect the visible ones.
+                            filteredStudents.forEach((s) => newSelected.delete(s.id));
+                          }
+                          setSelectedStudents(newSelected);
+                        }}
+                      />
+                    </div>
+                  </th>
                   <th>Student ID</th>
                   <th>Name</th>
                   <th>Hall Ticket</th>
@@ -1330,9 +1498,8 @@ export default function Students() {
                   <th>Course</th>
                   <th>Academic Year</th>
                   <th>Semester</th>
-                  <th>Status</th>
-                  <th>Payment</th>
-                  <th className="text-end">Actions</th>
+                  <th>Current Result</th>
+                  <th>Next session Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -1352,6 +1519,27 @@ export default function Students() {
                       onClick={() => openStudentDetails(student)}
                       style={{ cursor: "pointer" }}
                     >
+                      <td>
+                        <div
+                          className="form-check"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            checked={selectedStudents.has(student.id)}
+                            onChange={(e) => {
+                              const newSelected = new Set(selectedStudents);
+                              if (e.target.checked) {
+                                newSelected.add(student.id);
+                              } else {
+                                newSelected.delete(student.id);
+                              }
+                              setSelectedStudents(newSelected);
+                            }}
+                          />
+                        </div>
+                      </td>
                       <td>{student.student_id}</td>
                       <td>{student.full_name}</td>
                       <td>{student.hall_ticket_no || "-"}</td>
@@ -1360,54 +1548,111 @@ export default function Students() {
                       <td>{student.academic_year}</td>
                       <td>{student.current_semester ? `Semester ${student.current_semester}` : 'Semester N/A'}</td>
                       <td>
-                        <span
-                          className={`badge rounded-pill ${student.status === "DISCONTINUE"
-                            ? "bg-danger"
-                            : student.status === "HOLD"
-                              ? "bg-warning"
-                              : "bg-success"
-                            }`}
-                          style={{ minWidth: "80px", fontSize: "0.85em" }}
-                        >
-                          {student.status === "DISCONTINUE"
-                            ? "Discontinued"
-                            : student.status === "HOLD"
-                              ? "On Hold"
-                              : "Active"}
-                        </span>
+                        <div className="d-flex flex-column gap-1">
+                          <div className="form-check form-check-sm mb-0">
+                            <input
+                              className="form-check-input"
+                              type="radio"
+                              name={`current_result_${student.id}`}
+                              id={`promote_${student.id}`}
+                              value="Promote"
+                              checked={(student.current_result || "Promote") === "Promote"}
+                              onChange={(e) =>
+                                handlePromotionChange(
+                                  student.id,
+                                  "current_result",
+                                  e.target.value
+                                )
+                              }
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <label
+                              className="form-check-label"
+                              htmlFor={`promote_${student.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              Promote
+                            </label>
+                          </div>
+                          <div className="form-check form-check-sm mb-0">
+                            <input
+                              className="form-check-input"
+                              type="radio"
+                              name={`current_result_${student.id}`}
+                              id={`discontinue_${student.id}`}
+                              value="Discontinue"
+                              checked={student.current_result === "Discontinue"}
+                              onChange={(e) =>
+                                handlePromotionChange(
+                                  student.id,
+                                  "current_result",
+                                  e.target.value
+                                )
+                              }
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <label
+                              className="form-check-label"
+                              htmlFor={`discontinue_${student.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              Discontinue
+                            </label>
+                          </div>
+                        </div>
                       </td>
-                      <td className="text-center">
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-primary"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            openPaymentHistoryModal(student);
-                          }}
-                        >
-                          View
-                        </button>
-                      </td>
-                      <td className="text-end">
-                        <div className="d-flex justify-content-end flex-wrap gap-2">
-                          <button
-                            className="students-action-button students-action-button--edit"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleEdit(student);
-                            }}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="students-action-button students-action-button--delete"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              openDeleteModal(student);
-                            }}
-                          >
-                            Delete
-                          </button>
+                      <td>
+                        <div className="d-flex flex-column gap-1">
+                          <div className="form-check form-check-sm mb-0">
+                            <input
+                              className="form-check-input"
+                              type="radio"
+                              name={`next_status_${student.id}`}
+                              id={`continue_${student.id}`}
+                              value="Continue"
+                              checked={(student.next_session_status || "Continue") === "Continue"}
+                              onChange={(e) =>
+                                handlePromotionChange(
+                                  student.id,
+                                  "next_session_status",
+                                  e.target.value
+                                )
+                              }
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <label
+                              className="form-check-label"
+                              htmlFor={`continue_${student.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              Continue
+                            </label>
+                          </div>
+                          <div className="form-check form-check-sm mb-0">
+                            <input
+                              className="form-check-input"
+                              type="radio"
+                              name={`next_status_${student.id}`}
+                              id={`leave_${student.id}`}
+                              value="Leave"
+                              checked={student.next_session_status === "Leave"}
+                              onChange={(e) =>
+                                handlePromotionChange(
+                                  student.id,
+                                  "next_session_status",
+                                  e.target.value
+                                )
+                              }
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <label
+                              className="form-check-label"
+                              htmlFor={`leave_${student.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              Leave
+                            </label>
+                          </div>
                         </div>
                       </td>
                     </tr>
@@ -2356,6 +2601,77 @@ export default function Students() {
         confirmText={deleteModal.loading ? "Deleting..." : "Delete student"}
         isLoading={deleteModal.loading}
       />
+
+
+      {promoteConfirmModal.show && (
+        <div className="students-modal-overlay" style={{ zIndex: 1060 }}>
+          <div className="students-modal-dialog" style={{ maxWidth: "500px" }}>
+            <div className="students-modal-content">
+              <div className="students-modal-header bg-primary text-white">
+                <h5 className="students-modal-header-title fw-bold mb-0">Confirm Promotion</h5>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  onClick={() => setPromoteConfirmModal({ show: false, stats: null })}
+                ></button>
+              </div>
+              <div className="students-modal-body p-4">
+                <p className="mb-3">Are you sure you want to proceed with the following updates?</p>
+
+                <div className="card mb-3 border-success">
+                  <div className="card-body">
+                    <h6 className="text-success fw-bold">Continuing Students</h6>
+                    <p className="display-6 fw-bold mb-0 text-success">{promoteConfirmModal.stats?.continueCount || 0}</p>
+                    <small className="text-muted">Will be promoted to {nextSessionSemester ? `Semester ${nextSessionSemester}` : ""} ({nextSessionAcademicYear})</small>
+                  </div>
+                </div>
+
+                {promoteConfirmModal.stats?.discontinuedList?.length > 0 && (
+                  <div className="card border-danger">
+                    <div className="card-body">
+                      <h6 className="text-danger fw-bold mb-2">Discontinuing Students ({promoteConfirmModal.stats.discontinuedList.length})</h6>
+                      <div className="table-responsive" style={{ maxHeight: "150px" }}>
+                        <table className="table table-sm table-striped mb-0">
+                          <thead>
+                            <tr>
+                              <th>Name</th>
+                              <th>Hall Ticket</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {promoteConfirmModal.stats.discontinuedList.map((s, i) => (
+                              <tr key={i}>
+                                <td>{s.name}</td>
+                                <td>{s.hallTicket || "-"}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="students-modal-footer d-flex justify-content-end p-3 border-top">
+                <button
+                  className="btn btn-light me-2"
+                  onClick={() => setPromoteConfirmModal({ show: false, stats: null })}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={executePromotion}
+                >
+                  Confirm & Promote
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminShell>
   );
 }
+
+

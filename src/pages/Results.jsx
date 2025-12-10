@@ -242,10 +242,11 @@ export default function Results() {
         <div className="card card-soft p-3 mt-4" style={{ maxWidth: '600px', margin: '0 auto' }}>
           <h5 className="mb-2">Subject Details</h5>
           <p className="mb-1">
-            <strong>{subject.subject_name}</strong>
+            <strong>Subject Name</strong><br />
+            {subject.subject_name}
           </p>
-          <p className="text-muted mb-3">
-            Code: {subject.subject_code || '-'}
+          <p className="mb-3">
+            <strong>Subject Code:</strong> {subject.subject_code || '-'}
           </p>
 
           <div className="row g-2 align-items-end">
