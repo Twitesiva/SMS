@@ -286,19 +286,20 @@ export default function Exams() {
   }
 
   const getRowsForSemester = (semesterNumber) => {
-    const semesterSubjects = subjectsBySemester[semesterNumber] || []
+    const baseRowId = `base-${semesterNumber}`
+    const customRows = (customRowsBySemester[semesterNumber] || []).map((rowId) => ({
+      key: rowId,
+      semester: semesterNumber,
+      subject: null,
+      isCustom: true,
+    }))
     return [
-      ...semesterSubjects.map((subject) => ({
-        key: String(subject.id),
-        semester: subject.semester,
-        subject,
-      })),
-      ...(customRowsBySemester[semesterNumber] || []).map((rowId) => ({
-        key: rowId,
+      {
+        key: baseRowId,
         semester: semesterNumber,
         subject: null,
-        isCustom: true,
-      })),
+      },
+      ...customRows,
     ]
   }
 
@@ -384,7 +385,11 @@ export default function Exams() {
           exam_end_time: entry.endTime,
           category,
           exam_master_id: selectedExam,
-          subjectName: row.subject?.subjectName || row.subject?.subjectCode || 'Manual entry',
+          subjectName:
+            row.subject?.subjectName ||
+            row.subject?.subjectCode ||
+            subjectCode ||
+            'Manual entry',
           subjectGroupCode: row.subject?.groupCode || row.subject?.group_code,
           subjectCourseCode: row.subject?.courseCode || row.subject?.course_code,
         }
@@ -649,8 +654,8 @@ export default function Exams() {
                             <table className="table mb-0">
                               <thead>
                                 <tr>
-                                  <th>Subject Code</th>
                                   <th>Date</th>
+                                  <th>Subject Code</th>
                                   <th>Start Time</th>
                                   <th>End Time</th>
                                 </tr>
@@ -666,74 +671,78 @@ export default function Exams() {
                                   const subjectCodeValue = entry.subjectCode ?? ''
                                   const startTimeVal = entry.startTime ?? ''
                                   return (
-                                    <tr key={row.key}>
-                                      <td>
-                                        <div className="d-flex flex-column gap-1">
-                                          <input
-                                            type="text"
-                                            className="form-control form-control-sm"
-                                            value={subjectCodeValue}
-                                            placeholder="Enter subject code"
-                                            onChange={(e) =>
-                                              handleScheduleChange(row.key, 'subjectCode', e.target.value, row.semester)
-                                            }
-                                          />
-                                          {row.isCustom && (
-                                            <button
-                                              type="button"
-                                              className="btn btn-link btn-sm text-danger p-0"
-                                              onClick={() => removeCustomRow(semesterNumber, row.key)}
-                                            >
-                                              Remove row
-                                            </button>
-                                          )}
-                                        </div>
-                                      </td>
-                                      <td>
-                                        <input
-                                          type="date"
-                                          className="form-control form-control-sm"
-                                          value={entry.date}
-                                          disabled
-                                        />
-                                      </td>
-                                      <td>
-                                        <select
-                                          className="form-select form-select-sm"
-                                          value={startTimeVal}
-                                          onChange={(e) => handleScheduleChange(row.key, 'startTime', e.target.value, row.semester)}
+                                <tr key={row.key}>
+                                  <td>
+                                    <input
+                                      type="date"
+                                      className="form-control form-control-sm"
+                                      value={entry.date}
+                                      disabled
+                                    />
+                                  </td>
+                                  <td>
+                                    <div className="d-flex flex-column gap-1">
+                                      <input
+                                        type="text"
+                                        className="form-control form-control-sm"
+                                        value={subjectCodeValue}
+                                        placeholder="Enter subject code"
+                                        onChange={(e) =>
+                                          handleScheduleChange(row.key, 'subjectCode', e.target.value, row.semester)
+                                        }
+                                      />
+                                      {row.isCustom && (
+                                        <button
+                                          type="button"
+                                          className="btn btn-link btn-sm text-danger p-0"
+                                          onClick={() => removeCustomRow(semesterNumber, row.key)}
                                         >
-                                          <option value="">Select start time</option>
-                                          {TIME_SLOTS.map((time) => (
-                                            <option key={`start-${row.key}-${time.value}`} value={time.value}>
-                                              {time.displayTime}
-                                            </option>
-                                          ))}
-                                        </select>
-                                      </td>
-                                      <td>
-                                        <select
-                                          className="form-select form-select-sm"
-                                          value={entry.endTime}
-                                          onChange={(e) => handleScheduleChange(row.key, 'endTime', e.target.value, row.semester)}
-                                        >
-                                          <option value="">Select end time</option>
-                                          {TIME_SLOTS.filter((time) => {
-                                            if (!startTimeVal) return true
-                                            const [startH, startM] = startTimeVal.split(':').map(Number)
-                                            const [endH, endM] = time.value.split(':').map(Number)
-                                            return endH > startH || (endH === startH && endM > startM)
-                                          }).map((time) => (
-                                            <option key={`end-${row.key}-${time.value}`} value={time.value}>
-                                              {time.displayTime}
-                                            </option>
-                                          ))}
-                                        </select>
-                                      </td>
-                                    </tr>
-                                  )
-                                })}
-                              </tbody>
+                                          Remove row
+                                        </button>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td>
+                                    <select
+                                      className="form-select form-select-sm"
+                                      value={startTimeVal}
+                                      onChange={(e) =>
+                                        handleScheduleChange(row.key, 'startTime', e.target.value, row.semester)
+                                      }
+                                    >
+                                      <option value="">Select start time</option>
+                                      {TIME_SLOTS.map((time) => (
+                                        <option key={`start-${row.key}-${time.value}`} value={time.value}>
+                                          {time.displayTime}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </td>
+                                  <td>
+                                    <select
+                                      className="form-select form-select-sm"
+                                      value={entry.endTime}
+                                      onChange={(e) =>
+                                        handleScheduleChange(row.key, 'endTime', e.target.value, row.semester)
+                                      }
+                                    >
+                                      <option value="">Select end time</option>
+                                      {TIME_SLOTS.filter((time) => {
+                                        if (!startTimeVal) return true
+                                        const [startH, startM] = startTimeVal.split(':').map(Number)
+                                        const [endH, endM] = time.value.split(':').map(Number)
+                                        return endH > startH || (endH === startH && endM > startM)
+                                      }).map((time) => (
+                                        <option key={`end-${row.key}-${time.value}`} value={time.value}>
+                                          {time.displayTime}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
                             </table>
                           </div>
                         ) : (
