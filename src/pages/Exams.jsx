@@ -146,6 +146,16 @@ export default function Exams() {
   const [semesterFocus, setSemesterFocus] = useState('')
   const [schedules, setSchedules] = useState({})
   const [groupList, setGroupList] = useState([])
+  const groupDisplayNameByCode = useMemo(() => {
+    const map = {}
+    groupList.forEach((group) => {
+      const code = normalizeDisplayValue(group.code || group.group_code || group.groupCode || '')
+      if (!code) return
+      const name = normalizeDisplayValue(group.name || group.groupName || group.group_name) || code
+      map[code] = name
+    })
+    return map
+  }, [groupList])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [addingEntry, setAddingEntry] = useState(false)
@@ -467,6 +477,66 @@ export default function Exams() {
     [subjectLookup]
   )
 
+  const subjectOccurrencesByCode = useMemo(() => {
+    const map = {}
+    subjects.forEach((subject) => {
+      if (!subject) return
+      const candidateCodes = new Set()
+      if (Array.isArray(subject.subjectCodes) && subject.subjectCodes.length) {
+        subject.subjectCodes.forEach((code) => {
+          if (code) candidateCodes.add(code)
+        })
+      }
+      if (subject.subjectCode) candidateCodes.add(subject.subjectCode)
+      if (subject.subjectCodeRaw) candidateCodes.add(subject.subjectCodeRaw)
+      candidateCodes.forEach((rawCode) => {
+        const normalized = normalizeSubjectCode(rawCode)
+        if (!normalized) return
+        const groupCode = normalizeDisplayValue(
+          subject.groupCode ||
+            subject.group_code ||
+            subject.groupName ||
+            subject.group_name ||
+            ''
+        )
+        const courseCode = normalizeDisplayValue(
+          subject.courseCode ||
+            subject.course_code ||
+            subject.course_name ||
+            subject.courseName ||
+            ''
+        )
+        const courseName =
+          normalizeDisplayValue(subject.courseName || subject.course_name || '') || courseCode
+        const semesterValue =
+          subject.semester ||
+          subject.semester_number ||
+          subject.semesterNumber ||
+          ''
+        const subjectName =
+          normalizeDisplayValue(subject.subjectName || subject.subject_name || rawCode)
+        const entries = map[normalized] || []
+        const isDuplicate = entries.some(
+          (existing) =>
+            existing.groupCode === groupCode &&
+            existing.courseCode === courseCode &&
+            existing.semester === semesterValue &&
+            existing.subjectName === subjectName
+        )
+        if (isDuplicate) return
+        entries.push({
+          subjectName,
+          semester: semesterValue,
+          groupCode,
+          courseCode,
+          courseName,
+        })
+        map[normalized] = entries
+      })
+    })
+    return map
+  }, [subjects])
+
   const loadStoredSchedule = useCallback(async () => {
     if (!selectedExam) {
       setStoredEntries([])
@@ -783,6 +853,68 @@ export default function Exams() {
     [storedEntries, queuedEntries]
   )
 
+  const previewRows = useMemo(() => {
+    const rows = []
+    previewEntries.forEach((entry) => {
+      const normalizedCode = normalizeSubjectCode(entry.subject_code || entry.subjectCode || '')
+      const occurrences =
+        normalizedCode && subjectOccurrencesByCode[normalizedCode]
+          ? subjectOccurrencesByCode[normalizedCode]
+          : []
+      const fallbackGroup = getEntryGroupValue(entry)
+      const fallbackCourseCode = getEntryCourseValue(entry)
+      const fallbackCourseLabel = fallbackCourseCode
+      const subjectNameFallback =
+        entry.subjectName || entry.subject_code || entry.subjectCode || ''
+      const semesterFallback =
+        entry.subjectSemester || entry.semester_number || entry.semester || ''
+
+      if (!occurrences.length) {
+        rows.push({
+          id: `${entry.id}-fallback`,
+          entryId: entry.id,
+          recordId: entry.recordId,
+          subjectCode: normalizedCode || entry.subject_code,
+          subjectName: subjectNameFallback,
+          groupLabel: fallbackGroup,
+          courseCode: fallbackCourseCode,
+          courseLabel: fallbackCourseLabel,
+          semester: semesterFallback,
+          exam_date: entry.exam_date,
+          exam_start_time: entry.exam_start_time,
+          exam_end_time: entry.exam_end_time,
+          persisted: entry.persisted,
+        })
+        return
+      }
+
+      occurrences.forEach((occurrence) => {
+        const courseCode = occurrence.courseCode || fallbackCourseCode
+        const courseLabel =
+          occurrence.courseName || occurrence.courseCode || fallbackCourseCode || ''
+        const groupLabel =
+          occurrence.groupCode &&
+          (groupDisplayNameByCode[occurrence.groupCode] || occurrence.groupCode)
+        rows.push({
+          id: `${entry.id}-${occurrence.groupCode}-${courseCode}-${occurrence.semester}`,
+          entryId: entry.id,
+          recordId: entry.recordId,
+          subjectCode: normalizedCode || entry.subject_code,
+          subjectName: entry.subjectName || occurrence.subjectName || subjectNameFallback,
+          groupLabel: groupLabel || fallbackGroup,
+          courseCode,
+          courseLabel,
+          semester: occurrence.semester || semesterFallback || '',
+          exam_date: entry.exam_date,
+          exam_start_time: entry.exam_start_time,
+          exam_end_time: entry.exam_end_time,
+          persisted: entry.persisted,
+        })
+      })
+    })
+    return rows
+  }, [previewEntries, subjectOccurrencesByCode, groupDisplayNameByCode])
+
   const showValidationError = (message) => {
     setFeedback({ type: 'error', message })
     showToast(message, { type: 'error' })
@@ -793,7 +925,7 @@ export default function Exams() {
       showValidationError('Please select an exam from the dropdown.')
       return false
     }
-    if (!previewEntries.length) {
+    if (!previewRows.length) {
       showValidationError('Add or load at least one entry before proceeding.')
       return false
     }
@@ -906,51 +1038,25 @@ export default function Exams() {
     return { codes, names }
   }, [groupList])
   const addEntryDisabled = !entryDate || !readyRowCount || !selectedExam || addingEntry
-  const previewDisabled = saving || previewEntries.length === 0
+  const previewDisabled = saving || previewRows.length === 0
   const saveDisabled = saving || !filtersReady || !semesterHasSubjects || !pendingCount
 
   const previewFilterOptions = useMemo(() => {
     const groups = new Set()
-    const courses = new Map() // Use Map to store code -> name
+    const courses = new Map()
     const semesters = new Set()
 
-    previewEntries.forEach((entry) => {
-      // 1. Groups: Always all available groups
-      const groupCandidate = getEntryGroupValue(entry)
-      if (groupCandidate) {
-        groups.add(groupCandidate)
+    previewRows.forEach((row) => {
+      if (row.groupLabel) {
+        groups.add(row.groupLabel)
       }
-
-      // 2. Courses: Filter by selected group
-      const entryGroupValue = getEntryGroupValue(entry)
-      const matchesGroup = !previewFilterGroup || entryGroupValue === previewFilterGroup
-      if (matchesGroup) {
-        // Prefer explicit course code, fallback to legacy subjectCourse
-        const code = getEntryCourseValue(entry) || entry.subjectCourseCode || entry.subjectCourse
-        const name =
-          normalizeDisplayValue(entry.subjectCourseName) ||
-          normalizeDisplayValue(entry.courseName) ||
-          normalizeDisplayValue(entry.course_name) ||
-          normalizeDisplayValue(entry.course)
-        if (code) {
-          courses.set(code, name)
-        }
+      if (row.courseCode) {
+        courses.set(row.courseCode, row.courseLabel || row.courseCode)
       }
-      // 3. Semesters: Filter by selected group AND selected course
-      const entryCourseCode = getEntryCourseValue(entry)
-      const matchesCourse = !previewFilterCourse || entryCourseCode === previewFilterCourse
-      if (matchesGroup && matchesCourse) {
-        if (
-          entry.subjectSemester !== undefined &&
-          entry.subjectSemester !== null &&
-          entry.subjectSemester !== ''
-        ) {
-          semesters.add(Number(entry.subjectSemester))
-        } else if (
-          entry.semester_number !== undefined &&
-          entry.semester_number !== null
-        ) {
-          semesters.add(Number(entry.semester_number))
+      if (row.semester !== undefined && row.semester !== null && row.semester !== '') {
+        const parsed = Number(row.semester)
+        if (!Number.isNaN(parsed)) {
+          semesters.add(parsed)
         }
       }
     })
@@ -965,7 +1071,7 @@ export default function Exams() {
       courses: courseList,
       semesters: Array.from(semesters).sort((a, b) => a - b),
     }
-  }, [previewEntries, previewFilterGroup, previewFilterCourse])
+  }, [previewRows])
 
   // Reset course/semester filters if they become invalid due to upstream changes
   useEffect(() => {
@@ -985,29 +1091,25 @@ export default function Exams() {
   }, [previewFilterGroup, previewFilterOptions, previewFilterCourse, previewFilterSemester])
 
   const filteredPreviewEntries = useMemo(() => {
-    return previewEntries.filter((entry) => {
-      const entryGroupValue = getEntryGroupValue(entry)
-      if (previewFilterGroup && entryGroupValue !== previewFilterGroup) return false
-      if (previewFilterCourse) {
-        const entryCode = getEntryCourseValue(entry)
-        if (entryCode !== previewFilterCourse) return false
-      }
+    return previewRows.filter((row) => {
+      if (previewFilterGroup && row.groupLabel !== previewFilterGroup) return false
+      if (previewFilterCourse && row.courseCode !== previewFilterCourse) return false
       if (
         previewFilterSemester &&
-        String(entry.semester_number) !== String(previewFilterSemester)
+        String(row.semester) !== String(previewFilterSemester)
       ) {
         return false
       }
       return true
     })
-  }, [previewEntries, previewFilterGroup, previewFilterCourse, previewFilterSemester])
+  }, [previewRows, previewFilterGroup, previewFilterCourse, previewFilterSemester])
 
   useEffect(() => {
-    if (previewEntries.length) return
+    if (previewRows.length) return
     setPreviewFilterGroup('')
     setPreviewFilterCourse('')
     setPreviewFilterSemester('')
-  }, [previewEntries.length])
+  }, [previewRows.length])
 
   return (
     <AdminShell>
@@ -1334,32 +1436,45 @@ export default function Exams() {
                 </thead>
                 <tbody>
                   {filteredPreviewEntries.length ? (
-                    filteredPreviewEntries.map((entry) => {
+                    filteredPreviewEntries.map((row) => {
                       const startTimeDisplay =
-                        TIME_SLOTS.find((t) => t.value === entry.exam_start_time)?.displayTime ||
-                        entry.exam_start_time
+                        TIME_SLOTS.find((t) => t.value === row.exam_start_time)?.displayTime ||
+                        row.exam_start_time
                       const endTimeDisplay =
-                        TIME_SLOTS.find((t) => t.value === entry.exam_end_time)?.displayTime ||
-                        entry.exam_end_time
+                        TIME_SLOTS.find((t) => t.value === row.exam_end_time)?.displayTime ||
+                        row.exam_end_time
                       return (
-                        <tr key={entry.id}>
-                          <td>{entry.semester_number}</td>
-                          <td>{entry.subjectName || entry.subject_code}</td>
-                          <td>{entry.exam_date}</td>
+                        <tr key={row.id}>
+                          <td>{row.semester}</td>
+                          <td>
+                            <div>{row.subjectName || row.subjectCode}</div>
+                            {(row.groupLabel || row.courseLabel) && (
+                              <small className="text-muted">
+                                {row.groupLabel && <span>Group: {row.groupLabel}</span>}
+                                {row.courseLabel && (
+                                  <>
+                                    {row.groupLabel ? ' • ' : ''}
+                                    <span>Course: {row.courseLabel}</span>
+                                  </>
+                                )}
+                              </small>
+                            )}
+                          </td>
+                          <td>{row.exam_date}</td>
                           <td>{startTimeDisplay} - {endTimeDisplay}</td>
-                            <td>
-                              {(!entry.persisted || entry.recordId) ? (
-                                <button
-                                  type="button"
-                                  className="btn btn-link btn-sm"
-                                  onClick={() => handleEditEntry(entry.id)}
-                                >
-                                  Edit
-                                </button>
-                              ) : (
-                                <span className="text-success small">Saved</span>
-                              )}
-                            </td>
+                          <td>
+                            {(!row.persisted || row.recordId) ? (
+                              <button
+                                type="button"
+                                className="btn btn-link btn-sm"
+                                onClick={() => handleEditEntry(row.entryId)}
+                              >
+                                Edit
+                              </button>
+                            ) : (
+                              <span className="text-success small">Saved</span>
+                            )}
+                          </td>
                         </tr>
                       )
                     })
