@@ -281,11 +281,11 @@ export default function Reports() {
         });
     };
 
-    const chartData = useMemo(() => {
-        if (!filters.academic_year) return null;
+    const filteredStudentsList = useMemo(() => {
+        if (!filters.academic_year) return [];
 
         // Filter students by ALL active filters to reflect the current selection in the charts
-        const filteredData = studentsForCategory.filter((s) => {
+        return studentsForCategory.filter((s) => {
             const matchesYear = s.academic_year === filters.academic_year;
             const matchesGroup = !filters.group_name || s.group_code === filters.group_name;
             const matchesCourse = !filters.course_name || s.course_code === filters.course_name;
@@ -293,6 +293,12 @@ export default function Reports() {
 
             return matchesYear && matchesGroup && matchesCourse && matchesSemester;
         });
+    }, [studentsForCategory, filters]);
+
+    const chartData = useMemo(() => {
+        if (!filters.academic_year) return null;
+
+        const filteredData = filteredStudentsList;
 
         // Group Counts
         const groupCounts = {};
@@ -386,7 +392,7 @@ export default function Reports() {
                 ],
             },
         };
-    }, [studentsForCategory, filters]);
+    }, [filteredStudentsList, filters.academic_year]);
 
     return (
         <AdminShell>
@@ -583,6 +589,83 @@ export default function Reports() {
                                                 options={{ responsive: true, plugins: { legend: { position: 'bottom' } } }}
                                             />
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Student List Table */}
+                            <div className="col-12">
+                                <div className="students-table-panel card card-soft p-4">
+                                    <div className="students-table-panel-header mb-3">
+                                        <div>
+                                            <h5 className="students-table-panel-title fw-bold mb-1">
+                                                Students
+                                            </h5>
+                                            <p className="students-table-panel-copy mb-0">
+                                                Detailed list of students matching the current filters.
+                                            </p>
+                                        </div>
+                                        <div className="students-table-panel-meta text-end small">
+                                            {filteredStudentsList.length} students listed
+                                        </div>
+                                    </div>
+                                    <div className="table-responsive">
+                                        <table className="table table-borderless table-hover align-middle mb-0">
+                                            <thead className="table-light">
+                                                <tr>
+                                                    <th>Student ID</th>
+                                                    <th>Name</th>
+                                                    <th>Hall Ticket</th>
+                                                    <th>Group</th>
+                                                    <th>Course</th>
+                                                    <th>Academic Year</th>
+                                                    <th>Semester</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {filteredStudentsList.length > 0 ? (
+                                                    filteredStudentsList.map((student) => (
+                                                        <tr key={student.id}>
+                                                            <td>{student.student_id}</td>
+                                                            <td>{student.full_name}</td>
+                                                            <td>{student.hall_ticket_no || "-"}</td>
+                                                            <td>{student.group_name}</td>
+                                                            <td>{student.course_name}</td>
+                                                            <td>{student.academic_year}</td>
+                                                            <td>
+                                                                {student.current_semester
+                                                                    ? `Semester ${student.current_semester}`
+                                                                    : "Semester N/A"}
+                                                            </td>
+                                                            <td>
+                                                                <span
+                                                                    className={`badge rounded-pill ${student.status === "DISCONTINUE"
+                                                                        ? "bg-danger"
+                                                                        : student.status === "HOLD"
+                                                                            ? "bg-warning"
+                                                                            : "bg-success"
+                                                                        }`}
+                                                                    style={{ minWidth: "80px", fontSize: "0.85em" }}
+                                                                >
+                                                                    {student.status === "DISCONTINUE"
+                                                                        ? "Discontinued"
+                                                                        : student.status === "HOLD"
+                                                                            ? "On Hold"
+                                                                            : "Active"}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                ) : (
+                                                    <tr>
+                                                        <td colSpan="8" className="text-center py-4 text-muted">
+                                                            No students found matching the selected filters.
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             </div>
