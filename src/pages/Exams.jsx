@@ -105,7 +105,7 @@ const parseCategoryValues = (value) => {
     .filter(Boolean)
 }
 
-const mapEntryToDbRecord = (entry, validGroupLookup = {}) => {
+const mapEntryToDbRecord = (entry) => {
   const record = {
     academic_year: entry.academic_year,
     semester_number: entry.semester_number,
@@ -115,25 +115,6 @@ const mapEntryToDbRecord = (entry, validGroupLookup = {}) => {
     exam_end_time: entry.exam_end_time,
     category: entry.category,
     exam_master_id: entry.exam_master_id,
-  }
-  const normalizedGroup = getEntryGroupValue(entry)
-  if (normalizedGroup) {
-    const { codes, names } = validGroupLookup
-    const groupCodeCandidate =
-      (codes && codes.has(normalizedGroup) && normalizedGroup) ||
-      (names && (names.get(normalizedGroup.toUpperCase()) || names.get(normalizedGroup))) ||
-      normalizedGroup
-    if (groupCodeCandidate) {
-      record.group_code = groupCodeCandidate
-    }
-  }
-  const normalizedCourse = getEntryCourseValue(entry)
-  if (normalizedCourse) {
-    record.course_code = normalizedCourse
-  } else if (entry.subjectCourseCode) {
-    record.course_code = entry.subjectCourseCode
-  } else if (entry.subjectCourse) {
-    record.course_code = entry.subjectCourse
   }
   return record
 }
@@ -661,6 +642,7 @@ export default function Exams() {
       targetSemesterNumber && semesterAcademicYear[targetSemesterNumber]
         ? semesterAcademicYear[targetSemesterNumber]
         : defaultAcademicYear
+    let invalidSubjectCode = ''
     const newEntries = rows
       .map((rowKey) => {
         const entry =
@@ -676,7 +658,12 @@ export default function Exams() {
           courseCode: subjectCourseCodeValue,
           courseName: subjectCourseNameValue,
           semester: subjectSemesterValue,
+          subject: matchedSubject,
         } = getSubjectDetails(subjectCode)
+        if (!matchedSubject) {
+          invalidSubjectCode = subjectCode
+          return null
+        }
         return {
           id: `${rowKey}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
           academic_year: academicYearValue,
@@ -700,6 +687,10 @@ export default function Exams() {
         }
       })
       .filter(Boolean)
+    if (invalidSubjectCode) {
+      showValidationError(`Subject ${invalidSubjectCode} is not available.`)
+      return
+    }
     if (!newEntries.length) {
       showValidationError('Add at least one subject with code, date, and time before adding an entry.')
       return
@@ -715,7 +706,7 @@ export default function Exams() {
         const recordToUpdate = newEntries[0]
         const { error } = await supabase
           .from('exam_schedule')
-          .update(mapEntryToDbRecord(recordToUpdate, validGroupLookup))
+          .update(mapEntryToDbRecord(recordToUpdate))
           .eq('schedule_id', editingDbRecordId)
         if (error) throw error
         await loadStoredSchedule()
@@ -728,9 +719,9 @@ export default function Exams() {
         showToast('Entry updated and saved to the database.', { type: 'success' })
         return
       }
-      const { data, error } = await supabase
-        .from('exam_schedule')
-        .insert(newEntries.map((entry) => mapEntryToDbRecord(entry, validGroupLookup)))
+        const { data, error } = await supabase
+          .from('exam_schedule')
+          .insert(newEntries.map((entry) => mapEntryToDbRecord(entry)))
         .select('schedule_id')
       if (error) throw error
       const addedEntryIds = new Set(newEntries.map((entry) => entry.id))
@@ -950,7 +941,7 @@ export default function Exams() {
 
   const handleConfirmSave = async () => {
     const entriesToSave = pendingEntries.map((entry) =>
-      mapEntryToDbRecord(entry, validGroupLookup)
+      mapEntryToDbRecord(entry)
     )
     if (!entriesToSave.length) {
       showValidationError('There are no pending entries to save.')
@@ -1012,31 +1003,6 @@ export default function Exams() {
     const dateValue = entry.date || entryDate || examDate
     return subjectCode && entry.startTime && entry.endTime && dateValue
   }).length
-  const validGroupLookup = useMemo(() => {
-    const codes = new Set()
-    const names = new Map()
-    groupList.forEach((group) => {
-      const code = normalizeDisplayValue(
-        group.code || group.group_code || group.groupCode || ''
-      )
-      if (!code) return
-      codes.add(code)
-      const nameCandidates = [
-        group.name,
-        group.groupName,
-        group.group_name,
-        group.groupCode,
-        group.group_code,
-      ]
-      nameCandidates.forEach((candidate) => {
-        const normalizedName = normalizeDisplayValue(candidate)
-        if (normalizedName) {
-          names.set(normalizedName.toUpperCase(), code)
-        }
-      })
-    })
-    return { codes, names }
-  }, [groupList])
   const addEntryDisabled = !entryDate || !readyRowCount || !selectedExam || addingEntry
   const previewDisabled = saving || previewRows.length === 0
   const saveDisabled = saving || !filtersReady || !semesterHasSubjects || !pendingCount
