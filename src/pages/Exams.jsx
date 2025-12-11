@@ -28,6 +28,48 @@ const normalizeDisplayValue = (value) => {
   return String(value).trim()
 }
 
+const getEntryGroupValue = (entry) => {
+  return normalizeDisplayValue(
+    entry.subjectGroup ||
+      entry.group_code ||
+      entry.groupCode ||
+      entry.groupName ||
+      entry.group_name ||
+      entry.group ||
+      ''
+  )
+}
+
+const getEntryCourseValue = (entry) => {
+  return normalizeDisplayValue(
+    entry.subjectCourseCode ||
+      entry.subjectCourse ||
+      entry.courseCode ||
+      entry.course_code ||
+      entry.courseName ||
+      entry.course_name ||
+      ''
+  )
+}
+
+const normalizeDateForInput = (value) => {
+  if (!value && value !== 0) return ''
+  const parsed = new Date(value)
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed.toISOString().split('T')[0]
+  }
+  const fallback = String(value)
+  const trimmed = fallback.split('T')[0]
+  return trimmed
+}
+
+const normalizeTimeForSelect = (value) => {
+  if (!value && value !== 0) return ''
+  const candidate = String(value)
+  const match = candidate.match(/^\d{2}:\d{2}/)
+  return match ? match[0] : candidate
+}
+
 const getSubjectDisplayName = (subject) => {
   if (!subject) return ''
   const candidates = []
@@ -63,6 +105,39 @@ const parseCategoryValues = (value) => {
     .filter(Boolean)
 }
 
+const mapEntryToDbRecord = (entry, validGroupLookup = {}) => {
+  const record = {
+    academic_year: entry.academic_year,
+    semester_number: entry.semester_number,
+    subject_code: entry.subject_code,
+    exam_date: entry.exam_date,
+    exam_start_time: entry.exam_start_time,
+    exam_end_time: entry.exam_end_time,
+    category: entry.category,
+    exam_master_id: entry.exam_master_id,
+  }
+  const normalizedGroup = getEntryGroupValue(entry)
+  if (normalizedGroup) {
+    const { codes, names } = validGroupLookup
+    const groupCodeCandidate =
+      (codes && codes.has(normalizedGroup) && normalizedGroup) ||
+      (names && (names.get(normalizedGroup.toUpperCase()) || names.get(normalizedGroup))) ||
+      normalizedGroup
+    if (groupCodeCandidate) {
+      record.group_code = groupCodeCandidate
+    }
+  }
+  const normalizedCourse = getEntryCourseValue(entry)
+  if (normalizedCourse) {
+    record.course_code = normalizedCourse
+  } else if (entry.subjectCourseCode) {
+    record.course_code = entry.subjectCourseCode
+  } else if (entry.subjectCourse) {
+    record.course_code = entry.subjectCourse
+  }
+  return record
+}
+
 export default function Exams() {
   const [academicYears, setAcademicYears] = useState([])
   const [subjects, setSubjects] = useState([])
@@ -70,8 +145,10 @@ export default function Exams() {
   const [currentSemesterNumber, setCurrentSemesterNumber] = useState(null)
   const [semesterFocus, setSemesterFocus] = useState('')
   const [schedules, setSchedules] = useState({})
+  const [groupList, setGroupList] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [addingEntry, setAddingEntry] = useState(false)
   const [feedback, setFeedback] = useState({ message: '', type: '' })
   const [exams, setExams] = useState([])
   const [selectedExam, setSelectedExam] = useState('')
@@ -81,7 +158,9 @@ export default function Exams() {
   const [tableRowIds, setTableRowIds] = useState([BASE_TABLE_ROW_ID])
   const [entryDate, setEntryDate] = useState('')
   const [queuedEntries, setQueuedEntries] = useState([])
+  const [storedEntries, setStoredEntries] = useState([])
   const [editingEntryId, setEditingEntryId] = useState(null)
+  const [editingDbRecordId, setEditingDbRecordId] = useState(null)
   const [previewFilterGroup, setPreviewFilterGroup] = useState('')
   const [previewFilterCourse, setPreviewFilterCourse] = useState('')
   const [previewFilterSemester, setPreviewFilterSemester] = useState('')
@@ -139,18 +218,13 @@ export default function Exams() {
   }, [selectedExam, exams])
 
   useEffect(() => {
+    if (editingEntryId) return
     if (!examDate) {
       setEntryDate('')
       return
     }
     setEntryDate(examDate)
-  }, [examDate])
-
-  useEffect(() => {
-    setQueuedEntries([])
-  }, [selectedExam])
-
-
+  }, [examDate, editingEntryId])
 
 
   useEffect(() => {
@@ -161,8 +235,9 @@ export default function Exams() {
       api.listSubjects(),
       api.getCurrentSemesterNumber(),
       api.listCourses(),
+      api.listGroups(),
     ])
-      .then(([years, subjectList, semesterNumber, courses]) => {
+      .then(([years, subjectList, semesterNumber, courses, groupList]) => {
         if (!isMounted) return
 
         const courseGroupMap = {}
@@ -198,6 +273,7 @@ export default function Exams() {
         } else {
           setCurrentSemesterNumber(null)
         }
+        setGroupList(groupList || [])
         setFeedback((prev) => (prev.type === 'error' ? { message: '', type: '' } : prev))
       })
       .catch((err) => {
@@ -263,11 +339,12 @@ export default function Exams() {
   }, [availableSemesters])
 
   useEffect(() => {
+    if (editingEntryId) return
     setSchedules({})
     setTableRowIds([BASE_TABLE_ROW_ID])
     setEntryDate('')
     setQueuedEntries([])
-  }, [category])
+  }, [category, editingEntryId])
 
   const filteredSubjectRows = useMemo(() => {
     if (!category) return []
@@ -390,6 +467,80 @@ export default function Exams() {
     [subjectLookup]
   )
 
+  const loadStoredSchedule = useCallback(async () => {
+    if (!selectedExam) {
+      setStoredEntries([])
+      return
+    }
+    try {
+      const { data, error } = await supabase
+        .from('exam_schedule')
+        .select('*')
+        .eq('exam_master_id', selectedExam)
+        .order('exam_date', { ascending: true })
+        .order('exam_start_time', { ascending: true })
+
+      if (error) throw error
+
+      const normalizedEntries = (data || []).map((record) => {
+        const subjectDetails = getSubjectDetails(record.subject_code)
+        const subjectName =
+          getSubjectDisplayName(subjectDetails.subject) ||
+          subjectDetails.label ||
+          normalizeSubjectCode(record.subject_code) ||
+          ''
+        const subjectGroupValue =
+          subjectDetails.group || normalizeDisplayValue(record.group_code) || ''
+        const courseCodeValue =
+          subjectDetails.courseCode || normalizeDisplayValue(record.course_code) || ''
+        const courseValue =
+          subjectDetails.course ||
+          subjectDetails.courseName ||
+          courseCodeValue ||
+          ''
+        const courseNameValue =
+          subjectDetails.courseName || subjectDetails.course || courseValue || ''
+        const semesterValue =
+          subjectDetails.semester || record.subjectSemester || record.semester_number || ''
+        const normalizedExamDate = normalizeDateForInput(record.exam_date)
+        const normalizedStartTime = normalizeTimeForSelect(record.exam_start_time)
+        const normalizedEndTime = normalizeTimeForSelect(record.exam_end_time)
+        const idValue = record.schedule_id ?? record.id
+        return {
+          ...record,
+          recordId: idValue,
+          id: idValue
+            ? `db-${idValue}`
+            : `db-${record.exam_date}-${record.subject_code}-${record.exam_start_time}`,
+          subjectName: subjectName || record.subject_code || '',
+          subjectGroup: subjectGroupValue,
+          subjectCourseCode: courseCodeValue,
+          subjectCourse: courseValue,
+          subjectCourseName: courseNameValue,
+          subjectSemester: semesterValue,
+          persisted: true,
+          exam_date: normalizedExamDate || record.exam_date,
+          exam_start_time: normalizedStartTime || record.exam_start_time,
+          exam_end_time: normalizedEndTime || record.exam_end_time,
+        }
+      })
+
+      setStoredEntries(normalizedEntries)
+    } catch (error) {
+      console.error('Error loading stored exam schedule:', error)
+      setStoredEntries([])
+    }
+  }, [selectedExam, getSubjectDetails])
+
+  useEffect(() => {
+    setQueuedEntries([])
+    setStoredEntries([])
+    setEditingEntryId(null)
+    setEditingDbRecordId(null)
+    if (!selectedExam) return
+    loadStoredSchedule()
+  }, [selectedExam, loadStoredSchedule])
+
   const semesterAcademicYear = useMemo(() => {
     const map = {}
     Object.entries(subjectsBySemester).forEach(([sem, list]) => {
@@ -421,7 +572,7 @@ export default function Exams() {
     })
   }
 
-  const handleAddEntry = () => {
+  const handleAddEntry = async () => {
     if (!selectedExam) {
       showValidationError('Select an exam before adding entries.')
       return
@@ -469,10 +620,13 @@ export default function Exams() {
           exam_master_id: selectedExam,
           subjectName: subjectLabel || subjectCode,
           subjectGroup: subjectGroupValue,
+          group_code: subjectGroupValue,
           subjectCourse: subjectCourseValue,
           subjectCourseCode: subjectCourseCodeValue,
+          course_code: subjectCourseCodeValue || subjectCourseValue,
           subjectCourseName: subjectCourseNameValue,
           subjectSemester: subjectSemesterValue,
+          persisted: false,
         }
       })
       .filter(Boolean)
@@ -481,34 +635,125 @@ export default function Exams() {
       return
     }
     const wasEditing = Boolean(editingEntryId)
-    setQueuedEntries((prev) => [...prev, ...newEntries])
-    setTableRowIds([BASE_TABLE_ROW_ID])
-    setSchedules({})
-    setEntryDate('')
-    setEditingEntryId(null)
-    const toastMessage = wasEditing
-      ? 'Entry updated. You can select another date now.'
-      : 'Entry added. You can select another date now.'
-    showToast(toastMessage, { type: 'success' })
+    const isUpdatingStoredEntry = Boolean(editingDbRecordId)
+    if (!isUpdatingStoredEntry) {
+      setQueuedEntries((prev) => [...prev, ...newEntries])
+    }
+    setAddingEntry(true)
+    try {
+      if (isUpdatingStoredEntry && newEntries.length === 1) {
+        const recordToUpdate = newEntries[0]
+        const { error } = await supabase
+          .from('exam_schedule')
+          .update(mapEntryToDbRecord(recordToUpdate, validGroupLookup))
+          .eq('schedule_id', editingDbRecordId)
+        if (error) throw error
+        await loadStoredSchedule()
+        setTableRowIds([BASE_TABLE_ROW_ID])
+        setSchedules({})
+        setEntryDate('')
+        setEditingEntryId(null)
+        setEditingDbRecordId(null)
+        setFeedback({ message: '', type: '' })
+        showToast('Entry updated and saved to the database.', { type: 'success' })
+        return
+      }
+      const { data, error } = await supabase
+        .from('exam_schedule')
+        .insert(newEntries.map((entry) => mapEntryToDbRecord(entry, validGroupLookup)))
+        .select('schedule_id')
+      if (error) throw error
+      const addedEntryIds = new Set(newEntries.map((entry) => entry.id))
+      const inserted = data || []
+      const idMap = new Map()
+      inserted.forEach((row, index) => {
+        const tempId = newEntries[index]?.id
+        const recordValue = row?.schedule_id ?? row?.id
+        if (tempId && recordValue) {
+          idMap.set(tempId, recordValue)
+        }
+      })
+      setQueuedEntries((prev) =>
+        prev.map((entry) => {
+          if (!addedEntryIds.has(entry.id)) return entry
+          const recordIdValue = idMap.get(entry.id)
+          return {
+            ...entry,
+            persisted: true,
+            recordId: recordIdValue ?? entry.recordId,
+          }
+        })
+      )
+      setTableRowIds([BASE_TABLE_ROW_ID])
+      setSchedules({})
+      setEntryDate('')
+      setEditingEntryId(null)
+      setEditingDbRecordId(null)
+      setFeedback({ message: '', type: '' })
+      const toastMessage = wasEditing
+        ? 'Entry updated and saved to the database.'
+        : 'Entry added and saved to the database.'
+      showToast(toastMessage, { type: 'success' })
+    } catch (err) {
+      console.error('Error saving entry:', err)
+      const errorMessage =
+        err?.message || 'Unable to save the entry. It remains queued for retry.'
+      setFeedback({ type: 'error', message: errorMessage })
+      showToast(errorMessage, { type: 'error' })
+    } finally {
+      setAddingEntry(false)
+    }
   }
 
   const handleEditEntry = (entryId) => {
-    const entry = queuedEntries.find((item) => item.id === entryId)
-    if (!entry) return
-    setQueuedEntries((prev) => prev.filter((item) => item.id !== entryId))
-    setEntryDate(entry.exam_date)
+    const queuedEntry = queuedEntries.find((item) => item.id === entryId)
+    if (queuedEntry) {
+      if (queuedEntry.persisted && !queuedEntry.recordId) {
+        showValidationError('This saved entry cannot be edited here right now.')
+        return
+      }
+      setQueuedEntries((prev) => prev.filter((item) => item.id !== entryId))
+      setEntryDate(queuedEntry.exam_date)
+      setSchedules({
+        [BASE_TABLE_ROW_ID]: {
+          date: queuedEntry.exam_date,
+          startTime: queuedEntry.exam_start_time,
+          endTime: queuedEntry.exam_end_time,
+          subjectCode: queuedEntry.subject_code,
+        },
+      })
+      setTableRowIds([BASE_TABLE_ROW_ID])
+      setEditingEntryId(entryId)
+      setEditingDbRecordId(queuedEntry.recordId || null)
+      setShowPreview(false)
+      showToast('Entry moved back to the table for editing.', { type: 'info' })
+      return
+    }
+
+    const storedEntry = storedEntries.find((item) => item.id === entryId)
+    if (!storedEntry) return
+    if (!storedEntry.recordId) {
+      showValidationError('Unable to edit this saved entry at the moment.')
+      return
+    }
+    const normalizedEntryDate = normalizeDateForInput(storedEntry.exam_date)
+    const normalizedStartTime = normalizeTimeForSelect(storedEntry.exam_start_time)
+    const normalizedEndTime = normalizeTimeForSelect(storedEntry.exam_end_time)
+    setEntryDate(normalizedEntryDate)
     setSchedules({
       [BASE_TABLE_ROW_ID]: {
-        date: entry.exam_date,
-        startTime: entry.exam_start_time,
-        endTime: entry.exam_end_time,
-        subjectCode: entry.subject_code,
+        date: normalizedEntryDate,
+        startTime: normalizedStartTime,
+        endTime: normalizedEndTime,
+        subjectCode: storedEntry.subject_code,
       },
     })
     setTableRowIds([BASE_TABLE_ROW_ID])
     setEditingEntryId(entryId)
+    setEditingDbRecordId(storedEntry.recordId)
+    setCategory((prev) => prev || storedEntry.category || category || '')
     setShowPreview(false)
-    showToast('Entry moved back to the table for editing.', { type: 'info' })
+    showToast('Saved entry loaded for editing.', { type: 'info' })
   }
 
   const handleScheduleChange = (rowId, field, value) => {
@@ -528,23 +773,37 @@ export default function Exams() {
 
   const [showPreview, setShowPreview] = useState(false)
 
+  const pendingEntries = useMemo(
+    () => queuedEntries.filter((entry) => !entry.persisted),
+    [queuedEntries]
+  )
+  const pendingCount = pendingEntries.length
+  const previewEntries = useMemo(
+    () => [...storedEntries, ...queuedEntries],
+    [storedEntries, queuedEntries]
+  )
+
   const showValidationError = (message) => {
     setFeedback({ type: 'error', message })
     showToast(message, { type: 'error' })
   }
 
-  const validateScheduleForm = () => {
-    if (!category) {
-      showValidationError('Choose a category before scheduling.')
-      return false
-    }
+  const ensurePreviewEntriesAvailable = () => {
     if (!selectedExam) {
       showValidationError('Please select an exam from the dropdown.')
       return false
     }
+    if (!previewEntries.length) {
+      showValidationError('Add or load at least one entry before proceeding.')
+      return false
+    }
+    return true
+  }
 
-    if (!queuedEntries.length) {
-      showValidationError('Add at least one entry before proceeding.')
+  const validateScheduleForm = () => {
+    if (!ensurePreviewEntriesAvailable()) return false
+    if (pendingCount > 0 && !category) {
+      showValidationError('Choose a category before scheduling.')
       return false
     }
 
@@ -553,35 +812,29 @@ export default function Exams() {
 
   const handlePreview = () => {
     setFeedback({ message: '', type: '' })
-    if (!validateScheduleForm()) return
+    if (!ensurePreviewEntriesAvailable()) return
     setShowPreview(true)
   }
 
   const handleConfirmSave = async () => {
-    const entries = queuedEntries.map((entry) => {
-      const record = {
-        academic_year: entry.academic_year,
-        semester_number: entry.semester_number,
-        subject_code: entry.subject_code,
-        exam_date: entry.exam_date,
-        exam_start_time: entry.exam_start_time,
-        exam_end_time: entry.exam_end_time,
-        category: entry.category,
-        exam_master_id: entry.exam_master_id,
-      }
-      if (entry.subjectGroup) record.group_code = entry.subjectGroup
-      if (entry.subjectCourseCode) {
-        record.course_code = entry.subjectCourseCode
-      } else if (entry.subjectCourse) {
-        record.course_code = entry.subjectCourse
-      }
-      return record
-    })
+    const entriesToSave = pendingEntries.map((entry) =>
+      mapEntryToDbRecord(entry, validGroupLookup)
+    )
+    if (!entriesToSave.length) {
+      showValidationError('There are no pending entries to save.')
+      return
+    }
 
     try {
       setSaving(true)
-      const { error } = await supabase.from('exam_schedule').insert(entries)
+      const { error } = await supabase.from('exam_schedule').insert(entriesToSave)
       if (error) throw error
+      const pendingIds = new Set(pendingEntries.map((entry) => entry.id))
+      setQueuedEntries((prev) =>
+        prev.map((entry) =>
+          pendingIds.has(entry.id) ? { ...entry, persisted: true } : entry
+        )
+      )
       const successMessage = 'Exam schedule saved successfully.'
       setFeedback({ message: '', type: '' })
       showToast(successMessage, { type: 'success' })
@@ -593,7 +846,6 @@ export default function Exams() {
       setExamParity('')
       setCurrentSemesterNumber(null)
       setShowPreview(false)
-      setQueuedEntries([])
       setTableRowIds([BASE_TABLE_ROW_ID])
       setEntryDate('')
       setPreviewFilterGroup('')
@@ -622,38 +874,70 @@ export default function Exams() {
   const semesterHasSubjects = availableSemesters.some(
     (sem) => (subjectsBySemester[sem] || []).length > 0
   )
-  const queuedCount = queuedEntries.length
   const readyRowCount = tableRowIds.filter((rowKey) => {
     const entry = schedules[rowKey] || buildDefaultSchedule()
     const subjectCode = (entry.subjectCode ?? '').trim()
     const dateValue = entry.date || entryDate || examDate
     return subjectCode && entry.startTime && entry.endTime && dateValue
   }).length
-  const addEntryDisabled = !entryDate || !readyRowCount || !selectedExam
-  const saveDisabled = saving || !filtersReady || !semesterHasSubjects || !queuedCount
+  const validGroupLookup = useMemo(() => {
+    const codes = new Set()
+    const names = new Map()
+    groupList.forEach((group) => {
+      const code = normalizeDisplayValue(
+        group.code || group.group_code || group.groupCode || ''
+      )
+      if (!code) return
+      codes.add(code)
+      const nameCandidates = [
+        group.name,
+        group.groupName,
+        group.group_name,
+        group.groupCode,
+        group.group_code,
+      ]
+      nameCandidates.forEach((candidate) => {
+        const normalizedName = normalizeDisplayValue(candidate)
+        if (normalizedName) {
+          names.set(normalizedName.toUpperCase(), code)
+        }
+      })
+    })
+    return { codes, names }
+  }, [groupList])
+  const addEntryDisabled = !entryDate || !readyRowCount || !selectedExam || addingEntry
+  const previewDisabled = saving || previewEntries.length === 0
+  const saveDisabled = saving || !filtersReady || !semesterHasSubjects || !pendingCount
 
   const previewFilterOptions = useMemo(() => {
     const groups = new Set()
     const courses = new Map() // Use Map to store code -> name
     const semesters = new Set()
 
-    queuedEntries.forEach((entry) => {
+    previewEntries.forEach((entry) => {
       // 1. Groups: Always all available groups
-      if (entry.subjectGroup) groups.add(entry.subjectGroup)
+      const groupCandidate = getEntryGroupValue(entry)
+      if (groupCandidate) {
+        groups.add(groupCandidate)
+      }
 
       // 2. Courses: Filter by selected group
-      const matchesGroup = !previewFilterGroup || entry.subjectGroup === previewFilterGroup
+      const entryGroupValue = getEntryGroupValue(entry)
+      const matchesGroup = !previewFilterGroup || entryGroupValue === previewFilterGroup
       if (matchesGroup) {
         // Prefer explicit course code, fallback to legacy subjectCourse
-        const code = entry.subjectCourseCode || entry.subjectCourse
-        const name = entry.subjectCourseName || entry.subjectCourse
+        const code = getEntryCourseValue(entry) || entry.subjectCourseCode || entry.subjectCourse
+        const name =
+          normalizeDisplayValue(entry.subjectCourseName) ||
+          normalizeDisplayValue(entry.courseName) ||
+          normalizeDisplayValue(entry.course_name) ||
+          normalizeDisplayValue(entry.course)
         if (code) {
           courses.set(code, name)
         }
       }
-
       // 3. Semesters: Filter by selected group AND selected course
-      const entryCourseCode = entry.subjectCourseCode || entry.subjectCourse
+      const entryCourseCode = getEntryCourseValue(entry)
       const matchesCourse = !previewFilterCourse || entryCourseCode === previewFilterCourse
       if (matchesGroup && matchesCourse) {
         if (
@@ -681,7 +965,7 @@ export default function Exams() {
       courses: courseList,
       semesters: Array.from(semesters).sort((a, b) => a - b),
     }
-  }, [queuedEntries, previewFilterGroup, previewFilterCourse])
+  }, [previewEntries, previewFilterGroup, previewFilterCourse])
 
   // Reset course/semester filters if they become invalid due to upstream changes
   useEffect(() => {
@@ -701,10 +985,11 @@ export default function Exams() {
   }, [previewFilterGroup, previewFilterOptions, previewFilterCourse, previewFilterSemester])
 
   const filteredPreviewEntries = useMemo(() => {
-    return queuedEntries.filter((entry) => {
-      if (previewFilterGroup && entry.subjectGroup !== previewFilterGroup) return false
+    return previewEntries.filter((entry) => {
+      const entryGroupValue = getEntryGroupValue(entry)
+      if (previewFilterGroup && entryGroupValue !== previewFilterGroup) return false
       if (previewFilterCourse) {
-        const entryCode = entry.subjectCourseCode || entry.subjectCourse
+        const entryCode = getEntryCourseValue(entry)
         if (entryCode !== previewFilterCourse) return false
       }
       if (
@@ -715,14 +1000,14 @@ export default function Exams() {
       }
       return true
     })
-  }, [queuedEntries, previewFilterGroup, previewFilterCourse, previewFilterSemester])
+  }, [previewEntries, previewFilterGroup, previewFilterCourse, previewFilterSemester])
 
   useEffect(() => {
-    if (queuedEntries.length) return
+    if (previewEntries.length) return
     setPreviewFilterGroup('')
     setPreviewFilterCourse('')
     setPreviewFilterSemester('')
-  }, [queuedEntries.length])
+  }, [previewEntries.length])
 
   return (
     <AdminShell>
@@ -816,12 +1101,14 @@ export default function Exams() {
             {selectedExam && !examDateSelected && (
               <p className="text-muted mb-3">Choose the exam date to access the scheduling table.</p>
             )}
-            {selectedExam && examDateSelected && !availableSemesters.length && (
+            {selectedExam && examDateSelected && !availableSemesters.length && !editingEntryId && (
               <p className="text-muted mb-3">
                 No semesters found for the selected category.
               </p>
             )}
-            {selectedExam && examDateSelected && availableSemesters.length > 0 && (
+            {selectedExam &&
+              (examDateSelected || Boolean(editingEntryId)) &&
+              (availableSemesters.length > 0 || editingEntryId) && (
               <div className="card card-soft mb-3">
                 <div className="card-body">
                   <div className="d-flex flex-column flex-sm-row gap-3 align-items-center justify-content-between mb-3">
@@ -950,7 +1237,7 @@ export default function Exams() {
                           onClick={handleAddEntry}
                           disabled={addEntryDisabled}
                         >
-                          + Add entry
+                          {addingEntry ? 'Saving entry...' : '+ Add entry'}
                         </button>
                       </div>
                     </>
@@ -968,7 +1255,7 @@ export default function Exams() {
               </p>
             )}
             <div className="d-flex justify-content-end gap-2">
-              <button className="btn btn-brand" disabled={saveDisabled} onClick={handlePreview}>
+              <button className="btn btn-brand" disabled={previewDisabled} onClick={handlePreview}>
                 Preview entries
               </button>
               <button
@@ -1060,15 +1347,19 @@ export default function Exams() {
                           <td>{entry.subjectName || entry.subject_code}</td>
                           <td>{entry.exam_date}</td>
                           <td>{startTimeDisplay} - {endTimeDisplay}</td>
-                          <td>
-                            <button
-                              type="button"
-                              className="btn btn-link btn-sm"
-                              onClick={() => handleEditEntry(entry.id)}
-                            >
-                              Edit
-                            </button>
-                          </td>
+                            <td>
+                              {(!entry.persisted || entry.recordId) ? (
+                                <button
+                                  type="button"
+                                  className="btn btn-link btn-sm"
+                                  onClick={() => handleEditEntry(entry.id)}
+                                >
+                                  Edit
+                                </button>
+                              ) : (
+                                <span className="text-success small">Saved</span>
+                              )}
+                            </td>
                         </tr>
                       )
                     })
