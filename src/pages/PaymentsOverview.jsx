@@ -142,7 +142,24 @@ export default function PaymentsOverview() {
         }
       }
 
-      setSubjectsByDate(subjectsData || []);
+      // Deduplicate subjects by subject_code
+      const uniqueSubjectsMap = new Map();
+      if (subjectsData) {
+        subjectsData.forEach(s => {
+          if (uniqueSubjectsMap.has(s.subject_code)) {
+            const existing = uniqueSubjectsMap.get(s.subject_code);
+            // If the current duplicate has isGenerated=true, use it (or update existing)
+            // Since we just want to ensure if ANY is generated, the resulting object has isGenerated=true
+            if (s.isGenerated && !existing.isGenerated) {
+              uniqueSubjectsMap.set(s.subject_code, s);
+            }
+          } else {
+            uniqueSubjectsMap.set(s.subject_code, s);
+          }
+        });
+      }
+
+      setSubjectsByDate(Array.from(uniqueSubjectsMap.values()));
       setSelectedSubject('');
       setSubjectStudents([]);
     } catch (error) {
@@ -169,11 +186,22 @@ export default function PaymentsOverview() {
 
     setLoadingSubjectStudents(true);
     try {
-      // Get the subject ID from the subjectsByDate list
-      const subject = subjectsByDate.find(s => s.subject_code === subjectCode);
-      if (!subject) return;
+      // Get all subject IDs for this subject code
+      const { data: subjectsWithCode, error: subjCodeError } = await supabase
+        .from('subjects')
+        .select('subject_id')
+        .eq('subject_code', subjectCode);
 
-      // Get all exam registrations for this exam and subject
+      if (subjCodeError) throw subjCodeError;
+
+      const subjectIdsToCheck = subjectsWithCode?.map(s => s.subject_id) || [];
+
+      if (subjectIdsToCheck.length === 0) {
+        setSubjectStudents([]);
+        return;
+      }
+
+      // Get all exam registrations for this exam and subject IDs
       const { data: regSubjects, error: subjError } = await supabase
         .from('exam_registration_subjects')
         .select(`
@@ -186,12 +214,14 @@ export default function PaymentsOverview() {
             exam_id
           )
         `)
-        .eq('subject_id', subject.subject_id)
+        .in('subject_id', subjectIdsToCheck)
         .eq('exam_registrations.exam_id', selectedExam);
 
       if (subjError) throw subjError;
       if (!regSubjects || regSubjects.length === 0) {
         setSubjectStudents([]);
+        setShowDecodePopup(false);
+        showToast("No students registered for this subject.", { type: "error" });
         return;
       }
 
@@ -235,6 +265,13 @@ export default function PaymentsOverview() {
           barcode: decode?.barcode || 'N/A'
         };
       }).filter(Boolean); // Filter out any null entries
+
+      if (studentData.length === 0) {
+        setSubjectStudents([]);
+        setShowDecodePopup(false);
+        showToast("No valid student records found for this subject.", { type: "error" });
+        return;
+      }
 
       setSubjectStudents(studentData);
     } catch (error) {

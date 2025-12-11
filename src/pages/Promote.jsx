@@ -820,7 +820,9 @@ export default function Promote() {
 
   const handlePromoteStudents = () => {
     if (!nextSessionAcademicYear || !nextSessionSemester) {
-      toast.error("Please select next session Academic Year and Semester.");
+      showToast("Please select the Promote session Academic year and Semester", {
+        type: "error",
+      });
       return;
     }
     if (selectedStudents.size === 0) {
