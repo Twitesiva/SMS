@@ -13,6 +13,7 @@ import Students from "./pages/Students.jsx";
 import Promote from "./pages/Promote.jsx";
 import Exams from "./pages/Exams.jsx";
 import ExamNameCreation from "./pages/ExamNameCreation.jsx";
+import CompleteRegistration from "./pages/CompleteRegistration.jsx";
 import Payments from "./pages/Payments.jsx";
 import HallTickets from "./pages/HallTickets.jsx";
 import Results from "./pages/Results.jsx";
@@ -100,6 +101,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isAuthed}>
               <PaymentsOverview />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/admin/complete-registration"
+          element={
+            <GuardedRoute isAuthed={isAuthed}>
+              <CompleteRegistration />
             </GuardedRoute>
           }
         />

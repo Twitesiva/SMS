@@ -20,6 +20,7 @@ const navGroups = [
       { to: "/admin/exam-name-creation", label: "Exam name creation", icon: "bi-pencil-square" },
       { to: "/admin/payments", label: "Subject Mapping & Payments", icon: "bi-credit-card" },
       { to: "/admin/exams", label: "Create Exam timetable", icon: "bi-journal-check" },
+      { to: "/admin/complete-registration", label: "Complete Registration & View Time table", icon: "bi-list-check" },
       { to: "/admin/hall-tickets", label: "Hall Ticket", icon: "bi-ticket-perforated" },
     ],
   },
@@ -206,7 +207,7 @@ export default function AdminShell({ children, onSignOut }) {
                   >
                     <div className="d-flex align-items-center gap-2">
                       <i className="bi bi-grid-fill" style={{ fontSize: "0.9rem", opacity: 0.8 }}></i>
-                      {group.title}
+                      <span className="nav-group-title">{group.title}</span>
                     </div>
                     <i
                       className={`bi bi-chevron-${isExpanded ? "up" : "down"}`}
