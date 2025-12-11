@@ -545,9 +545,7 @@ export default function CompleteRegistration() {
                                                                             <td>{dateStr}</td>
                                                                             <td>{startTime} - {endTime}</td>
                                                                             <td>
-                                                                                <span className="fw-semibold text-dark">{sch.subject_code}</span>
-                                                                                <br />
-                                                                                <small className="text-muted">{subjectName}</small>
+                                                                                {sch.subject_code} - {subjectName}
                                                                             </td>
                                                                         </tr>
                                                                     )

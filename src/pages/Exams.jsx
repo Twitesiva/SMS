@@ -31,24 +31,24 @@ const normalizeDisplayValue = (value) => {
 const getEntryGroupValue = (entry) => {
   return normalizeDisplayValue(
     entry.subjectGroup ||
-      entry.group_code ||
-      entry.groupCode ||
-      entry.groupName ||
-      entry.group_name ||
-      entry.group ||
-      ''
+    entry.group_code ||
+    entry.groupCode ||
+    entry.groupName ||
+    entry.group_name ||
+    entry.group ||
+    ''
   )
 }
 
 const getEntryCourseValue = (entry) => {
   return normalizeDisplayValue(
     entry.subjectCourseCode ||
-      entry.subjectCourse ||
-      entry.courseCode ||
-      entry.course_code ||
-      entry.courseName ||
-      entry.course_name ||
-      ''
+    entry.subjectCourse ||
+    entry.courseCode ||
+    entry.course_code ||
+    entry.courseName ||
+    entry.course_name ||
+    ''
   )
 }
 
@@ -475,17 +475,17 @@ export default function Exams() {
         if (!normalized) return
         const groupCode = normalizeDisplayValue(
           subject.groupCode ||
-            subject.group_code ||
-            subject.groupName ||
-            subject.group_name ||
-            ''
+          subject.group_code ||
+          subject.groupName ||
+          subject.group_name ||
+          ''
         )
         const courseCode = normalizeDisplayValue(
           subject.courseCode ||
-            subject.course_code ||
-            subject.course_name ||
-            subject.courseName ||
-            ''
+          subject.course_code ||
+          subject.course_name ||
+          subject.courseName ||
+          ''
         )
         const courseName =
           normalizeDisplayValue(subject.courseName || subject.course_name || '') || courseCode
@@ -719,9 +719,9 @@ export default function Exams() {
         showToast('Entry updated and saved to the database.', { type: 'success' })
         return
       }
-        const { data, error } = await supabase
-          .from('exam_schedule')
-          .insert(newEntries.map((entry) => mapEntryToDbRecord(entry)))
+      const { data, error } = await supabase
+        .from('exam_schedule')
+        .insert(newEntries.map((entry) => mapEntryToDbRecord(entry)))
         .select('schedule_id')
       if (error) throw error
       const addedEntryIds = new Set(newEntries.map((entry) => entry.id))
@@ -825,8 +825,8 @@ export default function Exams() {
         ...prev,
         [key]: {
           ...current,
-          [field]: value,
           date: current.date || entryDate || examDate || '',
+          [field]: value,
         },
       }
     })
@@ -1008,17 +1008,35 @@ export default function Exams() {
   const saveDisabled = saving || !filtersReady || !semesterHasSubjects || !pendingCount
 
   const previewFilterOptions = useMemo(() => {
+    // 1. Groups: Always derived from ALL rows so user can switch
     const groups = new Set()
-    const courses = new Map()
-    const semesters = new Set()
-
     previewRows.forEach((row) => {
-      if (row.groupLabel) {
-        groups.add(row.groupLabel)
-      }
+      if (row.groupLabel) groups.add(row.groupLabel)
+    })
+
+    // 2. Filter rows for deeper options (Courses) based on selected Group
+    let rowsForCourses = previewRows
+    if (previewFilterGroup) {
+      rowsForCourses = previewRows.filter((row) => row.groupLabel === previewFilterGroup)
+    }
+
+    // 3. Courses: Derived from group-filtered rows
+    const courses = new Map()
+    rowsForCourses.forEach((row) => {
       if (row.courseCode) {
         courses.set(row.courseCode, row.courseLabel || row.courseCode)
       }
+    })
+
+    // 4. Filter rows for deepest options (Semesters) based on Group AND Course
+    let rowsForSemesters = rowsForCourses
+    if (previewFilterCourse) {
+      rowsForSemesters = rowsForSemesters.filter((row) => row.courseCode === previewFilterCourse)
+    }
+
+    // 5. Semesters: Derived from group+course-filtered rows
+    const semesters = new Set()
+    rowsForSemesters.forEach((row) => {
       if (row.semester !== undefined && row.semester !== null && row.semester !== '') {
         const parsed = Number(row.semester)
         if (!Number.isNaN(parsed)) {
@@ -1037,7 +1055,7 @@ export default function Exams() {
       courses: courseList,
       semesters: Array.from(semesters).sort((a, b) => a - b),
     }
-  }, [previewRows])
+  }, [previewRows, previewFilterGroup, previewFilterCourse])
 
   // Reset course/semester filters if they become invalid due to upstream changes
   useEffect(() => {
@@ -1177,142 +1195,188 @@ export default function Exams() {
             {selectedExam &&
               (examDateSelected || Boolean(editingEntryId)) &&
               (availableSemesters.length > 0 || editingEntryId) && (
-              <div className="card card-soft mb-3">
-                <div className="card-body">
-                  <div className="d-flex flex-column flex-sm-row gap-3 align-items-center justify-content-between mb-3">
-                    <h4 className="fw-semibold text-dark mb-0 display-6">Add exam time table</h4>
-                    <div className="d-flex align-items-center gap-2">
-                      <label className="small text-muted mb-0">Select date</label>
-                      <input
-                        type="date"
-                        className="form-control form-control-sm"
-                        value={entryDate}
-                        onChange={(e) => setEntryDate(e.target.value)}
-                      />
+                <div className="card card-soft mb-3">
+                  <div className="card-body">
+                    <div className="d-flex flex-column flex-sm-row gap-3 align-items-center justify-content-between mb-3">
+                      <h4 className="fw-semibold text-dark mb-0 display-6">Add exam time table</h4>
+                      <div className="d-flex align-items-center gap-2">
+                        <label className="small text-muted mb-0">Select date</label>
+                        <input
+                          type="date"
+                          className="form-control form-control-sm"
+                          value={entryDate}
+                          onChange={(e) => setEntryDate(e.target.value)}
+                        />
+                      </div>
                     </div>
-                  </div>
-                  {!entryDate ? (
-                    <p className="text-muted mb-0">Choose a date to add subjects.</p>
-                  ) : (
-                    <>
-                      <div className="table-responsive">
-                        <table className="table mb-0">
-                          <thead>
-                            <tr>
-                              <th>Date</th>
-                              <th>Subject Code</th>
-                              <th>Start Time</th>
-                              <th>End Time</th>
-                              <th />
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {tableRowIds.map((rowKey) => {
-                              const entry =
-                                schedules[rowKey] ||
-                                buildDefaultSchedule()
-                              const subjectCodeValue = entry.subjectCode ?? ''
-                              const startTimeVal = entry.startTime ?? ''
-                              const rowDate = entry.date || entryDate || examDate
-                              return (
-                                <tr key={rowKey}>
-                                  <td>
-                                    <input
-                                      type="date"
-                                      className="form-control form-control-sm"
-                                      value={rowDate}
-                                      disabled
-                                    />
-                                  </td>
-                                  <td>
-                                    <div className="d-flex flex-column gap-1">
+                    {!entryDate ? (
+                      <p className="text-muted mb-0">Choose a date to add subjects.</p>
+                    ) : (
+                      <>
+                        <div className="table-responsive">
+                          <table className="table mb-0">
+                            <thead>
+                              <tr>
+                                <th>Date</th>
+                                <th>Subject Code</th>
+                                <th>Start Time</th>
+                                <th>End Time</th>
+                                <th />
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {tableRowIds.map((rowKey) => {
+                                const entry =
+                                  schedules[rowKey] ||
+                                  buildDefaultSchedule()
+                                const subjectCodeValue = entry.subjectCode ?? ''
+                                const startTimeVal = entry.startTime ?? ''
+                                const rowDate = entry.date || entryDate || examDate
+                                return (
+                                  <tr key={rowKey}>
+                                    <td>
                                       <input
-                                        type="text"
+                                        type="date"
                                         className="form-control form-control-sm"
-                                        value={subjectCodeValue}
-                                        placeholder="Enter subject code"
+                                        value={rowDate}
                                         onChange={(e) =>
-                                          handleScheduleChange(rowKey, 'subjectCode', e.target.value)
+                                          handleScheduleChange(rowKey, 'date', e.target.value)
                                         }
                                       />
-                                    </div>
-                                  </td>
-                                  <td>
-                                    <select
-                                      className="form-select form-select-sm"
-                                      value={startTimeVal}
-                                      onChange={(e) =>
-                                        handleScheduleChange(rowKey, 'startTime', e.target.value)
-                                      }
-                                    >
-                                      <option value="">Select start time</option>
-                                      {TIME_SLOTS.map((time) => (
-                                        <option key={`start-${rowKey}-${time.value}`} value={time.value}>
-                                          {time.displayTime}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </td>
-                                  <td>
-                                    <select
-                                      className="form-select form-select-sm"
-                                      value={entry.endTime}
-                                      onChange={(e) =>
-                                        handleScheduleChange(rowKey, 'endTime', e.target.value)
-                                      }
-                                    >
-                                      <option value="">Select end time</option>
-                                      {TIME_SLOTS.filter((time) => {
-                                        if (!startTimeVal) return true
-                                        const [startH, startM] = startTimeVal.split(':').map(Number)
-                                        const [endH, endM] = time.value.split(':').map(Number)
-                                        return endH > startH || (endH === startH && endM > startM)
-                                      }).map((time) => (
-                                        <option key={`end-${rowKey}-${time.value}`} value={time.value}>
-                                          {time.displayTime}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </td>
-                                  <td className="text-end">
-                                    {rowKey !== BASE_TABLE_ROW_ID && (
-                                      <button
-                                        type="button"
-                                        className="btn btn-link btn-sm text-danger p-0"
-                                        onClick={() => removeTableRow(rowKey)}
+                                    </td>
+                                    <td>
+                                      <div className="d-flex flex-column gap-1">
+                                        <input
+                                          type="text"
+                                          className="form-control form-control-sm"
+                                          value={subjectCodeValue}
+                                          placeholder="Enter subject code"
+                                          onChange={(e) =>
+                                            handleScheduleChange(rowKey, 'subjectCode', e.target.value)
+                                          }
+                                        />
+                                        {(() => {
+                                          const normalizedCode = normalizeSubjectCode(subjectCodeValue)
+                                          if (!normalizedCode) return null
+
+                                          // Check Subject Validity
+                                          const isValidSubject = Object.prototype.hasOwnProperty.call(subjectLookup, normalizedCode)
+                                          if (!isValidSubject) {
+                                            return (
+                                              <small className="text-danger fw-bold" style={{ fontSize: '0.75rem' }}>
+                                                Invalid subject code
+                                              </small>
+                                            )
+                                          }
+
+                                          // Check DB (storedEntries)
+                                          const isDbRegistered = storedEntries.some(
+                                            (stored) =>
+                                              normalizeSubjectCode(stored.subject_code) === normalizedCode &&
+                                              stored.recordId !== editingDbRecordId
+                                          )
+                                          // Check queued/session entries (queuedEntries)
+                                          const isSessionRegistered = queuedEntries.some(
+                                            (queued) =>
+                                              normalizeSubjectCode(queued.subject_code) === normalizedCode &&
+                                              queued.id !== editingEntryId
+                                          )
+                                          // Check other input rows
+                                          const isInputDuplicate = tableRowIds.some(
+                                            (otherKey) => {
+                                              if (otherKey === rowKey) return false
+                                              const otherEntry = schedules[otherKey]
+                                              return normalizeSubjectCode(otherEntry?.subjectCode) === normalizedCode
+                                            }
+                                          )
+
+                                          if (isDbRegistered || isSessionRegistered || isInputDuplicate) {
+                                            return (
+                                              <small className="text-danger fw-bold" style={{ fontSize: '0.75rem' }}>
+                                                {isDbRegistered || isSessionRegistered ? 'Already registered' : 'Duplicate entry'}
+                                              </small>
+                                            )
+                                          }
+                                          return null
+                                        })()}
+                                      </div>
+                                    </td>
+                                    <td>
+                                      <select
+                                        className="form-select form-select-sm"
+                                        value={startTimeVal}
+                                        onChange={(e) =>
+                                          handleScheduleChange(rowKey, 'startTime', e.target.value)
+                                        }
                                       >
-                                        Remove row
-                                      </button>
-                                    )}
-                                  </td>
-                                </tr>
-                              )
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                      <div className="mt-3 d-flex flex-wrap gap-2 align-items-center justify-content-between">
-                        <button
-                          type="button"
-                          className="btn btn-outline-secondary btn-sm"
-                          onClick={addTableRow}
-                        >
-                          + Add another row
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-outline-primary btn-sm"
-                          onClick={handleAddEntry}
-                          disabled={addEntryDisabled}
-                        >
-                          {addingEntry ? 'Saving entry...' : '+ Add entry'}
-                        </button>
-                      </div>
-                    </>
-                  )}
+                                        <option value="">Select start time</option>
+                                        {TIME_SLOTS.map((time) => (
+                                          <option key={`start-${rowKey}-${time.value}`} value={time.value}>
+                                            {time.displayTime}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </td>
+                                    <td>
+                                      <select
+                                        className="form-select form-select-sm"
+                                        value={entry.endTime}
+                                        onChange={(e) =>
+                                          handleScheduleChange(rowKey, 'endTime', e.target.value)
+                                        }
+                                      >
+                                        <option value="">Select end time</option>
+                                        {TIME_SLOTS.filter((time) => {
+                                          if (!startTimeVal) return true
+                                          const [startH, startM] = startTimeVal.split(':').map(Number)
+                                          const [endH, endM] = time.value.split(':').map(Number)
+                                          return endH > startH || (endH === startH && endM > startM)
+                                        }).map((time) => (
+                                          <option key={`end-${rowKey}-${time.value}`} value={time.value}>
+                                            {time.displayTime}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </td>
+                                    <td className="text-end">
+                                      {rowKey !== BASE_TABLE_ROW_ID && (
+                                        <button
+                                          type="button"
+                                          className="btn btn-link btn-sm text-danger p-0"
+                                          onClick={() => removeTableRow(rowKey)}
+                                        >
+                                          Remove row
+                                        </button>
+                                      )}
+                                    </td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                        <div className="mt-3 d-flex flex-wrap gap-2 align-items-center justify-content-between">
+                          <button
+                            type="button"
+                            className="btn btn-outline-secondary btn-sm"
+                            onClick={addTableRow}
+                          >
+                            + Add another row
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-outline-primary btn-sm"
+                            onClick={handleAddEntry}
+                            disabled={addEntryDisabled}
+                          >
+                            {addingEntry ? 'Saving entry...' : '+ Add entry'}
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
             {queuedEntries.length ? (
               <p className="small text-muted mb-2">
                 {queuedEntries.length} {queuedEntries.length === 1 ? 'entry' : 'entries'} ready for preview or save.
@@ -1347,7 +1411,11 @@ export default function Exams() {
                 <select
                   className="form-select form-select-sm"
                   value={previewFilterGroup}
-                  onChange={(e) => setPreviewFilterGroup(e.target.value)}
+                  onChange={(e) => {
+                    setPreviewFilterGroup(e.target.value)
+                    setPreviewFilterCourse('')
+                    setPreviewFilterSemester('')
+                  }}
                 >
                   <option value="">All groups</option>
                   {previewFilterOptions.groups.map((group) => (
@@ -1362,7 +1430,10 @@ export default function Exams() {
                 <select
                   className="form-select form-select-sm"
                   value={previewFilterCourse}
-                  onChange={(e) => setPreviewFilterCourse(e.target.value)}
+                  onChange={(e) => {
+                    setPreviewFilterCourse(e.target.value)
+                    setPreviewFilterSemester('')
+                  }}
                 >
                   <option value="">All courses</option>
                   {previewFilterOptions.courses.map((course) => (
@@ -1413,7 +1484,16 @@ export default function Exams() {
                         <tr key={row.id}>
                           <td>{row.semester}</td>
                           <td>
-                            <div>{row.subjectName || row.subjectCode}</div>
+                            <div>
+                              {(() => {
+                                const code = row.subjectCode ? String(row.subjectCode).trim() : ''
+                                const name = row.subjectName ? String(row.subjectName).trim() : ''
+                                if (!code) return name
+                                if (!name) return code
+                                if (name.startsWith(code) || name.includes(`${code} -`)) return name
+                                return `${code} - ${name}`
+                              })()}
+                            </div>
                             {(row.groupLabel || row.courseLabel) && (
                               <small className="text-muted">
                                 {row.groupLabel && <span>Group: {row.groupLabel}</span>}
