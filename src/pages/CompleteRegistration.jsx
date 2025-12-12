@@ -333,7 +333,7 @@ export default function CompleteRegistration() {
         }
         const { data: scheduleData, error: scheduleError } = await supabase
             .from('exam_schedule')
-            .select('subject_code, exam_date')
+            .select('subject_code, exam_date, exam_session')
             .eq('exam_master_id', examMasterId)
 
         if (scheduleError) {
@@ -341,11 +341,14 @@ export default function CompleteRegistration() {
             throw new Error('Failed to fetch exam schedules')
         }
 
-        const subjectDateMap = new Map()
+        const subjectScheduleMap = new Map()
         if (scheduleData) {
             scheduleData.forEach((sch) => {
                 if (sch.subject_code) {
-                    subjectDateMap.set(sch.subject_code.trim().toUpperCase(), sch.exam_date)
+                    subjectScheduleMap.set(sch.subject_code.trim().toUpperCase(), {
+                        date: sch.exam_date,
+                        session: sch.exam_session || 'Morning' // Fallback or derived could be added if needed
+                    })
                 }
             })
         }
@@ -363,15 +366,19 @@ export default function CompleteRegistration() {
             if (s.subject_code) subjectIdToCodeMap.set(s.subject_id, s.subject_code.trim().toUpperCase())
         })
 
-        const entriesByDate = new Map()
+        const entriesBySchedule = new Map()
         const unscheduledEntries = []
 
         validEntries.forEach((entry) => {
             const code = subjectIdToCodeMap.get(entry.subject_id)
-            const date = code ? subjectDateMap.get(code) : null
-            if (date) {
-                if (!entriesByDate.has(date)) entriesByDate.set(date, [])
-                entriesByDate.get(date).push(entry)
+            const schedule = code ? subjectScheduleMap.get(code) : null
+
+            if (schedule && schedule.date) {
+                // Group by Date + Session + Subject
+                // Key format: YYYY-MM-DD|Session|SubjectCode
+                const key = `${schedule.date}|${schedule.session}|${code}`
+                if (!entriesBySchedule.has(key)) entriesBySchedule.set(key, [])
+                entriesBySchedule.get(key).push(entry)
             } else {
                 unscheduledEntries.push(entry)
             }
@@ -379,8 +386,10 @@ export default function CompleteRegistration() {
 
         const seatAssignments = []
 
-        entriesByDate.forEach((entries, date) => {
+        entriesBySchedule.forEach((entries, key) => {
+            // Sort alphabetically by student name
             entries.sort((a, b) => a.studentName.localeCompare(b.studentName))
+
             entries.forEach((entry, index) => {
                 seatAssignments.push({
                     exam_id: examMasterId,
