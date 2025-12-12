@@ -27,6 +27,7 @@ export default function CompleteRegistration() {
     const [subjects, setSubjects] = useState([])
     const [groups, setGroups] = useState([])
     const [courses, setCourses] = useState([])
+    const [subCategories, setSubCategories] = useState([])
 
     const refreshExams = useCallback(async () => {
         setExamsLoading(true)
@@ -55,13 +56,15 @@ export default function CompleteRegistration() {
         Promise.all([
             api.listSubjects(),
             api.listGroups(),
-            api.listCourses()
+            api.listCourses(),
+            api.listSubCategories(),
         ])
-            .then(([subjectList, groupList, courseList]) => {
+            .then(([subjectList, groupList, courseList, subCategoryList]) => {
                 if (mounted) {
                     setSubjects(subjectList || [])
                     setGroups(groupList || [])
                     setCourses(courseList || [])
+                    setSubCategories(subCategoryList || [])
                 }
             })
             .catch((err) => {
@@ -577,7 +580,7 @@ export default function CompleteRegistration() {
                                 <div className="d-flex justify-content-between align-items-start mb-3">
                                     <div>
                                         <h5 className="modal-title fw-bold">Exam Time Table</h5>
-                                        <p className="text-muted small mb-0">{timetableModalState.exam?.exam_name}</p>
+                                <p className="text-muted small mb-0">{timetableModalState.exam?.exam_name}</p>
                                     </div>
                                     <button
                                         type="button"
@@ -627,9 +630,9 @@ export default function CompleteRegistration() {
                                     </div>
                                 ) : timetableModalState.schedules.length === 0 ? (
                                     <div className="text-center py-4 text-muted">No schedules found for this exam.</div>
-                                ) : (
-                                    <div className="table-responsive">
-                                        <TimetableList
+                ) : (
+                    <div className="table-responsive">
+                        <TimetableList
                                             // Pass pre-calculated data to avoid re-calculation
                                             groupedData={derivedScheduleData}
                                             // Fallback for props that might rely on them, though groupedData supersedes
@@ -638,10 +641,11 @@ export default function CompleteRegistration() {
                                             courses={courses}
                                             groups={groups}
                                             filterGroup={timetableFilters.group}
-                                            filterCourse={timetableFilters.course}
-                                        />
-                                    </div>
-                                )}
+                            filterCourse={timetableFilters.course}
+                            subCategories={subCategories}
+                        />
+                    </div>
+                )}
                             </div>
                             <div className="modal-footer border-0 pt-0">
                                 <button
@@ -674,15 +678,66 @@ export default function CompleteRegistration() {
                             schedules={printViewData.schedules}
                             subjects={subjects}
                             courses={courses}
-                            groups={groups}
-                            filterGroup={printViewData.filterGroup}
-                            filterCourse={printViewData.filterCourse}
-                        />
+                        groups={groups}
+                        filterGroup={printViewData.filterGroup}
+                        filterCourse={printViewData.filterCourse}
+                        subCategories={subCategories}
+                    />
                     </div>
                 </div>
             )}
         </AdminShell>
     )
+}
+
+const getYearLabelFromSemesterNumber = (semesterNumber) => {
+    const num = Number(semesterNumber)
+    if (Number.isNaN(num) || num <= 0) return '-'
+    if (num <= 2) return '1st Year'
+    if (num <= 4) return '2nd Year'
+    if (num <= 6) return '3rd Year'
+    return `Year ${Math.ceil(num / 2)}`
+}
+
+const buildSubCategoryLookup = (subCategories = []) => {
+    const lookup = new Map()
+    subCategories.forEach((item) => {
+        const idKey = item?.id !== undefined && item?.id !== null ? String(item.id).trim() : ''
+        const nameKey = item?.name ? String(item.name).trim() : ''
+        if (idKey) lookup.set(idKey, item.name || nameKey)
+        if (nameKey) lookup.set(nameKey.toLowerCase(), item.name)
+    })
+    return lookup
+}
+
+const resolveSubCategoryName = (value, lookup) => {
+    if (value === undefined || value === null) return '-'
+    const candidate = String(value).trim()
+    if (!candidate) return '-'
+    const direct = lookup.get(candidate)
+    if (direct) return direct
+    const normalized = candidate.toLowerCase()
+    const fallback = lookup.get(normalized)
+    return fallback || candidate
+}
+
+const resolveCategoryFromSubject = (subject, lookup) => {
+    if (!subject) return ''
+    if (subject.category) {
+        const label = resolveSubCategoryName(subject.category, lookup)
+        if (label !== '-') return label
+        if (subject.category.trim()) return subject.category.trim()
+    }
+    const candidateId =
+        subject.categoryId ??
+        subject.category_id ??
+        subject.categoryIdRaw ??
+        ''
+    if (candidateId) {
+        const label = resolveSubCategoryName(candidateId, lookup)
+        if (label !== '-') return label
+    }
+    return ''
 }
 
 function getGroupedSchedules(schedules, subjects, courses, groups) {
@@ -757,11 +812,13 @@ function getGroupedSchedules(schedules, subjects, courses, groups) {
     return { grouped, sortedKeys }
 }
 
-const TimetableList = ({ schedules, subjects, courses, groups, filterGroup, filterCourse, groupedData }) => {
+const TimetableList = ({ schedules, subjects, courses, groups, filterGroup, filterCourse, groupedData, subCategories }) => {
     // Use passed groupedData if available, otherwise calculate it
     const { grouped, sortedKeys } = groupedData || getGroupedSchedules(schedules, subjects, courses, groups)
 
     if (sortedKeys.length === 0) return <div className="text-center text-muted">No valid schedules found.</div>
+
+    const subCategoryLookup = useMemo(() => buildSubCategoryLookup(subCategories), [subCategories])
 
     // Filter keys based on group/course
     const filteredKeys = sortedKeys.filter(key => {
@@ -795,21 +852,21 @@ const TimetableList = ({ schedules, subjects, courses, groups, filterGroup, filt
 
         return (
             <div key={key} className="mb-4">
-                <div className="alert alert-soft-primary px-3 py-2 mb-2 d-flex align-items-center gap-2">
-                    <h6 className="fw-bold mb-0 text-primary">
-                        {groupName}
-                    </h6>
-                    <span className="text-muted mx-1">•</span>
-                    <h6 className="fw-bold mb-0 text-dark">
-                        {courseName}
-                    </h6>
-                    {sem !== 'N/A' && (
-                        <>
-                            <span className="text-muted mx-1">•</span>
-                            <h6 className="fw-bold mb-0 text-secondary">
-                                Semester {sem}
-                            </h6>
-                        </>
+                <div className="alert alert-soft-primary px-3 py-2 mb-2">
+                    <div className="mb-1">
+                        <span className="fw-semibold text-uppercase text-primary">
+                            {`${getYearLabelFromSemesterNumber(sem)} ${groupName}`}
+                        </span>
+                        {sem !== 'N/A' && (
+                            <span className="text-muted small ms-2">
+                                · Sem {sem}
+                            </span>
+                        )}
+                    </div>
+                    {courseName && (
+                        <div className="text-muted small mb-0">
+                            {courseName}
+                        </div>
                     )}
                 </div>
                 <table className="table table-bordered table-sm align-middle mb-0">
@@ -818,13 +875,13 @@ const TimetableList = ({ schedules, subjects, courses, groups, filterGroup, filt
                             <th style={{ width: '60px' }}>S.No</th>
                             <th style={{ width: '120px' }}>Date</th>
                             <th style={{ width: '150px' }}>Time</th>
+                            <th>Sub Category</th>
                             <th>Subject</th>
                         </tr>
                     </thead>
                     <tbody>
                         {groupSchedules.map((sch, index) => {
                             let subjectName = '-'
-
                             const specificSubject = subjects.find(s => {
                                 const sCode = (s.subject_code || s.subjectCode || '').trim().toUpperCase()
                                 const schCode = (sch.subject_code || '').trim().toUpperCase()
@@ -857,12 +914,16 @@ const TimetableList = ({ schedules, subjects, courses, groups, filterGroup, filt
                             const dateStr = sch.exam_date ? new Date(sch.exam_date).toLocaleDateString('en-GB') : '-'
                             const startTime = TIME_SLOTS.find((t) => t.value === sch.exam_start_time.slice(0, 5))?.displayTime || sch.exam_start_time
                             const endTime = TIME_SLOTS.find((t) => t.value === sch.exam_end_time.slice(0, 5))?.displayTime || sch.exam_end_time
+                            const subCategoryDisplayName =
+                                resolveCategoryFromSubject(specificSubject, subCategoryLookup) ||
+                                resolveSubCategoryName(sch.category, subCategoryLookup)
 
                             return (
                                 <tr key={sch.schedule_id}>
                                     <td className="text-center">{index + 1}</td>
                                     <td>{dateStr}</td>
                                     <td>{startTime} - {endTime}</td>
+                                    <td>{subCategoryDisplayName}</td>
                                     <td>
                                         {sch.subject_code} - {subjectName}
                                     </td>
@@ -876,7 +937,7 @@ const TimetableList = ({ schedules, subjects, courses, groups, filterGroup, filt
     })
 }
 
-const TimetablePrintTemplate = ({ exam, schedules, subjects, courses, groups, filterGroup, filterCourse }) => {
+const TimetablePrintTemplate = ({ exam, schedules, subjects, courses, groups, filterGroup, filterCourse, subCategories }) => {
     return (
         <div>
             <div id="print-header" className="d-flex justify-content-between gap-3 flex-wrap align-items-start mb-4">
@@ -915,6 +976,7 @@ const TimetablePrintTemplate = ({ exam, schedules, subjects, courses, groups, fi
                     groups={groups}
                     filterGroup={filterGroup}
                     filterCourse={filterCourse}
+                    subCategories={subCategories}
                 />
             </div>
 
@@ -943,8 +1005,10 @@ const TimetablePrintTemplate = ({ exam, schedules, subjects, courses, groups, fi
     )
 }
 
-const TimetablePrintItems = ({ schedules, subjects, courses, groups, filterGroup, filterCourse }) => {
+const TimetablePrintItems = ({ schedules, subjects, courses, groups, filterGroup, filterCourse, subCategories }) => {
     const { grouped, sortedKeys } = getGroupedSchedules(schedules, subjects, courses, groups)
+
+    const subCategoryLookup = useMemo(() => buildSubCategoryLookup(subCategories), [subCategories])
 
     // Filter keys
     const filteredKeys = sortedKeys.filter(key => {
@@ -1000,6 +1064,7 @@ const TimetablePrintItems = ({ schedules, subjects, courses, groups, filterGroup
                             <th style={{ width: '50px', border: '1px solid #000' }}>S.No</th>
                             <th style={{ width: '100px', border: '1px solid #000' }}>Date</th>
                             <th style={{ width: '130px', border: '1px solid #000' }}>Time</th>
+                            <th style={{ border: '1px solid #000' }}>Sub Category</th>
                             <th style={{ border: '1px solid #000' }}>Subject</th>
                         </tr>
                     </thead>
@@ -1040,11 +1105,15 @@ const TimetablePrintItems = ({ schedules, subjects, courses, groups, filterGroup
                             const startTime = TIME_SLOTS.find((t) => t.value === sch.exam_start_time.slice(0, 5))?.displayTime || sch.exam_start_time
                             const endTime = TIME_SLOTS.find((t) => t.value === sch.exam_end_time.slice(0, 5))?.displayTime || sch.exam_end_time
 
+                            const subCategoryDisplayName =
+                                resolveCategoryFromSubject(specificSubject, subCategoryLookup) ||
+                                resolveSubCategoryName(sch.category, subCategoryLookup)
                             return (
                                 <tr key={sch.schedule_id}>
                                     <td className="text-center" style={{ border: '1px solid #000' }}>{index + 1}</td>
                                     <td style={{ border: '1px solid #000' }}>{dateStr}</td>
                                     <td style={{ border: '1px solid #000' }}>{startTime} - {endTime}</td>
+                                    <td style={{ border: '1px solid #000' }}>{subCategoryDisplayName}</td>
                                     <td style={{ border: '1px solid #000' }}>
                                         {sch.subject_code} - {subjectName}
                                     </td>

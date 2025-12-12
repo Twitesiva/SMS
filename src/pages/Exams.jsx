@@ -1199,18 +1199,12 @@ export default function Exams() {
                   <div className="card-body">
                     <div className="d-flex flex-column flex-sm-row gap-3 align-items-center justify-content-between mb-3">
                       <h4 className="fw-semibold text-dark mb-0 display-6">Add exam time table</h4>
-                      <div className="d-flex align-items-center gap-2">
-                        <label className="small text-muted mb-0">Select date</label>
-                        <input
-                          type="date"
-                          className="form-control form-control-sm"
-                          value={entryDate}
-                          onChange={(e) => setEntryDate(e.target.value)}
-                        />
+                      <div className="text-muted small mb-0">
+                        Exam date: {examDate ? examDate : 'Not set'}
                       </div>
                     </div>
-                    {!entryDate ? (
-                      <p className="text-muted mb-0">Choose a date to add subjects.</p>
+                    {!examDate ? (
+                      <p className="text-muted mb-0">Choose the exam date above to add subjects.</p>
                     ) : (
                       <>
                         <div className="table-responsive">
