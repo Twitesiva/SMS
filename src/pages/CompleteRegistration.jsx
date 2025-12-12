@@ -862,21 +862,9 @@ const TimetableList = ({ schedules, subjects, courses, groups, filterGroup, filt
         return (
             <div key={key} className="mb-4">
                 <div className="alert alert-soft-primary px-3 py-2 mb-2">
-                    <div className="mb-1">
-                        <span className="fw-semibold text-uppercase text-primary">
-                            {`${getYearLabelFromSemesterNumber(sem)} ${groupName}`}
-                        </span>
-                        {sem !== 'N/A' && (
-                            <span className="text-muted small ms-2">
-                                · Sem {sem}
-                            </span>
-                        )}
-                    </div>
-                    {courseName && (
-                        <div className="text-muted small mb-0">
-                            {courseName}
-                        </div>
-                    )}
+                    <span className="fw-semibold text-primary">
+                        {`${getYearLabelFromSemesterNumber(sem)}. ${groupName}.${courseName ? ` ${courseName}.` : ''} ${sem !== 'N/A' ? `SEM ${sem}` : ''}`.replace(/\s+/g, ' ').trim()}
+                    </span>
                 </div>
                 <table className="table table-bordered table-sm align-middle mb-0">
                     <thead className="bg-light">
@@ -1050,22 +1038,12 @@ const TimetablePrintItems = ({ schedules, subjects, courses, groups, filterGroup
 
         return (
             <div key={key} className="print-chunk mb-4 p-2 border rounded">
-                <div className="alert alert-light px-3 py-2 mb-2 d-flex align-items-center gap-2 border">
-                    <h6 className="fw-bold mb-0 text-dark">
-                        {groupName}
-                    </h6>
-                    <span className="text-muted mx-1">•</span>
-                    <h6 className="fw-bold mb-0 text-dark">
-                        {courseName}
-                    </h6>
-                    {sem !== 'N/A' && (
-                        <>
-                            <span className="text-muted mx-1">•</span>
-                            <h6 className="fw-bold mb-0 text-dark">
-                                Semester {sem}
-                            </h6>
-                        </>
-                    )}
+                <div className="alert alert-light px-3 py-2 mb-2 border">
+                    <div className="d-flex align-items-center gap-2">
+                        <span className="fw-bold text-dark">
+                            {`${getYearLabelFromSemesterNumber(sem)}. ${groupName}.${courseName ? ` ${courseName}.` : ''} ${sem !== 'N/A' ? `SEM ${sem}` : ''}`.replace(/\s+/g, ' ').trim()}
+                        </span>
+                    </div>
                 </div>
                 <table className="table table-bordered table-sm align-middle mb-0" style={{ borderColor: '#000' }}>
                     <thead className="bg-light">
