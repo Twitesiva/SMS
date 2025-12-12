@@ -18,11 +18,33 @@ const ToastItem = ({ toast, onDismiss }) => {
 
   const accentClass = typeToAccent[toast.type] || typeToAccent.info
 
+  const actions = Array.isArray(toast.actions) ? toast.actions : []
+
   return (
     <div className={`toast-card ${accentClass}`} role="status" aria-live="assertive">
       <div className="toast-card__body">
         {toast.title ? <div className="toast-card__title">{toast.title}</div> : null}
         <div className="toast-card__message">{toast.message}</div>
+        {actions.length ? (
+          <div className="toast-card__actions">
+            {actions.map((action, index) => (
+              <button
+                key={`${toast.id}-action-${index}`}
+                type="button"
+                className={`toast-card__action toast-card__action--${action.variant || 'neutral'}`}
+                onClick={() => {
+                  try {
+                    action.onClick && action.onClick()
+                  } catch (err) {
+                    console.error('Toast action error', err)
+                  }
+                }}
+              >
+                {action.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
       <button
         type="button"

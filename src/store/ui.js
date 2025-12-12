@@ -18,7 +18,8 @@ export const useUiStore = create((set) => ({
       type: toast.type || 'info',
       title: toast.title || '',
       message: toast.message || '',
-      duration: typeof toast.duration === 'number' ? toast.duration : 5000
+      duration: typeof toast.duration === 'number' ? toast.duration : 5000,
+      actions: toast.actions || [],
     }
     return { toasts: [...state.toasts, next] }
   }),
@@ -39,4 +40,45 @@ export const trackPromise = async (promise) => {
 export const showToast = (message, options = {}) => {
   const { pushToast } = useUiStore.getState()
   pushToast({ message, ...options })
+}
+
+export const confirmToast = ({
+  message,
+  title = 'Confirm action',
+  confirmLabel = 'Delete',
+  cancelLabel = 'Cancel',
+  duration = 0,
+  type = 'warning',
+} = {}) => {
+  return new Promise((resolve) => {
+    const { pushToast, dismissToast } = useUiStore.getState()
+    const id = generateId()
+    const handleClose = () => dismissToast(id)
+    const actions = [
+      {
+        label: cancelLabel,
+        variant: 'outline',
+        onClick: () => {
+          resolve(false)
+          handleClose()
+        },
+      },
+      {
+        label: confirmLabel,
+        variant: 'danger',
+        onClick: () => {
+          resolve(true)
+          handleClose()
+        },
+      },
+    ]
+    pushToast({
+      id,
+      message,
+      title,
+      type,
+      duration,
+      actions,
+    })
+  })
 }

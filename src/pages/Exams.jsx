@@ -1,7 +1,7 @@
 import AdminShell from '../components/AdminShell'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '../lib/mockApi'
-import { showToast } from '../store/ui.js'
+import { showToast, confirmToast } from '../store/ui.js'
 import { supabase } from '../../supabaseClient'
 import { TIME_SLOTS } from '../lib/timeSlots'
 
@@ -155,6 +155,8 @@ export default function Exams() {
   const [previewFilterGroup, setPreviewFilterGroup] = useState('')
   const [previewFilterCourse, setPreviewFilterCourse] = useState('')
   const [previewFilterSemester, setPreviewFilterSemester] = useState('')
+  const [selectedPreviewEntries, setSelectedPreviewEntries] = useState(new Set())
+  const [deletingPreviewEntries, setDeletingPreviewEntries] = useState(false)
   const defaultAcademicYear = academicYears[0]?.academic_year || ''
 
   // Fetch exams from exam_master table
@@ -1073,12 +1075,121 @@ export default function Exams() {
     })
   }, [previewRows, previewFilterGroup, previewFilterCourse, previewFilterSemester])
 
+  const filteredPreviewEntryIds = useMemo(
+    () => filteredPreviewEntries.map((row) => row.entryId),
+    [filteredPreviewEntries]
+  )
+  const allFilteredPreviewSelected =
+    filteredPreviewEntryIds.length > 0 &&
+    filteredPreviewEntryIds.every((id) => selectedPreviewEntries.has(id))
+
+  const togglePreviewSelection = useCallback((entryId) => {
+    setSelectedPreviewEntries((prev) => {
+      const next = new Set(prev)
+      if (next.has(entryId)) {
+        next.delete(entryId)
+      } else {
+        next.add(entryId)
+      }
+      return next
+    })
+  }, [])
+
+  const toggleSelectAllPreview = useCallback(() => {
+    if (allFilteredPreviewSelected) {
+      setSelectedPreviewEntries(new Set())
+      return
+    }
+    setSelectedPreviewEntries(new Set(filteredPreviewEntryIds.filter(Boolean)))
+  }, [allFilteredPreviewSelected, filteredPreviewEntryIds])
+
+  const deletePreviewEntries = useCallback(
+    async (entryIds = []) => {
+      const uniqueIds = Array.from(new Set(entryIds.filter(Boolean)))
+      if (!uniqueIds.length) return 0
+      const removalSet = new Set(uniqueIds)
+      const recordIds = storedEntries
+        .filter((entry) => removalSet.has(entry.id) && entry.recordId)
+        .map((entry) => entry.recordId)
+        .filter(Boolean)
+      if (recordIds.length) {
+        const { error } = await supabase
+          .from('exam_schedule')
+          .delete()
+          .in('schedule_id', recordIds)
+        if (error) throw error
+        await loadStoredSchedule()
+      }
+      setQueuedEntries((prev) => prev.filter((entry) => !removalSet.has(entry.id)))
+      setSelectedPreviewEntries((prev) => {
+        const next = new Set(prev)
+        uniqueIds.forEach((id) => next.delete(id))
+        return next
+      })
+      return uniqueIds.length
+    },
+    [loadStoredSchedule, storedEntries]
+  )
+
+  const handleDeleteSelectedPreview = useCallback(async () => {
+    if (!selectedPreviewEntries.size) return
+    const count = selectedPreviewEntries.size
+    const confirmed = await confirmToast({
+      title: 'Confirm deletion',
+      message: `Delete ${count} ${count === 1 ? 'entry' : 'entries'}?`,
+      confirmLabel: 'Yes, delete',
+      cancelLabel: 'Cancel',
+    })
+    if (!confirmed) return
+    setDeletingPreviewEntries(true)
+    try {
+      await deletePreviewEntries(Array.from(selectedPreviewEntries))
+      showToast(`${count} ${count === 1 ? 'entry' : 'entries'} deleted.`, {
+        type: 'success',
+      })
+    } catch (error) {
+      console.error('Error deleting preview entries:', error)
+      showToast(error.message || 'Failed to delete selected entries.', { type: 'error' })
+    } finally {
+      setDeletingPreviewEntries(false)
+    }
+  }, [selectedPreviewEntries, deletePreviewEntries])
+
+  const handleDeletePreviewRow = useCallback(
+    async (entryId) => {
+      const confirmed = await confirmToast({
+      title: 'Confirm deletion',
+      message: 'Delete this entry?',
+      confirmLabel: 'Yes, delete',
+      cancelLabel: 'Cancel',
+      })
+      if (!confirmed) return
+      setDeletingPreviewEntries(true)
+      try {
+        await deletePreviewEntries([entryId])
+        showToast('Entry deleted.', { type: 'success' })
+      } catch (error) {
+        console.error('Error deleting preview entry:', error)
+        showToast(error.message || 'Failed to delete the entry.', { type: 'error' })
+      } finally {
+        setDeletingPreviewEntries(false)
+      }
+    },
+    [deletePreviewEntries]
+  )
+
   useEffect(() => {
     if (previewRows.length) return
     setPreviewFilterGroup('')
     setPreviewFilterCourse('')
     setPreviewFilterSemester('')
   }, [previewRows.length])
+
+  useEffect(() => {
+    if (!showPreview && selectedPreviewEntries.size) {
+      setSelectedPreviewEntries(new Set())
+    }
+  }, [showPreview, selectedPreviewEntries.size])
 
   return (
     <AdminShell>
@@ -1384,9 +1495,19 @@ export default function Exams() {
           </>
         ) : (
           <div className="card card-soft p-4">
-            <div className="mb-4">
-              <h4 className="fw-bold mb-1">Preview Schedule</h4>
-              <p className="text-muted small mb-0">Review the exam schedule before saving.</p>
+            <div className="d-flex align-items-center justify-content-between mb-4">
+              <div>
+                <h4 className="fw-bold mb-1">Preview Schedule</h4>
+                <p className="text-muted small mb-0">Review the exam schedule before saving.</p>
+              </div>
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                onClick={() => setShowPreview(false)}
+                disabled={saving}
+              >
+                Back
+              </button>
             </div>
             <div className="row g-3 mb-3">
               <div className="col-12 col-md-4">
@@ -1443,10 +1564,44 @@ export default function Exams() {
               </div>
             </div>
 
+            <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-3">
+              <div className="form-check">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id="preview-select-all"
+                  checked={allFilteredPreviewSelected}
+                  disabled={!filteredPreviewEntries.length || deletingPreviewEntries}
+                  onChange={toggleSelectAllPreview}
+                />
+                <label className="form-check-label small" htmlFor="preview-select-all">
+                  {allFilteredPreviewSelected ? 'Deselect all displayed' : 'Select all displayed'}
+                </label>
+              </div>
+              <div className="d-flex align-items-center gap-2 flex-wrap">
+                <span className="text-muted small">
+                  {selectedPreviewEntries.size} selected
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-outline-danger btn-sm"
+                  disabled={!selectedPreviewEntries.size || deletingPreviewEntries || saving}
+                  onClick={handleDeleteSelectedPreview}
+                >
+                  {deletingPreviewEntries
+                    ? 'Deleting...'
+                    : `Delete selected (${selectedPreviewEntries.size})`}
+                </button>
+              </div>
+            </div>
+
             <div className="table-responsive mb-4">
               <table className="table table-bordered">
                 <thead className="bg-light">
                   <tr>
+                    <th style={{ width: '70px' }} className="text-center">
+                      <small>Select</small>
+                    </th>
                     <th>Semester</th>
                     <th>Subject</th>
                     <th>Date</th>
@@ -1465,6 +1620,15 @@ export default function Exams() {
                         row.exam_end_time
                       return (
                         <tr key={row.id}>
+                          <td className="text-center align-middle">
+                            <input
+                              type="checkbox"
+                              className="form-check-input"
+                              checked={selectedPreviewEntries.has(row.entryId)}
+                              disabled={deletingPreviewEntries}
+                              onChange={() => togglePreviewSelection(row.entryId)}
+                            />
+                          </td>
                           <td>{row.semester}</td>
                           <td>
                             <div>
@@ -1492,17 +1656,28 @@ export default function Exams() {
                           <td>{row.exam_date}</td>
                           <td>{startTimeDisplay} - {endTimeDisplay}</td>
                           <td>
-                            {(!row.persisted || row.recordId) ? (
+                            <div className="d-flex align-items-center gap-2">
+                              {(!row.persisted || row.recordId) ? (
+                                <button
+                                  type="button"
+                                  className="btn btn-link btn-sm"
+                                  onClick={() => handleEditEntry(row.entryId)}
+                                  disabled={deletingPreviewEntries || saving}
+                                >
+                                  Edit
+                                </button>
+                              ) : (
+                                <span className="text-success small">Saved</span>
+                              )}
                               <button
                                 type="button"
-                                className="btn btn-link btn-sm"
-                                onClick={() => handleEditEntry(row.entryId)}
+                                className="btn btn-link btn-sm text-danger"
+                                onClick={() => handleDeletePreviewRow(row.entryId)}
+                                disabled={deletingPreviewEntries || saving}
                               >
-                                Edit
+                                Delete
                               </button>
-                            ) : (
-                              <span className="text-success small">Saved</span>
-                            )}
+                            </div>
                           </td>
                         </tr>
                       )

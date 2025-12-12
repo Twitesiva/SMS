@@ -4745,3 +4745,37 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 .toast-card--info .toast-card__close {
   color: #1d4ed8;
 }
+
+.toast-card__actions {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.toast-card__action {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999rem;
+  padding: 0.25rem 0.9rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  background-color: rgba(255, 255, 255, 0.12);
+  color: inherit;
+  transition: background-color 0.2s ease;
+}
+
+.toast-card__action--danger {
+  background-color: #c82333;
+  color: #fff;
+}
+
+.toast-card__action--outline {
+  background-color: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  color: inherit;
+}
+
+.toast-card__action:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
