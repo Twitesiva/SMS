@@ -191,24 +191,6 @@ export default function Exams() {
   }, [exams, selectedExam])
 
   useEffect(() => {
-    if (!selectedExam) {
-      setExamDate('')
-      return
-    }
-    const exam = exams.find((item) => String(item.id) === String(selectedExam))
-    if (!exam) {
-      setExamDate('')
-      return
-    }
-    const normalized = new Date(exam.date)
-    setExamDate(
-      Number.isNaN(normalized.getTime())
-        ? ''
-        : normalized.toISOString().split('T')[0]
-    )
-  }, [selectedExam, exams])
-
-  useEffect(() => {
     if (editingEntryId) return
     if (!examDate) {
       setEntryDate('')
@@ -588,6 +570,7 @@ export default function Exams() {
     setStoredEntries([])
     setEditingEntryId(null)
     setEditingDbRecordId(null)
+    setExamDate('')
     if (!selectedExam) return
     loadStoredSchedule()
   }, [selectedExam, loadStoredSchedule])
@@ -775,6 +758,7 @@ export default function Exams() {
       }
       setQueuedEntries((prev) => prev.filter((item) => item.id !== entryId))
       setEntryDate(queuedEntry.exam_date)
+      setExamDate(queuedEntry.exam_date)
       setSchedules({
         [BASE_TABLE_ROW_ID]: {
           date: queuedEntry.exam_date,
@@ -801,6 +785,7 @@ export default function Exams() {
     const normalizedStartTime = normalizeTimeForSelect(storedEntry.exam_start_time)
     const normalizedEndTime = normalizeTimeForSelect(storedEntry.exam_end_time)
     setEntryDate(normalizedEntryDate)
+    setExamDate(normalizedEntryDate)
     setSchedules({
       [BASE_TABLE_ROW_ID]: {
         date: normalizedEntryDate,
@@ -1363,7 +1348,11 @@ export default function Exams() {
                             onClick={handleAddEntry}
                             disabled={addEntryDisabled}
                           >
-                            {addingEntry ? 'Saving entry...' : '+ Add entry'}
+                            {addingEntry
+                              ? 'Saving entry...'
+                              : editingEntryId
+                                ? 'Update entry'
+                                : '+ Add entry'}
                           </button>
                         </div>
                       </>
