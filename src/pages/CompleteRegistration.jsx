@@ -822,116 +822,116 @@ function getGroupedSchedules(schedules, subjects, courses, groups) {
 }
 
 const TimetableList = ({ schedules, subjects, courses, groups, filterGroup, filterCourse, groupedData, subCategories }) => {
-    // Use passed groupedData if available, otherwise calculate it
     const { grouped, sortedKeys } = groupedData || getGroupedSchedules(schedules, subjects, courses, groups)
 
     if (sortedKeys.length === 0) return <div className="text-center text-muted">No valid schedules found.</div>
 
     const subCategoryLookup = useMemo(() => buildSubCategoryLookup(subCategories), [subCategories])
 
-    // Filter keys based on group/course
-    const filteredKeys = sortedKeys.filter(key => {
-        const [gCode, cCode] = key.split('|')
+    const filteredKeys = useMemo(() => (
+        sortedKeys.filter(key => {
+            const [gCode, cCode] = key.split('|')
 
-        // Resolve names for comparison
-        const groupObj = groups.find(g => g.group_name === gCode || g.name === gCode || g.code === gCode)
-        const courseObj = courses.find(c => c.course_code === cCode || c.code === cCode || c.courseCode === cCode)
+            const groupObj = groups.find(g => g.group_name === gCode || g.name === gCode || g.code === gCode)
+            const courseObj = courses.find(c => c.course_code === cCode || c.code === cCode || c.courseCode === cCode)
 
-        const groupName = groupObj?.name || groupObj?.group_name || gCode
-        const courseCodeVal = courseObj?.course_code || cCode
+            const groupName = groupObj?.name || groupObj?.group_name || gCode
+            const courseCodeVal = courseObj?.course_code || cCode
 
-        if (filterGroup && groupName !== filterGroup) return false
-        if (filterCourse && courseCodeVal !== filterCourse) return false
+            if (filterGroup && groupName !== filterGroup) return false
+            if (filterCourse && courseCodeVal !== filterCourse) return false
 
-        return true
-    })
+            return true
+        })
+    ), [sortedKeys, groups, courses, filterGroup, filterCourse])
 
     if (filteredKeys.length === 0) return <div className="text-center text-muted">No schedules match the selected filters.</div>
 
-    return filteredKeys.map((key) => {
-        const [gCode, cCode, sem] = key.split('|')
+    const tableRows = useMemo(() => {
+        const rows = []
 
-        const groupObj = groups.find(g => g.group_name === gCode || g.name === gCode || g.code === gCode)
-        const courseObj = courses.find(c => c.course_code === cCode || c.code === cCode || c.courseCode === cCode)
+        filteredKeys.forEach(key => {
+            const [gCode, cCode, sem] = key.split('|')
 
-        const groupName = groupObj?.name || groupObj?.group_name || gCode
-        const courseName = courseObj?.name || courseObj?.courseName || courseObj?.course_name || cCode
+            const groupObj = groups.find(g => g.group_name === gCode || g.name === gCode || g.code === gCode)
+            const courseObj = courses.find(c => c.course_code === cCode || c.code === cCode || c.courseCode === cCode)
 
-        const groupSchedules = grouped[key]
+            const groupName = groupObj?.name || groupObj?.group_name || gCode
+            const courseName = courseObj?.name || courseObj?.courseName || courseObj?.course_name || cCode
+            const semesterLabel = sem === 'N/A' ? '-' : sem
 
-        return (
-            <div key={key} className="mb-4">
-                <div className="alert alert-soft-primary px-3 py-2 mb-2">
-                    <span className="fw-semibold text-primary">
-                        {`${getYearLabelFromSemesterNumber(sem)}. ${groupName}.${courseName ? ` ${courseName}.` : ''} ${sem !== 'N/A' ? `SEM ${sem}` : ''}`.replace(/\s+/g, ' ').trim()}
-                    </span>
-                </div>
-                <table className="table table-bordered table-sm align-middle mb-0">
-                    <thead className="bg-light">
-                        <tr>
-                            <th style={{ width: '60px' }}>S.No</th>
-                            <th style={{ width: '120px' }}>Date</th>
-                            <th style={{ width: '150px' }}>Time</th>
-                            <th>Sub Category</th>
-                            <th>Subject</th>
+            const groupSchedules = grouped[key] || []
+
+            groupSchedules.forEach(sch => {
+                const { subjectName, specificSubject } = getScheduleSubjectInfo(sch, subjects, cCode)
+                const dateStr = formatScheduleDate(sch)
+                const timeRange = getScheduleTimeRange(sch)
+                const subCategoryDisplayName =
+                    resolveCategoryFromSubject(specificSubject, subCategoryLookup) ||
+                    resolveSubCategoryName(sch.category, subCategoryLookup)
+
+                rows.push({
+                    id: sch.schedule_id || `${key}-${rows.length}-${sch.subject_code || 'slot'}`,
+                    serial: rows.length + 1,
+                    groupName,
+                    courseName,
+                    semester: semesterLabel,
+                    date: dateStr,
+                    time: timeRange,
+                    subCategory: subCategoryDisplayName,
+                    subjectCode: sch.subject_code || '-',
+                    subjectName,
+                })
+            })
+        })
+
+        return rows
+    }, [filteredKeys, grouped, subjects, courses, groups, subCategoryLookup])
+
+    return (
+        <div>
+            <div className="mb-3 d-flex flex-wrap gap-2 align-items-center">
+                <span className="fw-semibold text-muted">
+                    Showing {tableRows.length} schedule slot{tableRows.length === 1 ? '' : 's'}.
+                </span>
+                <span className="text-muted small">
+                    Sorted by date and time.
+                </span>
+            </div>
+            <div className="table-responsive">
+                <table className="table table-striped table-hover table-bordered align-middle mb-0">
+                    <thead className="table-light">
+                        <tr className="text-dark">
+                            <th style={{ width: '60px' }} className="text-center">S.No</th>
+                            <th style={{ minWidth: '130px' }}>Group</th>
+                            <th style={{ minWidth: '160px' }}>Course</th>
+                            <th style={{ width: '80px' }}>Semester</th>
+                            <th style={{ width: '110px' }}>Date</th>
+                            <th style={{ minWidth: '150px' }}>Time</th>
+                            <th style={{ minWidth: '140px' }}>Sub Category</th>
+                            <th style={{ minWidth: '140px' }}>Subject Code</th>
+                            <th>Subject Name</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {groupSchedules.map((sch, index) => {
-                            let subjectName = '-'
-                            const specificSubject = subjects.find(s => {
-                                const sCode = (s.subject_code || s.subjectCode || '').trim().toUpperCase()
-                                const schCode = (sch.subject_code || '').trim().toUpperCase()
-
-                                let match = sCode === schCode
-                                if (!match && Array.isArray(s.subjectCodes)) {
-                                    match = s.subjectCodes.map(c => String(c).trim().toUpperCase()).includes(schCode)
-                                }
-
-                                if (match && cCode !== 'Other' && cCode !== 'N/A') {
-                                    const sCourse = s.course_name || s.courseCode || s.course_code
-                                    if (sCourse && sCourse !== cCode) return false
-                                }
-                                return match
-                            })
-
-                            if (specificSubject) {
-                                if (specificSubject.subjectNames && specificSubject.subjectCodes) {
-                                    const idx = specificSubject.subjectCodes.indexOf(sch.subject_code)
-                                    if (idx !== -1) subjectName = specificSubject.subjectNames[idx]
-                                }
-                                if (subjectName === '-') {
-                                    subjectName = specificSubject.subjectName || specificSubject.subject_name || '-'
-                                }
-                            } else {
-                                const anySubject = subjects.find(s => s.subject_code === sch.subject_code)
-                                if (anySubject) subjectName = anySubject.subject_name || anySubject.subjectName || '-'
-                            }
-
-                            const dateStr = sch.exam_date ? new Date(sch.exam_date).toLocaleDateString('en-GB') : '-'
-                            const startTime = TIME_SLOTS.find((t) => t.value === sch.exam_start_time.slice(0, 5))?.displayTime || sch.exam_start_time
-                            const endTime = TIME_SLOTS.find((t) => t.value === sch.exam_end_time.slice(0, 5))?.displayTime || sch.exam_end_time
-                            const subCategoryDisplayName =
-                                resolveCategoryFromSubject(specificSubject, subCategoryLookup) ||
-                                resolveSubCategoryName(sch.category, subCategoryLookup)
-
-                            return (
-                                <tr key={sch.schedule_id}>
-                                    <td className="text-center">{index + 1}</td>
-                                    <td>{dateStr}</td>
-                                    <td>{startTime} - {endTime}</td>
-                                    <td>{subCategoryDisplayName}</td>
-                                    <td>
-                                        {sch.subject_code} - {subjectName}
-                                    </td>
-                                </tr>
-                            )
-                        })}
+                        {tableRows.map(row => (
+                            <tr key={row.id}>
+                                <td className="text-center">{row.serial}</td>
+                                <td>{row.groupName}</td>
+                                <td>{row.courseName}</td>
+                                <td>{row.semester}</td>
+                                <td>{row.date}</td>
+                                <td>{row.time}</td>
+                                <td>{row.subCategory}</td>
+                                <td>{row.subjectCode}</td>
+                                <td>{row.subjectName}</td>
+                            </tr>
+                        ))}
                     </tbody>
                 </table>
             </div>
-        )
-    })
+        </div>
+    )
 }
 
 const TimetablePrintTemplate = ({ exam, schedules, subjects, courses, groups, filterGroup, filterCourse, subCategories }) => {
@@ -1057,41 +1057,9 @@ const TimetablePrintItems = ({ schedules, subjects, courses, groups, filterGroup
                     </thead>
                     <tbody>
                         {groupSchedules.map((sch, index) => {
-                            let subjectName = '-'
-
-                            const specificSubject = subjects.find(s => {
-                                const sCode = (s.subject_code || s.subjectCode || '').trim().toUpperCase()
-                                const schCode = (sch.subject_code || '').trim().toUpperCase()
-
-                                let match = sCode === schCode
-                                if (!match && Array.isArray(s.subjectCodes)) {
-                                    match = s.subjectCodes.map(c => String(c).trim().toUpperCase()).includes(schCode)
-                                }
-
-                                if (match && cCode !== 'Other' && cCode !== 'N/A') {
-                                    const sCourse = s.course_name || s.courseCode || s.course_code
-                                    if (sCourse && sCourse !== cCode) return false
-                                }
-                                return match
-                            })
-
-                            if (specificSubject) {
-                                if (specificSubject.subjectNames && specificSubject.subjectCodes) {
-                                    const idx = specificSubject.subjectCodes.indexOf(sch.subject_code)
-                                    if (idx !== -1) subjectName = specificSubject.subjectNames[idx]
-                                }
-                                if (subjectName === '-') {
-                                    subjectName = specificSubject.subjectName || specificSubject.subject_name || '-'
-                                }
-                            } else {
-                                const anySubject = subjects.find(s => s.subject_code === sch.subject_code)
-                                if (anySubject) subjectName = anySubject.subject_name || anySubject.subjectName || '-'
-                            }
-
-                            const dateStr = sch.exam_date ? new Date(sch.exam_date).toLocaleDateString('en-GB') : '-'
-                            const startTime = TIME_SLOTS.find((t) => t.value === sch.exam_start_time.slice(0, 5))?.displayTime || sch.exam_start_time
-                            const endTime = TIME_SLOTS.find((t) => t.value === sch.exam_end_time.slice(0, 5))?.displayTime || sch.exam_end_time
-
+                            const { subjectName, specificSubject } = getScheduleSubjectInfo(sch, subjects, cCode)
+                            const dateStr = formatScheduleDate(sch)
+                            const timeRange = getScheduleTimeRange(sch)
                             const subCategoryDisplayName =
                                 resolveCategoryFromSubject(specificSubject, subCategoryLookup) ||
                                 resolveSubCategoryName(sch.category, subCategoryLookup)
@@ -1099,7 +1067,7 @@ const TimetablePrintItems = ({ schedules, subjects, courses, groups, filterGroup
                                 <tr key={sch.schedule_id}>
                                     <td className="text-center" style={{ border: '1px solid #000' }}>{index + 1}</td>
                                     <td style={{ border: '1px solid #000' }}>{dateStr}</td>
-                                    <td style={{ border: '1px solid #000' }}>{startTime} - {endTime}</td>
+                                    <td style={{ border: '1px solid #000' }}>{timeRange}</td>
                                     <td style={{ border: '1px solid #000' }}>{subCategoryDisplayName}</td>
                                     <td style={{ border: '1px solid #000' }}>
                                         {sch.subject_code} - {subjectName}
@@ -1112,4 +1080,93 @@ const TimetablePrintItems = ({ schedules, subjects, courses, groups, filterGroup
             </div>
         )
     })
+}
+
+function formatScheduleDate(schedule) {
+    if (!schedule?.exam_date) return '-'
+    const parsed = new Date(schedule.exam_date)
+    if (Number.isNaN(parsed.getTime())) return '-'
+    return parsed.toLocaleDateString('en-GB')
+}
+
+function getScheduleTimeRange(schedule) {
+    const startRaw = schedule?.exam_start_time || ''
+    const endRaw = schedule?.exam_end_time || ''
+
+    const startLabel = startRaw
+        ? TIME_SLOTS.find(t => t.value === startRaw.slice(0, 5))?.displayTime || startRaw
+        : null
+    const endLabel = endRaw
+        ? TIME_SLOTS.find(t => t.value === endRaw.slice(0, 5))?.displayTime || endRaw
+        : null
+
+    if (!startLabel && !endLabel) return '-'
+    if (!startLabel) return endLabel
+    if (!endLabel) return startLabel
+    return `${startLabel} - ${endLabel}`
+}
+
+function getScheduleSubjectInfo(schedule, subjects = [], courseFilter) {
+    const scheduleCode = normalizeCode(schedule?.subject_code)
+    if (!scheduleCode) {
+        return { subjectName: '-', specificSubject: null }
+    }
+
+    const scheduleSemester = schedule?.semester_number ? String(schedule.semester_number) : null
+
+    let specificSubject = subjects.find(subject =>
+        matchesSubjectCodes(subject, scheduleCode) &&
+        matchesSubjectSemester(subject, scheduleSemester) &&
+        matchesSubjectCourse(subject, courseFilter)
+    )
+
+    if (!specificSubject) {
+        specificSubject = subjects.find(subject => matchesSubjectCodes(subject, scheduleCode)) || null
+    }
+
+    const subjectName = specificSubject ? extractSubjectName(specificSubject, scheduleCode) : '-'
+
+    return { subjectName, specificSubject }
+}
+
+function matchesSubjectCodes(subject, scheduleCode) {
+    if (!subject || !scheduleCode) return false
+    const candidateCodes = new Set()
+    if (subject.subject_code) candidateCodes.add(normalizeCode(subject.subject_code))
+    if (subject.subjectCode) candidateCodes.add(normalizeCode(subject.subjectCode))
+    if (Array.isArray(subject.subjectCodes)) {
+        subject.subjectCodes.forEach(code => {
+            if (code) candidateCodes.add(normalizeCode(code))
+        })
+    }
+    return candidateCodes.has(scheduleCode)
+}
+
+function matchesSubjectSemester(subject, scheduleSemester) {
+    if (!scheduleSemester) return true
+    const subjectSemester = subject?.semester_number ?? subject?.semester
+    if (!subjectSemester) return true
+    return String(subjectSemester) === scheduleSemester
+}
+
+function matchesSubjectCourse(subject, courseCode) {
+    if (!courseCode || courseCode === 'Other' || courseCode === 'N/A') return true
+    const courseCandidates = [subject?.course_name, subject?.courseCode, subject?.course_code].filter(Boolean)
+    return courseCandidates.some(course => course === courseCode)
+}
+
+function extractSubjectName(subject, scheduleCode) {
+    if (!subject) return '-'
+    if (Array.isArray(subject.subjectCodes) && Array.isArray(subject.subjectNames)) {
+        const idx = subject.subjectCodes.findIndex(code => normalizeCode(code) === scheduleCode)
+        if (idx !== -1 && subject.subjectNames[idx]) {
+            return subject.subjectNames[idx]
+        }
+    }
+    return subject.subjectName || subject.subject_name || '-'
+}
+
+function normalizeCode(value) {
+    if (value === undefined || value === null) return ''
+    return String(value).trim().toUpperCase()
 }
