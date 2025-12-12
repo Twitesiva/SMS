@@ -200,6 +200,31 @@ export default function HallTickets() {
   const [bulkPrintQueue, setBulkPrintQueue] = useState(null);
   const [isBulkDownloading, setIsBulkDownloading] = useState(false);
 
+  const [selectedStudentIds, setSelectedStudentIds] = useState(new Set());
+
+  // Clear selection when filters change or students reload
+  useEffect(() => {
+    setSelectedStudentIds(new Set());
+  }, [registeredStudents]);
+
+  const toggleSelectAll = () => {
+    if (selectedStudentIds.size === registeredStudents.length) {
+      setSelectedStudentIds(new Set());
+    } else {
+      setSelectedStudentIds(new Set(registeredStudents.map(s => s.studentRowId)));
+    }
+  };
+
+  const toggleSelectStudent = (id) => {
+    const newSelected = new Set(selectedStudentIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedStudentIds(newSelected);
+  };
+
   useEffect(() => {
     if (printData) {
       const generatePDF = async () => {
@@ -306,11 +331,11 @@ export default function HallTickets() {
 
   }, [bulkPrintQueue]);
 
-  const handleDownloadAll = async () => {
-    if (!registeredStudents.length || !filters.exam) return;
+  const handleBulkDownload = async (studentsToDownload) => {
+    if (!studentsToDownload.length || !filters.exam) return;
     setIsBulkDownloading(true);
     try {
-      const studentIds = registeredStudents.map(s => s.studentRowId);
+      const studentIds = studentsToDownload.map(s => s.studentRowId);
 
       // Fetch all seats for these students for this exam
       const { data: allSeats, error: seatError } = await supabase
@@ -344,7 +369,7 @@ export default function HallTickets() {
         ])
       );
 
-      const queue = registeredStudents.map(student => {
+      const queue = studentsToDownload.map(student => {
         // Find seats for this student
         const studentSeats = allSeats.filter(s => s.student_id === student.studentRowId);
         const papers = studentSeats.map(row => {
@@ -374,6 +399,13 @@ export default function HallTickets() {
       setIsBulkDownloading(false);
       alert("Failed to prepare bulk download.");
     }
+  };
+
+  const handleDownloadAll = () => handleBulkDownload(registeredStudents);
+
+  const handleDownloadSelected = () => {
+    const selected = registeredStudents.filter(s => selectedStudentIds.has(s.studentRowId));
+    handleBulkDownload(selected);
   };
 
   const handleDownloadTicket = async (student, action = "download") => {
@@ -918,11 +950,23 @@ export default function HallTickets() {
               <div className="card card-soft shadow-sm">
                 <div className="card-body">
                   <div className="d-flex justify-content-between align-items-center gap-3 mb-3 flex-wrap">
+                    <h4 className="mb-0">Registered students</h4>
                     <div className="d-flex align-items-center gap-3">
-                      <h4 className="mb-0">Registered students</h4>
-                      {registeredStudents.length > 0 && (
+                      {loadingRegistrations && (
+                        <span className="text-muted small">Loading students…</span>
+                      )}
+                      {selectedStudentIds.size > 0 && (
                         <button
                           className="btn btn-primary btn-sm"
+                          onClick={handleDownloadSelected}
+                          disabled={isBulkDownloading}
+                        >
+                          {isBulkDownloading ? "Preparing Selected..." : `Download Selected (${selectedStudentIds.size})`}
+                        </button>
+                      )}
+                      {registeredStudents.length > 0 && (
+                        <button
+                          className="btn btn-outline-primary btn-sm"
                           onClick={handleDownloadAll}
                           disabled={isBulkDownloading}
                         >
@@ -930,9 +974,6 @@ export default function HallTickets() {
                         </button>
                       )}
                     </div>
-                    {loadingRegistrations && (
-                      <span className="text-muted small">Loading students…</span>
-                    )}
                   </div>
                   {registrationsError && (
                     <div className="alert alert-danger mb-3">
@@ -947,6 +988,16 @@ export default function HallTickets() {
                       <table className="table mb-0">
                         <thead>
                           <tr>
+                            <th style={{ width: '40px' }}>
+                              <div className="form-check">
+                                <input
+                                  className="form-check-input"
+                                  type="checkbox"
+                                  checked={registeredStudents.length > 0 && selectedStudentIds.size === registeredStudents.length}
+                                  onChange={toggleSelectAll}
+                                />
+                              </div>
+                            </th>
                             <th>Student ID</th>
                             <th>Name</th>
                             <th>Hall ticket</th>
@@ -959,6 +1010,16 @@ export default function HallTickets() {
                         <tbody>
                           {registeredStudents.map((student) => (
                             <tr key={`${student.registrationId}-${student.studentId}`}>
+                              <td>
+                                <div className="form-check">
+                                  <input
+                                    className="form-check-input"
+                                    type="checkbox"
+                                    checked={selectedStudentIds.has(student.studentRowId)}
+                                    onChange={() => toggleSelectStudent(student.studentRowId)}
+                                  />
+                                </div>
+                              </td>
                               <td>{student.studentId}</td>
                               <td>{student.name}</td>
                               <td>{student.hallTicket}</td>

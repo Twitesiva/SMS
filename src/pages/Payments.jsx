@@ -1994,9 +1994,10 @@ export default function Payments() {
   };
   // Function to generate a unique barcode
   const generateUniqueBarcode = (examRegId, subjectId) => {
-    const timestamp = Date.now();
-    const random = Math.floor(1000 + Math.random() * 9000);
-    return `BC-${examRegId}-${subjectId}-${timestamp}-${random}`;
+    // Generate a 7 digit random numeric value as requested
+    const min = 1000000;
+    const max = 9999999;
+    return String(Math.floor(Math.random() * (max - min + 1)) + min);
   };
   const persistExamRegistrationSubjects = async (
     examRegistrationId,

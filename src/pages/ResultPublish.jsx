@@ -9,6 +9,7 @@ export default function ResultPublish() {
     const [selectedExamId, setSelectedExamId] = useState("");
     const [loading, setLoading] = useState(false);
     const [publishing, setPublishing] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
 
     useEffect(() => {
         loadExams();
@@ -27,13 +28,12 @@ export default function ResultPublish() {
         }
     };
 
-    const handlePublish = async () => {
+    const handlePublishClick = async () => {
         if (!selectedExamId) {
             showToast("Please select an exam", { type: "error" });
             return;
         }
 
-        setPublishing(true);
         try {
             // Check for existing results to prevent duplicates
             const { count, error: existingError } = await supabase
@@ -45,9 +45,20 @@ export default function ResultPublish() {
 
             if (count > 0) {
                 showToast("Results are already published for this exam.", { type: "warning" });
-                setPublishing(false);
                 return;
             }
+
+            setShowConfirmModal(true);
+        } catch (error) {
+            console.error("Error checking exam status:", error);
+            showToast("Failed to verify exam status", { type: "error" });
+        }
+    };
+
+    const handlePublishConfirm = async () => {
+        setShowConfirmModal(false);
+        setPublishing(true);
+        try {
 
             // 1. Fetch registrations with nested marks data
             // We fetch the core structure but remove the direct relation joins to avoid schema errors.
@@ -208,7 +219,7 @@ export default function ResultPublish() {
                             </div>
                             <button
                                 className="btn btn-primary"
-                                onClick={handlePublish}
+                                onClick={handlePublishClick}
                                 disabled={!selectedExamId || publishing}
                             >
                                 {publishing ? "Processing..." : "Publish Results"}
@@ -217,6 +228,35 @@ export default function ResultPublish() {
                     </div>
                 </div>
             </div>
+
+            {showConfirmModal && (
+                <div className="modal d-block" tabIndex="-1" role="dialog" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content border-0 shadow-lg">
+                            <div className="modal-header border-0">
+                                <h5 className="modal-title fw-bold">Confirm Publish</h5>
+                                <button type="button" className="btn-close" onClick={() => setShowConfirmModal(false)}></button>
+                            </div>
+                            <div className="modal-body">
+                                <p className="text-muted mb-0">
+                                    Are you sure you want to publish results for <strong>{exams.find(e => e.id === selectedExamId)?.exam_name}</strong>?
+                                </p>
+                                <p className="text-muted small mt-2 mb-0">
+                                    This action cannot be undone easily. Students will be able to view their results immediately.
+                                </p>
+                            </div>
+                            <div className="modal-footer border-0">
+                                <button type="button" className="btn btn-light" onClick={() => setShowConfirmModal(false)}>
+                                    Cancel
+                                </button>
+                                <button type="button" className="btn btn-primary" onClick={handlePublishConfirm}>
+                                    Confirm Publish
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </AdminShell>
     );
 }
