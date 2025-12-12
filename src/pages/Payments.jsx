@@ -2856,15 +2856,14 @@ export default function Payments() {
             >
               <option value="">Select exam</option>
               {storedExamList.map((entry) => {
-                const disabled = isExamResultPublished(entry);
+                const isPublished = isExamResultPublished(entry);
                 return (
                   <option
                     key={entry.id}
                     value={entry.exam_name}
-                    disabled={disabled}
                   >
                     {entry.exam_name}
-                    {disabled ? " (Results published)" : ""}
+                    {isPublished ? " (Results published)" : ""}
                   </option>
                 );
               })}
@@ -2994,6 +2993,17 @@ export default function Payments() {
                             hasStoredSubjects ||
                             (detail && detail.paidTotal > 0 && !detail.fullyPaid);
                           const openModal = () => {
+                            if (!form.examName) {
+                              showToast("Please select the exam name.", { type: "warning" });
+                              return;
+                            }
+                            // Check if results are published for the selected exam
+                            const selectedExamEntry = storedExamList.find(e => e.exam_name === form.examName);
+                            if (selectedExamEntry && isExamResultPublished(selectedExamEntry) && !detail?.applied) {
+                              showToast("Results for this exam have already been published.Please Select the New Exam name!", { type: "warning" });
+                              return;
+                            }
+
                             if (!detail?.applied && !form.semester) {
                               showToast("Please select a semester first.", { type: "warning" });
                               return;
@@ -3027,8 +3037,11 @@ export default function Payments() {
                               <td className="text-end">
                                 {detail?.applied ? (
                                   (() => {
+                                    const selectedExamEntry = storedExamList.find(e => e.exam_name === form.examName);
+                                    const isResultsPublished = selectedExamEntry ? isExamResultPublished(selectedExamEntry) : false;
+
                                     const hasPayments = Number(detail.paidTotal || 0) > 0;
-                                    const canModifyStoredSubjects = !hasPayments;
+                                    const canModifyStoredSubjects = !hasPayments && !isResultsPublished;
                                     if (canModifyStoredSubjects) {
                                       return (
                                         <div className="d-flex flex-column align-items-end gap-2">

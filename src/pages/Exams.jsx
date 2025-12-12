@@ -4,6 +4,7 @@ import { api } from '../lib/mockApi'
 import { showToast, confirmToast } from '../store/ui.js'
 import { supabase } from '../../supabaseClient'
 import { TIME_SLOTS } from '../lib/timeSlots'
+import { isExamResultPublished } from '../lib/examUtils'
 
 const DEFAULT_CATEGORY_ORDER = ['UG', 'PG']
 
@@ -143,6 +144,13 @@ export default function Exams() {
   const [feedback, setFeedback] = useState({ message: '', type: '' })
   const [exams, setExams] = useState([])
   const [selectedExam, setSelectedExam] = useState('')
+
+  const selectedExamEntry = useMemo(
+    () => exams.find((e) => String(e.id) === String(selectedExam)),
+    [exams, selectedExam]
+  )
+  const isPublished = selectedExamEntry ? isExamResultPublished(selectedExamEntry) : false
+
   const [examDate, setExamDate] = useState('')
   const [examParity, setExamParity] = useState('')
   const [examsLoading, setExamsLoading] = useState(false)
@@ -1158,10 +1166,10 @@ export default function Exams() {
   const handleDeletePreviewRow = useCallback(
     async (entryId) => {
       const confirmed = await confirmToast({
-      title: 'Confirm deletion',
-      message: 'Delete this entry?',
-      confirmLabel: 'Yes, delete',
-      cancelLabel: 'Cancel',
+        title: 'Confirm deletion',
+        message: 'Delete this entry?',
+        confirmLabel: 'Yes, delete',
+        cancelLabel: 'Cancel',
       })
       if (!confirmed) return
       setDeletingPreviewEntries(true)
@@ -1259,7 +1267,13 @@ export default function Exams() {
                         value={examDate}
                         onChange={(e) => setExamDate(e.target.value)}
                         aria-label="Exam date"
+                        disabled={isPublished}
                       />
+                      {isPublished && (
+                        <div className="form-text text-danger">
+                          Results published. Date selection disabled.
+                        </div>
+                      )}
                     </>
                   ) : (
                     <div className="mt-3 mt-md-0">
@@ -1280,15 +1294,21 @@ export default function Exams() {
             {categorySelected && !selectedExam && (
               <p className="text-muted mb-3">Select an exam to load the exam date picker.</p>
             )}
-            {selectedExam && !examDateSelected && (
+            {selectedExam && isPublished && (
+              <div className="alert alert-warning mt-3">
+                Please select the new exam name for to create time table
+              </div>
+            )}
+            {selectedExam && !isPublished && !examDateSelected && (
               <p className="text-muted mb-3">Choose the exam date to access the scheduling table.</p>
             )}
-            {selectedExam && examDateSelected && !availableSemesters.length && !editingEntryId && (
+            {selectedExam && !isPublished && examDateSelected && !availableSemesters.length && !editingEntryId && (
               <p className="text-muted mb-3">
                 No semesters found for the selected category.
               </p>
             )}
             {selectedExam &&
+              !isPublished &&
               (examDateSelected || Boolean(editingEntryId)) &&
               (availableSemesters.length > 0 || editingEntryId) && (
                 <div className="card card-soft mb-3">
@@ -1471,27 +1491,31 @@ export default function Exams() {
                   </div>
                 </div>
               )}
-            {queuedEntries.length ? (
-              <p className="small text-muted mb-2">
-                {queuedEntries.length} {queuedEntries.length === 1 ? 'entry' : 'entries'} ready for preview or save.
-              </p>
-            ) : (
-              <p className="small text-muted mb-2">
-                Use "+ Add entry" to buffer each day before previewing or submitting.
-              </p>
+            {!isPublished && (
+              <>
+                {queuedEntries.length ? (
+                  <p className="small text-muted mb-2">
+                    {queuedEntries.length} {queuedEntries.length === 1 ? 'entry' : 'entries'} ready for preview or save.
+                  </p>
+                ) : (
+                  <p className="small text-muted mb-2">
+                    Use "+ Add entry" to buffer each day before previewing or submitting.
+                  </p>
+                )}
+                <div className="d-flex justify-content-end gap-2">
+                  <button className="btn btn-brand" disabled={previewDisabled} onClick={handlePreview}>
+                    Preview entries
+                  </button>
+                  <button
+                    className="btn btn-success"
+                    disabled={saveDisabled}
+                    onClick={handleSaveSchedule}
+                  >
+                    {saving ? 'Saving...' : 'Submit entries'}
+                  </button>
+                </div>
+              </>
             )}
-            <div className="d-flex justify-content-end gap-2">
-              <button className="btn btn-brand" disabled={previewDisabled} onClick={handlePreview}>
-                Preview entries
-              </button>
-              <button
-                className="btn btn-success"
-                disabled={saveDisabled}
-                onClick={handleSaveSchedule}
-              >
-                {saving ? 'Saving...' : 'Submit entries'}
-              </button>
-            </div>
           </>
         ) : (
           <div className="card card-soft p-4">

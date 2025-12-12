@@ -31,11 +31,15 @@ export default function Reports() {
         group_name: "",
         course_name: "",
         category: "",
+        course_name: "",
+        category: "",
         current_semester: "",
+        payment_status: "",
     });
     const [years, setYears] = useState([]);
     const [groups, setGroups] = useState([]);
     const [courses, setCourses] = useState([]);
+    const [registrations, setRegistrations] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const baseCategoryOptions = ["UG", "PG"];
@@ -247,6 +251,25 @@ export default function Reports() {
                 setYears(yearsData || []);
                 setGroups(groupsData || []);
                 setCourses(coursesData || []);
+
+                const { data: regData, error: regError } = await supabase
+                    .from("exam_registrations")
+                    .select(`
+                        id,
+                        student_id, 
+                        academic_year, 
+                        semester, 
+                        status,
+                        total_fee,
+                        payments (
+                            amount_paid,
+                            payment_status
+                        )
+                    `);
+
+                if (regError) throw regError;
+                setRegistrations(regData || []);
+
             } catch (error) {
                 console.error("Error loading data:", error);
             } finally {
@@ -275,6 +298,8 @@ export default function Reports() {
                 next.current_semester = "";
             } else if (name === "course_name") {
                 next.current_semester = "";
+            } else if (name === "payment_status") {
+                // No dependencies to reset?
             }
 
             return next;
@@ -291,28 +316,115 @@ export default function Reports() {
             const matchesCourse = !filters.course_name || s.course_code === filters.course_name;
             const matchesSemester = !filters.current_semester || String(s.current_semester) === String(filters.current_semester);
 
-            return matchesYear && matchesGroup && matchesCourse && matchesSemester;
+            let matchesPayment = true;
+            if (filters.payment_status) {
+                // Find registration using filter semester or student semester
+                const targetSem = filters.current_semester || s.current_semester;
+
+                const reg = registrations.find(r =>
+                    r.student_id === s.id &&
+                    r.academic_year === filters.academic_year &&
+                    String(r.semester) === String(targetSem)
+                );
+
+                let status = 'not_registered';
+                if (reg) {
+                    const totalPaid = (reg.payments || []).reduce((sum, p) => {
+                        return p.payment_status === 'success' ? sum + Number(p.amount_paid || 0) : sum;
+                    }, 0);
+                    const isPaid = totalPaid >= Number(reg.total_fee || 0);
+
+                    if (isPaid) status = 'paid';
+                    else status = 'pending';
+
+                    // Fallback to explicit status if paid check fails but status says paid (edge case)
+                    if (status !== 'paid' && (reg.status || '').toLowerCase() === 'paid') {
+                        status = 'paid';
+                    }
+                }
+
+                if (filters.payment_status === 'not_registered') {
+                    matchesPayment = status === 'not_registered';
+                } else {
+                    matchesPayment = status === filters.payment_status.toLowerCase();
+                }
+            }
+
+            return matchesYear && matchesGroup && matchesCourse && matchesSemester && matchesPayment;
         });
-    }, [studentsForCategory, filters]);
+    }, [studentsForCategory, filters, registrations]);
+
+    // List of students filtered by everything EXCEPT Group Name
+    // This allows the Group chart to show all groups (context) while highlighting the selected one.
+    const studentsForGroupChart = useMemo(() => {
+        if (!filters.academic_year) return [];
+
+        return studentsForCategory.filter((s) => {
+            const matchesYear = s.academic_year === filters.academic_year;
+            // Explicitly skip matchesGroup check here
+            const matchesCourse = !filters.course_name || s.course_code === filters.course_name;
+            const matchesSemester = !filters.current_semester || String(s.current_semester) === String(filters.current_semester);
+
+            return matchesYear && matchesCourse && matchesSemester;
+        });
+    }, [studentsForCategory, filters.academic_year, filters.course_name, filters.current_semester]);
+
+    // Education Themed Colors
+    // Navy Blue, Academic Gold, Success Green, Brick Red, Royal Purple, Slate
+    const eduColors = [
+        "rgba(0, 51, 102, 0.85)",   // Navy
+        "rgba(255, 193, 7, 0.85)",  // Gold
+        "rgba(40, 167, 69, 0.85)",  // Green
+        "rgba(220, 53, 69, 0.85)",  // Brick Red
+        "rgba(111, 66, 193, 0.85)", // Purple
+        "rgba(108, 117, 125, 0.85)",// Slate
+    ];
+
+    const getSemesterColor = (semString) => {
+        const match = (semString || "").match(/Semester\s+(\d+)/i);
+        if (match) {
+            const index = (parseInt(match[1], 10) - 1) % eduColors.length;
+            // Handle negative index if semester is 0 for some reason, though unlikely
+            const safeIndex = index < 0 ? 0 : index;
+            return eduColors[safeIndex];
+        }
+        return eduColors[5]; // Default to Slate
+    };
 
     const chartData = useMemo(() => {
         if (!filters.academic_year) return null;
 
         const filteredData = filteredStudentsList;
+        const groupChartSource = studentsForGroupChart;
 
-        // Group Counts
+        // Group Counts (using the broader source)
         const groupCounts = {};
-        filteredData.forEach((student) => {
+        groupChartSource.forEach((student) => {
             const group = student.group_name || "Unknown";
             groupCounts[group] = (groupCounts[group] || 0) + 1;
         });
 
-        const groupLabels = Object.keys(groupCounts).map(
-            (group) => `${group} (${groupCounts[group]})`
+        const rawGroups = Object.keys(groupCounts);
+        const groupLabels = rawGroups.map(
+            (group) => filters.group_name ? `${group} (${groupCounts[group]})` : group
         );
         const groupValues = Object.values(groupCounts);
 
-        // Course Counts
+        // Determine colors for groups based on selection
+        const groupColors = rawGroups.map((groupName, i) => {
+            const defaultColor = eduColors[i % eduColors.length];
+            if (!filters.group_name) return defaultColor; // No filter, all colored
+
+            // Find group code for this group name to compare with filter
+            const groupObj = groups.find(g => g.group_name === groupName);
+            const isSelected = groupObj && groupObj.group_code === filters.group_name;
+
+            return isSelected ? defaultColor : "rgba(0, 0, 0, 0.1)"; // Highlight or Low Level
+        });
+
+        const groupBorders = groupColors.map(c => c.replace("0.85", "1").replace("0.1)", "0.2)"));
+
+        // Course Counts (using the specific filtered list)
         const courseCounts = {};
         filteredData.forEach((student) => {
             const course = student.course_name || "Unknown";
@@ -320,11 +432,11 @@ export default function Reports() {
         });
 
         const courseLabels = Object.keys(courseCounts).map(
-            (course) => `${course} (${courseCounts[course]})`
+            (course) => (filters.course_name || filters.group_name) ? `${course} (${courseCounts[course]})` : course
         );
         const courseValues = Object.values(courseCounts);
 
-        // Semester Counts
+        // Semester Counts (using the specific filtered list)
         const semesterCounts = {};
         filteredData.forEach((student) => {
             const sem = student.current_semester
@@ -333,34 +445,33 @@ export default function Reports() {
             semesterCounts[sem] = (semesterCounts[sem] || 0) + 1;
         });
 
-        const semesterLabels = Object.keys(semesterCounts).map(
+        const sortedSemesterKeys = Object.keys(semesterCounts).sort((a, b) => {
+            const matchA = a.match(/Semester\s+(\d+)/i);
+            const matchB = b.match(/Semester\s+(\d+)/i);
+            const numA = matchA ? parseInt(matchA[1], 10) : 999;
+            const numB = matchB ? parseInt(matchB[1], 10) : 999;
+            return numA - numB;
+        });
+
+        const semesterLabels = sortedSemesterKeys.map(
             (sem) => `${sem} (${semesterCounts[sem]})`
         );
-        const semesterValues = Object.values(semesterCounts);
+        const semesterValues = sortedSemesterKeys.map(sem => semesterCounts[sem]);
 
-        // Education Themed Colors
-        // Navy Blue, Academic Gold, Success Green, Brick Red, Royal Purple, Slate
-        const eduColors = [
-            "rgba(0, 51, 102, 0.85)",   // Navy
-            "rgba(255, 193, 7, 0.85)",  // Gold
-            "rgba(40, 167, 69, 0.85)",  // Green
-            "rgba(220, 53, 69, 0.85)",  // Brick Red
-            "rgba(111, 66, 193, 0.85)", // Purple
-            "rgba(108, 117, 125, 0.85)",// Slate
-        ];
-
-        const eduBorders = eduColors.map(c => c.replace("0.85", "1"));
 
         return {
             total: filteredData.length,
+            rawGroups: rawGroups,
+            rawCourses: Object.keys(courseCounts),
+            rawSemesters: sortedSemesterKeys,
             groups: {
                 labels: groupLabels,
                 datasets: [
                     {
                         label: "Students per Group",
                         data: groupValues,
-                        backgroundColor: eduColors,
-                        borderColor: eduBorders,
+                        backgroundColor: groupColors,
+                        borderColor: groupBorders,
                         borderWidth: 1,
                         borderRadius: 4,
                     },
@@ -385,14 +496,66 @@ export default function Reports() {
                     {
                         label: "Students per Semester",
                         data: semesterValues,
-                        backgroundColor: eduColors,
-                        borderColor: eduBorders,
+                        backgroundColor: sortedSemesterKeys.map(s => getSemesterColor(s)),
+                        borderColor: sortedSemesterKeys.map(s => getSemesterColor(s).replace("0.85", "1")),
                         borderWidth: 1,
                     },
                 ],
             },
         };
-    }, [filteredStudentsList, filters.academic_year]);
+    }, [filteredStudentsList, studentsForGroupChart, filters.academic_year, filters.group_name, eduColors]);
+
+    const handleChartHover = (event, chartElement) => {
+        event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
+    };
+
+    const handleGroupClick = (event, elements) => {
+        if (!elements || elements.length === 0) return;
+        const index = elements[0].index;
+        const groupName = chartData.rawGroups[index];
+        if (!groupName) return;
+
+        const groupObj = groups.find(g => g.group_name === groupName);
+        if (groupObj) {
+            setFilters(prev => ({
+                ...prev,
+                group_name: prev.group_name === groupObj.group_code ? "" : groupObj.group_code
+            }));
+        }
+    };
+
+    const handleCourseClick = (event, elements) => {
+        if (!elements || elements.length === 0) return;
+        const index = elements[0].index;
+        const courseName = chartData.rawCourses[index];
+        if (!courseName) return;
+
+        const courseObj = courses.find(c => c.course_name === courseName);
+        if (courseObj) {
+            setFilters(prev => ({
+                ...prev,
+                course_name: prev.course_name === courseObj.course_code ? "" : courseObj.course_code
+            }));
+        }
+    };
+
+    const handleSemesterClick = (event, elements) => {
+        if (!elements || elements.length === 0) return;
+        const index = elements[0].index;
+        const semesterLabel = chartData.rawSemesters[index];
+        if (!semesterLabel) return;
+
+        const match = semesterLabel.match(/Semester\s+(\d+)/i);
+        if (match) {
+            const semNumber = match[1];
+            setFilters(prev => ({
+                ...prev,
+                current_semester: String(prev.current_semester) === String(semNumber) ? "" : semNumber
+            }));
+        }
+    };
+
+
 
     return (
         <AdminShell>
@@ -499,6 +662,23 @@ export default function Reports() {
                                     ))}
                                 </select>
                             </div>
+                            <div className="col-md-2">
+                                <label className="form-label fw-bold small text-uppercase text-muted">
+                                    Payment Status
+                                </label>
+                                <select
+                                    className="form-select text-dark fw-medium py-2"
+                                    name="payment_status"
+                                    value={filters.payment_status}
+                                    onChange={handleChange}
+                                    disabled={loading}
+                                >
+                                    <option value="">All Status</option>
+                                    <option value="paid">Paid</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="not_registered">Not Registered</option>
+                                </select>
+                            </div>
                         </div>
 
                         {loading && (
@@ -519,7 +699,7 @@ export default function Reports() {
                                 <div className="card shadow-sm border-0 rounded-4 bg-primary text-white">
                                     <div className="card-body p-4 d-flex align-items-center justify-content-between">
                                         <div>
-                                            <h5 className="mb-1 text-white-50 text-uppercase small fw-bold">
+                                            <h5 className="mb-1 text-black text-uppercase small fw-bold">
                                                 Total Students
                                             </h5>
                                             <h1 className="display-4 fw-bold mb-0">
@@ -543,15 +723,34 @@ export default function Reports() {
                             {/* Group Distribution */}
                             <div className="col-md-6 col-lg-4">
                                 <div className="card shadow-sm border-0 rounded-4 h-100">
-                                    <div className="card-header bg-white border-0 pt-4 px-4 pb-0">
+                                    <div className="card-header bg-white border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-start">
                                         <h5 className="fw-bold mb-0 text-secondary">
-                                            Group Distribution
+                                            Group
                                         </h5>
+                                        <div className="d-flex flex-column align-items-end gap-1" style={{ maxWidth: '60%' }}>
+                                            {// Use chartData.groups.datasets[0].backgroundColor array to match the legend colors
+                                                chartData.rawGroups.map((g, i) => {
+                                                    const color = chartData.groups.datasets[0].backgroundColor[i];
+                                                    return (
+                                                        <div key={g} className="d-flex align-items-center gap-2">
+                                                            <div style={{ width: '10px', height: '10px', backgroundColor: color, borderRadius: '2px' }}></div>
+                                                            <span className="fw-bold text-dark small" style={{ opacity: color.includes('0.1') ? 0.5 : 1 }}>
+                                                                {g}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                        </div>
                                     </div>
                                     <div className="card-body p-4">
                                         <Bar
                                             data={chartData.groups}
-                                            options={{ responsive: true, plugins: { legend: { display: false } } }}
+                                            options={{
+                                                responsive: true,
+                                                plugins: { legend: { display: false } },
+                                                onClick: handleGroupClick,
+                                                onHover: handleChartHover
+                                            }}
                                         />
                                     </div>
                                 </div>
@@ -560,15 +759,30 @@ export default function Reports() {
                             {/* Course Distribution */}
                             <div className="col-md-6 col-lg-4">
                                 <div className="card shadow-sm border-0 rounded-4 h-100">
-                                    <div className="card-header bg-white border-0 pt-4 px-4 pb-0">
+                                    <div className="card-header bg-white border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-start">
                                         <h5 className="fw-bold mb-0 text-secondary">
-                                            Course Distribution
+                                            Course
                                         </h5>
+                                        <div className="d-flex flex-column align-items-end gap-1" style={{ maxWidth: '60%' }}>
+                                            {chartData.rawCourses.map((c, i) => (
+                                                <div key={c} className="d-flex align-items-center gap-2">
+                                                    <div style={{ width: '10px', height: '10px', backgroundColor: "rgba(23, 162, 184, 0.85)", borderRadius: '2px' }}></div>
+                                                    <span className="fw-bold text-dark small">
+                                                        {c}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                     <div className="card-body p-4">
                                         <Bar
                                             data={chartData.courses}
-                                            options={{ responsive: true, plugins: { legend: { display: false } } }}
+                                            options={{
+                                                responsive: true,
+                                                plugins: { legend: { display: false } },
+                                                onClick: handleCourseClick,
+                                                onHover: handleChartHover
+                                            }}
                                         />
                                     </div>
                                 </div>
@@ -577,16 +791,31 @@ export default function Reports() {
                             {/* Semester Distribution */}
                             <div className="col-md-6 col-lg-4">
                                 <div className="card shadow-sm border-0 rounded-4 h-100">
-                                    <div className="card-header bg-white border-0 pt-4 px-4 pb-0">
+                                    <div className="card-header bg-white border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-start">
                                         <h5 className="fw-bold mb-0 text-secondary">
-                                            Semester Breakdown
+                                            Semester
                                         </h5>
+                                        <div className="d-flex flex-column align-items-end gap-1" style={{ maxWidth: '60%' }}>
+                                            {chartData.rawSemesters.map((s) => (
+                                                <div key={s} className="d-flex align-items-center gap-2">
+                                                    <div style={{ width: '10px', height: '10px', backgroundColor: getSemesterColor(s), borderRadius: '2px' }}></div>
+                                                    <span className="fw-bold text-dark small">
+                                                        {s}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                     <div className="card-body p-4 d-flex justify-content-center">
                                         <div style={{ maxWidth: "300px", width: "100%" }}>
                                             <Pie
                                                 data={chartData.semesters}
-                                                options={{ responsive: true, plugins: { legend: { position: 'bottom' } } }}
+                                                options={{
+                                                    responsive: true,
+                                                    plugins: { legend: { display: false } },
+                                                    onClick: handleSemesterClick,
+                                                    onHover: handleChartHover
+                                                }}
                                             />
                                         </div>
                                     </div>
@@ -620,6 +849,7 @@ export default function Reports() {
                                                     <th>Course</th>
                                                     <th>Academic Year</th>
                                                     <th>Semester</th>
+                                                    <th>Payment Status</th>
                                                     <th>Status</th>
                                                 </tr>
                                             </thead>
@@ -637,6 +867,41 @@ export default function Reports() {
                                                                 {student.current_semester
                                                                     ? `Semester ${student.current_semester}`
                                                                     : "Semester N/A"}
+                                                            </td>
+                                                            <td>
+                                                                {(() => {
+                                                                    const targetSem = filters.current_semester || student.current_semester;
+                                                                    const reg = registrations.find(r =>
+                                                                        r.student_id === student.id &&
+                                                                        r.academic_year === filters.academic_year &&
+                                                                        String(r.semester) === String(targetSem)
+                                                                    );
+
+                                                                    let displayStatus = 'Not Registered';
+                                                                    let badgeClass = 'bg-secondary';
+
+                                                                    if (reg) {
+                                                                        const totalPaid = (reg.payments || []).reduce((sum, p) => {
+                                                                            return p.payment_status === 'success' ? sum + Number(p.amount_paid || 0) : sum;
+                                                                        }, 0);
+                                                                        const isPaid = totalPaid >= Number(reg.total_fee || 0);
+
+                                                                        // Check calculated payment or explicit status
+                                                                        if (isPaid || (reg.status || '').toLowerCase() === 'paid') {
+                                                                            displayStatus = 'Paid';
+                                                                            badgeClass = 'bg-success';
+                                                                        } else {
+                                                                            displayStatus = 'Pending';
+                                                                            badgeClass = 'bg-warning text-dark';
+                                                                        }
+                                                                    }
+
+                                                                    return (
+                                                                        <span className={`badge rounded-pill ${badgeClass}`} style={{ minWidth: "80px", fontSize: "0.85em" }}>
+                                                                            {displayStatus}
+                                                                        </span>
+                                                                    );
+                                                                })()}
                                                             </td>
                                                             <td>
                                                                 <span

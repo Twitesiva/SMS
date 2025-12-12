@@ -146,8 +146,8 @@ export default function Results() {
     if (Number.isNaN(obtained)) {
       return
     }
-    if (obtained >= 100) {
-      setMarksError('please enter valid marks')
+    if (obtained > 100) {
+      setMarksError('Please Enter valid Marks')
       return
     }
     setSavingMarks(true)
@@ -242,11 +242,8 @@ export default function Results() {
         <div className="card card-soft p-3 mt-4" style={{ maxWidth: '600px', margin: '0 auto' }}>
           <h5 className="mb-2">Subject Details</h5>
           <p className="mb-1">
-            <strong>Subject Name</strong><br />
-            {subject.subject_name}
-          </p>
-          <p className="mb-3">
-            <strong>Subject Code:</strong> {subject.subject_code || '-'}
+            <strong>Subject</strong><br />
+            {subject.subject_code ? `${subject.subject_code} - ${subject.subject_name}` : subject.subject_name}
           </p>
 
           <div className="row g-2 align-items-end">
@@ -262,8 +259,8 @@ export default function Results() {
                   setMarksForm(prev => ({ ...prev, marks_obtained: value }))
                   if (value === '') {
                     setMarksError('')
-                  } else if (Number(value) >= 100) {
-                    setMarksError('please enter valid marks')
+                  } else if (Number(value) > 100) {
+                    setMarksError('Invalid marks')
                   } else {
                     setMarksError('')
                   }
