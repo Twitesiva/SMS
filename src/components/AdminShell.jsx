@@ -2,12 +2,12 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../store/auth";
 import logo from "../assets/media/images.png";
+
 const navGroups = [
   {
     title: "Dashboard",
-    items: [
-      { to: "/admin/dashboard", label: "Dashboard", icon: "bi-speedometer2" },
-    ],
+    static: true,
+    items: [{ to: "/admin/dashboard", label: "Dashboard", icon: "bi-grid-fill" }],
   },
   {
     title: "Student Portal",
@@ -60,8 +60,8 @@ export default function AdminShell({ children, onSignOut }) {
 
   // Automatically expand the group that contains the current active route
   useEffect(() => {
-    const activeGroupIndex = navGroups.findIndex((group) =>
-      group.items.some((item) => item.to === pathname)
+    const activeGroupIndex = navGroups.findIndex(
+      (group) => !group.static && group.items.some((item) => item.to === pathname)
     );
     if (activeGroupIndex !== -1) {
       setExpandedGroups((prev) => ({
@@ -72,6 +72,7 @@ export default function AdminShell({ children, onSignOut }) {
   }, [pathname]);
 
   const toggleGroup = (index) => {
+    if (navGroups[index]?.static) return;
     setExpandedGroups((prev) => ({
       ...prev,
       [index]: !prev[index],
@@ -180,7 +181,52 @@ export default function AdminShell({ children, onSignOut }) {
           className="sidebar-nav flex-grow-1 d-flex flex-column gap-1"
         >
           {navGroups.map((group, groupIndex) => {
-            // Check if this group contains the active route to highlight the header if needed
+            const isStatic = group.static;
+            if (isStatic) {
+              const item = group.items[0];
+              return (
+                <div key={`static-${groupIndex}`} className="nav-group">
+                  {!collapsed && (
+                    <Link
+                      to={item.to}
+                      title={item.label}
+                      className={`nav-group-header item-box fw-bold d-flex align-items-center user-select-none nav-item-modern ${pathname === item.to ? "active" : ""}`}
+                      style={{
+                        margin: "10px 12px 4px",
+                        padding: "12px 16px",
+                        borderRadius: "12px",
+                        background: "rgba(255, 255, 255, 0.08)",
+                        border: "1px solid rgba(255, 255, 255, 0.05)",
+                        fontSize: "0.9rem",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                      }}
+                    >
+                      <div className="d-flex align-items-center gap-2">
+                        <i
+                          className={`bi ${item.icon}`}
+                          style={{ fontSize: "0.9rem", opacity: 0.8 }}
+                        ></i>
+                        <span className="nav-group-title">{group.title}</span>
+                      </div>
+                    </Link>
+                  )}
+                  {collapsed && (
+                    <Link
+                      to={item.to}
+                      title={item.label}
+                      className={`nav-item-modern ${pathname === item.to ? "active" : ""}`}
+                    >
+                      <span className="icon">
+                        <i className={`bi ${item.icon}`}></i>
+                      </span>
+                      <span className="label">{item.label}</span>
+                    </Link>
+                  )}
+                </div>
+              );
+            }
+
             const isActiveGroup = group.items.some((item) => item.to === pathname);
             const isExpanded = expandedGroups[groupIndex];
 
@@ -231,8 +277,7 @@ export default function AdminShell({ children, onSignOut }) {
                       key={item.to}
                       to={item.to}
                       title={item.label}
-                      className={`nav-item-modern ${pathname === item.to ? "active" : ""
-                        }`}
+                      className={`nav-item-modern ${pathname === item.to ? "active" : ""}`}
                     >
                       <span className="icon">
                         <i className={`bi ${item.icon}`}></i>

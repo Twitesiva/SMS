@@ -318,43 +318,55 @@ export default function Dashboard() {
     };
   }, [regSubjects.length, marks.length, exams]);
 
-  const metrics = useMemo(() => {
-    const latestExamName = exams[0]?.exam_name;
-    const resultsAwaitingReview = Math.max(regSubjects.length - marks.length, 0);
+  const latestExamName = exams[0]?.exam_name;
 
-    return [
+  const issuedPercent = useMemo(() => {
+    const total = registrations.length;
+    if (!total) return 0;
+    return Math.round((hallTicketStatusCounts.Issued / total) * 100);
+  }, [hallTicketStatusCounts.Issued, registrations.length]);
+
+  const marksPercent = useMemo(() => {
+    if (!regSubjects.length) return 0;
+    return Math.round((marks.length / regSubjects.length) * 100);
+  }, [marks.length, regSubjects.length]);
+
+  const heroStats = useMemo(
+    () => [
       {
         label: "Active Exams",
         value: exams.length,
-        detail: latestExamName
-          ? `Latest: ${latestExamName}`
-          : "Create an exam session to begin",
-        icon: "bi-calendar-event",
+        meta: latestExamName ? `Latest: ${latestExamName}` : "Create an exam session",
       },
       {
-        label: "Pending Hall Tickets",
-        value: hallTicketStatusCounts.Pending,
-        detail: `Issued ${hallTicketStatusCounts.Issued} · Escalated ${hallTicketStatusCounts.Escalated}`,
-        icon: "bi-ticket-perforated",
+        label: "Hall Tickets Issued",
+        value: hallTicketStatusCounts.Issued,
+        meta: `${issuedPercent}% of registrations`,
       },
       {
-        label: "Results Awaiting Review",
-        value: resultsAwaitingReview,
-        detail: `${marks.length} mark entries captured`,
-        icon: "bi-pencil-square",
+        label: "Registrations",
+        value: registrations.length,
+        meta: "Captured across all sessions",
       },
-    ];
-  }, [exams, hallTicketStatusCounts, regSubjects.length, marks.length]);
+      {
+        label: "Result Entries",
+        value: marks.length,
+        meta: `${marksPercent}% coverage`,
+      },
+    ],
+    [
+      exams.length,
+      hallTicketStatusCounts.Issued,
+      issuedPercent,
+      latestExamName,
+      marks.length,
+      marksPercent,
+      registrations.length,
+    ]
+  );
 
   const insightTiles = useMemo(() => {
     const totalRegistrations = registrations.length;
-    const issuedPercent = totalRegistrations
-      ? Math.round((hallTicketStatusCounts.Issued / totalRegistrations) * 100)
-      : 0;
-    const marksPercent = regSubjects.length
-      ? Math.round((marks.length / regSubjects.length) * 100)
-      : 0;
-
     return [
       {
         title: "Hall Ticket Sync",
@@ -375,7 +387,14 @@ export default function Dashboard() {
         badge: marksPercent >= 60 ? "Review" : "Draft",
       },
     ];
-  }, [hallTicketStatusCounts, registrations.length, regSubjects.length, marks.length]);
+  }, [
+    hallTicketStatusCounts.Issued,
+    issuedPercent,
+    marks.length,
+    marksPercent,
+    regSubjects.length,
+    registrations.length,
+  ]);
 
   const upcomingActions = useMemo(() => {
     if (!deadlines.length) {
@@ -383,7 +402,8 @@ export default function Dashboard() {
         {
           title: "Configure exam deadlines",
           time: "No deadlines set",
-          detail: "Visit Departments → Exam Deadlines to log the registration cutoff.",
+          detail:
+            "Visit Departments → Exam Deadlines to log the registration cutoff.",
         },
       ];
     }
@@ -403,91 +423,94 @@ export default function Dashboard() {
 
   return (
     <AdminShell>
-      <div className="dashboard-page">
-        <section className="dashboard-hero card-shadow">
-          <div>
-            <p className="text-uppercase text-secondary small mb-1">
-              Dashboard / Overview
-            </p>
-            <h1 className="dashboard-heading">Exam Management</h1>
-            <p className="text-muted light-body">
-              Visualize exam progress, hall ticket circulation, and result readiness across the
-              institution.
+      <div className="students-page-shell">
+        <div className="students-hero mb-4">
+          <div className="px-3 pt-3">
+            <p className="students-hero-eyebrow text-uppercase mb-1">Dashboard</p>
+            <h2 className="students-hero-title">Exam Control Center</h2>
+            <p className="students-hero-copy mb-0">
+              Track exam workflows, hall ticket progress, and result readiness in one polished area.
             </p>
           </div>
-          <div className="dashboard-hero-meta">
-            <span className="dashboard-badge">Live Snapshot</span>
-            {loading ? (
-              <p className="small text-muted mb-0">Loading live data…</p>
-            ) : error ? (
-              <p className="small text-danger mb-0">Live data paused ({error})</p>
-            ) : (
-              <p className="small text-muted mb-0">
-                {registrations.length
-                  ? `Captured ${registrations.length} registration records`
-                  : "Awaiting registration activity"}
-              </p>
-            )}
+          <div className="students-stats-grid row g-3 px-3 pb-3">
+            {heroStats.map((stat) => (
+              <div className="col-6 col-md-3" key={stat.label}>
+                <div className="students-hero-card h-100 p-3">
+                  <div className="students-hero-stat-label small mb-1 text-white">
+                    {stat.label}
+                  </div>
+                  <div className="fs-3 fw-bold students-hero-stat-value text-white">
+                    {stat.value}
+                  </div>
+                  <div className="students-hero-stat-meta small text-white">
+                    {stat.meta}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-        </section>
+        </div>
 
-        <section className="dashboard-cards">
-          {metrics.map((metric) => (
-            <article key={metric.label} className="dashboard-card card-shadow">
-              <div className="dashboard-card-icon">
-                <i className={`bi ${metric.icon}`}></i>
-              </div>
-              <div>
-                <div className="dashboard-card-value">{metric.value}</div>
-                <div className="dashboard-card-label">{metric.label}</div>
-                <p className="text-muted mb-0">{metric.detail}</p>
-              </div>
-            </article>
-          ))}
-        </section>
-
-        <section className="dashboard-layout">
-          <div className="dashboard-chart-row">
-            <article className="dashboard-chart-card card-shadow">
-              <div className="dashboard-chart-header">
-                <h3>Exam Readiness Trend</h3>
-                <p className="text-muted mb-0">Weekly registrations vs. hall tickets issued</p>
+        <div className="row g-4 mb-3">
+          <div className="col-12 col-xl-8">
+            <div className="students-table-panel card card-soft p-4">
+              <div className="students-table-panel-header mb-3">
+                <div>
+                  <p className="students-table-panel-title mb-1">
+                    Exam Readiness Trend
+                  </p>
+                  <p className="students-table-panel-copy small mb-0">
+                    Weekly registrations vs. hall tickets issued
+                  </p>
+                </div>
               </div>
               <div className="dashboard-chart-wrapper">
                 <Line data={readinessTrendData} options={lineOptions} />
               </div>
-            </article>
-
-            <article className="dashboard-chart-card card-shadow">
-              <div className="dashboard-chart-header">
-                <h3>Hall Ticket Distribution</h3>
-                <p className="text-muted mb-0">How registration statuses are progressing</p>
+            </div>
+          </div>
+          <div className="col-12 col-xl-4">
+            <div className="students-supplementary-grid card card-soft d-flex flex-column p-3">
+              <div>
+                <h5 className="fw-bold mb-2">Hall Ticket Distribution</h5>
+                <p className="text-muted small mb-3">
+                  Status of issued, pending, and escalated tickets
+                </p>
               </div>
-              <div className="dashboard-chart-wrapper smaller">
+              <div className="dashboard-chart-wrapper smaller flex-grow-1">
                 <Doughnut data={hallTicketChartData} options={donutOptions} />
               </div>
-              <div className="dashboard-chart-legend">
+              <div className="dashboard-chart-legend mt-3">
                 <span>{hallTicketStatusCounts.Issued} issued</span>
                 <span>{hallTicketStatusCounts.Pending} pending</span>
                 <span>{hallTicketStatusCounts.Escalated} escalated</span>
               </div>
-            </article>
+            </div>
           </div>
+        </div>
 
-          <div className="dashboard-chart-row">
-            <article className="dashboard-chart-card card-shadow">
-              <div className="dashboard-chart-header">
-                <h3>Result Status Breakdown</h3>
-                <p className="text-muted mb-0">Draft, recorded, and published result stages</p>
+        <div className="row g-4">
+          <div className="col-12 col-xl-7">
+            <div className="students-table-panel card card-soft p-4">
+              <div className="students-table-panel-header mb-3">
+                <div>
+                  <p className="students-table-panel-title mb-1">
+                    Result Status Breakdown
+                  </p>
+                  <p className="students-table-panel-copy small mb-0">
+                    Draft, recorded, and published result stages
+                  </p>
+                </div>
               </div>
               <div className="dashboard-chart-wrapper">
                 <Bar data={resultBreakdownData} options={barOptions} />
               </div>
-            </article>
-
-            <article className="dashboard-insights card-shadow">
-              <h3>Actionable Insights</h3>
-              <div className="insight-grid">
+            </div>
+          </div>
+          <div className="col-12 col-xl-5">
+            <div className="students-table-panel card card-soft p-4">
+              <h5 className="fw-bold mb-3">Actionable Insights</h5>
+              <div className="insight-grid mb-3">
                 {insightTiles.map((tile) => (
                   <div key={tile.title} className="insight-tile">
                     <div className="insight-tile-heading">
@@ -511,9 +534,9 @@ export default function Dashboard() {
                   ))}
                 </div>
               </div>
-            </article>
+            </div>
           </div>
-        </section>
+        </div>
       </div>
     </AdminShell>
   );
