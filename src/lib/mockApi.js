@@ -270,10 +270,8 @@ const mapSubCategory = (row = {}) => ({
   subjects: parseSubjectList(row.subjects_name),
 });
 
-const toSubCategoryRow = ({ name, subjects }) => ({
+const toSubCategoryRow = ({ name }) => ({
   category_name: name,
-  category_count: Array.isArray(subjects) ? subjects.length : 0,
-  subjects_name: JSON.stringify(Array.isArray(subjects) ? subjects : []),
 });
 
 const mapSubject = (row = {}) => {
@@ -814,7 +812,7 @@ export const api = {
     const rows = await runQuery(
       supabase
         .from(TABLES.subCategories)
-        .select("category_id, category_name, subjects_name")
+        .select("category_id, category_name")
         .order("category_name"),
       "Unable to fetch sub-categories"
     );
@@ -830,7 +828,7 @@ export const api = {
       supabase
         .from(TABLES.subCategories)
         .insert(toSubCategoryRow({ name, subjects: [] }))
-        .select("category_id, category_name, subjects_name")
+        .select("category_id, category_name")
         .single(),
       "Unable to add sub-category"
     );
@@ -850,7 +848,7 @@ export const api = {
         .from(TABLES.subCategories)
         .update(toSubCategoryRow({ name, subjects }))
         .eq("category_id", id)
-        .select("category_id, category_name, subjects_name")
+        .select("category_id, category_name")
         .single(),
       "Unable to update sub-category"
     );

@@ -136,15 +136,15 @@ export default function SubjectsSection({
         item.semester === undefined || item.semester === null ? '' : item.semester
       ].join('::')
 
-        const base = comboMap.get(comboKey) || {
-          comboKey,
-          academicYearId: item.academicYearId || item.academic_year,
-          academicYearName: item.academicYearName || item.academic_year,
-          academicYear: item.academicYearName || item.academic_year,
-          groupCode: item.groupCode || item.group_code,
-          courseCode: item.courseCode || item.course_name,
-          courseName: item.courseName || item.course_name || item.course_name_display || '',
-          semester: item.semester,
+      const base = comboMap.get(comboKey) || {
+        comboKey,
+        academicYearId: item.academicYearId || item.academic_year,
+        academicYearName: item.academicYearName || item.academic_year,
+        academicYear: item.academicYearName || item.academic_year,
+        groupCode: item.groupCode || item.group_code,
+        courseCode: item.courseCode || item.course_name,
+        courseName: item.courseName || item.course_name || item.course_name_display || '',
+        semester: item.semester,
         subjectIds: [],
         subjectNames: [],
         subjectCodes: [],
@@ -402,16 +402,7 @@ export default function SubjectsSection({
                 )}
               </div>
             </div>
-            <div className="col-md-6">
-              <div>
-                <p className="students-section-copy small mb-1 text-dark fw-semibold">
-                  Add
-                </p>
-                <p className="text-muted small">
-                  Organise subjects into sub-categories (e.g., Languages, Labs) for efficient allocation.
-                </p>
-              </div>
-            </div>
+            <div className="col-md-6" />
           </div>
           <div className="row g-3 mt-3">
             {subCategories.map(cat => (
@@ -709,7 +700,7 @@ export default function SubjectsSection({
                 <div className="students-table-panel card card-soft mb-4">
                   <div className="students-table-panel-header mb-3">
                     <div>
-                      <p className="students-table-panel-title mb-1">Saved Subjects</p>
+                      <p className="students-table-panel-title mb-1 text-white">Saved Subjects</p>
                       <p className="students-table-panel-copy small mb-0">
                         Review and manage the saved subject allocations for each academic group.
                       </p>
