@@ -819,14 +819,14 @@ export default function Promote() {
   };
 
   const handlePromoteStudents = () => {
+    if (selectedStudents.size === 0) {
+      showToast("Please select at least one student to promote.", { type: "error" });
+      return;
+    }
     if (!nextSessionAcademicYear || !nextSessionSemester) {
       showToast("Please select the Promote session Academic year and Semester", {
         type: "error",
       });
-      return;
-    }
-    if (selectedStudents.size === 0) {
-      toast.error("Please select at least one student to promote.");
       return;
     }
 
@@ -893,7 +893,7 @@ export default function Promote() {
 
       await Promise.all(updates);
 
-      toast.success("Promotion process completed successfully.");
+      showToast("Promotion process completed successfully.", { type: "success" });
 
       // Refresh data
       // We can either call loadData() again or manually update local state.
@@ -929,7 +929,7 @@ export default function Promote() {
 
     } catch (error) {
       console.error("Promotion Error:", error);
-      toast.error("Failed to promote some students.");
+      showToast("Failed to promote some students.", { type: "error" });
     } finally {
       setLoading(false);
     }
