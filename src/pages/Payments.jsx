@@ -379,7 +379,18 @@ export default function Payments() {
   }, [subjects]);
 
   useEffect(() => {
-    setSelectedSupplementarySemesters(availableSupplementarySemesters.map(String));
+    if (!availableSupplementarySemesters.length) return;
+    setSelectedSupplementarySemesters((prev) => {
+      const normalizedPrev = prev.map((sem) => String(sem)).sort();
+      const normalizedAvailable = availableSupplementarySemesters
+        .map((sem) => String(sem))
+        .sort();
+      const alreadyMatches =
+        normalizedPrev.length === normalizedAvailable.length &&
+        normalizedAvailable.every((sem, index) => sem === normalizedPrev[index]);
+      if (alreadyMatches && prev.length) return prev;
+      return availableSupplementarySemesters.map((sem) => String(sem));
+    });
   }, [availableSupplementarySemesters]);
 
   useEffect(() => {
@@ -412,12 +423,15 @@ export default function Payments() {
       }
     });
     const nextSemesters = Array.from(storedSupplementarySemesters);
-    if (
+    if (!nextSemesters.length) {
+      return;
+    }
+    const alreadyMatch =
       nextSemesters.length === selectedSupplementarySemesters.length &&
       nextSemesters.every((semester) =>
         selectedSupplementarySemesters.includes(semester)
-      )
-    ) {
+      );
+    if (alreadyMatch) {
       return;
     }
     setSelectedSupplementarySemesters(nextSemesters);
@@ -638,6 +652,21 @@ export default function Payments() {
       setActiveSubjectCategory(null);
     }
   }, [subjectCategoryOptions, activeSubjectCategory]);
+
+  useEffect(() => {
+    if (activeSubjectCategory) return;
+    if (!subjectCategoryOptions.length) return;
+    const supplementaryCategory = subjectCategoryOptions.find((category) =>
+      filteredSupplementarySubjectEntries.some((entry) => entry.category === category)
+    );
+    setActiveSubjectCategory(
+      supplementaryCategory || subjectCategoryOptions[0]
+    );
+  }, [
+    subjectCategoryOptions,
+    activeSubjectCategory,
+    filteredSupplementarySubjectEntries,
+  ]);
   const filteredCurrentSelectedCount = useMemo(
     () =>
       filteredCurrentSubjectEntries.filter((entry) =>
@@ -654,10 +683,10 @@ export default function Payments() {
   );
   const visibleCurrentSubjectEntries = activeSubjectCategory
     ? filteredCurrentSubjectEntries
-    : [];
+    : currentSubjectEntries;
   const visibleSupplementarySubjectGroups = activeSubjectCategory
     ? filteredSupplementarySubjectsBySemester
-    : [];
+    : supplementarySubjectsBySemester;
   const visibleSubjectCountForCategory =
     visibleCurrentSubjectEntries.length +
     visibleSupplementarySubjectGroups.reduce(
@@ -819,14 +848,6 @@ export default function Payments() {
       if (next.has(key)) next.delete(key);
       else next.add(key);
       return next;
-    });
-  };
-  const toggleSupplementarySemesterSelection = (semesterValue) => {
-    setSelectedSupplementarySemesters((prev) => {
-      if (prev.includes(semesterValue)) {
-        return prev.filter((sem) => sem !== semesterValue);
-      }
-      return [...prev, semesterValue];
     });
   };
   const handleAdvanceToSummary = () => {
@@ -1753,6 +1774,7 @@ export default function Payments() {
     setModalPaymentSummary(null);
     setSelectedSubjectKeys(new Set());
     setSelectedSupplementarySemesters([]);
+    setActiveSubjectCategory(null);
     const skipSelection = Boolean(options.skipSubjectSelection);
     setModalStep(skipSelection ? 2 : 1);
     setModalPaymentRecords(options.records || []);
@@ -3261,25 +3283,11 @@ export default function Payments() {
                     )}
                     {modalStep === 1 && availableSupplementarySemesters.length > 0 && (
                       <div className="d-flex align-items-center justify-content-end gap-2 mb-3">
-                        <span className="fw-semibold">Select Supplementary:</span>
-                        {availableSupplementarySemesters.map((sem) => {
-                          const semValue = String(sem);
-                          const isActive =
-                            selectedSupplementarySemesters.includes(semValue);
-                          return (
-                            <button
-                              key={sem}
-                              type="button"
-                              className={`btn btn-sm ${isActive ? "btn-primary" : "btn-outline-primary"
-                                }`}
-                              onClick={() =>
-                                toggleSupplementarySemesterSelection(semValue)
-                              }
-                            >
-                              Sem {sem}
-                            </button>
-                          );
-                        })}
+                        <span className="text-muted small">
+                          Supplementary subject groups (Sem {availableSupplementarySemesters.join(
+                            ", "
+                          )}) are shown automatically.
+                        </span>
                       </div>
                     )}
                     {modalStep === 1 ? (

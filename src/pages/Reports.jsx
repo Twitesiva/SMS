@@ -31,8 +31,6 @@ export default function Reports() {
         group_name: "",
         course_name: "",
         category: "",
-        course_name: "",
-        category: "",
         current_semester: "",
         payment_status: "",
     });

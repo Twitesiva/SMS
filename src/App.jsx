@@ -26,6 +26,7 @@ import Preloader from "./components/Preloader.jsx";
 import ToastStack from "./components/ToastStack.jsx";
 import StudentPayOverview from "./pages/StudentPayOverview.jsx";
 import Reports from "./pages/Reports.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
 
 
 export default function App() {
@@ -44,7 +45,7 @@ export default function App() {
           path="/admin"
           element={
             <GuardedRoute isAuthed={isAuthed}>
-              <Navigate to="/admin/setup/years" replace />
+              <Navigate to="/admin/dashboard" replace />
             </GuardedRoute>
           }
         />
@@ -189,6 +190,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isAuthed}>
               <AdminApplications />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/admin/dashboard"
+          element={
+            <GuardedRoute isAuthed={isAuthed}>
+              <Dashboard />
             </GuardedRoute>
           }
         />

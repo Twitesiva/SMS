@@ -1,8 +1,14 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../store/auth";
 import logo from "../assets/media/images.png";
 const navGroups = [
+  {
+    title: "Dashboard",
+    items: [
+      { to: "/admin/dashboard", label: "Dashboard", icon: "bi-speedometer2" },
+    ],
+  },
   {
     title: "Student Portal",
     items: [
