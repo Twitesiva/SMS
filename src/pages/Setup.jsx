@@ -713,7 +713,9 @@ export default function Setup() {
   );
 
   const [categoryName, setCategoryName] = useState("");
+  const [categoryCredits, setCategoryCredits] = useState(0);
   const [editingCategory, setEditingCategory] = useState("");
+  const [categoryCreditsMap, setCategoryCreditsMap] = useState({});
   const [catItems, setCatItems] = useState({});
 
   const [feeCategories, setFeeCategories] = useState([]);
@@ -763,10 +765,12 @@ export default function Setup() {
           const names = [];
           const itemsMap = {};
           const idMap = {};
+          const creditsMap = {};
 
           subcats.forEach((cat) => {
             names.push(cat.name);
             idMap[cat.name] = cat.id;
+            creditsMap[cat.name] = cat.credits || 0;
             itemsMap[cat.name] = subjectsToItems(cat.subjects);
             if (cat.id) catNameByIdInit[cat.id] = cat.name;
           });
@@ -774,10 +778,12 @@ export default function Setup() {
           setCategories(names);
           setCatItems(itemsMap);
           setCategoryIdMap(idMap);
+          setCategoryCreditsMap(creditsMap);
         } else {
           setCategories([]);
           setCatItems({});
           setCategoryIdMap({});
+          setCategoryCreditsMap({});
         }
 
         const initialSubjectContext = {
@@ -910,6 +916,7 @@ export default function Setup() {
       try {
         const updated = await api.updateSubCategory?.(id, {
           name: trimmed,
+          credits: categoryCredits,
           subjects: items,
         });
         // update local maps
@@ -928,7 +935,14 @@ export default function Setup() {
           copy[updated.name] = updated.id;
           return copy;
         });
+        setCategoryCreditsMap((prev) => {
+          const copy = { ...prev };
+          if (oldName !== updated.name) delete copy[oldName];
+          copy[updated.name] = updated.credits;
+          return copy;
+        });
         setCategoryName("");
+        setCategoryCredits(0);
         setEditingCategory("");
         showToast("Sub-category updated.", { type: "success" });
       } catch (error) {
@@ -939,7 +953,10 @@ export default function Setup() {
       }
     } else {
       try {
-        const created = await api.addSubCategory?.(trimmed);
+        const created = await api.addSubCategory?.({
+          name: trimmed,
+          credits: categoryCredits,
+        });
         if (created) {
           setCategories((prev) => [...prev, created.name]);
           setCatItems((prev) => ({
@@ -947,7 +964,12 @@ export default function Setup() {
             [created.name]: subjectsToItems(created.subjects || []),
           }));
           setCategoryIdMap((prev) => ({ ...prev, [created.name]: created.id }));
+          setCategoryCreditsMap((prev) => ({
+            ...prev,
+            [created.name]: created.credits,
+          }));
           setCategoryName("");
+          setCategoryCredits(0);
           showToast("Sub-category added.", { type: "success" });
         }
       } catch (error) {
@@ -965,6 +987,11 @@ export default function Setup() {
     // optimistic UI update
     setCategories((prev) => prev.filter((n) => n !== name));
     setCatItems((prev) => {
+      const copy = { ...prev };
+      delete copy[name];
+      return copy;
+    });
+    setCategoryCreditsMap((prev) => {
       const copy = { ...prev };
       delete copy[name];
       return copy;
@@ -1684,15 +1711,19 @@ export default function Setup() {
             groups={groups}
             coursesForGroup={coursesForGroup}
             semForCourse={semForCourse}
-            feeCategories={feeCategories}
             categories={categories}
+            setCategories={setCategories}
             catItems={catItems}
+            setCatItems={setCatItems}
             categoryName={categoryName}
             setCategoryName={setCategoryName}
+            categoryCredits={categoryCredits}
+            setCategoryCredits={setCategoryCredits}
+            categoryCreditsMap={categoryCreditsMap}
             editingCategory={editingCategory}
             setEditingCategory={setEditingCategory}
-            saveCategory={saveCategory}
             deleteCategory={deleteCategory}
+            saveCategory={saveCategory}
             pendingSubjects={pendingSubjects}
             subjects={subjects}
             editingSubjectId={editingSubjectId}
