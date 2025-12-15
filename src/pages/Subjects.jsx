@@ -29,7 +29,11 @@ export default function SubjectsSection({
   deletePendingSubject,
   editSubject,
   deleteSubject,
-  onCancelSubjectEdit
+
+  onCancelSubjectEdit,
+  categoryCredits,
+  setCategoryCredits,
+  categoryCreditsMap = {},
 }) {
   const [programmeCategory, setProgrammeCategory] = useState('')
   const [academicYears, setAcademicYears] = useState([])
@@ -136,15 +140,15 @@ export default function SubjectsSection({
         item.semester === undefined || item.semester === null ? '' : item.semester
       ].join('::')
 
-        const base = comboMap.get(comboKey) || {
-          comboKey,
-          academicYearId: item.academicYearId || item.academic_year,
-          academicYearName: item.academicYearName || item.academic_year,
-          academicYear: item.academicYearName || item.academic_year,
-          groupCode: item.groupCode || item.group_code,
-          courseCode: item.courseCode || item.course_name,
-          courseName: item.courseName || item.course_name || item.course_name_display || '',
-          semester: item.semester,
+      const base = comboMap.get(comboKey) || {
+        comboKey,
+        academicYearId: item.academicYearId || item.academic_year,
+        academicYearName: item.academicYearName || item.academic_year,
+        academicYear: item.academicYearName || item.academic_year,
+        groupCode: item.groupCode || item.group_code,
+        courseCode: item.courseCode || item.course_name,
+        courseName: item.courseName || item.course_name || item.course_name_display || '',
+        semester: item.semester,
         subjectIds: [],
         subjectNames: [],
         subjectCodes: [],
@@ -363,55 +367,74 @@ export default function SubjectsSection({
             </div>
           </div>
           <div className="students-section-form row g-3 align-items-start">
-            <div className="col-md-6">
-              <label className="form-label fw-bold mb-1">
-                Sub-category Name <span className="text-danger">*</span>
-              </label>
-              <p className="text-uppercase text-muted small mb-1">
+            <div className="col-md-8">
+              <p className="text-uppercase text-muted small mb-2">
                 {editingCategory ? 'Update existing sub-category' : 'Add a new sub-category'}
               </p>
-              <div className="d-flex gap-2 flex-wrap">
-                <input
-                  className="form-control flex-grow-1"
-                  placeholder="e.g., Languages"
-                  required
-                  value={categoryName}
-                  onChange={e => setCategoryName(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      saveCategory()
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  className="btn btn-primary students-button"
-                  onClick={saveCategory}
-                >
-                  {editingCategory ? 'Update' : 'Add'}
-                </button>
-                {editingCategory && (
+              <div className="d-flex gap-2 align-items-end">
+                <div className="flex-grow-1">
+                  <label className="form-label fw-bold mb-1">
+                    Sub-category Name <span className="text-danger">*</span>
+                  </label>
+                  <input
+                    className="form-control"
+                    placeholder="e.g., Languages"
+                    required
+                    value={categoryName}
+                    onChange={e => setCategoryName(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        saveCategory()
+                      }
+                    }}
+                  />
+                </div>
+                <div style={{ width: "120px" }}>
+                  <label className="form-label fw-bold mb-1">
+                    Credits
+                  </label>
+                  <input
+                    className="form-control"
+                    placeholder="0"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={categoryCredits}
+                    onChange={(e) => setCategoryCredits(Math.max(0, Number(e.target.value)))}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        saveCategory()
+                      }
+                    }}
+                  />
+                </div>
+                <div className="d-flex gap-2">
                   <button
                     type="button"
-                    className="btn btn-outline-secondary students-button"
-                    onClick={() => { setCategoryName(''); setEditingCategory('') }}
+                    className="btn btn-primary students-button"
+                    onClick={saveCategory}
                   >
-                    Cancel
+                    {editingCategory ? 'Update' : 'Add'}
                   </button>
-                )}
+                  {editingCategory && (
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary students-button"
+                      onClick={() => {
+                        setCategoryName('');
+                        setCategoryCredits(0);
+                        setEditingCategory('');
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
-            <div className="col-md-6">
-              <div>
-                <p className="students-section-copy small mb-1 text-dark fw-semibold">
-                  Add
-                </p>
-                <p className="text-muted small">
-                  Organise subjects into sub-categories (e.g., Languages, Labs) for efficient allocation.
-                </p>
-              </div>
-            </div>
+            <div className="col-md-6" />
           </div>
           <div className="row g-3 mt-3">
             {subCategories.map(cat => (
@@ -420,22 +443,27 @@ export default function SubjectsSection({
                   <div className="card-body d-flex flex-column gap-3">
                     <div>
                       <p className="fw-bold mb-1">{cat}</p>
+                      <p className="small text-muted mb-0">Credits: {categoryCreditsMap[cat] || 0}</p>
                     </div>
-                    <div className="mt-auto d-flex gap-2 flex-wrap">
-                      <button
-                        className="btn btn-sm btn-outline-primary students-button students-button-sm flex-fill"
-                        onClick={() => { setCategoryName(cat); setEditingCategory(cat) }}
-                      >
-                        Rename
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-outline-danger students-button students-button-sm flex-fill"
-                        onClick={() => setConfirmModalState({ isOpen: true, type: 'CATEGORY', payload: cat })}
-                      >
-                        Delete
-                      </button>
-                    </div>
+                  </div>
+                  <div className="mt-auto d-flex gap-2 flex-wrap">
+                    <button
+                      className="btn btn-sm btn-outline-primary students-button students-button-sm flex-fill"
+                      onClick={() => {
+                        setCategoryName(cat);
+                        setCategoryCredits(categoryCreditsMap[cat] || 0);
+                        setEditingCategory(cat);
+                      }}
+                    >
+                      Rename
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-danger students-button students-button-sm flex-fill"
+                      onClick={() => setConfirmModalState({ isOpen: true, type: 'CATEGORY', payload: cat })}
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
               </div>
@@ -709,7 +737,7 @@ export default function SubjectsSection({
                 <div className="students-table-panel card card-soft mb-4">
                   <div className="students-table-panel-header mb-3">
                     <div>
-                      <p className="students-table-panel-title mb-1">Saved Subjects</p>
+                      <p className="students-table-panel-title mb-1 text-white">Saved Subjects</p>
                       <p className="students-table-panel-copy small mb-0">
                         Review and manage the saved subject allocations for each academic group.
                       </p>

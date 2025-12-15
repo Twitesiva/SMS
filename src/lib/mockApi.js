@@ -267,13 +267,13 @@ const parseSubjectList = (value) => {
 const mapSubCategory = (row = {}) => ({
   id: row.category_id ?? row.id,
   name: row.category_name,
+  credits: row.credits ?? 0,
   subjects: parseSubjectList(row.subjects_name),
 });
 
-const toSubCategoryRow = ({ name, subjects }) => ({
+const toSubCategoryRow = ({ name, credits }) => ({
   category_name: name,
-  category_count: Array.isArray(subjects) ? subjects.length : 0,
-  subjects_name: JSON.stringify(Array.isArray(subjects) ? subjects : []),
+  credits: credits ?? 0,
 });
 
 const mapSubject = (row = {}) => {
@@ -814,33 +814,33 @@ export const api = {
     const rows = await runQuery(
       supabase
         .from(TABLES.subCategories)
-        .select("category_id, category_name, subjects_name")
+        .select("category_id, category_name, credits")
         .order("category_name"),
       "Unable to fetch sub-categories"
     );
     return rows.map(mapSubCategory);
   },
 
-  addSubCategory: async (name) => {
+  addSubCategory: async ({ name, credits }) => {
     await ensureNoDuplicate(
       TABLES.subCategories,
-      toSubCategoryRow({ name, subjects: [] })
+      toSubCategoryRow({ name, credits, subjects: [] })
     );
     const row = await runQuery(
       supabase
         .from(TABLES.subCategories)
-        .insert(toSubCategoryRow({ name, subjects: [] }))
-        .select("category_id, category_name, subjects_name")
+        .insert(toSubCategoryRow({ name, credits, subjects: [] }))
+        .select("category_id, category_name, credits")
         .single(),
       "Unable to add sub-category"
     );
     return mapSubCategory(row);
   },
 
-  updateSubCategory: async (id, { name, subjects }) => {
+  updateSubCategory: async (id, { name, credits, subjects }) => {
     await ensureNoDuplicate(
       TABLES.subCategories,
-      toSubCategoryRow({ name, subjects }),
+      toSubCategoryRow({ name, credits, subjects }),
       {
         excludeId: id,
       }
@@ -848,9 +848,9 @@ export const api = {
     const row = await runQuery(
       supabase
         .from(TABLES.subCategories)
-        .update(toSubCategoryRow({ name, subjects }))
+        .update(toSubCategoryRow({ name, credits, subjects }))
         .eq("category_id", id)
-        .select("category_id, category_name, subjects_name")
+        .select("category_id, category_name, credits")
         .single(),
       "Unable to update sub-category"
     );

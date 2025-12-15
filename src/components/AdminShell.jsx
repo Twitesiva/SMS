@@ -37,6 +37,7 @@ const navGroups = [
       { to: "/admin/results", label: "Marks Entry", icon: "bi-award" },
       { to: "/admin/result-publish", label: "Result Publish", icon: "bi-megaphone" },
       { to: "/admin/promote", label: "Promotion", icon: "bi-people" },
+      { to: "/admin/revaluation", label: "Revaluation", icon: "bi-clipboard-check" },
     ],
   },
   {

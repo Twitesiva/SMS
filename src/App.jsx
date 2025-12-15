@@ -27,6 +27,7 @@ import ToastStack from "./components/ToastStack.jsx";
 import StudentPayOverview from "./pages/StudentPayOverview.jsx";
 import Reports from "./pages/Reports.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
+import Revaluation from "./pages/Revaluation.jsx";
 
 
 export default function App() {
@@ -142,6 +143,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isAuthed}>
               <Promote />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/admin/revaluation"
+          element={
+            <GuardedRoute isAuthed={isAuthed}>
+              <Revaluation />
             </GuardedRoute>
           }
         />
