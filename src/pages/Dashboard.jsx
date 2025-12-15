@@ -108,16 +108,11 @@ const categorizeHallTicketStatus = (status) => {
   if (
     normalized.includes("issued") ||
     normalized.includes("generated") ||
-    normalized.includes("printed") ||
-    normalized.includes("hall ticket")
+    normalized.includes("printed")
   ) {
     return "Issued";
   }
-  if (
-    normalized.includes("escalated") ||
-    normalized.includes("flag") ||
-    normalized.includes("hold")
-  ) {
+  if (normalized.includes("escalated") || normalized.includes("flag") || normalized.includes("hold")) {
     return "Escalated";
   }
   return "Pending";
@@ -129,86 +124,89 @@ export default function Dashboard() {
   const [regSubjects, setRegSubjects] = useState([]);
   const [marks, setMarks] = useState([]);
   const [deadlines, setDeadlines] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let active = true;
-    const loadDashboardData = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const [
+    setLoading(true);
+    setError("");
+    Promise.all([
+      supabase
+        .from("exam_master")
+        .select("id, exam_name, results_published")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("exam_registrations")
+        .select("id, status, exam_id, created_at"),
+      supabase.from("exam_registration_subjects").select("id, exam_registration_id"),
+      supabase.from("marks").select("id"),
+      supabase
+        .from("exam_deadlines")
+        .select("id, exam_id, last_date")
+        .order("last_date", { ascending: true }),
+      supabase.from("students").select("id"),
+      supabase.from("courses").select("id"),
+      supabase.from("groups").select("group_id"),
+    ])
+      .then(
+        ([
           examsResult,
           registrationsResult,
-          subjectResult,
+          subjectsResult,
           marksResult,
           deadlinesResult,
-        ] = await Promise.all([
-          supabase
-            .from("exam_master")
-            .select("id, exam_name, results_published, created_at")
-            .order("created_at", { ascending: false }),
-          supabase
-            .from("exam_registrations")
-            .select("id, exam_id, status, created_at"),
-          supabase
-            .from("exam_registration_subjects")
-            .select("id, exam_registration_id"),
-          supabase.from("marks").select("id"),
-          supabase
-            .from("exam_deadlines")
-            .select("id, exam_id, last_date, exam:exam_master(exam_name)")
-            .order("last_date", { ascending: true })
-            .limit(5),
-        ]);
-
+          studentsResult,
+          coursesResult,
+          groupsResult,
+        ]) => {
         if (!active) return;
-
-        const responses = [
-          examsResult,
-          registrationsResult,
-          subjectResult,
-          marksResult,
-          deadlinesResult,
-        ];
-        const errors = responses
-          .map((result) => result.error?.message)
-          .filter(Boolean);
-
+        const errors = [
+          examsResult.error,
+          registrationsResult.error,
+          subjectsResult.error,
+          marksResult.error,
+        ].filter(Boolean);
+        if (errors.length) {
+          setError(errors.map((err) => err.message).join(" · "));
+        }
         setExams(examsResult.data || []);
         setRegistrations(registrationsResult.data || []);
-        setRegSubjects(subjectResult.data || []);
-        setMarks(marksResult.data || []);
-        setDeadlines(deadlinesResult.data || []);
-        if (errors.length) {
-          setError(errors.join("; "));
-        }
-      } catch (err) {
-        console.error("Unable to load dashboard data:", err);
+        setRegSubjects(subjectsResult.data || []);
+          setMarks(marksResult.data || []);
+          setDeadlines(deadlinesResult.data || []);
+          setStudents(studentsResult.data || []);
+          setCourses(coursesResult.data || []);
+          setGroups(groupsResult.data || []);
+      })
+      .catch((err) => {
         if (active) {
-          setError("Unable to reach the database");
+          setError(err.message || "Unable to load dashboard data");
         }
-      } finally {
+      })
+      .finally(() => {
         if (active) {
           setLoading(false);
         }
-      }
-    };
-
-    void loadDashboardData();
+      });
     return () => {
       active = false;
     };
   }, []);
 
-  const hallTicketStatusCounts = useMemo(() => {
-    const counts = { Issued: 0, Pending: 0, Escalated: 0 };
-    registrations.forEach((registration) => {
-      const statusKey = categorizeHallTicketStatus(registration.status);
-      counts[statusKey] = (counts[statusKey] || 0) + 1;
-    });
-    return counts;
+  const activeExams = exams.length;
+  const hallTicketCounts = useMemo(() => {
+    return registrations.reduce(
+      (acc, reg) => {
+        const status = categorizeHallTicketStatus(reg.status);
+        acc[status] = (acc[status] || 0) + 1;
+        return acc;
+      },
+      { Issued: 0, Pending: 0, Escalated: 0 }
+    );
   }, [registrations]);
 
   const readinessTrendData = useMemo(() => {
@@ -226,9 +224,7 @@ export default function Dashboard() {
     }
 
     registrations.forEach((registration) => {
-      const createdAt = registration.created_at
-        ? new Date(registration.created_at)
-        : null;
+      const createdAt = registration.created_at ? new Date(registration.created_at) : null;
       if (!createdAt || Number.isNaN(createdAt.getTime())) return;
       const bucket = buckets.find(
         (entry) => entry.month === createdAt.getMonth() && entry.year === createdAt.getFullYear()
@@ -273,16 +269,16 @@ export default function Dashboard() {
       datasets: [
         {
           data: [
-            hallTicketStatusCounts.Issued,
-            hallTicketStatusCounts.Pending,
-            hallTicketStatusCounts.Escalated,
+            hallTicketCounts.Issued,
+            hallTicketCounts.Pending,
+            hallTicketCounts.Escalated,
           ],
           backgroundColor: ["#4c75f2", "#ffb347", "#d32f2f"],
           hoverOffset: 6,
         },
       ],
     }),
-    [hallTicketStatusCounts]
+    [hallTicketCounts]
   );
 
   const resultBreakdownData = useMemo(() => {
@@ -318,225 +314,269 @@ export default function Dashboard() {
     };
   }, [regSubjects.length, marks.length, exams]);
 
-  const latestExamName = exams[0]?.exam_name;
+  const resultsAwaitingReview = Math.max(regSubjects.length - marks.length, 0);
+
+  const detailItems = {
+    activeExams: exams[0]?.exam_name ? `Latest: ${exams[0].exam_name}` : "Create an exam session",
+    pendingHallTickets: `Issued ${hallTicketCounts.Issued} · Escalated ${hallTicketCounts.Escalated}`,
+    resultsAwaitingReview: `${Math.max(resultsAwaitingReview, 0)} pending mark entries`,
+  };
+
+  const metrics = [
+    {
+      label: "Active Exams",
+      value: activeExams,
+      detail: detailItems.activeExams,
+      icon: "bi-calendar-event",
+    },
+    {
+      label: "Pending Hall Tickets",
+      value: hallTicketCounts.Pending,
+      detail: detailItems.pendingHallTickets,
+      icon: "bi-ticket-perforated",
+    },
+    {
+      label: "Results Awaiting Review",
+      value: resultsAwaitingReview,
+      detail: detailItems.resultsAwaitingReview,
+      icon: "bi-pencil-square",
+    },
+  ];
+
+  const examRegistrationSummary = useMemo(() => {
+    const counts = {};
+    registrations.forEach((registration) => {
+      counts[registration.exam_id] = (counts[registration.exam_id] || 0) + 1;
+    });
+    return exams
+      .map((exam) => ({
+        exam_id: exam.id,
+        exam_name: exam.exam_name,
+        registrations: counts[exam.id] || 0,
+      }))
+      .sort((a, b) => b.registrations - a.registrations)
+      .slice(0, 3);
+  }, [exams, registrations]);
+
+  const nextDeadline = useMemo(() => {
+    if (!deadlines.length) return null;
+    const upcoming = deadlines
+      .map((deadline) => ({
+        ...deadline,
+        last_date: deadline.last_date ? new Date(deadline.last_date) : null,
+      }))
+      .filter((deadline) => deadline.last_date)
+      .sort((a, b) => a.last_date - b.last_date);
+    return upcoming[0] || null;
+  }, [deadlines]);
+
+  const academicCounts = useMemo(
+    () => ({
+      students: students.length,
+      courses: courses.length,
+      batches: groups.length,
+    }),
+    [students.length, courses.length, groups.length]
+  );
 
   const issuedPercent = useMemo(() => {
     const total = registrations.length;
     if (!total) return 0;
-    return Math.round((hallTicketStatusCounts.Issued / total) * 100);
-  }, [hallTicketStatusCounts.Issued, registrations.length]);
+    return Math.round((hallTicketCounts.Issued / total) * 100);
+  }, [hallTicketCounts.Issued, registrations.length]);
 
   const marksPercent = useMemo(() => {
     if (!regSubjects.length) return 0;
     return Math.round((marks.length / regSubjects.length) * 100);
   }, [marks.length, regSubjects.length]);
 
-  const heroStats = useMemo(
-    () => [
-      {
-        label: "Active Exams",
-        value: exams.length,
-        meta: latestExamName ? `Latest: ${latestExamName}` : "Create an exam session",
-      },
-      {
-        label: "Hall Tickets Issued",
-        value: hallTicketStatusCounts.Issued,
-        meta: `${issuedPercent}% of registrations`,
-      },
-      {
-        label: "Registrations",
-        value: registrations.length,
-        meta: "Captured across all sessions",
-      },
-      {
-        label: "Result Entries",
-        value: marks.length,
-        meta: `${marksPercent}% coverage`,
-      },
-    ],
-    [
-      exams.length,
-      hallTicketStatusCounts.Issued,
-      issuedPercent,
-      latestExamName,
-      marks.length,
-      marksPercent,
-      registrations.length,
-    ]
-  );
-
-  const insightTiles = useMemo(() => {
-    const totalRegistrations = registrations.length;
-    return [
-      {
-        title: "Hall Ticket Sync",
-        value: `${issuedPercent}%`,
-        detail: `${hallTicketStatusCounts.Issued}/${totalRegistrations || 0} registrations issued`,
-        badge: issuedPercent >= 75 ? "On track" : "Follow up",
-      },
-      {
-        title: "Subject Coverage",
-        value: regSubjects.length,
-        detail: "Registration-subject entries stored",
-        badge: "Synced",
-      },
-      {
-        title: "Result Entries",
-        value: marks.length,
-        detail: `${marksPercent}% of subject registrations have marks`,
-        badge: marksPercent >= 60 ? "Review" : "Draft",
-      },
-    ];
-  }, [
-    hallTicketStatusCounts.Issued,
-    issuedPercent,
-    marks.length,
-    marksPercent,
-    regSubjects.length,
-    registrations.length,
-  ]);
-
-  const upcomingActions = useMemo(() => {
-    if (!deadlines.length) {
-      return [
-        {
-          title: "Configure exam deadlines",
-          time: "No deadlines set",
-          detail:
-            "Visit Departments → Exam Deadlines to log the registration cutoff.",
-        },
-      ];
-    }
-
-    return deadlines.slice(0, 3).map((deadline) => {
-      const examName = deadline.exam?.exam_name || `Exam ${deadline.exam_id || "—"}`;
-      const dueDate = deadline.last_date ? new Date(deadline.last_date) : null;
-      return {
-        title: examName,
-        time: dueDate
-          ? dueDate.toLocaleDateString(undefined, { day: "numeric", month: "short" })
-          : "Date TBA",
-        detail: "Registration cutoff",
-      };
-    });
-  }, [deadlines]);
+  const progressStats = [
+    {
+      label: "Hall Ticket Coverage",
+      value: `${issuedPercent}%`,
+      detail: `${hallTicketCounts.Issued}/${registrations.length || 1} issued`,
+      accent: "primary",
+      progress: issuedPercent,
+    },
+    {
+      label: "Result Entry Coverage",
+      value: `${marksPercent}%`,
+      detail: `${marks.length}/${regSubjects.length || 1} subjects marked`,
+      accent: "success",
+      progress: marksPercent,
+    },
+    {
+      label: "Deadlines tracked",
+      value: deadlines.length,
+      detail: "Upcoming registration cutoffs",
+      accent: "warning",
+      progress: Math.min(deadlines.length * 20, 100),
+    },
+  ];
 
   return (
     <AdminShell>
-      <div className="students-page-shell">
-        <div className="students-hero mb-4">
-          <div className="px-3 pt-3">
-            <p className="students-hero-eyebrow text-uppercase mb-1">Dashboard</p>
-            <h2 className="students-hero-title">Exam Control Center</h2>
-            <p className="students-hero-copy mb-0">
-              Track exam workflows, hall ticket progress, and result readiness in one polished area.
+      <div className="dashboard-page">
+        <div className="dashboard-header card-shadow">
+          <div>
+            <p className="text-uppercase text-secondary small mb-1">Dashboard / Overview</p>
+            <h1 className="dashboard-heading mb-1">Exam Management Dashboard</h1>
+            <p className="text-muted">
+              A concise status summary of exams, hall tickets, and results workflows.
             </p>
           </div>
-          <div className="students-stats-grid row g-3 px-3 pb-3">
-            {heroStats.map((stat) => (
-              <div className="col-6 col-md-3" key={stat.label}>
-                <div className="students-hero-card h-100 p-3">
-                  <div className="students-hero-stat-label small mb-1 text-white">
-                    {stat.label}
-                  </div>
-                  <div className="fs-3 fw-bold students-hero-stat-value text-white">
-                    {stat.value}
-                  </div>
-                  <div className="students-hero-stat-meta small text-white">
-                    {stat.meta}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <span className="dashboard-badge">Overview</span>
         </div>
 
-        <div className="row g-4 mb-3">
-          <div className="col-12 col-xl-8">
-            <div className="students-table-panel card card-soft p-4">
-              <div className="students-table-panel-header mb-3">
-                <div>
-                  <p className="students-table-panel-title mb-1">
-                    Exam Readiness Trend
-                  </p>
-                  <p className="students-table-panel-copy small mb-0">
-                    Weekly registrations vs. hall tickets issued
-                  </p>
-                </div>
+        <div className="dashboard-cards">
+          {metrics.map((metric) => (
+            <article key={metric.label} className="dashboard-card card-shadow">
+              <div className="dashboard-card-icon">
+                <i className={`bi ${metric.icon}`}></i>
+              </div>
+              <div>
+                <div className="dashboard-card-value">{metric.value}</div>
+                <div className="dashboard-card-label">{metric.label}</div>
+                <p className="text-muted mb-0">{metric.detail}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <section className="dashboard-progress-grid">
+          {progressStats.map((stat) => (
+            <article key={stat.label} className={`dashboard-progress-card border-${stat.accent}`}>
+              <div className="d-flex justify-content-between align-items-center mb-1">
+                <div className="fw-600">{stat.label}</div>
+                <span className={`badge bg-${stat.accent}-light text-${stat.accent}`}>
+                  {stat.value}
+                </span>
+              </div>
+              <p className="text-muted mb-2">{stat.detail}</p>
+              <div className="progress" style={{ height: 6 }}>
+                <div
+                  className={`progress-bar bg-${stat.accent}`}
+                  role="progressbar"
+                  style={{ width: `${stat.progress}%` }}
+                  aria-valuenow={stat.progress}
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                ></div>
+              </div>
+            </article>
+          ))}
+        </section>
+
+        {error && (
+          <div className="alert alert-danger mt-3" role="alert">
+            {error}
+          </div>
+        )}
+        {loading && (
+          <div className="text-center mt-3 text-muted">
+            Loading live metrics…
+          </div>
+        )}
+        <section className="dashboard-layout mt-4">
+          <div className="dashboard-chart-row">
+            <article className="dashboard-chart-card card-shadow">
+              <div className="dashboard-chart-header">
+                <h3>Registration Trend</h3>
+                <p className="text-muted mb-0">New registrations per month</p>
               </div>
               <div className="dashboard-chart-wrapper">
                 <Line data={readinessTrendData} options={lineOptions} />
               </div>
-            </div>
-          </div>
-          <div className="col-12 col-xl-4">
-            <div className="students-supplementary-grid card card-soft d-flex flex-column p-3">
-              <div>
-                <h5 className="fw-bold mb-2">Hall Ticket Distribution</h5>
-                <p className="text-muted small mb-3">
-                  Status of issued, pending, and escalated tickets
-                </p>
+            </article>
+
+            <article className="dashboard-chart-card card-shadow">
+              <div className="dashboard-chart-header">
+                <h3>Hall Ticket Status</h3>
+                <p className="text-muted mb-0">Issued vs pending vs escalated</p>
               </div>
-              <div className="dashboard-chart-wrapper smaller flex-grow-1">
+              <div className="dashboard-chart-wrapper smaller">
                 <Doughnut data={hallTicketChartData} options={donutOptions} />
               </div>
-              <div className="dashboard-chart-legend mt-3">
-                <span>{hallTicketStatusCounts.Issued} issued</span>
-                <span>{hallTicketStatusCounts.Pending} pending</span>
-                <span>{hallTicketStatusCounts.Escalated} escalated</span>
+              <div className="dashboard-chart-legend">
+                <span>{hallTicketCounts.Issued} issued</span>
+                <span>{hallTicketCounts.Pending} pending</span>
+                <span>{hallTicketCounts.Escalated} escalated</span>
               </div>
-            </div>
+            </article>
           </div>
-        </div>
 
-        <div className="row g-4">
-          <div className="col-12 col-xl-7">
-            <div className="students-table-panel card card-soft p-4">
-              <div className="students-table-panel-header mb-3">
-                <div>
-                  <p className="students-table-panel-title mb-1">
-                    Result Status Breakdown
-                  </p>
-                  <p className="students-table-panel-copy small mb-0">
-                    Draft, recorded, and published result stages
-                  </p>
-                </div>
+          <div className="dashboard-chart-row">
+            <article className="dashboard-chart-card card-shadow">
+              <div className="dashboard-chart-header">
+                <h3>Result Pipeline</h3>
+                <p className="text-muted mb-0">Draft vs recorded vs published</p>
               </div>
               <div className="dashboard-chart-wrapper">
                 <Bar data={resultBreakdownData} options={barOptions} />
               </div>
-            </div>
+            </article>
           </div>
-          <div className="col-12 col-xl-5">
-            <div className="students-table-panel card card-soft p-4">
-              <h5 className="fw-bold mb-3">Actionable Insights</h5>
-              <div className="insight-grid mb-3">
-                {insightTiles.map((tile) => (
-                  <div key={tile.title} className="insight-tile">
-                    <div className="insight-tile-heading">
-                      <span>{tile.title}</span>
-                      <span className="insight-badge">{tile.badge}</span>
-                    </div>
-                    <div className="insight-value">{tile.value}</div>
-                    <p className="text-muted mb-0">{tile.detail}</p>
-                  </div>
-                ))}
+        </section>
+
+        <section className="dashboard-detail-row">
+          <article className="dashboard-detail-card card-shadow">
+            <h4 className="mb-3">Upcoming Deadlines</h4>
+            {nextDeadline ? (
+              <div>
+                <p className="mb-1 fw-semibold">{nextDeadline.exam_id ? `Exam ${nextDeadline.exam_id}` : "Untitled exam"}</p>
+                <p className="text-muted mb-1">
+                  {nextDeadline.last_date?.toLocaleDateString(undefined, {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                  {" at "}
+                  {nextDeadline.last_date?.toLocaleTimeString(undefined, {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+                <p className="small text-muted">
+                  Deadline applies to registered students — make sure hall tickets and entries are finalized before this date.
+                </p>
               </div>
-              <div className="insight-actions">
-                <h4 className="mb-2">Upcoming</h4>
-                <div className="upcoming-stack">
-                  {upcomingActions.map((item) => (
-                    <div key={item.title + item.time} className="upcoming-item">
-                      <div className="upcoming-item-title">{item.title}</div>
-                      <div className="upcoming-item-time">{item.time}</div>
-                      <p className="text-muted mb-0">{item.detail}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            ) : (
+              <p className="text-muted small">No deadlines have been configured yet.</p>
+            )}
+          </article>
+
+          <article className="dashboard-detail-card card-shadow">
+            <h4 className="mb-3">Top Exam Registrations</h4>
+            <ul className="list-unstyled m-0">
+              {examRegistrationSummary.length ? (
+                examRegistrationSummary.map((entry) => (
+                  <li key={entry.exam_id} className="d-flex justify-content-between align-items-center mb-2">
+                    <span>{entry.exam_name || `Exam ${entry.exam_id}`}</span>
+                    <strong>{entry.registrations}</strong>
+                  </li>
+                ))
+              ) : (
+                <p className="text-muted small mb-0">No registration data available.</p>
+              )}
+            </ul>
+          </article>
+
+          <article className="dashboard-detail-card card-shadow">
+            <h4 className="mb-3">Academic Inventory</h4>
+            <div className="d-flex justify-content-between align-items-center">
+              <span>Total Students</span>
+              <strong>{academicCounts.students}</strong>
             </div>
-          </div>
-        </div>
+            <div className="d-flex justify-content-between align-items-center">
+              <span>Total Courses</span>
+              <strong>{academicCounts.courses}</strong>
+            </div>
+            <div className="d-flex justify-content-between align-items-center">
+              <span>Total Batches</span>
+              <strong>{academicCounts.batches}</strong>
+            </div>
+          </article>
+        </section>
       </div>
     </AdminShell>
   );
