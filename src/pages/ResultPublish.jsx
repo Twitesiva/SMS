@@ -11,22 +11,61 @@ export default function ResultPublish() {
     const [publishing, setPublishing] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
 
+    const [filters, setFilters] = useState({
+        academicYear: "",
+        group: "",
+        course: "",
+        semester: ""
+    });
+    const [options, setOptions] = useState({
+        academicYears: [],
+        groups: [],
+        courses: [],
+        semesters: [1, 2, 3, 4, 5, 6]
+    });
+    const [loadingOptions, setLoadingOptions] = useState(false);
+
     useEffect(() => {
-        loadExams();
+        loadInitialData();
     }, []);
 
-    const loadExams = async () => {
+    const loadInitialData = async () => {
         setLoading(true);
+        setLoadingOptions(true);
         try {
-            const data = await api.listExams();
-            setExams(data || []);
+            const [examsData, groupsData, coursesData, yearsData] = await Promise.all([
+                api.listExams(),
+                api.listGroups ? api.listGroups() : supabase.from('groups').select('*').then(res => res.data),
+                api.listCourses ? api.listCourses() : supabase.from('courses').select('*').then(res => res.data),
+                supabase.from('academic_year').select('academic_year').then(res => res.data)
+            ]);
+
+            setExams(examsData || []);
+            setOptions(prev => ({
+                ...prev,
+                groups: groupsData || [],
+                courses: coursesData || [],
+                academicYears: (yearsData || []).map(y => y.academic_year)
+            }));
         } catch (error) {
-            console.error("Failed to load exams", error);
-            showToast("Failed to load exams", { type: "error" });
+            console.error("Failed to load options", error);
+            showToast("Failed to load initial data", { type: "error" });
         } finally {
             setLoading(false);
+            setLoadingOptions(false);
         }
     };
+
+    // Derived courses based on selected group
+    const filteredCourses = filters.group
+        ? options.courses.filter(c => {
+            const gName = c.group_name || c.groupName;
+            return gName === filters.group;
+        })
+        : options.courses;
+
+    const selectedExam = exams.find(e => e.id === selectedExamId);
+    const isPublished = selectedExam?.results_published;
 
     const handlePublishClick = async () => {
         if (!selectedExamId) {
@@ -35,16 +74,25 @@ export default function ResultPublish() {
         }
 
         try {
-            // Check for existing results to prevent duplicates
-            const { count, error: existingError } = await supabase
-                .from('results')
-                .select('*', { count: 'exact', head: true })
+            // Partial duplicate check is complex with filters, relying on Upsert to handle updates.
+            // We removed the strict count > 0 check to allow partial publishing.
+
+            // Optional: Check if any students match the filters before popping modal
+            let query = supabase
+                .from('exam_registrations')
+                .select('id', { count: 'exact', head: true })
                 .eq('exam_id', selectedExamId);
 
-            if (existingError) throw existingError;
+            if (filters.academicYear) query = query.eq('academic_year', filters.academicYear);
+            if (filters.group) query = query.eq('group_name', filters.group);
+            if (filters.course) query = query.eq('course_name', filters.course);
+            if (filters.semester) query = query.eq('semester', filters.semester);
 
-            if (count > 0) {
-                showToast("Results are already published for this exam.", { type: "warning" });
+            const { count: matchingCount, error: countError } = await query;
+            if (countError) throw countError;
+
+            if (matchingCount === 0) {
+                showToast("No student registrations found matching these criteria.", { type: "warning" });
                 return;
             }
 
@@ -62,7 +110,9 @@ export default function ResultPublish() {
 
             // 1. Fetch registrations with nested marks data
             // We fetch the core structure but remove the direct relation joins to avoid schema errors.
-            const { data: registrations, error: fetchError } = await supabase
+            // 1. Fetch registrations with nested marks data
+            // We fetch the core structure but remove the direct relation joins to avoid schema errors.
+            let regQuery = supabase
                 .from('exam_registrations')
                 .select(`
                     id,
@@ -83,6 +133,13 @@ export default function ResultPublish() {
                     )
                 `)
                 .eq('exam_id', selectedExamId);
+
+            if (filters.academicYear) regQuery = regQuery.eq('academic_year', filters.academicYear);
+            if (filters.group) regQuery = regQuery.eq('group_name', filters.group);
+            if (filters.course) regQuery = regQuery.eq('course_name', filters.course);
+            if (filters.semester) regQuery = regQuery.eq('semester', filters.semester);
+
+            const { data: registrations, error: fetchError } = await regQuery;
 
             if (fetchError) throw fetchError;
 
@@ -170,17 +227,57 @@ export default function ResultPublish() {
                 if (insertError) throw insertError;
             }
 
-            // Update exam master status
-            const { error } = await supabase
-                .from("exam_master")
-                .update({ results_published: true })
-                .eq("id", selectedExamId);
+            // 5. Update exam master status intelligently
+            // Check if ALL students registered for this exam now have results published
 
-            if (error) throw error;
+            // Get total count of registered students for this exam
+            const { count: totalRegistrations, error: regCountError } = await supabase
+                .from('exam_registrations')
+                .select('student_id', { count: 'exact', head: true })
+                .eq('exam_id', selectedExamId);
+
+            if (regCountError) throw regCountError;
+
+            // Get count of students who have at least one result published for this exam
+            // Note: This is an approximation. Ideally we check if every subject for every student is published.
+            // But checking if "all students have at least some result" is a reasonable proxy for "results published" state in many flows.
+            // A more strict check would be: count(distinct student_id) in results == count(distinct student_id) in exam_registrations
+
+            // We use rpc or raw query if needed, but here's a client-side approximation or simple distinct count
+            // Since Supabase head:true with distinct is tricky, we can rely on our previous knowledge or a separate query.
+
+            // Let's just update the flag if we are publishing for *all* or if the total counts match.
+            // For now, to meet the requirement: "once the register exam can who all students are appearing the whole results published thn it should be turn into True"
+
+            const { data: distinctResults, error: resCountError } = await supabase
+                .from('results')
+                .select('student_id')
+                .eq('exam_id', selectedExamId);
+
+            if (resCountError) throw resCountError;
+
+            const uniqueStudentsWithResults = new Set(distinctResults.map(r => r.student_id)).size;
+
+            // If the number of unique students with results equals the total number of registrations, 
+            // then we consider the results fully published.
+            if (uniqueStudentsWithResults >= totalRegistrations) {
+                const { error } = await supabase
+                    .from("exam_master")
+                    .update({ results_published: true })
+                    .eq("id", selectedExamId);
+
+                if (error) throw error;
+            }
 
             showToast("Results published successfully", { type: "success" });
             setSelectedExamId("");
-            loadExams();
+            setFilters({
+                academicYear: "",
+                group: "",
+                course: "",
+                semester: ""
+            });
+            loadInitialData();
 
         } catch (error) {
             console.error("Failed to publish results", error);
@@ -197,8 +294,8 @@ export default function ResultPublish() {
 
                 <div className="card card-soft shadow-sm" style={{ maxWidth: '600px' }}>
                     <div className="card-body">
-                        <div className="d-flex align-items-end gap-3 mb-3">
-                            <div className="flex-grow-1">
+                        <div className="row g-3 mb-3">
+                            <div className="col-12">
                                 <label htmlFor="examSelect" className="form-label">
                                     Select Exam Name
                                 </label>
@@ -211,19 +308,82 @@ export default function ResultPublish() {
                                 >
                                     <option value="">-- Select Exam --</option>
                                     {exams.map((exam) => (
-                                        <option key={exam.id} value={exam.id}>
+                                        <option key={exam.id} value={exam.id} disabled={exam.results_published}>
                                             {exam.exam_name} {exam.results_published ? "(Published)" : ""}
                                         </option>
                                     ))}
                                 </select>
                             </div>
-                            <button
-                                className="btn btn-primary"
-                                onClick={handlePublishClick}
-                                disabled={!selectedExamId || publishing}
-                            >
-                                {publishing ? "Processing..." : "Publish Results"}
-                            </button>
+
+                            <div className="col-md-6">
+                                <label className="form-label">Academic Year</label>
+                                <select
+                                    className="form-select"
+                                    value={filters.academicYear}
+                                    onChange={(e) => setFilters(prev => ({ ...prev, academicYear: e.target.value }))}
+                                    disabled={!selectedExamId || publishing || isPublished}
+                                >
+                                    <option value="">All Years</option>
+                                    {options.academicYears.map(year => (
+                                        <option key={year} value={year}>{year}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="col-md-6">
+                                <label className="form-label">Group</label>
+                                <select
+                                    className="form-select"
+                                    value={filters.group}
+                                    onChange={(e) => setFilters(prev => ({ ...prev, group: e.target.value, course: '' }))}
+                                    disabled={!selectedExamId || publishing || isPublished}
+                                >
+                                    <option value="">All Groups</option>
+                                    {options.groups.map(g => (
+                                        <option key={g.group_id || g.id} value={g.group_name || g.name}>{g.group_name || g.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="col-md-6">
+                                <label className="form-label">Course</label>
+                                <select
+                                    className="form-select"
+                                    value={filters.course}
+                                    onChange={(e) => setFilters(prev => ({ ...prev, course: e.target.value }))}
+                                    disabled={!selectedExamId || publishing || isPublished}
+                                >
+                                    <option value="">All Courses</option>
+                                    {filteredCourses.map(c => (
+                                        <option key={c.course_id || c.id} value={c.course_name || c.name}>{c.course_name || c.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="col-md-6">
+                                <label className="form-label">Semester</label>
+                                <select
+                                    className="form-select"
+                                    value={filters.semester}
+                                    onChange={(e) => setFilters(prev => ({ ...prev, semester: e.target.value }))}
+                                    disabled={!selectedExamId || publishing || isPublished}
+                                >
+                                    <option value="">All Semesters</option>
+                                    {options.semesters.map(s => (
+                                        <option key={s} value={s}>{s}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="col-12 d-flex justify-content-end mt-4">
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={handlePublishClick}
+                                    disabled={!selectedExamId || publishing || isPublished}
+                                >
+                                    {publishing ? "Processing..." : isPublished ? "Results Published" : "Publish Results"}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

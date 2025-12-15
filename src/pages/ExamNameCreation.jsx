@@ -531,21 +531,7 @@ export default function ExamNameCreation() {
                       >
                         Delete
                       </button>
-                      <button
-                        type="button"
-                        className={`btn btn-sm rounded-pill px-3 ${exam.registration_completed ? 'btn-outline-secondary' : 'btn-outline-success'}`}
-                        onClick={() => openCompleteRegistrationModal(exam)}
-                        disabled={!!exam.registration_completed}
-                      >
-                        {exam.registration_completed ? 'Completed' : 'Complete Registration'}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-outline-info rounded-pill px-3"
-                        onClick={() => openTimetableModal(exam)}
-                      >
-                        View Time Table
-                      </button>
+
                     </div>
                   </div>
                 ))
