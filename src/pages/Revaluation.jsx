@@ -280,7 +280,10 @@ export default function Revaluation() {
     };
 
     const handlePublishResults = async () => {
-        if (!selectedExam) return;
+        if (!selectedExam) {
+            toast.warn("Please select the exam name.");
+            return;
+        }
         setPublishing(true);
         try {
             // 1. Fetch all pending revaluation results for this exam
@@ -425,18 +428,22 @@ export default function Revaluation() {
                             </div>
 
                             {/* Publish Button Row (Full Width if needed or next line) */}
-                            {selectedExam && (
-                                <div className="col-12 mt-3">
-                                    <button
-                                        className={`btn ${revalPublished ? "btn-secondary" : "btn-success"} w-100`}
-                                        onClick={() => !revalPublished && setPublishModal(true)}
-                                        disabled={revalPublished || checkingPublished}
-                                    >
-                                        <i className={`bi ${revalPublished ? "bi-check-circle-fill" : "bi-megaphone-fill"} me-2`}></i>
-                                        {revalPublished ? "Revaluation Published" : "Publish Revaluation Results"}
-                                    </button>
-                                </div>
-                            )}
+                            <div className="col-12 mt-3">
+                                <button
+                                    className={`btn ${revalPublished ? "btn-secondary" : "btn-primary"} w-100`}
+                                    onClick={() => {
+                                        if (!selectedExam) {
+                                            toast.warn("Please select the exam name.");
+                                            return;
+                                        }
+                                        if (!revalPublished) setPublishModal(true);
+                                    }}
+                                    disabled={revalPublished || checkingPublished}
+                                >
+                                    <i className={`bi ${revalPublished ? "bi-check-circle-fill" : "bi-megaphone-fill"} me-2`}></i>
+                                    {revalPublished ? "Revaluation Published" : "Publish Revaluation Results"}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -586,7 +593,7 @@ export default function Revaluation() {
                         >
                             <div className="modal-dialog modal-dialog-centered" role="document">
                                 <div className="modal-content shadow-lg border-0">
-                                    <div className="modal-header bg-success text-white">
+                                    <div className="modal-header bg-primary text-white">
                                         <h5 className="modal-title fw-bold">Confirm Publication</h5>
                                         <button
                                             type="button"
@@ -596,7 +603,7 @@ export default function Revaluation() {
                                     </div>
                                     <div className="modal-body p-4 text-center">
                                         <div className="mb-3">
-                                            <i className="bi bi-check-circle-fill text-success" style={{ fontSize: "3rem" }}></i>
+                                            <i className="bi bi-check-circle-fill text-primary" style={{ fontSize: "3rem" }}></i>
                                         </div>
                                         <h5 className="mb-3">Publish Revaluation Results?</h5>
                                         <p className="text-muted">
@@ -613,7 +620,7 @@ export default function Revaluation() {
                                             </button>
                                             <button
                                                 type="button"
-                                                className="btn btn-success px-4"
+                                                className="btn btn-primary px-4"
                                                 onClick={handlePublishResults}
                                                 disabled={publishing}
                                             >
