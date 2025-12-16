@@ -390,44 +390,9 @@ export default function Dashboard() {
     return Math.round((marks.length / regSubjects.length) * 100);
   }, [marks.length, regSubjects.length]);
 
-  const progressStats = [
-    {
-      label: "Hall Ticket Coverage",
-      value: `${issuedPercent}%`,
-      detail: `${hallTicketCounts.Issued}/${registrations.length || 1} issued`,
-      accent: "primary",
-      progress: issuedPercent,
-    },
-    {
-      label: "Result Entry Coverage",
-      value: `${marksPercent}%`,
-      detail: `${marks.length}/${regSubjects.length || 1} subjects marked`,
-      accent: "success",
-      progress: marksPercent,
-    },
-    {
-      label: "Deadlines tracked",
-      value: deadlines.length,
-      detail: "Upcoming registration cutoffs",
-      accent: "warning",
-      progress: Math.min(deadlines.length * 20, 100),
-    },
-  ];
-
   return (
     <AdminShell>
       <div className="dashboard-page">
-        <div className="dashboard-header card-shadow">
-          <div>
-            <p className="text-uppercase text-secondary small mb-1">Dashboard / Overview</p>
-            <h1 className="dashboard-heading mb-1">Exam Management Dashboard</h1>
-            <p className="text-muted">
-              A concise status summary of exams, hall tickets, and results workflows.
-            </p>
-          </div>
-          <span className="dashboard-badge">Overview</span>
-        </div>
-
         <div className="dashboard-cards">
           {metrics.map((metric) => (
             <article key={metric.label} className="dashboard-card card-shadow">
@@ -442,30 +407,6 @@ export default function Dashboard() {
             </article>
           ))}
         </div>
-
-        <section className="dashboard-progress-grid">
-          {progressStats.map((stat) => (
-            <article key={stat.label} className={`dashboard-progress-card border-${stat.accent}`}>
-              <div className="d-flex justify-content-between align-items-center mb-1">
-                <div className="fw-600">{stat.label}</div>
-                <span className={`badge bg-${stat.accent}-light text-${stat.accent}`}>
-                  {stat.value}
-                </span>
-              </div>
-              <p className="text-muted mb-2">{stat.detail}</p>
-              <div className="progress" style={{ height: 6 }}>
-                <div
-                  className={`progress-bar bg-${stat.accent}`}
-                  role="progressbar"
-                  style={{ width: `${stat.progress}%` }}
-                  aria-valuenow={stat.progress}
-                  aria-valuemin="0"
-                  aria-valuemax="100"
-                ></div>
-              </div>
-            </article>
-          ))}
-        </section>
 
         {error && (
           <div className="alert alert-danger mt-3" role="alert">

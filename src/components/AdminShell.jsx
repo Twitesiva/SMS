@@ -152,7 +152,7 @@ export default function AdminShell({ children, onSignOut }) {
                 className="heading-font fw-600"
                 style={{ letterSpacing: "0.2em", fontSize: "0.95rem" }}
               >
-                Vijayam College
+                Vijayam Arts & Science College
               </div>
               <div
                 className="sidebar-brand-subtitle fw-semibold"

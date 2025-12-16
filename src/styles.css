@@ -4797,7 +4797,6 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   padding: 2rem;
   border-radius: 32px;
 }
-
 .dashboard-hero {
   display: flex;
   justify-content: space-between;
