@@ -1,4 +1,5 @@
 import AdminShell from '../components/AdminShell'
+import { useNavigate } from 'react-router-dom'
 import { useCallback, useEffect, useState, useMemo } from 'react'
 import { api } from '../lib/mockApi'
 import { showToast } from '../store/ui.js'
@@ -12,6 +13,7 @@ import signatureImage from '../assets/media/signature.png'
 const EXAM_NAME_PREFIX = 'Regular and Supplementary Examinations - '
 
 export default function CompleteRegistration() {
+    const navigate = useNavigate()
     const [exams, setExams] = useState([])
     const [examsLoading, setExamsLoading] = useState(false)
     const [completeRegistrationModalOpen, setCompleteRegistrationModalOpen] = useState(false)
@@ -529,6 +531,13 @@ export default function CompleteRegistration() {
                                             </button>
                                             <button
                                                 type="button"
+                                                className="btn btn-sm btn-outline-warning rounded-pill px-3"
+                                                onClick={() => navigate('/admin/exams', { state: { openPreview: true } })}
+                                            >
+                                                Edit Time Table
+                                            </button>
+                                            <button
+                                                type="button"
                                                 className="btn btn-sm btn-outline-info rounded-pill px-3"
                                                 onClick={() => openTimetableModal(exam)}
                                             >
@@ -583,13 +592,13 @@ export default function CompleteRegistration() {
                     aria-modal="true"
                     style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
                 >
-                    <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                    <div className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
                         <div className="modal-content border-0 shadow-lg">
                             <div className="modal-header border-0 pb-0 d-block">
                                 <div className="d-flex justify-content-between align-items-start mb-3">
                                     <div>
                                         <h5 className="modal-title fw-bold">Exam Time Table</h5>
-                                <p className="text-muted small mb-0">{timetableModalState.exam?.exam_name}</p>
+                                        <p className="text-muted small mb-0">{timetableModalState.exam?.exam_name}</p>
                                     </div>
                                     <button
                                         type="button"
@@ -639,9 +648,9 @@ export default function CompleteRegistration() {
                                     </div>
                                 ) : timetableModalState.schedules.length === 0 ? (
                                     <div className="text-center py-4 text-muted">No schedules found for this exam.</div>
-                ) : (
-                    <div className="table-responsive">
-                        <TimetableList
+                                ) : (
+                                    <div className="table-responsive">
+                                        <TimetableList
                                             // Pass pre-calculated data to avoid re-calculation
                                             groupedData={derivedScheduleData}
                                             // Fallback for props that might rely on them, though groupedData supersedes
@@ -650,11 +659,11 @@ export default function CompleteRegistration() {
                                             courses={courses}
                                             groups={groups}
                                             filterGroup={timetableFilters.group}
-                            filterCourse={timetableFilters.course}
-                            subCategories={subCategories}
-                        />
-                    </div>
-                )}
+                                            filterCourse={timetableFilters.course}
+                                            subCategories={subCategories}
+                                        />
+                                    </div>
+                                )}
                             </div>
                             <div className="modal-footer border-0 pt-0">
                                 <button
@@ -687,11 +696,11 @@ export default function CompleteRegistration() {
                             schedules={printViewData.schedules}
                             subjects={subjects}
                             courses={courses}
-                        groups={groups}
-                        filterGroup={printViewData.filterGroup}
-                        filterCourse={printViewData.filterCourse}
-                        subCategories={subCategories}
-                    />
+                            groups={groups}
+                            filterGroup={printViewData.filterGroup}
+                            filterCourse={printViewData.filterCourse}
+                            subCategories={subCategories}
+                        />
                     </div>
                 </div>
             )}
@@ -909,8 +918,7 @@ const TimetableList = ({ schedules, subjects, courses, groups, filterGroup, filt
                             <th style={{ width: '110px' }}>Date</th>
                             <th style={{ minWidth: '150px' }}>Time</th>
                             <th style={{ minWidth: '140px' }}>Sub Category</th>
-                            <th style={{ minWidth: '140px' }}>Subject Code</th>
-                            <th>Subject Name</th>
+                            <th>Subject</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -923,8 +931,7 @@ const TimetableList = ({ schedules, subjects, courses, groups, filterGroup, filt
                                 <td>{row.date}</td>
                                 <td>{row.time}</td>
                                 <td>{row.subCategory}</td>
-                                <td>{row.subjectCode}</td>
-                                <td>{row.subjectName}</td>
+                                <td>{row.subjectCode}-{row.subjectName}</td>
                             </tr>
                         ))}
                     </tbody>
@@ -1038,21 +1045,17 @@ const TimetablePrintItems = ({ schedules, subjects, courses, groups, filterGroup
 
         return (
             <div key={key} className="print-chunk mb-4 p-2 border rounded">
-                <div className="alert alert-light px-3 py-2 mb-2 border">
-                    <div className="d-flex align-items-center gap-2">
-                        <span className="fw-bold text-dark">
-                            {`${getYearLabelFromSemesterNumber(sem)}. ${groupName}.${courseName ? ` ${courseName}.` : ''} ${sem !== 'N/A' ? `SEM ${sem}` : ''}`.replace(/\s+/g, ' ').trim()}
-                        </span>
-                    </div>
+                <div className="mb-2 border border-dark border-bottom-0 p-2 text-center font-weight-bold" style={{ border: '1px solid #000', fontWeight: 'bold' }}>
+                    {`${getYearLabelFromSemesterNumber(sem)}. ${groupName}.${courseName ? ` ${courseName}.` : ''} ${sem !== 'N/A' ? `SEM ${sem}` : ''}`.replace(/\s+/g, ' ').toUpperCase()}
                 </div>
-                <table className="table table-bordered table-sm align-middle mb-0" style={{ borderColor: '#000' }}>
-                    <thead className="bg-light">
+                <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000', fontSize: '12px' }}>
+                    <thead>
                         <tr>
-                            <th style={{ width: '50px', border: '1px solid #000' }}>S.No</th>
-                            <th style={{ width: '100px', border: '1px solid #000' }}>Date</th>
-                            <th style={{ width: '130px', border: '1px solid #000' }}>Time</th>
-                            <th style={{ border: '1px solid #000' }}>Sub Category</th>
-                            <th style={{ border: '1px solid #000' }}>Subject</th>
+                            <th style={{ width: '50px', border: '1px solid #000', padding: '8px', textAlign: 'center' }}>S.No</th>
+                            <th style={{ width: '100px', border: '1px solid #000', padding: '8px', textAlign: 'left' }}>DATE</th>
+                            <th style={{ width: '130px', border: '1px solid #000', padding: '8px', textAlign: 'center' }}>TIME</th>
+                            <th style={{ border: '1px solid #000', padding: '8px', textAlign: 'left' }}>SUB CATEGORY</th>
+                            <th style={{ border: '1px solid #000', padding: '8px', textAlign: 'left' }}>SUBJECT</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1065,12 +1068,12 @@ const TimetablePrintItems = ({ schedules, subjects, courses, groups, filterGroup
                                 resolveSubCategoryName(sch.category, subCategoryLookup)
                             return (
                                 <tr key={sch.schedule_id}>
-                                    <td className="text-center" style={{ border: '1px solid #000' }}>{index + 1}</td>
-                                    <td style={{ border: '1px solid #000' }}>{dateStr}</td>
-                                    <td style={{ border: '1px solid #000' }}>{timeRange}</td>
-                                    <td style={{ border: '1px solid #000' }}>{subCategoryDisplayName}</td>
-                                    <td style={{ border: '1px solid #000' }}>
-                                        {sch.subject_code} - {subjectName}
+                                    <td style={{ border: '1px solid #000', padding: '8px', textAlign: 'center' }}>{index + 1}</td>
+                                    <td style={{ border: '1px solid #000', padding: '8px' }}>{dateStr}</td>
+                                    <td style={{ border: '1px solid #000', padding: '8px', textAlign: 'center' }}>{timeRange}</td>
+                                    <td style={{ border: '1px solid #000', padding: '8px' }}>{subCategoryDisplayName}</td>
+                                    <td style={{ border: '1px solid #000', padding: '8px' }}>
+                                        {sch.subject_code}-{subjectName}
                                     </td>
                                 </tr>
                             )

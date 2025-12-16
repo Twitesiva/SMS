@@ -1,5 +1,6 @@
 import AdminShell from '../components/AdminShell'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { api } from '../lib/mockApi'
 import { showToast, confirmToast } from '../store/ui.js'
 import { supabase } from '../../supabaseClient'
@@ -144,6 +145,13 @@ export default function Exams() {
   const [feedback, setFeedback] = useState({ message: '', type: '' })
   const [exams, setExams] = useState([])
   const [selectedExam, setSelectedExam] = useState('')
+  const location = useLocation()
+
+  useEffect(() => {
+    if (location.state?.openPreview) {
+      setShowPreview(true)
+    }
+  }, [location.state])
 
   const selectedExamEntry = useMemo(
     () => exams.find((e) => String(e.id) === String(selectedExam)),
