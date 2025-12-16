@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -8,12 +8,11 @@ import {
   LineElement,
   BarElement,
   ArcElement,
-  RadialLinearScale,
   Title,
   Tooltip,
   Legend,
 } from "chart.js";
-import { Doughnut, Bar, PolarArea } from "react-chartjs-2";
+import { Doughnut, Bar } from "react-chartjs-2";
 import AdminShell from "../components/AdminShell";
 import { supabase } from "../../supabaseClient";
 
@@ -24,7 +23,6 @@ ChartJS.register(
   LineElement,
   BarElement,
   ArcElement,
-  RadialLinearScale,
   Title,
   Tooltip,
   Legend
@@ -76,49 +74,12 @@ const resultChartOptions = {
   },
 };
 
-const currencyFormatter = new Intl.NumberFormat("en-IN", {
-  style: "currency",
-  currency: "INR",
-  maximumFractionDigits: 0,
-});
-
-const formatCurrency = (value) => {
-  const amount = Number(value || 0);
-  if (Number.isNaN(amount)) return currencyFormatter.format(0);
-  return currencyFormatter.format(amount);
-};
-
 const donutOptions = {
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
     legend: {
       position: "bottom",
-    },
-  },
-};
-
-const polarOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: {
-      display: false,
-    },
-    tooltip: {
-      callbacks: {
-        label: (context) => `${context.label}: ${context.parsed?.r ?? context.parsed} students`,
-      },
-    },
-  },
-  scales: {
-    r: {
-      grid: {
-        color: "rgba(15, 23, 42, 0.08)",
-      },
-      ticks: {
-        beginAtZero: true,
-      },
     },
   },
 };
@@ -187,6 +148,66 @@ const hallTicketBarOptions = {
   },
 };
 
+const stackedBarOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: "top",
+    },
+    tooltip: {
+      callbacks: {
+        label: (context) => `${context.dataset.label}: ${context.parsed.y}`,
+      },
+    },
+  },
+  scales: {
+    x: {
+      stacked: true,
+      grid: {
+        display: false,
+      },
+    },
+    y: {
+      stacked: true,
+      beginAtZero: true,
+      grid: {
+        color: "rgba(15, 23, 42, 0.12)",
+      },
+    },
+  },
+};
+
+const paymentBarOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: "top",
+    },
+    tooltip: {
+      callbacks: {
+        label: (context) => `${context.dataset.label}: ${context.parsed.y}`,
+      },
+    },
+  },
+  scales: {
+    x: {
+      stacked: false,
+      grid: {
+        display: false,
+      },
+    },
+    y: {
+      stacked: false,
+      beginAtZero: true,
+      grid: {
+        color: "rgba(15, 23, 42, 0.12)",
+      },
+    },
+  },
+};
+
 const categorizeHallTicketStatus = (status) => {
   if (!status) return "Pending";
   const normalized = status.toString().toLowerCase();
@@ -206,21 +227,26 @@ const categorizeHallTicketStatus = (status) => {
 const hallTicketStatusMeta = [
   { key: "Issued", note: "Hall tickets ready for printing" },
   { key: "Pending", note: "Awaiting hall ticket generation" },
+  { key: "Escalated", note: "Requires administrative attention" },
 ];
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [exams, setExams] = useState([]);
   const [registrations, setRegistrations] = useState([]);
+  const [payments, setPayments] = useState([]); // Added payments state
   const [regSubjects, setRegSubjects] = useState([]);
   const [marks, setMarks] = useState([]);
-  const [deadlines, setDeadlines] = useState([]);
+
   const [students, setStudents] = useState([]);
   const [courses, setCourses] = useState([]);
   const [groups, setGroups] = useState([]);
-  const [payments, setPayments] = useState([]);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [paymentView, setPaymentView] = useState("group"); // 'group' or 'course'
+  const [resultView, setResultView] = useState("group"); // 'group' or 'course'
+  const [registrationView, setRegistrationView] = useState("group"); // 'group' or 'course'
 
   useEffect(() => {
     let active = true;
@@ -233,59 +259,53 @@ export default function Dashboard() {
         .order("created_at", { ascending: false }),
       supabase
         .from("exam_registrations")
-        .select("id, status, exam_id, created_at, student_id"),
+        .select("id, status, exam_id, created_at, student_id, total_fee, group_name, course_name"), // Added group_name, course_name
+      supabase.from("payments").select("exam_registration_id, amount_paid, payment_status"), // Added payments fetch with status
       supabase.from("exam_registration_subjects").select("id, exam_registration_id"),
       supabase.from("marks").select("id"),
-      supabase
-        .from("exam_deadlines")
-        .select("id, exam_id, last_date")
-        .order("last_date", { ascending: true }),
+
       supabase
         .from("students")
         .select("id, course_name, group_name, hall_ticket_no"),
       supabase.from("courses").select("course_id, course_code, course_name"),
       supabase.from("groups").select("group_id, group_code, group_name"),
-      supabase.from("results").select("student_id, result_status, exam_id"),
-      supabase
-        .from("payments")
-        .select("id, exam_registration_id, amount_paid, payment_status"),
+      supabase.from("results").select("student_id, result_status, exam_id, marks_obtained, max_marks"),
     ])
       .then(
-      ([
-        examsResult,
-        registrationsResult,
-        subjectsResult,
-        marksResult,
-        deadlinesResult,
-        studentsResult,
-        coursesResult,
-        groupsResult,
-        resultsResult,
-        paymentsResult,
-      ]) => {
-        if (!active) return;
-        const errors = [
-          examsResult.error,
-          registrationsResult.error,
-          subjectsResult.error,
-          marksResult.error,
-          resultsResult.error,
-          paymentsResult.error,
-        ].filter(Boolean);
-        if (errors.length) {
-          setError(errors.map((err) => err.message).join(" · "));
-        }
-        setExams(examsResult.data || []);
-        setRegistrations(registrationsResult.data || []);
-        setRegSubjects(subjectsResult.data || []);
+        ([
+          examsResult,
+          registrationsResult,
+          paymentsResult, // Added payments result
+          subjectsResult,
+          marksResult,
+
+          studentsResult,
+          coursesResult,
+          groupsResult,
+          resultsResult,
+        ]) => {
+          if (!active) return;
+          const errors = [
+            examsResult.error,
+            registrationsResult.error,
+            subjectsResult.error,
+            marksResult.error,
+            resultsResult.error,
+          ].filter(Boolean);
+          if (errors.length) {
+            setError(errors.map((err) => err.message).join(" · "));
+          }
+          setExams(examsResult.data || []);
+          setRegistrations(registrationsResult.data || []);
+          setPayments(paymentsResult.data || []); // Set payments data
+          setRegSubjects(subjectsResult.data || []);
           setMarks(marksResult.data || []);
-          setDeadlines(deadlinesResult.data || []);
-        setStudents(studentsResult.data || []);
-        setCourses(coursesResult.data || []);
-        setGroups(groupsResult.data || []);
-        setResults(resultsResult.data || []);
-        setPayments(paymentsResult.data || []);
-      })
+
+          setStudents(studentsResult.data || []);
+          setCourses(coursesResult.data || []);
+          setGroups(groupsResult.data || []);
+          setResults(resultsResult.data || []);
+        })
       .catch((err) => {
         if (active) {
           setError(err.message || "Unable to load dashboard data");
@@ -301,31 +321,10 @@ export default function Dashboard() {
     };
   }, []);
 
-  const registrationCoverage = useMemo(() => {
-    const registered = registrations.length;
-    const total = students.length;
-    const unregistered = Math.max(total - registered, 0);
-    const registeredPercent = total ? Math.round((registered / total) * 100) : 0;
-    return {
-      registered,
-      unregistered,
-      total,
-      registeredPercent,
-    };
-  }, [registrations.length, students.length]);
+  const latestExam = useMemo(() => {
+    return exams.length ? exams[0] : null;
+  }, [exams]);
 
-  const registrationCoverageChartData = useMemo(() => {
-    return {
-      labels: ["Registered", "Unregistered"],
-      datasets: [
-        {
-          data: [registrationCoverage.registered, registrationCoverage.unregistered],
-          backgroundColor: ["rgba(59, 130, 246, 0.85)", "rgba(234, 179, 8, 0.85)"],
-          hoverOffset: 8,
-        },
-      ],
-    };
-  }, [registrationCoverage.registered, registrationCoverage.unregistered]);
 
   const latestPublishedExam = useMemo(() => {
     const publishedExams = exams.filter((exam) => exam?.results_published);
@@ -338,61 +337,6 @@ export default function Dashboard() {
       return currentDate >= latestDate ? exam : latest;
     }, null);
   }, [exams]);
-
-  const paymentCoverage = useMemo(() => {
-    const amountParser = (value) => {
-      const parsed = Number(value);
-      return Number.isNaN(parsed) ? 0 : parsed;
-    };
-    const targetExamId = latestPublishedExam?.id;
-    const targetedRegistrations = targetExamId
-      ? registrations.filter((registration) => registration.exam_id === targetExamId)
-      : registrations;
-    const targetRegistrationIds = new Set(
-      targetedRegistrations.map((registration) => registration.id).filter((id) => id != null)
-    );
-    const filteredPayments = payments.filter((payment) =>
-      payment.exam_registration_id ? targetRegistrationIds.has(payment.exam_registration_id) : false
-    );
-    const paidPayments = filteredPayments.filter(
-      (payment) => (payment.payment_status ?? "").toString().toLowerCase() === "success"
-    );
-    const pendingPayments = filteredPayments.filter(
-      (payment) => (payment.payment_status ?? "").toString().toLowerCase() !== "success"
-    );
-    const paidAmount = paidPayments.reduce((sum, payment) => sum + amountParser(payment.amount_paid), 0);
-    const pendingAmount = pendingPayments.reduce(
-      (sum, payment) => sum + amountParser(payment.amount_paid),
-      0
-    );
-    const paidRegistrations = new Set(
-      paidPayments
-        .map((payment) => payment.exam_registration_id)
-        .filter((id) => id !== null && id !== undefined)
-    ).size;
-    const targetTotal = targetRegistrationIds.size;
-    const unpaidRegistrations = Math.max(targetTotal - paidRegistrations, 0);
-    return {
-      paidRegistrations,
-      unpaidRegistrations,
-      totalRegistrations: targetTotal,
-      paidAmount,
-      pendingAmount,
-    };
-  }, [payments, registrations, latestPublishedExam]);
-
-  const paymentCoverageChartData = useMemo(() => {
-    return {
-      labels: ["Paid", "Unpaid"],
-      datasets: [
-        {
-          data: [paymentCoverage.paidRegistrations, paymentCoverage.unpaidRegistrations],
-          backgroundColor: ["rgba(16, 185, 129, 0.85)", "rgba(249, 115, 22, 0.85)"],
-          hoverOffset: 6,
-        },
-      ],
-    };
-  }, [paymentCoverage.paidRegistrations, paymentCoverage.unpaidRegistrations]);
 
   const passedArrearStats = useMemo(() => {
     const targetExamId = latestPublishedExam?.id;
@@ -473,6 +417,8 @@ export default function Dashboard() {
     };
   }, [regSubjects.length, marks.length, exams]);
 
+
+
   const academicCounts = useMemo(
     () => ({
       students: students.length,
@@ -481,8 +427,6 @@ export default function Dashboard() {
     }),
     [students.length, courses.length, groups.length]
   );
-
-  const [activeGroup, setActiveGroup] = useState("");
 
   const courseLabels = useMemo(() => {
     const lookup = {};
@@ -526,6 +470,77 @@ export default function Dashboard() {
     return lookup;
   }, [groups]);
 
+  const registrationStats = useMemo(() => {
+    const targetExamId = latestExam?.id;
+    const currentExamRegistrations = registrations.filter(
+      (r) => r.exam_id === targetExamId
+    );
+    const registeredStudentIds = new Set(
+      currentExamRegistrations.map((r) => r.student_id)
+    );
+
+    const groupStats = {};
+    const courseStats = {};
+
+    // Initialize stats
+    groups.forEach((g) => {
+      const label = g.group_name || g.group_code;
+      if (label) groupStats[label] = { registered: 0, total: 0 };
+    });
+    courses.forEach((c) => {
+      const label = c.course_name || c.course_code;
+      if (label) courseStats[label] = { registered: 0, total: 0 };
+    });
+
+    students.forEach((student) => {
+      const isRegistered = registeredStudentIds.has(student.id);
+
+      // Group
+      const rawGroup = student.group_name;
+      const glabel = groupLabels[rawGroup] || rawGroup || "Unknown";
+      if (!groupStats[glabel]) groupStats[glabel] = { registered: 0, total: 0 };
+      groupStats[glabel].total += 1;
+      if (isRegistered) groupStats[glabel].registered += 1;
+
+      // Course
+      const rawCourse = student.course_name;
+      const clabel = courseLabels[rawCourse] || rawCourse || "Unknown";
+      if (!courseStats[clabel]) courseStats[clabel] = { registered: 0, total: 0 };
+      courseStats[clabel].total += 1;
+      if (isRegistered) courseStats[clabel].registered += 1;
+    });
+
+    // Cleanup empty "Unknown"
+    if (groupStats["Unknown"] && groupStats["Unknown"].total === 0) delete groupStats["Unknown"];
+    if (courseStats["Unknown"] && courseStats["Unknown"].total === 0) delete courseStats["Unknown"];
+
+    const formatChartData = (statsMap) => {
+      const labels = Object.keys(statsMap).sort();
+      const registered = labels.map((l) => statsMap[l].registered);
+      const pending = labels.map((l) => statsMap[l].total - statsMap[l].registered);
+      return {
+        labels,
+        datasets: [
+          {
+            label: "Registered",
+            data: registered,
+            backgroundColor: "rgba(59, 130, 246, 0.85)",
+          },
+          {
+            label: "Pending",
+            data: pending,
+            backgroundColor: "rgba(209, 213, 219, 0.8)",
+          },
+        ],
+      };
+    };
+
+    return {
+      group: formatChartData(groupStats),
+      course: formatChartData(courseStats)
+    };
+  }, [students, registrations, groups, courses, groupLabels, courseLabels, latestExam]);
+
   const studentLookupById = useMemo(() => {
     const lookup = {};
     students.forEach((student) => {
@@ -536,163 +551,139 @@ export default function Dashboard() {
     return lookup;
   }, [students]);
 
-  const groupEnrollments = useMemo(() => {
-    const counts = {};
-    students.forEach((student) => {
-      const code = student.group_code?.trim();
-      const inputName = student.group_name?.trim();
-      const resolved =
-        (code && groupLabels[code]) ||
-        (inputName && groupLabels[inputName]) ||
-        inputName ||
-        code;
-      if (!resolved) return;
-      counts[resolved] = (counts[resolved] || 0) + 1;
-    });
-    const topWithData = Object.entries(counts)
-      .map(([group, count]) => ({ group, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 6);
+  const paymentStats = useMemo(() => {
+    const targetExamId = latestExam?.id;
+    if (!targetExamId) return { group: null, course: null };
 
-    if (topWithData.length) {
-      return topWithData;
-    }
+    const currentRegs = registrations.filter(r => r.exam_id === targetExamId);
+    if (!currentRegs.length) return { group: null, course: null };
 
-    return (
-      groups
-        .map((group) => ({
-          group: group.group_name?.trim() || group.group_code?.trim() || `Group ${group.group_id || "Unnamed"}`,
-          count: 0,
-        }))
-        .filter((entry) => entry.group)
-        .slice(0, 6)
-    );
-  }, [students, groups, groupLabels]);
-
-  const groupCourseMap = useMemo(() => {
-    const map = {};
-    students.forEach((student) => {
-      const code = student.group_code?.trim();
-      const inputName = student.group_name?.trim();
-      const resolvedGroup =
-        (code && groupLabels[code]) ||
-        (inputName && groupLabels[inputName]) ||
-        inputName ||
-        code;
-      if (!resolvedGroup) return;
-      const courseCode = student.course_code?.trim();
-      const courseName = student.course_name?.trim();
-      const resolvedCourse =
-        (courseCode && courseLabels[courseCode]) ||
-        (courseName && courseLabels[courseName]) ||
-        courseName ||
-        courseCode;
-      if (!resolvedCourse) return;
-      map[resolvedGroup] = map[resolvedGroup] || {};
-      map[resolvedGroup][resolvedCourse] = (map[resolvedGroup][resolvedCourse] || 0) + 1;
-    });
-    return map;
-  }, [students, groupLabels, courseLabels]);
-
-  useEffect(() => {
-    if (!groupEnrollments.length) {
-      setActiveGroup("");
-    }
-  }, [groupEnrollments.length]);
-
-  const activeGroupCourses = useMemo(() => {
-    if (!activeGroup) return [];
-    const coursesForGroup = groupCourseMap[activeGroup] || {};
-    return Object.entries(coursesForGroup)
-      .map(([course, count]) => ({ course, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 6);
-  }, [groupCourseMap, activeGroup]);
-
-  const courseEnrollmentChartData = useMemo(() => {
-    const colors = [
-      "rgba(59, 130, 246, 0.85)",
-      "rgba(16, 185, 129, 0.85)",
-      "rgba(249, 115, 22, 0.85)",
-      "rgba(234, 179, 8, 0.85)",
-      "rgba(147, 51, 234, 0.85)",
-      "rgba(236, 72, 153, 0.85)",
-      "rgba(59, 78, 162, 0.85)",
-      "rgba(236, 72, 153, 0.7)",
-    ];
-    const labels = activeGroupCourses.map((entry) => entry.course);
-    const data = activeGroupCourses.map((entry) => entry.count);
-    return {
-      labels,
-      datasets: [
-        {
-          data,
-          backgroundColor: labels.map((_, index) => colors[index % colors.length]),
-          hoverOffset: 8,
-        },
-      ],
-    };
-  }, [activeGroupCourses]);
-
-  const hallTicketStatusCounts = useMemo(() => {
-    const counts = { Issued: 0, Pending: 0 };
-    registrations.forEach((registration) => {
-      const student = studentLookupById[registration.student_id];
-      const hasHallTicket = Boolean(student?.hall_ticket_no?.trim());
-      let status = hasHallTicket
-        ? "Issued"
-        : categorizeHallTicketStatus(registration.status);
-      if (!["Issued", "Pending"].includes(status)) {
-        status = "Pending";
+    // Map payments to registrations
+    const paymentsMap = {};
+    payments.forEach(p => {
+      const status = (p.payment_status || "").toLowerCase();
+      if (status === "success") {
+        const rid = p.exam_registration_id;
+        paymentsMap[rid] = (paymentsMap[rid] || 0) + (Number(p.amount_paid) || 0);
       }
-      counts[status] = (counts[status] || 0) + 1;
     });
-    return counts;
-  }, [registrations, studentLookupById]);
 
-  const hallTicketIssuedPercent = useMemo(() => {
-    const total = registrations.length;
-    if (!total) return 0;
-    const issued = hallTicketStatusCounts.Issued || 0;
-    return Math.round((issued / total) * 100);
-  }, [hallTicketStatusCounts, registrations.length]);
+    const regStatus = {};
+    currentRegs.forEach(r => {
+      const paid = paymentsMap[r.id] || 0;
+      const fee = Number(r.total_fee || 0);
+      const isPaid = (fee > 0 && paid >= fee) || (fee === 0 && paid > 0);
+      // Only consider Paid if (fee > 0 AND fully paid) OR (fee is 0 AND some payment made).
+      // This handles cases where total_fee might be missing (0) but user has paid.
+      regStatus[r.id] = isPaid;
+    });
 
-  const hallTicketStatusChartData = useMemo(() => {
-    const colors = [
-      "rgba(16, 185, 129, 0.85)",
-      "rgba(249, 115, 22, 0.85)",
-      "rgba(239, 68, 68, 0.85)",
-    ];
-    const labels = hallTicketStatusMeta.map((entry) => entry.key);
-    const data = labels.map((label) => hallTicketStatusCounts[label] || 0);
-    return {
-      labels,
-      datasets: [
-        {
-          label: "Hall ticket status",
-          data,
-          backgroundColor: data.map((_, index) => colors[index % colors.length]),
-          borderRadius: 12,
-          barThickness: 32,
-        },
-      ],
+    const groupData = {};
+    const courseData = {};
+
+    currentRegs.forEach(r => {
+      // Logic solely based on exam_registrations table (snapshot data), not students table
+      const isPaid = regStatus[r.id];
+
+      // Group
+      const rawGroup = r.group_name;
+      const glabel = groupLabels[rawGroup] || rawGroup || "Unknown";
+      if (!groupData[glabel]) groupData[glabel] = { paid: 0, pending: 0 };
+      if (isPaid) groupData[glabel].paid++;
+      else groupData[glabel].pending++;
+
+      // Course
+      const rawCourse = r.course_name;
+      const clabel = courseLabels[rawCourse] || rawCourse || "Unknown";
+      if (!courseData[clabel]) courseData[clabel] = { paid: 0, pending: 0 };
+      if (isPaid) courseData[clabel].paid++;
+      else courseData[clabel].pending++;
+    });
+
+    const formatChartData = (dataMap) => {
+      const labels = Object.keys(dataMap).sort();
+      return {
+        labels,
+        datasets: [
+          {
+            label: "Paid",
+            data: labels.map(l => dataMap[l].paid),
+            backgroundColor: "rgba(16, 185, 129, 0.85)",
+          },
+          {
+            label: "Unpaid",
+            data: labels.map(l => dataMap[l].pending),
+            backgroundColor: "rgba(239, 68, 68, 0.85)",
+          }
+        ]
+      };
     };
-  }, [hallTicketStatusCounts]);
 
-  const groupEnrollmentChartData = useMemo(() => {
     return {
-      labels: groupEnrollments.map((entry) => entry.group),
-      datasets: [
-        {
-          label: "Students",
-          data: groupEnrollments.map((entry) => entry.count),
-          backgroundColor: "rgba(16, 185, 129, 0.85)",
-          borderRadius: 12,
-          barThickness: 24,
-        },
-      ],
+      group: formatChartData(groupData),
+      course: formatChartData(courseData)
     };
-  }, [groupEnrollments]);
+  }, [latestExam?.id, registrations, payments, groupLabels, courseLabels]);
+
+  const resultStats = useMemo(() => {
+    const targetExamId = latestPublishedExam?.id;
+    if (!targetExamId || !results.length) return { group: null, course: null };
+
+    // Accumulate total marks per group/course to calculate percentage
+    const groupAcc = {}; // { obtained: 0, max: 0 }
+    const courseAcc = {};
+
+    results.forEach((row) => {
+      if (row.exam_id !== targetExamId) return;
+
+      const student = studentLookupById[row.student_id];
+      if (!student) return;
+
+      const obtained = Number(row.marks_obtained) || 0;
+      const max = Number(row.max_marks) || 100;
+
+      // Group
+      const rawGroup = student.group_name;
+      const glabel = groupLabels[rawGroup] || rawGroup || "Unknown";
+      if (!groupAcc[glabel]) groupAcc[glabel] = { obtained: 0, max: 0 };
+      groupAcc[glabel].obtained += obtained;
+      groupAcc[glabel].max += max;
+
+      // Course
+      const rawCourse = student.course_name;
+      const clabel = courseLabels[rawCourse] || rawCourse || "Unknown";
+      if (!courseAcc[clabel]) courseAcc[clabel] = { obtained: 0, max: 0 };
+      courseAcc[clabel].obtained += obtained;
+      courseAcc[clabel].max += max;
+    });
+
+    const formatChartData = (accMap) => {
+      const labels = Object.keys(accMap).sort();
+      const percentages = labels.map(l => {
+        const { obtained, max } = accMap[l];
+        return max ? Math.round((obtained / max) * 100) : 0;
+      });
+
+      return {
+        labels,
+        datasets: [
+          {
+            label: "Overall Percentage",
+            data: percentages,
+            backgroundColor: "rgba(59, 130, 246, 0.85)",
+          }
+        ]
+      };
+    };
+
+    return {
+      group: formatChartData(groupAcc),
+      course: formatChartData(courseAcc)
+    };
+  }, [results, latestPublishedExam?.id, studentLookupById, groupLabels, courseLabels]);
+
+
+
   const metrics = [
     {
       label: "Total Students",
@@ -752,207 +743,129 @@ export default function Dashboard() {
         <section className="dashboard-layout mt-4">
           <div className="dashboard-chart-row">
 
-            <article className="dashboard-chart-card card-shadow dashboard-payment-card">
+            <article
+              className="dashboard-chart-card card-shadow cursor-pointer dashboard-card-link"
+              style={{ minHeight: "420px", cursor: "pointer" }}
+              onClick={() => navigate("/admin/reports")}
+            >
               <div className="dashboard-chart-header">
-                <h3>Registration snapshot</h3>
-                <p className="text-muted mb-0">How many students have registered for the upcoming exams</p>
-              </div>
-              <div className="dashboard-chart-wrapper">
-                <Doughnut data={registrationCoverageChartData} options={coverageChartOptions} />
-              </div>
-              <div className="dashboard-coverage-grid">
-                <div className="dashboard-coverage-item">
-                  <span className="dashboard-coverage-label">Registered</span>
-                  <span className="dashboard-coverage-value">{registrationCoverage.registered}</span>
-                  <span className="dashboard-coverage-note">
-                    {registrationCoverage.registeredPercent}% of {registrationCoverage.total} students
-                  </span>
-                </div>
-                <div className="dashboard-coverage-item">
-                  <span className="dashboard-coverage-label">Not registered</span>
-                  <span className="dashboard-coverage-value">{registrationCoverage.unregistered}</span>
-                  <span className="dashboard-coverage-note">Need to complete registration</span>
-                </div>
-              </div>
-            </article>
-
-            <article className="dashboard-chart-card card-shadow">
-              <div className="dashboard-chart-header">
-                <h3>Hall ticket overview</h3>
-                <p className="text-muted mb-0">Issuance progress for current registrations</p>
-              </div>
-              <div className="dashboard-hallticket-chart">
-                <Bar data={hallTicketStatusChartData} options={hallTicketBarOptions} />
-              </div>
-              <div className="dashboard-hallticket-grid">
-                {hallTicketStatusMeta.map((status) => (
-                  <div key={status.key} className="dashboard-hallticket-stat">
-                    <div className="dashboard-hallticket-title">{status.key}</div>
-                    <div className="dashboard-hallticket-count">
-                      {hallTicketStatusCounts[status.key] || 0}
-                    </div>
-                    <div className="dashboard-hallticket-note">{status.note}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="dashboard-hallticket-footer text-muted small">
-                {registrations.length ? (
-                  <>
-                    {hallTicketIssuedPercent}% of registrations have issued hall tickets (
-                    {hallTicketStatusCounts.Issued || 0} of {registrations.length})
-                  </>
-                ) : (
-                  "No registration data yet."
-                )}
-              </div>
-            </article>
-
-            <article className="dashboard-chart-card card-shadow">
-              <div className="dashboard-chart-header">
-                <h3>Group Enrollment</h3>
-                <p className="text-muted mb-0">Most represented academic groups</p>
-              </div>
-              <div className="dashboard-group-layout">
-                <div className="dashboard-group-tabs">
-                  {groupEnrollments.length ? (
-                    groupEnrollments.map((group) => (
-                      <button
-                        key={group.group}
-                        type="button"
-                        className={`btn dashboard-group-tab ${
-                          activeGroup === group.group ? "active" : ""
-                        }`}
-                        onClick={() => setActiveGroup(group.group)}
-                      >
-                        <span className="fw-semibold">{group.group}</span>
-                        <small className="text-muted">{group.count} students</small>
-                      </button>
-                    ))
-                  ) : (
-                    <div className="text-muted small">No group data yet.</div>
-                  )}
-                </div>
-                <div className="dashboard-chart-wrapper smaller">
-                  {groupEnrollments.length ? (
-                    <Bar data={groupEnrollmentChartData} options={barOptions} />
-                  ) : (
-                    <div className="text-muted text-center py-4">Waiting for group data.</div>
-                  )}
-                </div>
-              </div>
-            </article>
-            <article className="dashboard-chart-card card-shadow">
-              <div className="dashboard-chart-header">
-                <h3>Course Enrollment</h3>
-                <p className="text-muted mb-0">
-                  {activeGroup
-                    ? `Breakdown for ${activeGroup}`
-                    : "Choose a group to explore course enrollments"}
-                </p>
-              </div>
-              <div className="dashboard-chart-wrapper smaller">
-                {activeGroup && activeGroupCourses.length ? (
-                  <PolarArea data={courseEnrollmentChartData} options={polarOptions} />
-                ) : (
-                  <div className="text-center text-muted py-5">
-                    {activeGroup
-                      ? "No course data yet for this group."
-                      : "Select a group above to view its courses."}
-                  </div>
-                )}
-              </div>
-              <div className="dashboard-course-summary">
-                <div className="dashboard-enrollment-grid">
+                <div className="d-flex justify-content-between align-items-start w-100">
                   <div>
-                    <div className="dashboard-enrollment-title">
-                      {activeGroup ? `${activeGroup} courses` : "Select a group"}
-                    </div>
-                    {activeGroupCourses.length ? (
-                      <ul className="dashboard-course-list">
-                        {activeGroupCourses.map((course) => (
-                          <li key={course.course} className="dashboard-course-item">
-                            <span className="course-name">{course.course}</span>
-                            <span className="course-count">{course.count} students</span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-muted small mb-0">
-                        {activeGroup
-                          ? "No course data yet."
-                          : "Select a group to see its courses."}
-                      </p>
-                    )}
+                    <h3>Exam Registration Status</h3>
+                    <p className="text-muted mb-0">
+                      {latestExam?.exam_name || "Upcoming exams"}
+                    </p>
+                  </div>
+                  <div className="btn-group btn-group-sm" role="group">
+                    <button
+                      type="button"
+                      className={`btn ${registrationView === "group" ? "btn-primary" : "btn-outline-primary"}`}
+                      onClick={(e) => { e.stopPropagation(); setRegistrationView("group"); }}
+                    >
+                      Group
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn ${registrationView === "course" ? "btn-primary" : "btn-outline-primary"}`}
+                      onClick={(e) => { e.stopPropagation(); setRegistrationView("course"); }}
+                    >
+                      Course
+                    </button>
                   </div>
                 </div>
               </div>
-            </article>
-            <article className="dashboard-chart-card card-shadow">
-              <div className="dashboard-chart-header">
-                <h3>Exam results distribution</h3>
-                <p className="text-muted mb-0">
-                  {latestPublishedExam?.exam_name || "Latest published exam"}
-                </p>
-              </div>
-              <div className="dashboard-results-chart">
-                <Bar data={resultDistributionChartData} options={resultChartOptions} />
-              </div>
-              <div className="dashboard-results-grid">
-                <div className="dashboard-results-item">
-                  <span className="dashboard-results-label">Passed students</span>
-                  <span className="dashboard-results-value">{passedArrearStats.passed}</span>
-                  <span className="dashboard-results-note">
-                    {passedArrearStats.total
-                      ? `${Math.round((passedArrearStats.passed / passedArrearStats.total) * 100)}% cleared`
-                      : "Waiting for results"}
-                  </span>
-                </div>
-                <div className="dashboard-results-item">
-                  <span className="dashboard-results-label">Arrear students</span>
-                  <span className="dashboard-results-value">{passedArrearStats.arrear}</span>
-                  <span className="dashboard-results-note">
-                    {passedArrearStats.total
-                      ? `${Math.round((passedArrearStats.arrear / passedArrearStats.total) * 100)}% need remediation`
-                      : "Waiting for results"}
-                  </span>
-                </div>
+              <div className="dashboard-chart-wrapper">
+                {registrationStats && registrationStats[registrationView] ? (
+                  <Bar data={registrationStats[registrationView]} options={stackedBarOptions} />
+                ) : (
+                  <div className="d-flex align-items-center justify-content-center h-100 text-muted">
+                    No registration data available
+                  </div>
+                )}
               </div>
             </article>
-            <article className="dashboard-chart-card card-shadow">
+
+            <article
+              className="dashboard-chart-card card-shadow cursor-pointer dashboard-card-link"
+              style={{ minHeight: "420px", cursor: "pointer" }}
+              onClick={() => navigate("/admin/reports")}
+            >
               <div className="dashboard-chart-header">
-                <h3>Payment coverage</h3>
-                <p className="text-muted mb-0">
-                  {latestPublishedExam?.exam_name
-                    ? `Registrations for ${latestPublishedExam.exam_name}`
-                    : "Registrations paid vs not paid"}
-                </p>
+                <div className="d-flex justify-content-between align-items-start w-100">
+                  <div>
+                    <h3>Payment Status</h3>
+                    <p className="text-muted mb-0">
+                      {latestExam?.exam_name || "Payment overview"}
+                    </p>
+                  </div>
+                  <div className="btn-group btn-group-sm" role="group">
+                    <button
+                      type="button"
+                      className={`btn ${paymentView === "group" ? "btn-primary" : "btn-outline-primary"}`}
+                      onClick={(e) => { e.stopPropagation(); setPaymentView("group"); }}
+                    >
+                      Group
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn ${paymentView === "course" ? "btn-primary" : "btn-outline-primary"}`}
+                      onClick={(e) => { e.stopPropagation(); setPaymentView("course"); }}
+                    >
+                      Course
+                    </button>
+                  </div>
+                </div>
               </div>
               <div className="dashboard-chart-wrapper">
-                <Doughnut data={paymentCoverageChartData} options={coverageChartOptions} />
+                {paymentStats && paymentStats[paymentView] ? (
+                  <Bar data={paymentStats[paymentView]} options={paymentBarOptions} />
+                ) : (
+                  <div className="d-flex align-items-center justify-content-center h-100 text-muted">
+                    No payment data available
+                  </div>
+                )}
               </div>
-              <div className="dashboard-payment-grid">
-                <div className="dashboard-payment-item">
-                  <span className="dashboard-payment-label">Paid registrations</span>
-                  <span className="dashboard-payment-value">{paymentCoverage.paidRegistrations}</span>
-                  <span className="dashboard-payment-note">
-                    {paymentCoverage.totalRegistrations
-                      ? `${Math.round(
-                          (paymentCoverage.paidRegistrations / paymentCoverage.totalRegistrations) * 100
-                        )}% covered`
-                      : "Awaiting data"}
-                  </span>
+            </article>
+
+            <article
+              className="dashboard-chart-card card-shadow cursor-pointer dashboard-card-link"
+              style={{ minHeight: "420px", cursor: "pointer" }}
+              onClick={() => navigate("/admin/marks-reports")}
+            >
+              <div className="dashboard-chart-header">
+                <div className="d-flex justify-content-between align-items-start w-100">
+                  <div>
+                    <h3>Exam result status</h3>
+                    <p className="text-muted mb-0">
+                      {latestPublishedExam?.exam_name || "Latest published exam"}
+                    </p>
+                  </div>
+                  <div className="btn-group btn-group-sm" role="group">
+                    <button
+                      type="button"
+                      className={`btn ${resultView === "group" ? "btn-primary" : "btn-outline-primary"}`}
+                      onClick={(e) => { e.stopPropagation(); setResultView("group"); }}
+                    >
+                      Group
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn ${resultView === "course" ? "btn-primary" : "btn-outline-primary"}`}
+                      onClick={(e) => { e.stopPropagation(); setResultView("course"); }}
+                    >
+                      Course
+                    </button>
+                  </div>
                 </div>
-                <div className="dashboard-payment-item">
-                  <span className="dashboard-payment-label">Unpaid registrations</span>
-                  <span className="dashboard-payment-value">{paymentCoverage.unpaidRegistrations}</span>
-                  <span className="dashboard-payment-note">
-                    {paymentCoverage.totalRegistrations
-                      ? `${Math.round(
-                          (paymentCoverage.unpaidRegistrations / paymentCoverage.totalRegistrations) * 100
-                        )}% remaining`
-                      : "Awaiting data"}
-                  </span>
-                </div>
+              </div>
+              <div className="dashboard-chart-wrapper">
+                {resultStats && resultStats[resultView] ? (
+                  <Bar data={resultStats[resultView]} options={paymentBarOptions} />
+                ) : (
+                  <div className="d-flex align-items-center justify-content-center h-100 text-muted">
+                    No result data available
+                  </div>
+                )}
               </div>
             </article>
           </div>

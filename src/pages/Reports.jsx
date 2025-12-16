@@ -30,60 +30,34 @@ export default function Reports() {
         academic_year: "",
         group_name: "",
         course_name: "",
-        category: "",
+        exam_name: "",
         current_semester: "",
         payment_status: "",
     });
     const [years, setYears] = useState([]);
     const [groups, setGroups] = useState([]);
     const [courses, setCourses] = useState([]);
+    const [exams, setExams] = useState([]);
     const [registrations, setRegistrations] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    const baseCategoryOptions = ["UG", "PG"];
-    const normalizeCategoryValue = (value) =>
-        value ? value.toString().trim().toUpperCase() : "";
+    const examOptions = useMemo(() => {
+        return exams.map((exam) => exam.exam_name);
+    }, [exams]);
 
-    const categoryMatchesFilter = (filter, ...values) => {
-        if (!filter) return true;
-        return values.some(
-            (value) => value && normalizeCategoryValue(value) === filter
-        );
-    };
+    const studentsForExam = useMemo(() => {
+        if (!filters.exam_name) return students;
 
-    const categoryOptions = useMemo(() => {
-        const result = [...baseCategoryOptions];
-        const seen = new Set(result.map((val) => val?.toUpperCase()));
-        groups.forEach((group) => {
-            const value = group.category || group.Category;
-            if (value) {
-                const normalized = value.toUpperCase();
-                if (!seen.has(normalized)) {
-                    seen.add(normalized);
-                    result.push(normalized);
-                }
+        // Find registrations matching the exam name
+        const relevantStudentIds = new Set();
+        registrations.forEach((reg) => {
+            if (reg.exam_master?.exam_name === filters.exam_name) {
+                relevantStudentIds.add(reg.student_id);
             }
         });
-        return result;
-    }, [groups]);
 
-    const normalizedCategoryFilter = useMemo(() => {
-        const value = filters.category || "";
-        return value.toString().trim().toUpperCase();
-    }, [filters.category]);
-
-    const studentsForCategory = useMemo(() => {
-        if (!normalizedCategoryFilter) return students;
-        return students.filter((student) =>
-            categoryMatchesFilter(
-                normalizedCategoryFilter,
-                student.Category,
-                student.category,
-                student.year?.category,
-                student.year?.year_category
-            )
-        );
-    }, [students, normalizedCategoryFilter]);
+        return students.filter((student) => relevantStudentIds.has(student.id));
+    }, [students, filters.exam_name, registrations]);
 
     const academicYearOptions = useMemo(() => {
         const values = new Set();
@@ -92,8 +66,8 @@ export default function Reports() {
             if (normalized) values.add(normalized);
         };
         const sourceStudents =
-            normalizedCategoryFilter && normalizedCategoryFilter !== ""
-                ? studentsForCategory
+            filters.exam_name && filters.exam_name !== ""
+                ? studentsForExam
                 : students;
 
         years.forEach((year) => {
@@ -107,13 +81,13 @@ export default function Reports() {
         return Array.from(values).sort((a, b) =>
             a.localeCompare(b, undefined, { numeric: true })
         );
-    }, [years, students, studentsForCategory, normalizedCategoryFilter]);
+    }, [years, students, studentsForExam, filters.exam_name]);
 
     const semesterOptions = useMemo(() => {
         const values = new Set();
         const sourceStudents =
-            normalizedCategoryFilter && normalizedCategoryFilter !== ""
-                ? studentsForCategory
+            filters.exam_name && filters.exam_name !== ""
+                ? studentsForExam
                 : students;
         sourceStudents.forEach((student) => {
             const rawSemester =
@@ -142,26 +116,19 @@ export default function Reports() {
             }
             return a.localeCompare(b);
         });
-    }, [students, studentsForCategory, normalizedCategoryFilter]);
+    }, [students, studentsForExam, filters.exam_name]);
 
     const filteredGroupOptions = useMemo(() => {
-        if (!normalizedCategoryFilter) return groups;
+        // If we filter by exam, we strictly show groups present in the filtered students
+        if (!filters.exam_name) return groups;
 
-        const relevantGroups = groups.filter((group) => {
-            const groupCat = group.Category || group.category;
-            return (
-                groupCat &&
-                groupCat.toString().toUpperCase() === normalizedCategoryFilter
-            );
-        });
-
-        if (relevantGroups.length > 0) return relevantGroups;
-        return relevantGroups;
-    }, [groups, normalizedCategoryFilter]);
+        const presentGroupCodes = new Set(studentsForExam.map(s => s.group_code));
+        return groups.filter(g => presentGroupCodes.has(g.group_code));
+    }, [groups, studentsForExam, filters.exam_name]);
 
     const filteredCourseOptions = useMemo(() => {
-        if (!normalizedCategoryFilter && !filters.group_name) return courses;
-        const relevantStudents = studentsForCategory.filter((student) => {
+        if (!filters.exam_name && !filters.group_name) return courses;
+        const relevantStudents = studentsForExam.filter((student) => {
             if (filters.group_name) {
                 const groupMatch =
                     student.group_code === filters.group_name ||
@@ -191,8 +158,8 @@ export default function Reports() {
         );
     }, [
         courses,
-        studentsForCategory,
-        normalizedCategoryFilter,
+        studentsForExam,
+        filters.exam_name,
         filters.group_name,
     ]);
 
@@ -235,6 +202,13 @@ export default function Reports() {
 
                 if (yearsError) throw yearsError;
 
+                const { data: examsData, error: examsError } = await supabase
+                    .from("exam_master")
+                    .select("id, exam_name")
+                    .order("created_at", { ascending: false });
+
+                if (examsError) throw examsError;
+
                 const transformedStudents = studentsData.map((student) => ({
                     ...student,
                     group_name: student.group?.group_name || student.group_name,
@@ -249,6 +223,7 @@ export default function Reports() {
                 setYears(yearsData || []);
                 setGroups(groupsData || []);
                 setCourses(coursesData || []);
+                setExams(examsData || []);
 
                 const { data: regData, error: regError } = await supabase
                     .from("exam_registrations")
@@ -259,6 +234,10 @@ export default function Reports() {
                         semester, 
                         status,
                         total_fee,
+                        exam_id,
+                        exam_master (
+                            exam_name
+                        ),
                         payments (
                             amount_paid,
                             payment_status
@@ -282,7 +261,7 @@ export default function Reports() {
         setFilters((prev) => {
             const next = { ...prev, [name]: value };
 
-            if (name === "category") {
+            if (name === "exam_name") {
                 next.academic_year = "";
                 next.group_name = "";
                 next.course_name = "";
@@ -296,34 +275,40 @@ export default function Reports() {
                 next.current_semester = "";
             } else if (name === "course_name") {
                 next.current_semester = "";
-            } else if (name === "payment_status") {
-                // No dependencies to reset?
             }
 
             return next;
         });
     };
 
-    const calculatePaymentStatus = (student, currentSemFilter, currentYearFilter) => {
-        const targetSem = currentSemFilter || student.current_semester;
+    const calculatePaymentStatus = (student) => {
+        let reg;
 
-        // Find registration for the target semester and year
-        const reg = registrations.find(r =>
-            r.student_id === student.id &&
-            r.academic_year === currentYearFilter &&
-            String(r.semester) === String(targetSem)
-        );
+        if (filters.exam_name) {
+            reg = registrations.find(r =>
+                r.student_id === student.id &&
+                r.exam_master?.exam_name === filters.exam_name
+            );
+        }
+
+        if (!reg && filters.academic_year) {
+            const targetSem = filters.current_semester || student.current_semester;
+            reg = registrations.find(r =>
+                r.student_id === student.id &&
+                r.academic_year === filters.academic_year &&
+                String(r.semester) === String(targetSem)
+            );
+        }
 
         if (!reg) return 'Not Registered';
 
-        // Calculate total successful payments from the payments table
         const totalPaid = (reg.payments || []).reduce((sum, p) => {
             const status = (p.payment_status || '').toLowerCase();
             return status === 'success' ? sum + Number(p.amount_paid || 0) : sum;
         }, 0);
 
-        // Check if fully paid
-        const isPaid = totalPaid >= Number(reg.total_fee || 0);
+        const fee = Number(reg.total_fee || 0);
+        const isPaid = (fee > 0 && totalPaid >= fee) || (fee === 0 && totalPaid > 0);
 
         return isPaid ? 'Paid' : 'Pending';
     };
@@ -331,8 +316,7 @@ export default function Reports() {
     const filteredStudentsList = useMemo(() => {
         if (!filters.academic_year) return [];
 
-        // Filter students by ALL active filters to reflect the current selection in the charts
-        return studentsForCategory.filter((s) => {
+        return studentsForExam.filter((s) => {
             const matchesYear = s.academic_year === filters.academic_year;
             const matchesGroup = !filters.group_name || s.group_code === filters.group_name;
             const matchesCourse = !filters.course_name || s.course_code === filters.course_name;
@@ -340,7 +324,7 @@ export default function Reports() {
 
             let matchesPayment = true;
             if (filters.payment_status) {
-                const status = calculatePaymentStatus(s, filters.current_semester, filters.academic_year);
+                const status = calculatePaymentStatus(s);
                 if (filters.payment_status === 'not_registered') {
                     matchesPayment = status === 'Not Registered';
                 } else {
@@ -350,14 +334,14 @@ export default function Reports() {
 
             return matchesYear && matchesGroup && matchesCourse && matchesSemester && matchesPayment;
         });
-    }, [studentsForCategory, filters, registrations]);
+    }, [studentsForExam, filters, registrations]);
 
     // List of students filtered by everything EXCEPT Group Name
     // This allows the Group chart to show all groups (context) while highlighting the selected one.
     const studentsForGroupChart = useMemo(() => {
         if (!filters.academic_year) return [];
 
-        return studentsForCategory.filter((s) => {
+        return studentsForExam.filter((s) => {
             const matchesYear = s.academic_year === filters.academic_year;
             // Explicitly skip matchesGroup check here
             const matchesCourse = !filters.course_name || s.course_code === filters.course_name;
@@ -365,17 +349,28 @@ export default function Reports() {
 
             return matchesYear && matchesCourse && matchesSemester;
         });
-    }, [studentsForCategory, filters.academic_year, filters.course_name, filters.current_semester]);
+    }, [studentsForExam, filters.academic_year, filters.course_name, filters.current_semester]);
 
     // Education Themed Colors
-    // Navy Blue, Academic Gold, Success Green, Brick Red, Royal Purple, Slate
+    // Navy Blue, Academic Gold, Teal (was Green), Brick Red, Royal Purple, Slate
     const eduColors = [
         "rgba(0, 51, 102, 0.85)",   // Navy
         "rgba(255, 193, 7, 0.85)",  // Gold
-        "rgba(40, 167, 69, 0.85)",  // Green
+        "rgba(32, 201, 151, 0.85)", // Teal (Replaced Green to avoid confusion with Paid status)
         "rgba(220, 53, 69, 0.85)",  // Brick Red
         "rgba(111, 66, 193, 0.85)", // Purple
         "rgba(108, 117, 125, 0.85)",// Slate
+    ];
+
+    // Distinct Course Colors (Different from eduColors)
+    const courseColors = [
+        "rgba(255, 87, 34, 0.85)",   // Deep Orange
+        "rgba(233, 30, 99, 0.85)",   // Pink
+        "rgba(3, 169, 244, 0.85)",   // Light Blue
+        "rgba(139, 195, 74, 0.85)",  // Light Green
+        "rgba(156, 39, 176, 0.85)",  // Deep Purple
+        "rgba(121, 85, 72, 0.85)",   // Brown
+        "rgba(96, 125, 139, 0.85)",  // Blue Grey
     ];
 
     const getSemesterColor = (semString) => {
@@ -429,10 +424,25 @@ export default function Reports() {
             courseCounts[course] = (courseCounts[course] || 0) + 1;
         });
 
-        const courseLabels = Object.keys(courseCounts).map(
+        const rawCourses = Object.keys(courseCounts);
+        const courseLabels = rawCourses.map(
             (course) => (filters.course_name || filters.group_name) ? `${course} (${courseCounts[course]})` : course
         );
         const courseValues = Object.values(courseCounts);
+
+        // Determine colors for courses (using courseColors palette)
+        const currentCourseColors = rawCourses.map((courseName, i) => {
+            const defaultColor = courseColors[i % courseColors.length];
+            if (!filters.course_name) return defaultColor;
+
+            const courseObj = courses.find(c => c.course_name === courseName);
+            const isSelected = courseObj && courseObj.course_code === filters.course_name;
+
+            return isSelected ? defaultColor : "rgba(0, 0, 0, 0.1)";
+        });
+
+        const courseBorders = currentCourseColors.map(c => c.replace("0.85", "1").replace("0.1", "0.2"));
+
 
         // Semester Counts (using the specific filtered list)
         const semesterCounts = {};
@@ -460,7 +470,7 @@ export default function Reports() {
         return {
             total: filteredData.length,
             rawGroups: rawGroups,
-            rawCourses: Object.keys(courseCounts),
+            rawCourses: rawCourses,
             rawSemesters: sortedSemesterKeys,
             groups: {
                 labels: groupLabels,
@@ -481,8 +491,8 @@ export default function Reports() {
                     {
                         label: "Students per Course",
                         data: courseValues,
-                        backgroundColor: "rgba(23, 162, 184, 0.85)", // Cyan/Info as a distinct single color for courses if many
-                        borderColor: "rgba(23, 162, 184, 1)",
+                        backgroundColor: currentCourseColors,
+                        borderColor: courseBorders,
                         borderWidth: 1,
                         borderRadius: 4,
                     },
@@ -500,6 +510,33 @@ export default function Reports() {
                     },
                 ],
             },
+            paymentStatuses: {
+                labels: ["Paid", "Pending"],
+                datasets: [
+                    {
+                        label: "Payment Status",
+                        data: (() => {
+                            let paid = 0;
+                            let pending = 0;
+                            filteredData.forEach(s => {
+                                const status = calculatePaymentStatus(s);
+                                if (status === 'Paid') paid++;
+                                else if (status === 'Pending') pending++;
+                            });
+                            return [paid, pending];
+                        })(),
+                        backgroundColor: [
+                            "rgba(40, 167, 69, 0.85)",  // Green for Paid
+                            "rgba(220, 53, 69, 0.85)",  // Red for Pending
+                        ],
+                        borderColor: [
+                            "rgba(40, 167, 69, 1)",
+                            "rgba(220, 53, 69, 1)",
+                        ],
+                        borderWidth: 1,
+                    }
+                ]
+            }
         };
     }, [filteredStudentsList, studentsForGroupChart, filters.academic_year, filters.group_name, eduColors]);
 
@@ -567,17 +604,17 @@ export default function Reports() {
                         <div className="row g-3">
                             <div className="col-md-2">
                                 <label className="form-label fw-bold small text-uppercase text-muted">
-                                    Category
+                                    Exam Name
                                 </label>
                                 <select
                                     className="form-select text-dark fw-medium py-2"
-                                    name="category"
-                                    value={filters.category}
+                                    name="exam_name"
+                                    value={filters.exam_name}
                                     onChange={handleChange}
                                     disabled={loading}
                                 >
-                                    <option value="">All Categories</option>
-                                    {categoryOptions.map((opt) => (
+                                    <option value="">All Exams</option>
+                                    {examOptions.map((opt) => (
                                         <option key={opt} value={opt}>
                                             {opt}
                                         </option>
@@ -674,7 +711,6 @@ export default function Reports() {
                                     <option value="">All Status</option>
                                     <option value="paid">Paid</option>
                                     <option value="pending">Pending</option>
-                                    <option value="not_registered">Not Registered</option>
                                 </select>
                             </div>
                         </div>
@@ -708,9 +744,9 @@ export default function Reports() {
                                             <p className="mb-0 h5 text-white-50">
                                                 {filters.academic_year}
                                             </p>
-                                            {filters.category && (
+                                            {filters.exam_name && (
                                                 <span className="badge bg-white text-primary mt-2">
-                                                    {filters.category}
+                                                    {filters.exam_name}
                                                 </span>
                                             )}
                                         </div>
@@ -719,7 +755,7 @@ export default function Reports() {
                             </div>
 
                             {/* Group Distribution */}
-                            <div className="col-md-6 col-lg-4">
+                            <div className="col-md-6 col-lg-3">
                                 <div className="card shadow-sm border-0 rounded-4 h-100">
                                     <div className="card-header bg-white border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-start">
                                         <h5 className="fw-bold mb-0 text-secondary">
@@ -755,21 +791,24 @@ export default function Reports() {
                             </div>
 
                             {/* Course Distribution */}
-                            <div className="col-md-6 col-lg-4">
+                            <div className="col-md-6 col-lg-3">
                                 <div className="card shadow-sm border-0 rounded-4 h-100">
                                     <div className="card-header bg-white border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-start">
                                         <h5 className="fw-bold mb-0 text-secondary">
                                             Course
                                         </h5>
                                         <div className="d-flex flex-column align-items-end gap-1" style={{ maxWidth: '60%' }}>
-                                            {chartData.rawCourses.map((c, i) => (
-                                                <div key={c} className="d-flex align-items-center gap-2">
-                                                    <div style={{ width: '10px', height: '10px', backgroundColor: "rgba(23, 162, 184, 0.85)", borderRadius: '2px' }}></div>
-                                                    <span className="fw-bold text-dark small">
-                                                        {c}
-                                                    </span>
-                                                </div>
-                                            ))}
+                                            {chartData.rawCourses.map((c, i) => {
+                                                const color = chartData.courses.datasets[0].backgroundColor[i];
+                                                return (
+                                                    <div key={c} className="d-flex align-items-center gap-2">
+                                                        <div style={{ width: '10px', height: '10px', backgroundColor: color, borderRadius: '2px' }}></div>
+                                                        <span className="fw-bold text-dark small" style={{ opacity: color.includes('0.1') ? 0.5 : 1 }}>
+                                                            {chartData.courses.labels[i]}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                     <div className="card-body p-4">
@@ -787,7 +826,7 @@ export default function Reports() {
                             </div>
 
                             {/* Semester Distribution */}
-                            <div className="col-md-6 col-lg-4">
+                            <div className="col-md-6 col-lg-3">
                                 <div className="card shadow-sm border-0 rounded-4 h-100">
                                     <div className="card-header bg-white border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-start">
                                         <h5 className="fw-bold mb-0 text-secondary">
@@ -812,6 +851,39 @@ export default function Reports() {
                                                     responsive: true,
                                                     plugins: { legend: { display: false } },
                                                     onClick: handleSemesterClick,
+                                                    onHover: handleChartHover
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Payment Status Distribution */}
+                            <div className="col-md-6 col-lg-3">
+                                <div className="card shadow-sm border-0 rounded-4 h-100">
+                                    <div className="card-header bg-white border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-start">
+                                        <h5 className="fw-bold mb-0 text-secondary">
+                                            Payment Status
+                                        </h5>
+                                        <div className="d-flex flex-column align-items-end gap-1" style={{ maxWidth: '60%' }}>
+                                            {chartData.paymentStatuses.labels.map((status, i) => (
+                                                <div key={status} className="d-flex align-items-center gap-2">
+                                                    <div style={{ width: '10px', height: '10px', backgroundColor: chartData.paymentStatuses.datasets[0].backgroundColor[i], borderRadius: '2px' }}></div>
+                                                    <span className="fw-bold text-dark small">
+                                                        {status}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="card-body p-4 d-flex justify-content-center">
+                                        <div style={{ maxWidth: "300px", width: "100%" }}>
+                                            <Pie
+                                                data={chartData.paymentStatuses}
+                                                options={{
+                                                    responsive: true,
+                                                    plugins: { legend: { display: false } },
                                                     onHover: handleChartHover
                                                 }}
                                             />
@@ -847,48 +919,63 @@ export default function Reports() {
                                                     <th>Course</th>
                                                     <th>Academic Year</th>
                                                     <th>Semester</th>
-
+                                                    <th>Payment Status</th>
                                                     <th>Status</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {filteredStudentsList.length > 0 ? (
-                                                    filteredStudentsList.map((student) => (
-                                                        <tr key={student.id}>
-                                                            <td>{student.student_id}</td>
-                                                            <td>{student.full_name}</td>
-                                                            <td>{student.hall_ticket_no || "-"}</td>
-                                                            <td>{student.group_name}</td>
-                                                            <td>{student.course_name}</td>
-                                                            <td>{student.academic_year}</td>
-                                                            <td>
-                                                                {student.current_semester
-                                                                    ? `Semester ${student.current_semester}`
-                                                                    : "Semester N/A"}
-                                                            </td>
-
-                                                            <td>
-                                                                <span
-                                                                    className={`badge rounded-pill ${student.status === "DISCONTINUE"
-                                                                        ? "bg-danger"
-                                                                        : student.status === "HOLD"
-                                                                            ? "bg-warning"
-                                                                            : "bg-success"
-                                                                        }`}
-                                                                    style={{ minWidth: "80px", fontSize: "0.85em" }}
-                                                                >
-                                                                    {student.status === "DISCONTINUE"
-                                                                        ? "Discontinued"
-                                                                        : student.status === "HOLD"
-                                                                            ? "On Hold"
-                                                                            : "Active"}
-                                                                </span>
-                                                            </td>
-                                                        </tr>
-                                                    ))
+                                                    filteredStudentsList.map((student) => {
+                                                        const paymentStatus = calculatePaymentStatus(student);
+                                                        return (
+                                                            <tr key={student.id}>
+                                                                <td>{student.student_id}</td>
+                                                                <td>{student.full_name}</td>
+                                                                <td>{student.hall_ticket_no || "-"}</td>
+                                                                <td>{student.group_name}</td>
+                                                                <td>{student.course_name}</td>
+                                                                <td>{student.academic_year}</td>
+                                                                <td>
+                                                                    {student.current_semester
+                                                                        ? `Semester ${student.current_semester}`
+                                                                        : "Semester N/A"}
+                                                                </td>
+                                                                <td>
+                                                                    <span
+                                                                        className={`badge rounded-pill ${paymentStatus === "Paid"
+                                                                            ? "bg-success"
+                                                                            : paymentStatus === "Not Registered"
+                                                                                ? "bg-secondary"
+                                                                                : "bg-danger"
+                                                                            }`}
+                                                                        style={{ minWidth: "80px", fontSize: "0.85em" }}
+                                                                    >
+                                                                        {paymentStatus}
+                                                                    </span>
+                                                                </td>
+                                                                <td>
+                                                                    <span
+                                                                        className={`badge rounded-pill ${student.status === "DISCONTINUE"
+                                                                            ? "bg-danger"
+                                                                            : student.status === "HOLD"
+                                                                                ? "bg-warning"
+                                                                                : "bg-success"
+                                                                            }`}
+                                                                        style={{ minWidth: "80px", fontSize: "0.85em" }}
+                                                                    >
+                                                                        {student.status === "DISCONTINUE"
+                                                                            ? "Discontinued"
+                                                                            : student.status === "HOLD"
+                                                                                ? "On Hold"
+                                                                                : "Active"}
+                                                                    </span>
+                                                                </td>
+                                                            </tr>
+                                                        )
+                                                    })
                                                 ) : (
                                                     <tr>
-                                                        <td colSpan="8" className="text-center py-4 text-muted">
+                                                        <td colSpan="9" className="text-center py-4 text-muted">
                                                             No students found matching the selected filters.
                                                         </td>
                                                     </tr>

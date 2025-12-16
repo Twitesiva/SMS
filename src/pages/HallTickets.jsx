@@ -1,10 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import AdminShell from "../components/AdminShell";
 import { api } from "../lib/mockApi";
-import {
-  getFirstUnpublishedExam,
-  isExamResultPublished,
-} from "../lib/examUtils";
+
 import { supabase } from "../../supabaseClient";
 import collegeLogo from "../assets/media/images.png";
 import signatureImage from "../assets/media/signature.png";
@@ -515,14 +512,16 @@ export default function HallTickets() {
       const currentExam = options.exams.find(
         (exam) => getExamValue(exam) === currentValue
       );
-      if (currentExam && !isExamResultPublished(currentExam)) {
+      if (currentExam) {
         return prev;
       }
-      const fallbackExam = getFirstUnpublishedExam(options.exams);
+
+      const fallbackExam = options.exams[0];
       if (!fallbackExam) {
         if (!prev.exam) return prev;
         return { ...prev, exam: "" };
       }
+
       const fallbackValue = getExamValue(fallbackExam);
       if (!fallbackValue || fallbackValue === prev.exam) {
         return prev;
@@ -866,15 +865,12 @@ export default function HallTickets() {
                       {!loadingOptions &&
                         options.exams.map((option) => {
                           const value = getExamValue(option);
-                          const disabled = isExamResultPublished(option);
                           return (
                             <option
                               key={value || option.title || option.name}
                               value={value}
-                              disabled={disabled}
                             >
                               {formatExamLabel(option)}
-                              {disabled ? " (Results published)" : ""}
                             </option>
                           );
                         })}
