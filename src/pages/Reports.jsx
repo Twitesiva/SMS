@@ -304,6 +304,30 @@ export default function Reports() {
         });
     };
 
+    const calculatePaymentStatus = (student, currentSemFilter, currentYearFilter) => {
+        const targetSem = currentSemFilter || student.current_semester;
+
+        // Find registration for the target semester and year
+        const reg = registrations.find(r =>
+            r.student_id === student.id &&
+            r.academic_year === currentYearFilter &&
+            String(r.semester) === String(targetSem)
+        );
+
+        if (!reg) return 'Not Registered';
+
+        // Calculate total successful payments from the payments table
+        const totalPaid = (reg.payments || []).reduce((sum, p) => {
+            const status = (p.payment_status || '').toLowerCase();
+            return status === 'success' ? sum + Number(p.amount_paid || 0) : sum;
+        }, 0);
+
+        // Check if fully paid
+        const isPaid = totalPaid >= Number(reg.total_fee || 0);
+
+        return isPaid ? 'Paid' : 'Pending';
+    };
+
     const filteredStudentsList = useMemo(() => {
         if (!filters.academic_year) return [];
 
@@ -316,35 +340,11 @@ export default function Reports() {
 
             let matchesPayment = true;
             if (filters.payment_status) {
-                // Find registration using filter semester or student semester
-                const targetSem = filters.current_semester || s.current_semester;
-
-                const reg = registrations.find(r =>
-                    r.student_id === s.id &&
-                    r.academic_year === filters.academic_year &&
-                    String(r.semester) === String(targetSem)
-                );
-
-                let status = 'not_registered';
-                if (reg) {
-                    const totalPaid = (reg.payments || []).reduce((sum, p) => {
-                        return p.payment_status === 'success' ? sum + Number(p.amount_paid || 0) : sum;
-                    }, 0);
-                    const isPaid = totalPaid >= Number(reg.total_fee || 0);
-
-                    if (isPaid) status = 'paid';
-                    else status = 'pending';
-
-                    // Fallback to explicit status if paid check fails but status says paid (edge case)
-                    if (status !== 'paid' && (reg.status || '').toLowerCase() === 'paid') {
-                        status = 'paid';
-                    }
-                }
-
+                const status = calculatePaymentStatus(s, filters.current_semester, filters.academic_year);
                 if (filters.payment_status === 'not_registered') {
-                    matchesPayment = status === 'not_registered';
+                    matchesPayment = status === 'Not Registered';
                 } else {
-                    matchesPayment = status === filters.payment_status.toLowerCase();
+                    matchesPayment = status.toLowerCase() === filters.payment_status.toLowerCase();
                 }
             }
 
@@ -847,7 +847,7 @@ export default function Reports() {
                                                     <th>Course</th>
                                                     <th>Academic Year</th>
                                                     <th>Semester</th>
-                                                    <th>Payment Status</th>
+
                                                     <th>Status</th>
                                                 </tr>
                                             </thead>
@@ -866,41 +866,7 @@ export default function Reports() {
                                                                     ? `Semester ${student.current_semester}`
                                                                     : "Semester N/A"}
                                                             </td>
-                                                            <td>
-                                                                {(() => {
-                                                                    const targetSem = filters.current_semester || student.current_semester;
-                                                                    const reg = registrations.find(r =>
-                                                                        r.student_id === student.id &&
-                                                                        r.academic_year === filters.academic_year &&
-                                                                        String(r.semester) === String(targetSem)
-                                                                    );
 
-                                                                    let displayStatus = 'Not Registered';
-                                                                    let badgeClass = 'bg-secondary';
-
-                                                                    if (reg) {
-                                                                        const totalPaid = (reg.payments || []).reduce((sum, p) => {
-                                                                            return p.payment_status === 'success' ? sum + Number(p.amount_paid || 0) : sum;
-                                                                        }, 0);
-                                                                        const isPaid = totalPaid >= Number(reg.total_fee || 0);
-
-                                                                        // Check calculated payment or explicit status
-                                                                        if (isPaid || (reg.status || '').toLowerCase() === 'paid') {
-                                                                            displayStatus = 'Paid';
-                                                                            badgeClass = 'bg-success';
-                                                                        } else {
-                                                                            displayStatus = 'Pending';
-                                                                            badgeClass = 'bg-warning text-dark';
-                                                                        }
-                                                                    }
-
-                                                                    return (
-                                                                        <span className={`badge rounded-pill ${badgeClass}`} style={{ minWidth: "80px", fontSize: "0.85em" }}>
-                                                                            {displayStatus}
-                                                                        </span>
-                                                                    );
-                                                                })()}
-                                                            </td>
                                                             <td>
                                                                 <span
                                                                     className={`badge rounded-pill ${student.status === "DISCONTINUE"

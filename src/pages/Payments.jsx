@@ -136,6 +136,9 @@ export default function Payments() {
     return match?.id ?? null;
   }, [form.examName, storedExamList]);
 
+  // New state for tracking failed subjects
+  const [failedSubjectIds, setFailedSubjectIds] = useState(new Set());
+
   useEffect(() => {
     let isMounted = true;
     const loadFineConfig = async () => {
@@ -201,6 +204,46 @@ export default function Payments() {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchFailedSubjects = async () => {
+      if (!modalStudent?.id) {
+        if (isMounted) setFailedSubjectIds(new Set());
+        return;
+      }
+      try {
+        // Fetch all results for this student with status 'FAIL'
+        const { data, error } = await supabase
+          .from("results")
+          .select("subject_id, result_status")
+          .eq("student_id", modalStudent.id)
+          .eq("result_status", "FAIL");
+
+        if (error) {
+          console.error("Failed to fetch student results:", error);
+          return;
+        }
+
+        if (isMounted) {
+          const failedSet = new Set();
+          (data || []).forEach((row) => {
+            if (row.subject_id) {
+              failedSet.add(String(row.subject_id));
+            }
+          });
+          setFailedSubjectIds(failedSet);
+        }
+      } catch (err) {
+        console.error("Error fetching failed subjects:", err);
+      }
+    };
+
+    fetchFailedSubjects();
+    return () => {
+      isMounted = false;
+    };
+  }, [modalStudent?.id]);
   const normalizedSelectedExamName = useMemo(
     () => (form.examName || "").trim().toLowerCase() || null,
     [form.examName]
@@ -324,7 +367,31 @@ export default function Payments() {
   }, [subjects, modalCourseCode, modalSemester, normalizedModalAcademicYear]);
 
   const subjectsForSupplementarySemester = useMemo(() => {
+    // If we have failed subjects, we want to check strictly against them first
+    if (failedSubjectIds.size > 0) {
+      // Get all subjects that are failed
+      const failedSubjects = subjects.filter(s => {
+        const sid = String(s.subject_id ?? s.id ?? s.subjectId ?? "");
+        return failedSubjectIds.has(sid);
+      });
+
+      // Filter for eligibility (Odd/Even semester match with current modalSemester)
+      const currentSemNum = Number(modalSemester);
+      if (!currentSemNum) return [];
+
+      const eligibleFailedSubjects = failedSubjects.filter(s => {
+        const sSem = Number(s.semester);
+        if (!sSem) return false;
+        // Check parity (Odd/Odd or Even/Even) and ensures it is a previous semester
+        return (sSem < currentSemNum) && (sSem % 2 === currentSemNum % 2);
+      });
+
+      return eligibleFailedSubjects;
+    }
+
+    // Fallback to standard logic if no failed subjects (or empty set)
     if (!modalCourseCode || selectedSupplementarySemesters.length === 0) return [];
+
     const normalizedCourse = normalizeSearchValue(modalCourseCode);
     const semesterSet = new Set(
       selectedSupplementarySemesters.map((semester) =>
@@ -333,6 +400,7 @@ export default function Payments() {
           : String(semester)
       )
     );
+
     return subjects.filter((subject) => {
       const courseMatch =
         normalizeSearchValue(subject.courseCode) === normalizedCourse ||
@@ -341,17 +409,14 @@ export default function Payments() {
         subject.semester === "" || subject.semester === undefined || subject.semester === null
           ? ""
           : String(subject.semester);
-      const semesterMatch = semesterSet.has(semesterValue);
-      const matchesAcademicYear =
-        !normalizedModalAcademicYear ||
-        getNormalizedSubjectAcademicYear(subject) === normalizedModalAcademicYear;
-      return courseMatch && semesterMatch && matchesAcademicYear;
+      return courseMatch && semesterSet.has(semesterValue);
     });
   }, [
     subjects,
     modalCourseCode,
+    modalSemester,
     selectedSupplementarySemesters,
-    normalizedModalAcademicYear,
+    failedSubjectIds,
   ]);
   const availableSupplementarySemesters = useMemo(() => {
     const numeric = Number(modalSemester);
@@ -422,19 +487,54 @@ export default function Payments() {
         storedSupplementarySemesters.add(normalizedSubjectSemester);
       }
     });
+
+    // Also ensure semesters for failed subjects are selected
+    if (failedSubjectIds.size > 0 && subjectsForSupplementarySemester.length > 0) {
+      subjectsForSupplementarySemester.forEach(sub => {
+        const sSem = String(sub.semester || "");
+        if (
+          sSem &&
+          availableSupplementarySemesters.some(opt => String(opt) === sSem) &&
+          !storedSupplementarySemesters.has(sSem)
+        ) {
+          storedSupplementarySemesters.add(sSem);
+        }
+      });
+    }
+
     const nextSemesters = Array.from(storedSupplementarySemesters);
     if (!nextSemesters.length) {
-      return;
+      // If no stored subjects and no failed subjects logic triggered, default to all available
+      // But wait, if we have failed subjects, we want ONLY the semesters for failed subjects ideally?
+      // Or do we still want all? The prompt says "S1 student... semester1 fail subject should be autofetch".
+      // It implies we just want the failed subject show up. 
+      // Keeping existing behavior: if nothing stored, select *all* available supplementary semesters.
+      // But if we found failed subjects, we might have added them to storedSupplementarySemesters.
+      // Let's rely on the check below.
+      if (failedSubjectIds.size === 0 && savedRegistrationSubjectIds.length === 0) {
+        // Fallback to all available if no saved data/failures
+        // Logic handled in previous useEffect (lines 381-394) which sets all available by default.
+        return;
+      }
+      if (failedSubjectIds.size > 0 && nextSemesters.length === 0) {
+        // If we have failed subjects but somehow didn't pick up semesters (maybe mismatch), 
+        // let's not clear selection.
+        return;
+      }
     }
-    const alreadyMatch =
-      nextSemesters.length === selectedSupplementarySemesters.length &&
-      nextSemesters.every((semester) =>
-        selectedSupplementarySemesters.includes(semester)
-      );
-    if (alreadyMatch) {
-      return;
+
+    // If we have specific semesters to select (from saved OR failures)
+    if (nextSemesters.length > 0) {
+      const alreadyMatch =
+        nextSemesters.length === selectedSupplementarySemesters.length &&
+        nextSemesters.every((semester) =>
+          selectedSupplementarySemesters.includes(semester)
+        );
+      if (alreadyMatch) {
+        return;
+      }
+      setSelectedSupplementarySemesters(nextSemesters);
     }
-    setSelectedSupplementarySemesters(nextSemesters);
   }, [
     allowPaymentWithoutSelection,
     availableSupplementarySemesters,
@@ -442,6 +542,8 @@ export default function Payments() {
     savedRegistrationSubjectIds,
     selectedSupplementarySemesters,
     subjectRecordById,
+    failedSubjectIds,
+    subjectsForSupplementarySemester
   ]);
 
   const displayedSubjectLabel = selectedSupplementarySemesters.length
@@ -577,7 +679,7 @@ export default function Payments() {
     [subjectsForCurrentSemester, subjectIdLookup]
   );
   const supplementarySubjectsBySemester = useMemo(() => {
-    if (!subjectsForSupplementarySemester.length || !selectedSupplementarySemesters.length) {
+    if (!subjectsForSupplementarySemester.length) {
       return [];
     }
     const semesterMap = new Map();
@@ -588,22 +690,25 @@ export default function Payments() {
           subject.semester === null
           ? ""
           : String(subject.semester);
-      if (!selectedSupplementarySemesters.includes(semesterValue)) {
-        return;
-      }
+
+      // Removed filter: if (!selectedSupplementarySemesters.includes(semesterValue)) return;
+      // We want to show ALL fetched supplementary subjects (which are either failed or selected manually).
+      // Since subjectsForSupplementarySemester is already filtered to relevant ones (especially failures), we should display them.
+
       if (!semesterMap.has(semesterValue)) {
         semesterMap.set(semesterValue, []);
       }
       semesterMap.get(semesterValue).push(subject);
     });
-    return selectedSupplementarySemesters.map((semester) => ({
+    // Create groups for all semesters found in the subjects list
+    return Array.from(semesterMap.keys()).sort().map((semester) => ({
       semester,
       entries: buildSubjectEntries(semesterMap.get(semester) || [], {
         contextKey: `supp-${semester}`,
         subjectIdLookup,
       }),
     }));
-  }, [subjectsForSupplementarySemester, selectedSupplementarySemesters]);
+  }, [subjectsForSupplementarySemester]);
   const supplementarySubjectEntries = useMemo(
     () => supplementarySubjectsBySemester.flatMap((group) => group.entries),
     [supplementarySubjectsBySemester]
@@ -684,9 +789,7 @@ export default function Payments() {
   const visibleCurrentSubjectEntries = activeSubjectCategory
     ? filteredCurrentSubjectEntries
     : currentSubjectEntries;
-  const visibleSupplementarySubjectGroups = activeSubjectCategory
-    ? filteredSupplementarySubjectsBySemester
-    : supplementarySubjectsBySemester;
+  const visibleSupplementarySubjectGroups = supplementarySubjectsBySemester;
   const visibleSubjectCountForCategory =
     visibleCurrentSubjectEntries.length +
     visibleSupplementarySubjectGroups.reduce(
@@ -732,6 +835,23 @@ export default function Payments() {
     });
     setModalStep(allowPaymentWithoutSelection ? 2 : 1);
   }, [uniqueModalSubjectKeys, allowPaymentWithoutSelection]);
+
+  // Auto-select failed/supplementary subjects when they appear
+  useEffect(() => {
+    if (!supplementarySubjectEntries.length) return;
+
+    setSelectedSubjectKeys((prev) => {
+      const next = new Set(prev);
+      let changed = false;
+      supplementarySubjectEntries.forEach((entry) => {
+        if (!next.has(entry.key)) {
+          next.add(entry.key);
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [supplementarySubjectEntries]);
 
   useEffect(() => {
     if (
