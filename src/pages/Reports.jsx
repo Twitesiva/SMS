@@ -307,7 +307,8 @@ export default function Reports() {
             return status === 'success' ? sum + Number(p.amount_paid || 0) : sum;
         }, 0);
 
-        const isPaid = totalPaid >= Number(reg.total_fee || 0);
+        const fee = Number(reg.total_fee || 0);
+        const isPaid = (fee > 0 && totalPaid >= fee) || (fee === 0 && totalPaid > 0);
 
         return isPaid ? 'Paid' : 'Pending';
     };
