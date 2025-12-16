@@ -513,7 +513,15 @@ export default function ExamNameCreation() {
                           : `${EXAM_NAME_PREFIX}${exam.exam_name}`}
                       </div>
                       <div className="text-muted small">
-                        {editingExam?.id === exam.id ? 'Selected for editing' : 'Tap edit to rename'}
+                        {exam.results_published ? (
+                          <span className="badge bg-success-subtle text-success border border-success-subtle">
+                            Result Published
+                          </span>
+                        ) : editingExam?.id === exam.id ? (
+                          'Selected for editing'
+                        ) : (
+                          'Tap edit to rename'
+                        )}
                       </div>
                     </div>
                     <div className="d-flex flex-wrap gap-2 justify-content-end w-100 w-md-auto">
@@ -521,6 +529,7 @@ export default function ExamNameCreation() {
                         type="button"
                         className="btn btn-sm btn-outline-primary rounded-pill px-3"
                         onClick={() => handleSelectSavedExam(exam)}
+                        disabled={exam.results_published}
                       >
                         Edit
                       </button>
@@ -528,6 +537,7 @@ export default function ExamNameCreation() {
                         type="button"
                         className="btn btn-sm btn-outline-danger rounded-pill px-3"
                         onClick={() => setConfirmDeleteModal({ show: true, exam })}
+                        disabled={exam.results_published}
                       >
                         Delete
                       </button>

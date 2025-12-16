@@ -43,6 +43,7 @@ const navGroups = [
   {
     title: "Reports",
     items: [
+      { to: "/admin/marks-reports", label: "Marks Reports", icon: "bi-file-earmark-bar-graph" },
       { to: "/admin/reports", label: "Reports", icon: "bi-file-earmark-text" },
     ],
   },

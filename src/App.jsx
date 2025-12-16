@@ -28,6 +28,7 @@ import StudentPayOverview from "./pages/StudentPayOverview.jsx";
 import Reports from "./pages/Reports.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Revaluation from "./pages/Revaluation.jsx";
+import MarksReports from "./pages/MarksReports.jsx";
 
 
 export default function App() {
@@ -183,6 +184,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isAuthed}>
               <Setup />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/admin/marks-reports"
+          element={
+            <GuardedRoute isAuthed={isAuthed}>
+              <MarksReports />
             </GuardedRoute>
           }
         />

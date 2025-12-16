@@ -175,7 +175,7 @@ export default function Dashboard() {
   const [registrations, setRegistrations] = useState([]);
   const [regSubjects, setRegSubjects] = useState([]);
   const [marks, setMarks] = useState([]);
-  const [deadlines, setDeadlines] = useState([]);
+
   const [students, setStudents] = useState([]);
   const [courses, setCourses] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -197,10 +197,7 @@ export default function Dashboard() {
         .select("id, status, exam_id, created_at, student_id"),
       supabase.from("exam_registration_subjects").select("id, exam_registration_id"),
       supabase.from("marks").select("id"),
-      supabase
-        .from("exam_deadlines")
-        .select("id, exam_id, last_date")
-        .order("last_date", { ascending: true }),
+
       supabase
         .from("students")
         .select("id, course_name, group_name, hall_ticket_no"),
@@ -209,38 +206,38 @@ export default function Dashboard() {
       supabase.from("results").select("student_id, result_status, exam_id"),
     ])
       .then(
-      ([
-        examsResult,
-        registrationsResult,
-        subjectsResult,
-        marksResult,
-        deadlinesResult,
-        studentsResult,
-        coursesResult,
-        groupsResult,
-        resultsResult,
-      ]) => {
-        if (!active) return;
-        const errors = [
-          examsResult.error,
-          registrationsResult.error,
-          subjectsResult.error,
-          marksResult.error,
-          resultsResult.error,
-        ].filter(Boolean);
-        if (errors.length) {
-          setError(errors.map((err) => err.message).join(" · "));
-        }
-        setExams(examsResult.data || []);
-        setRegistrations(registrationsResult.data || []);
-        setRegSubjects(subjectsResult.data || []);
+        ([
+          examsResult,
+          registrationsResult,
+          subjectsResult,
+          marksResult,
+
+          studentsResult,
+          coursesResult,
+          groupsResult,
+          resultsResult,
+        ]) => {
+          if (!active) return;
+          const errors = [
+            examsResult.error,
+            registrationsResult.error,
+            subjectsResult.error,
+            marksResult.error,
+            resultsResult.error,
+          ].filter(Boolean);
+          if (errors.length) {
+            setError(errors.map((err) => err.message).join(" · "));
+          }
+          setExams(examsResult.data || []);
+          setRegistrations(registrationsResult.data || []);
+          setRegSubjects(subjectsResult.data || []);
           setMarks(marksResult.data || []);
-          setDeadlines(deadlinesResult.data || []);
-        setStudents(studentsResult.data || []);
-        setCourses(coursesResult.data || []);
-        setGroups(groupsResult.data || []);
-        setResults(resultsResult.data || []);
-      })
+
+          setStudents(studentsResult.data || []);
+          setCourses(coursesResult.data || []);
+          setGroups(groupsResult.data || []);
+          setResults(resultsResult.data || []);
+        })
       .catch((err) => {
         if (active) {
           setError(err.message || "Unable to load dashboard data");
@@ -373,17 +370,7 @@ export default function Dashboard() {
     };
   }, [regSubjects.length, marks.length, exams]);
 
-  const nextDeadline = useMemo(() => {
-    if (!deadlines.length) return null;
-    const upcoming = deadlines
-      .map((deadline) => ({
-        ...deadline,
-        last_date: deadline.last_date ? new Date(deadline.last_date) : null,
-      }))
-      .filter((deadline) => deadline.last_date)
-      .sort((a, b) => a.last_date - b.last_date);
-    return upcoming[0] || null;
-  }, [deadlines]);
+
 
   const academicCounts = useMemo(
     () => ({
@@ -651,36 +638,7 @@ export default function Dashboard() {
         )}
         <section className="dashboard-layout mt-4">
           <div className="dashboard-chart-row">
-            {nextDeadline && (
-              <article className="dashboard-chart-card card-shadow dashboard-deadline-card">
-                <div className="deadline-content d-flex gap-3">
-                  <div className="deadline-icon">
-                    <i className="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
-                  </div>
-                  <div>
-                    <p className="text-uppercase small text-secondary mb-1">Upcoming Deadlines</p>
-                    <p className="fw-semibold mb-1">
-                      {nextDeadline.exam_id ? `Exam ${nextDeadline.exam_id}` : "Untitled exam"}
-                    </p>
-                    <p className="mb-0">
-                      {nextDeadline.last_date?.toLocaleDateString(undefined, {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                      {" at "}
-                      {nextDeadline.last_date?.toLocaleTimeString(undefined, {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
-                    <p className="small text-muted mb-0 mt-2">
-                      Deadline applies to registered students — please ensure hall tickets and entries are finalized before this time.
-                    </p>
-                  </div>
-                </div>
-              </article>
-            )}
+
             <article className="dashboard-chart-card card-shadow">
               <div className="dashboard-chart-header">
                 <h3>Registration snapshot</h3>
