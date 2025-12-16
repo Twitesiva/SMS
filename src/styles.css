@@ -4841,6 +4841,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   transition: transform 0.4s ease, box-shadow 0.4s ease, border 0.4s ease;
   animation: fadeInUp 0.6s ease both;
   will-change: transform;
+  padding: 1.25rem;
 }
 
 .dashboard-deadline-card {
@@ -5007,6 +5008,85 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   color: #475569;
 }
 
+.dashboard-payment-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.dashboard-payment-item {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+  background: #fff;
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.05);
+}
+
+.dashboard-payment-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #475569;
+}
+
+.dashboard-payment-value {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.dashboard-payment-note {
+  font-size: 0.77rem;
+  color: #475569;
+}
+
+.dashboard-group-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.dashboard-group-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.dashboard-group-tab {
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 16px;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  min-width: 160px;
+  transition: border-color 0.3s ease, transform 0.3s ease;
+}
+
+.dashboard-group-tab.active {
+  border-color: rgba(59, 130, 246, 0.8);
+  transform: translateY(-2px);
+}
+
+.dashboard-group-tab small {
+  font-size: 0.75rem;
+}
+
+.dashboard-payment-card {
+  padding: 1rem;
+}
+
+.dashboard-payment-card .dashboard-chart-wrapper {
+  min-height: 180px;
+}
+
 .dashboard-course-summary {
   margin-top: 1rem;
   padding-top: 0.9rem;
@@ -5163,10 +5243,6 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   animation-delay: 0.1s;
 }
 
-.dashboard-hallticket-grid > .dashboard-hallticket-stat:nth-child(3) {
-  animation-delay: 0.2s;
-}
-
 .dashboard-hallticket-footer {
   margin-top: 0.9rem;
   padding-top: 0.6rem;
@@ -5308,21 +5384,21 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 }
 
 .dashboard-chart-card h3 {
-  font-size: 1.15rem;
-  margin-bottom: 0.4rem;
+  font-size: 1rem;
+  margin-bottom: 0.3rem;
 }
 
 .dashboard-chart-header {
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .dashboard-chart-wrapper {
   position: relative;
-  min-height: 260px;
+  min-height: 220px;
 }
 
 .dashboard-chart-wrapper.smaller {
-  min-height: 220px;
+  min-height: 180px;
 }
 
 .dashboard-chart-legend {
