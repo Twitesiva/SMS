@@ -50,6 +50,7 @@ const HallTicketTemplate = ({ student, papers, examLabel }) => (
         { label: "Student Name", value: student.name },
         { label: "Group Name", value: student.group },
         { label: "Course Name", value: student.course },
+        { label: "Semester", value: student.semester },
       ].map((column) => (
         <div
           className="d-flex align-items-center gap-2"
@@ -83,7 +84,6 @@ const HallTicketTemplate = ({ student, papers, examLabel }) => (
                 <th>Seat No</th>
                 <th>Date</th>
                 <th>Time</th>
-                <th>Subject Code</th>
                 <th>Subject</th>
               </tr>
             </thead>
@@ -92,13 +92,10 @@ const HallTicketTemplate = ({ student, papers, examLabel }) => (
                 <tr
                   key={`${paper.subjectCode}-${paper.seatNumber}-${paper.time}`}
                 >
-                  <td className="fw-semibold">
-                    {paper.seatNumber}
-                  </td>
+                  <td>{paper.seatNumber}</td>
                   <td>{paper.date}</td>
                   <td>{paper.time}</td>
-                  <td>{paper.subjectCode}</td>
-                  <td>{paper.subjectName}</td>
+                  <td>{paper.subjectCode} - {paper.subjectName}</td>
                 </tr>
               ))}
             </tbody>
@@ -1119,6 +1116,7 @@ export default function HallTickets() {
                       { label: "Student Name", value: modalStudent.name },
                       { label: "Group Name", value: modalStudent.group },
                       { label: "Course Name", value: modalStudent.course },
+                      { label: "Semester", value: modalStudent.semester },
                     ].map((column) => (
                       <div
                         className="d-flex align-items-center gap-2"
@@ -1160,7 +1158,6 @@ export default function HallTickets() {
                               <th>Seat No</th>
                               <th>Date</th>
                               <th>Time</th>
-                              <th>Subject Code</th>
                               <th>Subject</th>
                             </tr>
                           </thead>
@@ -1169,13 +1166,10 @@ export default function HallTickets() {
                               <tr
                                 key={`${paper.subjectCode}-${paper.seatNumber}-${paper.time}`}
                               >
-                                <td className="fw-semibold">
-                                  {paper.seatNumber}
-                                </td>
+                                <td>{paper.seatNumber}</td>
                                 <td>{paper.date}</td>
                                 <td>{paper.time}</td>
-                                <td>{paper.subjectCode}</td>
-                                <td>{paper.subjectName}</td>
+                                <td>{paper.subjectCode} - {paper.subjectName}</td>
                               </tr>
                             ))}
                           </tbody>

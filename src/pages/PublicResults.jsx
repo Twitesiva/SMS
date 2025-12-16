@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../../supabaseClient'
 import logo from '../assets/media/images.png'
 
@@ -9,6 +9,52 @@ export default function PublicResults() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [searched, setSearched] = useState(false)
+  const [gradeMaster, setGradeMaster] = useState([])
+
+  useEffect(() => {
+    const fetchGrades = async () => {
+      try {
+        const { data, error } = await supabase.from('grade_master').select('*')
+        if (error) throw error
+        if (data) setGradeMaster(data)
+      } catch (err) {
+        console.error('Error fetching grades:', err)
+      }
+    }
+    fetchGrades()
+  }, [])
+
+  const getGradeInfo = (marks) => {
+    const m = Number(marks)
+    if (isNaN(m)) return null
+    return gradeMaster.find((g) => m >= Number(g.min_marks) && m <= Number(g.max_marks))
+  }
+
+  const getGrade = (marks) => {
+    const found = getGradeInfo(marks)
+    return found ? found.grade : marks
+  }
+
+  const calculateGPA = (resultList) => {
+    let totalCredits = 0
+    let totalPoints = 0
+
+    resultList.forEach((res) => {
+      const credits = Number(res.subject?.category?.credits || 0)
+      const gradeInfo = getGradeInfo(res.marks_obtained)
+      const points = gradeInfo ? Number(gradeInfo.grade_point) : 0
+
+      // Only consider if credits > 0 and we successfully found grade points
+      // Also typically failed subjects (credits > 0, points = 0) count towards SGPA/CGPA denominator
+      if (credits > 0) {
+        totalCredits += credits
+        totalPoints += (credits * points)
+      }
+    })
+
+    if (totalCredits === 0) return '0.00'
+    return (totalPoints / totalCredits).toFixed(2)
+  }
 
   const handleSearch = async (e) => {
     e.preventDefault()
@@ -56,7 +102,12 @@ export default function PublicResults() {
           subject:subjects (
             subject_name,
             subject_code,
-            semester_number
+            subject_name,
+            subject_code,
+            semester_number,
+            category:subject_category (
+              credits
+            )
           )
         `)
         .eq('student_id', studentData.id)
@@ -176,6 +227,14 @@ export default function PublicResults() {
                       <div className="col-md-3 col-4 text-muted text-uppercase small">Course</div>
                       <div className="col-md-9 col-8 fw-semibold text-dark">: {student.course?.course_name || student.course_name || '-'}</div>
                     </div>
+                    <div className="row">
+                      <div className="col-md-3 col-4 text-muted text-uppercase small">Semester</div>
+                      <div className="col-md-9 col-8 fw-semibold text-dark">: {student.current_semester || '-'}</div>
+                    </div>
+                    <div className="row">
+                      <div className="col-md-3 col-4 text-muted text-uppercase small">Cumulative GPA (CGPA)</div>
+                      <div className="col-md-9 col-8 fw-semibold text-dark">: {calculateGPA(results)}</div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -186,50 +245,56 @@ export default function PublicResults() {
                   No published results found for this student.
                 </div>
               ) : (
-                Object.entries(resultsByExam).map(([examName, items]) => (
-                  <div key={examName} className="card shadow-sm border-0 mb-4">
-                    <div className="card-header bg-white py-3">
-                      <h5 className="mb-0 fw-bold text-primary">{examName}</h5>
-                    </div>
-                    <div className="table-responsive">
-                      <table className="table table-hover mb-0 align-middle">
-                        <thead className="bg-light">
-                          <tr>
-                            <th className="text-center" style={{ width: '60px' }}>S.No</th>
-                            <th className="ps-4">Subject</th>
-                            <th className="text-center">Semester</th>
-                            <th className="text-center">Marks Obtained</th>
-                            <th className="text-center">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {items.map((res, idx) => {
-                            const isPass = Number(res.marks_obtained) >= 35; // Example pass logic, simplistic
-                            // Or use grade if available
-                            const status = Number(res.marks_obtained) >= 35 ? 'PASS' : 'FAIL';
-                            const rowClass = status === 'FAIL' ? 'table-danger' : '';
+                <>
+                  {Object.entries(resultsByExam).map(([examName, items]) => (
+                    <div key={examName} className="card shadow-sm border-0 mb-4">
+                      <div className="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                        <h5 className="mb-0 fw-bold text-primary">{examName}</h5>
+                        <div className="fw-semibold text-dark">
+                          SGPA : {calculateGPA(items)}
+                        </div>
+                      </div>
+                      <div className="table-responsive">
+                        <table className="table table-hover mb-0 align-middle">
+                          <thead className="bg-light">
+                            <tr>
+                              <th className="text-center" style={{ width: '60px' }}>S.No</th>
+                              <th className="ps-4">Subject</th>
+                              <th className="text-center">Semester</th>
+                              <th className="text-center">Grade</th>
+                              <th className="text-center">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {items.map((res, idx) => {
+                              const isPass = Number(res.marks_obtained) >= 35; // Example pass logic, simplistic
+                              // Or use grade if available
+                              const status = Number(res.marks_obtained) >= 35 ? 'PASS' : 'FAIL';
+                              const rowClass = status === 'FAIL' ? 'table-danger' : '';
 
-                            return (
-                              <tr key={idx} className={rowClass}>
-                                <td className="text-center">{idx + 1}</td>
-                                <td className="ps-4">
-                                  {res.subject?.subject_code || '-'} - {res.subject?.subject_name}
-                                </td>
-                                <td className="text-center">{res.subject?.semester_number || res.semester || '-'}</td>
-                                <td className="text-center fw-bold">{res.marks_obtained}</td>
-                                <td className="text-center">
-                                  <span className={`badge ${status === 'PASS' ? 'bg-success' : 'bg-danger'}`}>
-                                    {status}
-                                  </span>
-                                </td>
-                              </tr>
-                            )
-                          })}
-                        </tbody>
-                      </table>
+                              return (
+                                <tr key={idx} className={rowClass}>
+                                  <td className="text-center">{idx + 1}</td>
+                                  <td className="ps-4">
+                                    {res.subject?.subject_code || '-'} - {res.subject?.subject_name}
+                                  </td>
+                                  <td className="text-center">{res.subject?.semester_number || res.semester || '-'}</td>
+                                  <td className="text-center fw-bold">{getGrade(res.marks_obtained)}</td>
+                                  <td className="text-center">
+                                    <span className={`badge ${status === 'PASS' ? 'bg-success' : 'bg-danger'}`}>
+                                      {status}
+                                    </span>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  ))
+                  }
+                </>
               )}
 
             </div>

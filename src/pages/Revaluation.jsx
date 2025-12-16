@@ -7,6 +7,7 @@ export default function Revaluation() {
     const [exams, setExams] = useState([]);
     const [selectedExam, setSelectedExam] = useState("");
     const [hallTicket, setHallTicket] = useState("");
+    const [subjectCode, setSubjectCode] = useState("");
     const [student, setStudent] = useState(null);
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -79,6 +80,10 @@ export default function Revaluation() {
             toast.warn("Please enter a hall ticket number.");
             return;
         }
+        if (!subjectCode.trim()) {
+            toast.warn("Please enter a Subject Code.");
+            return;
+        }
 
         setLoading(true);
         setHasSearched(true);
@@ -142,6 +147,18 @@ export default function Revaluation() {
                 console.error("Error fetching results:", resultsError);
                 toast.error("Failed to fetch results.");
             } else {
+                let finalResults = resultsData || [];
+                if (subjectCode.trim()) {
+                    const code = subjectCode.trim().toLowerCase();
+                    finalResults = finalResults.filter(r =>
+                        r.subjects?.subject_code?.toLowerCase() === code
+                    );
+                }
+
+                if (subjectCode.trim() && finalResults.length === 0) {
+                    toast.info("No result found for this Subject Code.");
+                }
+
                 // 3. Fetch any pending revaluations for this student
                 const { data: pendingRevals } = await supabase
                     .from('revaluation_results')
@@ -151,7 +168,7 @@ export default function Revaluation() {
                     .eq('status', 'pending');
 
                 // Merge pending marks
-                const mergedResults = (resultsData || []).map(res => {
+                const mergedResults = finalResults.map(res => {
                     const pending = pendingRevals?.find(p => p.subject_id === res.subject_id);
                     return {
                         ...res,
@@ -335,7 +352,7 @@ export default function Revaluation() {
                     <div className="card-body">
                         <div className="row g-3 align-items-end">
                             {/* Exam Filter */}
-                            <div className="col-md-4">
+                            <div className="col-md-3">
                                 <label className="form-label fw-semibold">Select Exam</label>
                                 <select
                                     className="form-select"
@@ -346,6 +363,7 @@ export default function Revaluation() {
                                         setStudent(null);
                                         setResults([]);
                                         setHasSearched(false);
+                                        setSubjectCode("");
                                         checkRevalStatus(val);
                                     }}
                                 >
@@ -359,44 +377,56 @@ export default function Revaluation() {
                             </div>
 
                             {/* Hall Ticket Input */}
-                            <div className="col-md-4">
+                            {/* Hall Ticket Input */}
+                            <div className="col-md-3">
                                 <label className="form-label fw-semibold">Student Hall Ticket</label>
-                                <div className="input-group">
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        placeholder="Enter Hall Ticket No"
-                                        value={hallTicket}
-                                        onChange={(e) => setHallTicket(e.target.value)}
-                                        onKeyDown={(e) => e.key === "Enter" && handleSearch(e)}
-                                        onFocus={() => {
-                                            if (!selectedExam) {
-                                                toast.warn("Please select the exam name.");
-                                            }
-                                        }}
-                                    />
-                                    <button
-                                        className="btn btn-primary"
-                                        onClick={handleSearch}
-                                        disabled={loading}
-                                    >
-                                        {loading ? (
-                                            <span
-                                                className="spinner-border spinner-border-sm"
-                                                role="status"
-                                                aria-hidden="true"
-                                            ></span>
-                                        ) : (
-                                            <i className="bi bi-search me-1"></i>
-                                        )}
-                                        Search
-                                    </button>
-                                </div>
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    placeholder="Enter Hall Ticket No"
+                                    value={hallTicket}
+                                    onChange={(e) => setHallTicket(e.target.value)}
+                                    onKeyDown={(e) => e.key === "Enter" && handleSearch(e)}
+                                />
                             </div>
-                            {/* Publish Button */}
+
+                            {/* Subject Code Input */}
+                            <div className="col-md-3">
+                                <label className="form-label fw-semibold">Subject Code</label>
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    placeholder="Enter Subject Code"
+                                    value={subjectCode}
+                                    onChange={(e) => setSubjectCode(e.target.value)}
+                                    onKeyDown={(e) => e.key === "Enter" && handleSearch(e)}
+                                />
+                            </div>
+
+                            {/* Actions */}
+                            <div className="col-md-3 d-flex gap-2">
+                                <button
+                                    className="btn btn-primary w-100"
+                                    onClick={handleSearch}
+                                    disabled={loading}
+                                >
+                                    {loading ? (
+                                        <span
+                                            className="spinner-border spinner-border-sm"
+                                            role="status"
+                                            aria-hidden="true"
+                                        ></span>
+                                    ) : (
+                                        <>
+                                            <i className="bi bi-search me-1"></i> Search
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+
+                            {/* Publish Button Row (Full Width if needed or next line) */}
                             {selectedExam && (
-                                <div className="col-md-4">
-                                    <label className="form-label d-none d-md-block">&nbsp;</label>
+                                <div className="col-12 mt-3">
                                     <button
                                         className={`btn ${revalPublished ? "btn-secondary" : "btn-success"} w-100`}
                                         onClick={() => !revalPublished && setPublishModal(true)}
@@ -415,37 +445,6 @@ export default function Revaluation() {
                 {
                     student && (
                         <div className="card shadow-sm fade-in-up">
-                            <div className="card-header bg-light py-3">
-                                <div className="d-flex flex-column gap-2">
-                                    <h6 className="mb-3 fw-bold fs-5 text-primary text-uppercase border-bottom pb-2">
-                                        Student Information
-                                    </h6>
-                                    <div className="row g-2 mt-1">
-                                        <div className="col-12">
-                                            <div className="d-flex mb-2">
-                                                <span className="fw-semibold text-muted" style={{ minWidth: "140px" }}>Student Name</span>
-                                                <span className="fw-bold text-dark">: {student.full_name}</span>
-                                            </div>
-                                            <div className="d-flex mb-2">
-                                                <span className="fw-semibold text-muted" style={{ minWidth: "140px" }}>Hall Ticket No</span>
-                                                <span className="fw-bold text-dark">: {student.hall_ticket_no}</span>
-                                            </div>
-                                            <div className="d-flex mb-2">
-                                                <span className="fw-semibold text-muted" style={{ minWidth: "140px" }}>Group</span>
-                                                <span className="fw-bold text-dark">: {student.group?.group_name || student.group_name || "-"}</span>
-                                            </div>
-                                            <div className="d-flex mb-2">
-                                                <span className="fw-semibold text-muted" style={{ minWidth: "140px" }}>Course</span>
-                                                <span className="fw-bold text-dark">: {student.course?.course_name || student.course_name}</span>
-                                            </div>
-                                            <div className="d-flex mb-2">
-                                                <span className="fw-semibold text-muted" style={{ minWidth: "140px" }}>Semester</span>
-                                                <span className="fw-bold text-dark">: {student.current_semester || "-"}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                             <div className="card-body p-0">
                                 {results.length === 0 ? (
                                     <div className="text-center py-5">
@@ -530,17 +529,9 @@ export default function Revaluation() {
                         </div>
                         <div className="modal-body p-4">
                             <div className="mb-3 p-3 bg-light rounded border">
-                                <div className="d-flex justify-content-between mb-2">
-                                    <small className="text-muted">Student Hall Ticket</small>
-                                    <span className="fw-bold">{student?.hall_ticket_no}</span>
-                                </div>
-                                <div className="d-flex justify-content-between mb-2">
-                                    <small className="text-muted">Subject Code</small>
-                                    <span className="fw-bold">{revalModal.subjectCode}</span>
-                                </div>
-                                <div className="d-flex justify-content-between">
-                                    <small className="text-muted">Subject Name</small>
-                                    <span className="fw-bold text-end">{revalModal.subjectName}</span>
+                                <div>
+                                    <span className="text-muted fw-bold">Subject : </span>
+                                    <span className="fw-bold">{revalModal.subjectCode}-{revalModal.subjectName}</span>
                                 </div>
                             </div>
 
