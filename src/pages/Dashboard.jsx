@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -149,7 +150,7 @@ export default function Dashboard() {
         .select("id, exam_id, last_date")
         .order("last_date", { ascending: true }),
       supabase.from("students").select("id"),
-      supabase.from("courses").select("id"),
+      supabase.from("courses").select("course_id, course_code, course_name"),
       supabase.from("groups").select("group_id"),
     ])
       .then(
@@ -196,18 +197,6 @@ export default function Dashboard() {
       active = false;
     };
   }, []);
-
-  const activeExams = exams.length;
-  const hallTicketCounts = useMemo(() => {
-    return registrations.reduce(
-      (acc, reg) => {
-        const status = categorizeHallTicketStatus(reg.status);
-        acc[status] = (acc[status] || 0) + 1;
-        return acc;
-      },
-      { Issued: 0, Pending: 0, Escalated: 0 }
-    );
-  }, [registrations]);
 
   const readinessTrendData = useMemo(() => {
     const now = new Date();
@@ -263,24 +252,6 @@ export default function Dashboard() {
     };
   }, [registrations]);
 
-  const hallTicketChartData = useMemo(
-    () => ({
-      labels: ["Issued", "Pending", "Escalated"],
-      datasets: [
-        {
-          data: [
-            hallTicketCounts.Issued,
-            hallTicketCounts.Pending,
-            hallTicketCounts.Escalated,
-          ],
-          backgroundColor: ["#4c75f2", "#ffb347", "#d32f2f"],
-          hoverOffset: 6,
-        },
-      ],
-    }),
-    [hallTicketCounts]
-  );
-
   const resultBreakdownData = useMemo(() => {
     const totalSubjects = regSubjects.length;
     const marksRecorded = marks.length;
@@ -314,50 +285,6 @@ export default function Dashboard() {
     };
   }, [regSubjects.length, marks.length, exams]);
 
-  const resultsAwaitingReview = Math.max(regSubjects.length - marks.length, 0);
-
-  const detailItems = {
-    activeExams: exams[0]?.exam_name ? `Latest: ${exams[0].exam_name}` : "Create an exam session",
-    pendingHallTickets: `Issued ${hallTicketCounts.Issued} · Escalated ${hallTicketCounts.Escalated}`,
-    resultsAwaitingReview: `${Math.max(resultsAwaitingReview, 0)} pending mark entries`,
-  };
-
-  const metrics = [
-    {
-      label: "Active Exams",
-      value: activeExams,
-      detail: detailItems.activeExams,
-      icon: "bi-calendar-event",
-    },
-    {
-      label: "Pending Hall Tickets",
-      value: hallTicketCounts.Pending,
-      detail: detailItems.pendingHallTickets,
-      icon: "bi-ticket-perforated",
-    },
-    {
-      label: "Results Awaiting Review",
-      value: resultsAwaitingReview,
-      detail: detailItems.resultsAwaitingReview,
-      icon: "bi-pencil-square",
-    },
-  ];
-
-  const examRegistrationSummary = useMemo(() => {
-    const counts = {};
-    registrations.forEach((registration) => {
-      counts[registration.exam_id] = (counts[registration.exam_id] || 0) + 1;
-    });
-    return exams
-      .map((exam) => ({
-        exam_id: exam.id,
-        exam_name: exam.exam_name,
-        registrations: counts[exam.id] || 0,
-      }))
-      .sort((a, b) => b.registrations - a.registrations)
-      .slice(0, 3);
-  }, [exams, registrations]);
-
   const nextDeadline = useMemo(() => {
     if (!deadlines.length) return null;
     const upcoming = deadlines
@@ -374,28 +301,80 @@ export default function Dashboard() {
     () => ({
       students: students.length,
       courses: courses.length,
-      batches: groups.length,
+      groups: groups.length,
     }),
     [students.length, courses.length, groups.length]
   );
 
-  const issuedPercent = useMemo(() => {
-    const total = registrations.length;
-    if (!total) return 0;
-    return Math.round((hallTicketCounts.Issued / total) * 100);
-  }, [hallTicketCounts.Issued, registrations.length]);
+  const courseEnrollments = useMemo(() => {
+    if (!students.length) return [];
+    const counts = students.reduce((acc, student) => {
+      const label = student.course_name || student.course_code || "Other";
+      acc[label] = (acc[label] || 0) + 1;
+      return acc;
+    }, {});
+    return Object.entries(counts)
+      .map(([course, count]) => ({ course, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+  }, [students]);
 
-  const marksPercent = useMemo(() => {
-    if (!regSubjects.length) return 0;
-    return Math.round((marks.length / regSubjects.length) * 100);
-  }, [marks.length, regSubjects.length]);
+  const courseEnrollmentChartData = useMemo(() => {
+    const colors = [
+      "rgba(59, 130, 246, 0.85)",
+      "rgba(16, 185, 129, 0.85)",
+      "rgba(249, 115, 22, 0.85)",
+      "rgba(234, 179, 8, 0.85)",
+      "rgba(147, 51, 234, 0.85)",
+      "rgba(236, 72, 153, 0.85)",
+    ];
+    const labels = courseEnrollments.map((course) => course.course);
+    const data = courseEnrollments.map((course) => course.count);
+    return {
+      labels,
+      datasets: [
+        {
+          data,
+          backgroundColor: labels.map((_, index) => colors[index % colors.length]),
+          hoverOffset: 8,
+        },
+      ],
+    };
+  }, [courseEnrollments]);
+  const metrics = [
+    {
+      label: "Total Students",
+      value: academicCounts.students,
+      detail: "All enrolled learners",
+      icon: "bi-people-fill",
+      path: "/admin/students",
+    },
+    {
+      label: "Groups",
+      value: academicCounts.groups,
+      detail: "Academic groups",
+      icon: "bi-building",
+      path: "/admin/setup/groups",
+    },
+    {
+      label: "Total Courses",
+      value: academicCounts.courses,
+      detail: "Active academic programs",
+      icon: "bi-book-half",
+      path: "/admin/courses",
+    },
+  ];
 
   return (
     <AdminShell>
       <div className="dashboard-page">
         <div className="dashboard-cards">
           {metrics.map((metric) => (
-            <article key={metric.label} className="dashboard-card card-shadow">
+            <Link
+              key={metric.label}
+              to={metric.path}
+              className="dashboard-card card-shadow dashboard-card-link"
+            >
               <div className="dashboard-card-icon">
                 <i className={`bi ${metric.icon}`}></i>
               </div>
@@ -404,7 +383,7 @@ export default function Dashboard() {
                 <div className="dashboard-card-label">{metric.label}</div>
                 <p className="text-muted mb-0">{metric.detail}</p>
               </div>
-            </article>
+            </Link>
           ))}
         </div>
 
@@ -432,31 +411,34 @@ export default function Dashboard() {
 
             <article className="dashboard-chart-card card-shadow">
               <div className="dashboard-chart-header">
-                <h3>Hall Ticket Status</h3>
-                <p className="text-muted mb-0">Issued vs pending vs escalated</p>
+                <h3>Active Roster</h3>
+                <p className="text-muted mb-0">How many students choose each course</p>
               </div>
               <div className="dashboard-chart-wrapper smaller">
-                <Doughnut data={hallTicketChartData} options={donutOptions} />
+                <Doughnut data={courseEnrollmentChartData} options={donutOptions} />
+              </div>
+              <div className="dashboard-course-summary">
+                {courseEnrollments.length ? (
+                  <ul className="dashboard-course-list">
+                    {courseEnrollments.map((course) => (
+                      <li key={course.course} className="dashboard-course-item">
+                        <span className="course-name">{course.course}</span>
+                        <span className="course-count">{course.count} students</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-muted small mb-0">No enrollment data yet.</p>
+                )}
               </div>
               <div className="dashboard-chart-legend">
-                <span>{hallTicketCounts.Issued} issued</span>
-                <span>{hallTicketCounts.Pending} pending</span>
-                <span>{hallTicketCounts.Escalated} escalated</span>
+                <span>{students.length} students</span>
+                <span>{courses.length} courses</span>
+                <span>{courseEnrollments.length} insights</span>
               </div>
             </article>
           </div>
 
-          <div className="dashboard-chart-row">
-            <article className="dashboard-chart-card card-shadow">
-              <div className="dashboard-chart-header">
-                <h3>Result Pipeline</h3>
-                <p className="text-muted mb-0">Draft vs recorded vs published</p>
-              </div>
-              <div className="dashboard-chart-wrapper">
-                <Bar data={resultBreakdownData} options={barOptions} />
-              </div>
-            </article>
-          </div>
         </section>
 
         <section className="dashboard-detail-row">
@@ -486,37 +468,6 @@ export default function Dashboard() {
             )}
           </article>
 
-          <article className="dashboard-detail-card card-shadow">
-            <h4 className="mb-3">Top Exam Registrations</h4>
-            <ul className="list-unstyled m-0">
-              {examRegistrationSummary.length ? (
-                examRegistrationSummary.map((entry) => (
-                  <li key={entry.exam_id} className="d-flex justify-content-between align-items-center mb-2">
-                    <span>{entry.exam_name || `Exam ${entry.exam_id}`}</span>
-                    <strong>{entry.registrations}</strong>
-                  </li>
-                ))
-              ) : (
-                <p className="text-muted small mb-0">No registration data available.</p>
-              )}
-            </ul>
-          </article>
-
-          <article className="dashboard-detail-card card-shadow">
-            <h4 className="mb-3">Academic Inventory</h4>
-            <div className="d-flex justify-content-between align-items-center">
-              <span>Total Students</span>
-              <strong>{academicCounts.students}</strong>
-            </div>
-            <div className="d-flex justify-content-between align-items-center">
-              <span>Total Courses</span>
-              <strong>{academicCounts.courses}</strong>
-            </div>
-            <div className="d-flex justify-content-between align-items-center">
-              <span>Total Batches</span>
-              <strong>{academicCounts.batches}</strong>
-            </div>
-          </article>
         </section>
       </div>
     </AdminShell>

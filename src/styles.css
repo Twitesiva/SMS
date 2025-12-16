@@ -4790,12 +4790,82 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 }
 
 .dashboard-page {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 1.75rem;
   background: linear-gradient(180deg, rgba(5, 18, 39, 0.85), rgba(16, 60, 120, 0.65));
   padding: 2rem;
   border-radius: 32px;
+  overflow: hidden;
+  animation: gradientShift 20s ease infinite;
+}
+
+.dashboard-page::after {
+  content: "";
+  position: absolute;
+  inset: 1.5rem;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+  box-shadow: inset 0 0 30px rgba(255, 255, 255, 0.05);
+}
+
+.dashboard-card-link {
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.35s ease, box-shadow 0.35s ease;
+}
+
+.dashboard-card-link:hover,
+.dashboard-card-link:focus-visible {
+  transform: translateY(-6px);
+  box-shadow: 0 30px 45px rgba(15, 23, 42, 0.35);
+}
+
+.dashboard-card-icon {
+  color: #fff;
+  background: linear-gradient(160deg, #4c75f2, #7b1e1e);
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  box-shadow: 0 12px 25px rgba(76, 117, 242, 0.25);
+  animation: iconGlow 3s ease-in-out infinite;
+}
+
+.dashboard-chart-card {
+  transition: transform 0.4s ease, box-shadow 0.4s ease, border 0.4s ease;
+}
+
+.dashboard-chart-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 35px 65px rgba(15, 23, 42, 0.25);
+}
+
+@keyframes gradientShift {
+  0% {
+    background: linear-gradient(180deg, rgba(5, 18, 39, 0.85), rgba(16, 60, 120, 0.65));
+  }
+  50% {
+    background: linear-gradient(180deg, rgba(10, 30, 64, 0.95), rgba(20, 80, 145, 0.7));
+  }
+  100% {
+    background: linear-gradient(180deg, rgba(5, 18, 39, 0.85), rgba(16, 60, 120, 0.65));
+  }
+}
+
+@keyframes iconGlow {
+  0%,
+  100% {
+    box-shadow: 0 12px 25px rgba(76, 117, 242, 0.25);
+  }
+  50% {
+    box-shadow: 0 8px 35px rgba(76, 117, 242, 0.5);
+  }
 }
 .dashboard-hero {
   display: flex;
@@ -4849,6 +4919,34 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 
 .dashboard-chart-wrapper.smaller {
   min-height: 220px;
+}
+
+.dashboard-course-summary {
+  margin-top: 1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid rgba(99, 102, 241, 0.75);
+}
+
+.dashboard-course-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.dashboard-course-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.95rem;
+  color: #0b1220;
+  align-items: center;
+}
+
+.dashboard-course-item .course-count {
+  font-weight: 600;
+  color: #3b82f6;
 }
 
 .dashboard-chart-legend {
@@ -4935,6 +5033,17 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   display: flex;
   gap: 1rem;
   align-items: center;
+}
+
+.dashboard-card-link {
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease;
+}
+
+.dashboard-card-link:focus-visible {
+  outline: 3px solid rgba(76, 117, 242, 0.4);
+  outline-offset: 2px;
 }
 
 .dashboard-card-icon {
