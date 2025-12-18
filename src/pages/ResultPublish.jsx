@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import AdminShell from "../components/AdminShell";
+import ConfirmationModal from "../components/ConfirmationModal";
 import { api } from "../lib/mockApi";
 import { supabase } from "../../supabaseClient";
 import { showToast } from "../store/ui";
@@ -389,34 +390,16 @@ export default function ResultPublish() {
                 </div>
             </div>
 
-            {showConfirmModal && (
-                <div className="modal d-block" tabIndex="-1" role="dialog" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <div className="modal-dialog modal-dialog-centered">
-                        <div className="modal-content border-0 shadow-lg">
-                            <div className="modal-header border-0">
-                                <h5 className="modal-title fw-bold">Confirm Publish</h5>
-                                <button type="button" className="btn-close" onClick={() => setShowConfirmModal(false)}></button>
-                            </div>
-                            <div className="modal-body">
-                                <p className="text-muted mb-0">
-                                    Are you sure you want to publish results for <strong>{exams.find(e => e.id === selectedExamId)?.exam_name}</strong>?
-                                </p>
-                                <p className="text-muted small mt-2 mb-0">
-                                    This action cannot be undone easily. Students will be able to view their results immediately.
-                                </p>
-                            </div>
-                            <div className="modal-footer border-0">
-                                <button type="button" className="btn btn-light" onClick={() => setShowConfirmModal(false)}>
-                                    Cancel
-                                </button>
-                                <button type="button" className="btn btn-primary" onClick={handlePublishConfirm}>
-                                    Confirm Publish
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ConfirmationModal
+                isOpen={showConfirmModal}
+                onClose={() => setShowConfirmModal(false)}
+                onConfirm={handlePublishConfirm}
+                title="Confirm Publish"
+                message={`Are you sure you want to publish results for ${exams.find(e => e.id === selectedExamId)?.exam_name}? This action cannot be undone easily. Students will be able to view their results immediately.`}
+                confirmText="Confirm Publish"
+                confirmButtonClass="btn-primary"
+                isLoading={publishing}
+            />
         </AdminShell>
     );
 }

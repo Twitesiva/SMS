@@ -570,7 +570,7 @@ export default function Departments() {
         if (duplicateError) throw duplicateError;
         if (duplicate) {
           showToast(
-            "Fee entries already exist for the selected year/group/course/semester. Please edit the existing entry instead of creating a duplicate.",
+            "Already exists in this category",
             { type: "warning", title: "Duplicate fees" }
           );
           return;

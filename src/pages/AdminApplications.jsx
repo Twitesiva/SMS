@@ -53,6 +53,7 @@ export default function AdminApplications() {
   const [filteredYears, setFilteredYears] = useState([])
   const [filteredGroups, setFilteredGroups] = useState([])
   const [filteredCourses, setFilteredCourses] = useState([])
+  const [duplicateErrors, setDuplicateErrors] = useState({ student_id: false, ht_no: false })
 
   const handle = (key, value) => setForm((prev) => ({ ...prev, [key]: value }))
 
@@ -142,6 +143,52 @@ export default function AdminApplications() {
       setFilteredCourses(courses)
     }
   }, [category, years, groups, courses, form.academic_year, form.group_code, form.course_id])
+
+  useEffect(() => {
+    const checkStudentId = async () => {
+      if (!form.student_id) {
+        setDuplicateErrors(prev => ({ ...prev, student_id: false }))
+        return
+      }
+      try {
+        const { data, error } = await supabase
+          .from('students')
+          .select('id')
+          .eq('student_id', form.student_id)
+
+        if (error) throw error
+        setDuplicateErrors(prev => ({ ...prev, student_id: data && data.length > 0 }))
+      } catch (err) {
+        console.error('Error checking student ID:', err)
+      }
+    }
+
+    const timer = setTimeout(checkStudentId, 500)
+    return () => clearTimeout(timer)
+  }, [form.student_id])
+
+  useEffect(() => {
+    const checkHtNo = async () => {
+      if (!form.ht_no) {
+        setDuplicateErrors(prev => ({ ...prev, ht_no: false }))
+        return
+      }
+      try {
+        const { data, error } = await supabase
+          .from('students')
+          .select('id')
+          .eq('hall_ticket_no', form.ht_no)
+
+        if (error) throw error
+        setDuplicateErrors(prev => ({ ...prev, ht_no: data && data.length > 0 }))
+      } catch (err) {
+        console.error('Error checking Hall Ticket No:', err)
+      }
+    }
+
+    const timer = setTimeout(checkHtNo, 500)
+    return () => clearTimeout(timer)
+  }, [form.ht_no])
 
   const resetAll = () => {
     setForm(initialForm)
@@ -375,11 +422,23 @@ export default function AdminApplications() {
                   <div className="row g-3 mt-1">
                     <div className="col-md-6">
                       <label className="form-label">Student ID</label>
-                      <input className="form-control" value={form.student_id} onChange={(e) => handle('student_id', e.target.value)} placeholder="Auto-generated if blank" />
+                      <input
+                        className={`form-control ${duplicateErrors.student_id ? 'is-invalid' : ''}`}
+                        value={form.student_id}
+                        onChange={(e) => handle('student_id', e.target.value)}
+                        placeholder="Enter Student ID"
+                      />
+                      {duplicateErrors.student_id && <div className="invalid-feedback">Already Exists</div>}
                     </div>
                     <div className="col-md-6">
                       <label className="form-label">Hall Ticket No</label>
-                      <input className="form-control" value={form.ht_no} onChange={(e) => handle('ht_no', e.target.value)} placeholder="Optional" />
+                      <input
+                        className={`form-control ${duplicateErrors.ht_no ? 'is-invalid' : ''}`}
+                        value={form.ht_no}
+                        onChange={(e) => handle('ht_no', e.target.value)}
+                        placeholder="Enter Hall Ticket No"
+                      />
+                      {duplicateErrors.ht_no && <div className="invalid-feedback">Already Exists</div>}
                     </div>
                     <div className="col-md-8">
                       <label className="form-label">Student Full Name</label>
@@ -490,7 +549,7 @@ export default function AdminApplications() {
 
                 <div className="d-flex justify-content-end gap-2 mt-4">
                   <button type="button" className="btn btn-outline-secondary" onClick={resetAll}>Clear</button>
-                  <button className="btn btn-brand" disabled={loading}>{loading ? 'Submitting...' : 'Submit Application'}</button>
+                  <button className="btn btn-brand" disabled={loading || duplicateErrors.student_id || duplicateErrors.ht_no}>{loading ? 'Submitting...' : 'Submit Application'}</button>
                 </div>
               </form>
 

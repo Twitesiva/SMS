@@ -36,11 +36,53 @@ export default function GroupsCoursesSection({
 
   // State for category filter in courses section
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [duplicateErrors, setDuplicateErrors] = useState({
+    groupCode: false,
+    groupName: false,
+    courseCode: false,
+    courseName: false
+  });
 
   // Filter groups based on selected category
   const filteredGroups = categoryFilter
     ? groups.filter(group => group.category === categoryFilter)
     : groups;
+
+  // Check for duplicate Group Code and Name
+  useEffect(() => {
+    const checkGroup = () => {
+      if (!groupForm) return;
+
+      const codeExists = groupForm.code
+        ? groups.some(g => g.code === groupForm.code && g.id !== groupForm.id)
+        : false;
+
+      const nameExists = groupForm.name
+        ? groups.some(g => g.name?.toLowerCase() === groupForm.name.toLowerCase() && g.id !== groupForm.id)
+        : false;
+
+      setDuplicateErrors(prev => ({ ...prev, groupCode: codeExists, groupName: nameExists }));
+    };
+    checkGroup();
+  }, [groupForm?.code, groupForm?.name, groups, groupForm?.id]);
+
+  // Check for duplicate Course Code and Name
+  useEffect(() => {
+    const checkCourse = () => {
+      if (!courseForm) return;
+
+      const codeExists = courseForm.courseCode
+        ? courses.some(c => c.courseCode === courseForm.courseCode && c.id !== editingCourseId)
+        : false;
+
+      const nameExists = courseForm.courseName
+        ? courses.some(c => c.courseName?.toLowerCase() === courseForm.courseName.toLowerCase() && c.id !== editingCourseId)
+        : false;
+
+      setDuplicateErrors(prev => ({ ...prev, courseCode: codeExists, courseName: nameExists }));
+    };
+    checkCourse();
+  }, [courseForm?.courseCode, courseForm?.courseName, courses, editingCourseId]);
 
   const [confirmModalState, setConfirmModalState] = useState({ isOpen: false, type: null, id: null });
 
@@ -93,7 +135,7 @@ export default function GroupsCoursesSection({
             <div className="col-md-3">
               <label className="form-label fw-bold mb-1">Group Code</label>
               <input
-                className="form-control"
+                className={`form-control ${duplicateErrors.groupCode ? 'is-invalid' : ''}`}
                 placeholder="Group Code"
                 required
                 value={groupForm.code}
@@ -104,11 +146,12 @@ export default function GroupsCoursesSection({
                   })
                 }
               />
+              {duplicateErrors.groupCode && <div className="text-danger small mt-1">Already Exists</div>}
             </div>
             <div className="col-md-3">
               <label className="form-label fw-bold mb-1">Group Name</label>
               <input
-                className="form-control"
+                className={`form-control ${duplicateErrors.groupName ? 'is-invalid' : ''}`}
                 placeholder="Group Name"
                 required
                 value={groupForm.name}
@@ -116,6 +159,7 @@ export default function GroupsCoursesSection({
                   setGroupForm({ ...groupForm, name: e.target.value })
                 }
               />
+              {duplicateErrors.groupName && <div className="text-danger small mt-1">Already Exists</div>}
             </div>
             <div className="col-md-3 col-lg-2">
               <label className="form-label fw-bold mb-1">
@@ -158,6 +202,7 @@ export default function GroupsCoursesSection({
             <button
               className="btn btn-primary students-button"
               onClick={saveGroup}
+              disabled={duplicateErrors.groupCode || duplicateErrors.groupName}
             >
               {editingGroupId ? "Update Group" : "Add Group"}
             </button>
@@ -317,7 +362,7 @@ export default function GroupsCoursesSection({
             <div className="col-md-3">
               <label className="form-label fw-bold mb-1">Course Code</label>
               <input
-                className="form-control"
+                className={`form-control ${duplicateErrors.courseCode ? 'is-invalid' : ''}`}
                 placeholder="Enter Course Code"
                 required
                 value={courseForm.courseCode}
@@ -328,11 +373,12 @@ export default function GroupsCoursesSection({
                   })
                 }
               />
+              {duplicateErrors.courseCode && <div className="text-danger small mt-1">Already Exists</div>}
             </div>
             <div className="col-md-4">
               <label className="form-label fw-bold mb-1">Course Name</label>
               <input
-                className="form-control"
+                className={`form-control ${duplicateErrors.courseName ? 'is-invalid' : ''}`}
                 placeholder="Enter Course Name"
                 required
                 value={courseForm.courseName}
@@ -340,12 +386,14 @@ export default function GroupsCoursesSection({
                   setCourseForm({ ...courseForm, courseName: e.target.value })
                 }
               />
+              {duplicateErrors.courseName && <div className="text-danger small mt-1">Already Exists</div>}
             </div>
           </div>
           <div className="students-section-actions mt-3 d-flex flex-wrap gap-2">
             <button
               className="btn btn-primary students-button"
               onClick={saveCourse}
+              disabled={duplicateErrors.courseCode || duplicateErrors.courseName}
             >
               {editingCourseId ? "Update Course" : "Add Course"}
             </button>
