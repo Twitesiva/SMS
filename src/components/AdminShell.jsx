@@ -33,6 +33,7 @@ const navGroups = [
   {
     title: "Post-Exam Portal",
     items: [
+      { to: "/admin/internal-marks", label: "Internal Marks Entry", icon: "bi-clipboard-check" },
       { to: "/admin/payments-overview", label: "Decoding", icon: "bi-bar-chart" },
       { to: "/admin/results", label: "Marks Entry", icon: "bi-award" },
       { to: "/admin/result-publish", label: "Result Publish", icon: "bi-megaphone" },

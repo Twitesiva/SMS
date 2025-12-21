@@ -4,7 +4,7 @@ import { api } from "../lib/mockApi";
 
 import { supabase } from "../../supabaseClient";
 import collegeLogo from "../assets/media/images.png";
-import signatureImage from "../assets/media/signature.png";
+
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 
@@ -113,18 +113,7 @@ const HallTicketTemplate = ({ student, papers, examLabel }) => (
           key={label}
           style={{ minHeight: 80 }}
         >
-          {label === "Controller of Examination" && (
-            <img
-              src={signatureImage}
-              alt="Controller signature"
-              className="mb-1 w-100"
-              style={{
-                maxWidth: 120,
-                height: "auto",
-                objectFit: "contain",
-              }}
-            />
-          )}
+
           <p className="mb-0 fw-semibold text-dark text-uppercase small">
             {label}
           </p>
@@ -1189,18 +1178,7 @@ export default function HallTickets() {
                         key={label}
                         style={{ minHeight: 150 }}
                       >
-                        {label === "Controller of Examination" && (
-                          <img
-                            src={signatureImage}
-                            alt="Controller signature"
-                            className="mb-2 w-100"
-                            style={{
-                              maxWidth: 180,
-                              height: "auto",
-                              objectFit: "contain",
-                            }}
-                          />
-                        )}
+
                         <p className="mb-0 fw-semibold text-dark text-uppercase">
                           {label}
                         </p>

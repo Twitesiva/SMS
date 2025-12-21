@@ -29,6 +29,7 @@ import Reports from "./pages/Reports.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Revaluation from "./pages/Revaluation.jsx";
 import MarksReports from "./pages/MarksReports.jsx";
+import InternalMarks from "./pages/InternalMarks.jsx";
 
 
 export default function App() {
@@ -136,6 +137,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isAuthed}>
               <ResultPublish />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/admin/internal-marks"
+          element={
+            <GuardedRoute isAuthed={isAuthed}>
+              <InternalMarks />
             </GuardedRoute>
           }
         />
