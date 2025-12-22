@@ -1569,6 +1569,13 @@ export default function Students() {
                         <img
                           src={viewingMedia.photoUrl}
                           alt={viewingStudent.full_name || "Student photo"}
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                            objectPosition: "top",
+                            borderRadius: "8px",
+                          }}
                         />
                       ) : (
                         <div className="students-modal-avatar-initials">
