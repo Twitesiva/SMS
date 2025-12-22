@@ -15,8 +15,8 @@ export default function AdminLogin() {
 
   const nav = useNavigate()
   const { setUser } = useAuth()
-  const [email, setEmail] = useState('admin@vijayam.edu')
-  const [password, setPassword] = useState('admin123')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [role, setRole] = useState('ADMIN')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -53,6 +53,18 @@ export default function AdminLogin() {
 
         <form className="admin-login-form" onSubmit={onLogin}>
           <label className="admin-login-field">
+            <span>Login as</span>
+            <select
+              className="admin-login-input admin-login-select"
+              value={role}
+              onChange={(event) => setRole(event.target.value)}
+            >
+              <option value="ADMIN">Admin</option>
+              <option value="PRINCIPAL">Principal</option>
+            </select>
+          </label>
+
+          <label className="admin-login-field">
             <span>Email</span>
             <input
               type="email"
@@ -74,18 +86,6 @@ export default function AdminLogin() {
               onChange={(event) => setPassword(event.target.value)}
               required
             />
-          </label>
-
-          <label className="admin-login-field">
-            <span>Login as</span>
-            <select
-              className="admin-login-input admin-login-select"
-              value={role}
-              onChange={(event) => setRole(event.target.value)}
-            >
-              <option value="ADMIN">Admin</option>
-              <option value="PRINCIPAL">Principal</option>
-            </select>
           </label>
 
           {error && <p className="admin-login-error">{error}</p>}
