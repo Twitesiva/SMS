@@ -111,16 +111,12 @@ export default function MarksReports() {
     const courseOptions = useMemo(() => {
         if (!filters.group_name) return courses;
 
-        // derived from actual data results to ensure valid combinations
-        const validCourseCodes = new Set();
-        results.forEach(r => {
-            if (r.group_code === filters.group_name) {
-                validCourseCodes.add(r.course_code);
-            }
-        });
+        // Filter courses based on the selected group (linked by group_name in DB)
+        const selectedGroup = groups.find(g => g.group_code === filters.group_name);
+        if (!selectedGroup) return [];
 
-        return courses.filter(c => validCourseCodes.has(c.course_code));
-    }, [courses, results, filters.group_name]);
+        return courses.filter(c => c.group_name === selectedGroup.group_name);
+    }, [courses, groups, filters.group_name]);
 
     const semesterOptions = useMemo(() => {
         const values = new Set();
@@ -138,7 +134,7 @@ export default function MarksReports() {
             try {
                 // Fetch Aux Data
                 const { data: groupsData } = await supabase.from("groups").select("group_code, group_name").order("group_name");
-                const { data: coursesData } = await supabase.from("courses").select("course_code, course_name").order("course_name");
+                const { data: coursesData } = await supabase.from("courses").select("course_code, course_name, group_name").order("course_name");
                 const { data: yearsData } = await supabase.from("academic_year").select("academic_year").order("academic_year", { ascending: false });
                 const { data: examsData } = await supabase.from("exam_master").select("id, exam_name").order("created_at", { ascending: false });
 
@@ -173,9 +169,9 @@ export default function MarksReports() {
                             hall_ticket_no,
                             academic_year,
                             group_name,
-                            group:groups!students_group_name_fkey(group_code, group_name),
+                            group:groups!students_group_id_fkey(group_code, group_name),
                             course_name,
-                            course:courses!students_course_name_fkey(course_code, course_name)
+                            course:courses!fk_students_course(course_code, course_name)
                         )
                     `)
                     .range(0, 9999);
@@ -191,13 +187,11 @@ export default function MarksReports() {
                     student_name: r.student?.full_name,
                     hall_ticket_no: r.student?.hall_ticket_no,
                     academic_year: r.student?.academic_year,
-                    // Note: In students table, group_name column stores the group_code
-                    group_code: r.student?.group_name,
-                    // We get the human readable group name from the nested join
+                    // Use code from the joined relationship if available, otherwise fallback
+                    group_code: r.student?.group?.group_code || r.student?.group_name,
                     group_name: r.student?.group?.group_name || r.student?.group_name,
-                    // Note: In students table, course_name column stores the course_code
-                    course_code: r.student?.course_name,
-                    // We get the human readable course name from the nested join
+
+                    course_code: r.student?.course?.course_code || r.student?.course_name,
                     course_name: r.student?.course?.course_name || r.student?.course_name,
                 }));
 
@@ -231,7 +225,9 @@ export default function MarksReports() {
         const { name, value } = e.target;
         setFilters(prev => ({
             ...prev,
-            [name]: value
+            [name]: value,
+            // Reset course selection when group changes to avoid invalid states
+            ...(name === "group_name" ? { course_name: "" } : {})
         }));
     };
 

@@ -17,7 +17,7 @@ export default function Students() {
     current_semester: "",
   });
   const [studentIdSearch, setStudentIdSearch] = useState("");
-  const [paymentSemester, setPaymentSemester] = useState("");
+
   const [years, setYears] = useState([]);
   const [groups, setGroups] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -47,6 +47,9 @@ export default function Students() {
   const baseCategoryOptions = ["UG", "PG"];
   const normalizeCategoryValue = (value) =>
     value ? value.toString().trim().toUpperCase() : "";
+
+  const normalizeString = (str) => (str ? str.toString().trim().toLowerCase() : "");
+
   const categoryMatchesFilter = (filter, ...values) => {
     if (!filter) return true;
     return values.some(
@@ -359,11 +362,25 @@ export default function Students() {
       semesterData: [],
     });
     try {
-      // Fetch all registrations for this student (all semesters)
-      const { data: registrations, error: regError } = await supabase
+      // Fetch registrations with applied filters
+      let regQuery = supabase
         .from("exam_registrations")
         .select("id, semester, total_fee")
         .eq("student_id", student.id);
+
+      if (filters.academic_year) {
+        regQuery = regQuery.eq("academic_year", filters.academic_year);
+      }
+      if (filters.current_semester) {
+        const numericSemester = Number(filters.current_semester);
+        if (!Number.isNaN(numericSemester)) {
+          regQuery = regQuery.eq("semester", numericSemester);
+        } else {
+          regQuery = regQuery.eq("semester", filters.current_semester);
+        }
+      }
+
+      const { data: registrations, error: regError } = await regQuery;
 
       if (regError) throw regError;
 
@@ -469,7 +486,9 @@ export default function Students() {
         student.Category,
         student.category,
         student.year?.category,
-        student.year?.year_category
+        student.year?.year_category,
+        student.group?.Category,
+        student.group?.category
       )
     );
   }, [students, normalizedCategoryFilter]);
@@ -561,12 +580,20 @@ export default function Students() {
 
   const filteredCourseOptions = useMemo(() => {
     if (!normalizedCategoryFilter && !filters.group_name) return courses;
+
+    // Resolve selected group name for robust matching
+    const selectedGroupInfo = filters.group_name
+      ? groups.find((g) => g.group_code === filters.group_name)
+      : null;
+    const selectedGroupName = selectedGroupInfo?.group_name;
+
     const relevantStudents = studentsForCategory.filter((student) => {
       if (filters.group_name) {
         const groupMatch =
           student.group_code === filters.group_name ||
           student.group_name === filters.group_name ||
-          student.group === filters.group_name;
+          student.group === filters.group_name ||
+          (selectedGroupName && student.group_name === selectedGroupName);
         return groupMatch;
       }
       return true;
@@ -589,7 +616,7 @@ export default function Students() {
         (!!course.course_code && codes.has(course.course_code)) ||
         (!!course.course_name && names.has(course.course_name))
     );
-  }, [courses, studentsForCategory, normalizedCategoryFilter, filters.group_name]);
+  }, [courses, studentsForCategory, normalizedCategoryFilter, filters.group_name, groups]);
 
   const [editForm, setEditForm] = useState({
     student_id: "",
@@ -631,12 +658,13 @@ export default function Students() {
           .select(
             `
             *,
-            group:groups!students_group_name_fkey(group_code, group_name),
-            course:courses!students_course_name_fkey(course_code, course_name),
-            year:academic_year!students_academic_year_fkey(academic_year)
+            group:groups(group_code, group_name, Category),
+            course:courses(course_code, course_name),
+            year:academic_year(academic_year)
           `
           )
-          .order("full_name");
+          .order("full_name")
+          .limit(1000);
 
         if (studentsError) throw studentsError;
 
@@ -692,6 +720,17 @@ export default function Students() {
   const filteredStudents = useMemo(() => {
     const searchTerm = (studentIdSearch || "").toString().trim().toLowerCase();
 
+    // Resolve selected group/course names for robust matching (fallback for missing codes)
+    const selectedGroupInfo = filters.group_name
+      ? groups.find((g) => g.group_code === filters.group_name)
+      : null;
+    const selectedGroupName = selectedGroupInfo?.group_name;
+
+    const selectedCourseInfo = filters.course_name
+      ? courses.find((c) => c.course_code === filters.course_name)
+      : null;
+    const selectedCourseName = selectedCourseInfo?.course_name;
+
     const hasActiveFilters =
       searchTerm ||
       filters.academic_year ||
@@ -700,18 +739,34 @@ export default function Students() {
       filters.category ||
       filters.current_semester;
 
+    // If no filters are active, return all students
     if (!hasActiveFilters) {
-      return [];
+      return students;
     }
 
     return students.filter((student) => {
       const matchesYear =
         !filters.academic_year ||
-        student.academic_year === filters.academic_year;
+        normalizeString(student.academic_year) === normalizeString(filters.academic_year);
+
       const matchesGroup =
-        !filters.group_name || student.group_code === filters.group_name;
+        !filters.group_name ||
+        student.group_code === filters.group_name ||
+        (selectedGroupName &&
+          normalizeString(student.group_name) ===
+          normalizeString(selectedGroupName)) ||
+        normalizeString(student.group_name) ===
+        normalizeString(filters.group_name);
+
       const matchesCourse =
-        !filters.course_name || student.course_code === filters.course_name;
+        !filters.course_name ||
+        student.course_code === filters.course_name ||
+        (selectedCourseName &&
+          normalizeString(student.course_name) ===
+          normalizeString(selectedCourseName)) ||
+        normalizeString(student.course_name) ===
+        normalizeString(filters.course_name);
+
       const matchesSemester =
         !filters.current_semester ||
         String(student.current_semester || "") === String(filters.current_semester);
@@ -739,11 +794,8 @@ export default function Students() {
           .includes(searchTerm) ||
         String(student.id || "").includes(searchTerm);
 
-      if (searchTerm) {
-        return matchesSearch;
-      }
-
       return (
+        matchesSearch &&
         matchesYear &&
         matchesGroup &&
         matchesCourse &&
@@ -751,7 +803,7 @@ export default function Students() {
         matchesCategory
       );
     });
-  }, [students, filters, normalizedCategoryFilter, studentIdSearch]);
+  }, [students, filters, normalizedCategoryFilter, studentIdSearch, groups, courses]);
 
   const studentStats = useMemo(() => {
     const summary = {
@@ -772,7 +824,7 @@ export default function Students() {
         summary.active += 1;
       }
 
-      if (paymentSemester) {
+      if (filters.current_semester) {
         const info = paymentStatuses[student.id];
         if (info && info.variant !== "success") {
           summary.flagged += 1;
@@ -781,23 +833,23 @@ export default function Students() {
     });
 
     return summary;
-  }, [filteredStudents, paymentSemester, paymentStatuses]);
+  }, [filteredStudents, filters.current_semester, paymentStatuses]);
 
   useEffect(() => {
-    if (!paymentSemester) {
+    if (!filters.current_semester) {
       setPaymentStatuses({});
       return;
     }
     const updateStatuses = async () => {
       try {
-        await loadPaymentStatuses(filteredStudents, paymentSemester);
+        await loadPaymentStatuses(filteredStudents, filters.current_semester);
       } catch (error) {
         console.error("Error loading payment statuses:", error);
         setPaymentStatuses({});
       }
     };
     updateStatuses();
-  }, [filteredStudents, paymentSemester]);
+  }, [filteredStudents, filters.current_semester]);
 
   const handleFilterChange = (field, value) => {
     setFilters((prev) => ({ ...prev, [field]: value }));
@@ -1083,13 +1135,26 @@ export default function Students() {
       });
 
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from("exam_registrations")
           .select(
             "semester, total_fee, total_exam_fee, other_fee, payments(id, fee_type, amount_paid, payment_status, payment_type, created_at)"
           )
-          .eq("student_id", viewingStudent.id)
-          .order("semester", { ascending: true });
+          .eq("student_id", viewingStudent.id);
+
+        if (filters.academic_year) {
+          query = query.eq("academic_year", filters.academic_year);
+        }
+        if (filters.current_semester) {
+          const numericSemester = Number(filters.current_semester);
+          if (!Number.isNaN(numericSemester)) {
+            query = query.eq("semester", numericSemester);
+          } else {
+            query = query.eq("semester", filters.current_semester);
+          }
+        }
+
+        const { data, error } = await query.order("semester", { ascending: true });
 
         if (error) throw error;
 
@@ -1125,7 +1190,7 @@ export default function Students() {
     return () => {
       cancelled = true;
     };
-  }, [viewingStudent]);
+  }, [viewingStudent, filters.academic_year, filters.current_semester]);
 
   const matchingStudentsCount = filteredStudents.length;
   const fullyPaidCount = useMemo(
@@ -1205,9 +1270,9 @@ export default function Students() {
                 Showing <strong>{filteredStudents.length}</strong> of {students.length}
               </div>
               <div>
-                {paymentSemester
-                  ? `Payment semester: ${paymentSemester}`
-                  : "Select payment semester for payment insights"}
+                {filters.current_semester
+                  ? `Payment semester: ${filters.current_semester}`
+                  : "Select semester for payment insights"}
               </div>
             </div>
           </div>
@@ -1323,6 +1388,7 @@ export default function Students() {
             <table className="table table-borderless table-hover align-middle mb-0">
               <thead className="table-light">
                 <tr>
+                  <th style={{ width: "70px" }}></th>
                   <th>Student ID</th>
                   <th>Name</th>
                   <th>Hall Ticket</th>
@@ -1338,7 +1404,7 @@ export default function Students() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="10" className="text-center py-4">
+                    <td colSpan="11" className="text-center py-4">
                       <div className="spinner-border text-primary" role="status">
                         <span className="visually-hidden">Loading...</span>
                       </div>
@@ -1352,6 +1418,38 @@ export default function Students() {
                       onClick={() => openStudentDetails(student)}
                       style={{ cursor: "pointer" }}
                     >
+                      <td>
+                        <div
+                          className="d-flex align-items-center justify-content-center bg-light rounded-circle"
+                          style={{
+                            width: "50px",
+                            height: "50px",
+                            overflow: "hidden",
+                            flexShrink: 0,
+                            border: "1px solid #e9ecef"
+                          }}
+                        >
+                          {student.photo_url ? (
+                            <img
+                              src={student.photo_url}
+                              alt=""
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                                objectPosition: "top"
+                              }}
+                            />
+                          ) : (
+                            <span
+                              className="text-secondary fw-bold"
+                              style={{ fontSize: "0.85em" }}
+                            >
+                              {getStudentInitials(student.full_name)}
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td>{student.student_id}</td>
                       <td>{student.full_name}</td>
                       <td>{student.hall_ticket_no || "-"}</td>
@@ -1414,7 +1512,7 @@ export default function Students() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="10" className="text-center py-4">
+                    <td colSpan="11" className="text-center py-4">
                       No students found matching the selected filters.
                     </td>
                   </tr>
@@ -1493,13 +1591,13 @@ export default function Students() {
                   </div>
                   <div className="students-modal-details">
                     <div className="students-modal-statuses">
-                      <span
-                        className={`students-modal-badge students-modal-badge--${viewingPaymentStatus?.variant ||
-                          "secondary"}`}
-                      >
-                        {viewingPaymentStatus?.label ||
-                          "Payment info pending"}
-                      </span>
+                      {viewingPaymentStatus ? (
+                        <span
+                          className={`students-modal-badge students-modal-badge--${viewingPaymentStatus.variant}`}
+                        >
+                          {viewingPaymentStatus.label}
+                        </span>
+                      ) : null}
                       <span
                         className={`students-modal-badge students-modal-badge--${viewingStudent.status === "DISCONTINUE"
                           ? "danger"

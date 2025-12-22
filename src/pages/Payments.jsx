@@ -3180,6 +3180,7 @@ export default function Payments() {
                                 width: 40,
                                 height: 40,
                                 objectFit: "cover",
+                                objectPosition: "top",
                               }}
                             />
                           ) : (
@@ -3348,7 +3349,7 @@ export default function Payments() {
                             src={modalStudent.photo_url || modalStudent.photo}
                             alt={modalStudent.full_name || modalStudent.name || "Student"}
                             className="rounded-circle"
-                            style={{ width: 96, height: 96, objectFit: "cover" }}
+                            style={{ width: 96, height: 96, objectFit: "cover", objectPosition: "top" }}
                           />
                         ) : (
                           <div

@@ -8,7 +8,7 @@ import { TIME_SLOTS } from '../lib/timeSlots'
 import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
 import collegeLogo from '../assets/media/images.png'
-import signatureImage from '../assets/media/signature.png'
+
 
 const EXAM_NAME_PREFIX = 'Regular and Supplementary Examinations - '
 
@@ -990,16 +990,7 @@ const TimetablePrintTemplate = ({ exam, schedules, subjects, courses, groups, fi
                     </p>
                 </div>
                 <div className="col-6 mb-2 mb-md-0 d-flex flex-column align-items-center justify-content-end" style={{ minHeight: 80 }}>
-                    <img
-                        src={signatureImage}
-                        alt="Controller signature"
-                        className="mb-1 w-100"
-                        style={{
-                            maxWidth: 120,
-                            height: 'auto',
-                            objectFit: 'contain',
-                        }}
-                    />
+
                     <p className="mb-0 fw-bold text-dark open-sans-font small">
                         Controller of Examinations
                     </p>

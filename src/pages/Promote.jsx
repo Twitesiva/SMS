@@ -54,6 +54,9 @@ export default function Promote() {
   const baseCategoryOptions = ["UG", "PG"];
   const normalizeCategoryValue = (value) =>
     value ? value.toString().trim().toUpperCase() : "";
+
+  const normalizeString = (str) => (str ? str.toString().trim().toLowerCase() : "");
+
   const categoryMatchesFilter = (filter, ...values) => {
     if (!filter) return true;
     return values.some(
@@ -476,7 +479,9 @@ export default function Promote() {
         student.Category,
         student.category,
         student.year?.category,
-        student.year?.year_category
+        student.year?.year_category,
+        student.group?.Category,
+        student.group?.category
       )
     );
   }, [students, normalizedCategoryFilter]);
@@ -567,36 +572,44 @@ export default function Promote() {
   }, [groups, normalizedCategoryFilter]);
 
   const filteredCourseOptions = useMemo(() => {
-    if (!normalizedCategoryFilter && !filters.group_name) return courses;
-    const relevantStudents = studentsForCategory.filter((student) => {
-      if (filters.group_name) {
-        const groupMatch =
-          student.group_code === filters.group_name ||
-          student.group_name === filters.group_name ||
-          student.group === filters.group_name;
-        return groupMatch;
+    // 1. If a specific group is selected (Group Code)
+    if (filters.group_name) {
+      // filters.group_name holds the group_code based on the select input value
+      // We need to find the corresponding group_name because courses are linked by group_name in the DB
+      const selectedGroup = groups.find(
+        (g) => g.group_code === filters.group_name
+      );
+
+      if (selectedGroup) {
+        return courses.filter(
+          (c) => c.group_name === selectedGroup.group_name
+        );
       }
-      return true;
-    });
-    if (!relevantStudents.length) return courses;
-    const codes = new Set();
-    const names = new Set();
-    relevantStudents.forEach((student) => {
-      if (student.course_code) codes.add(student.course_code);
-      const courseName =
-        student.course?.course_name ||
-        student.course_name ||
-        student.course ||
-        "";
-      if (courseName) names.add(courseName);
-    });
-    if (!codes.size && !names.size) return courses;
-    return courses.filter(
-      (course) =>
-        (!!course.course_code && codes.has(course.course_code)) ||
-        (!!course.course_name && names.has(course.course_name))
-    );
-  }, [courses, studentsForCategory, normalizedCategoryFilter, filters.group_name]);
+      // If we have a group code filter but can't find the group, safely return empty or all? 
+      // Returning empty is safer as it implies mismatch.
+      return [];
+    }
+
+    // 2. If no group selected, but Category is selected
+    if (normalizedCategoryFilter) {
+      // Find all groups matching this category
+      const categoryGroupNames = new Set(
+        groups
+          .filter((g) => {
+            const gCat = g.Category || g.category;
+            return (
+              gCat && gCat.toString().toUpperCase() === normalizedCategoryFilter
+            );
+          })
+          .map((g) => g.group_name)
+      );
+
+      return courses.filter((c) => categoryGroupNames.has(c.group_name));
+    }
+
+    // 3. No filters
+    return courses;
+  }, [courses, groups, filters.group_name, normalizedCategoryFilter]);
 
   const [editForm, setEditForm] = useState({
     student_id: "",
@@ -638,12 +651,13 @@ export default function Promote() {
           .select(
             `
             *,
-            group:groups!students_group_name_fkey(group_code, group_name),
-            course:courses!students_course_name_fkey(course_code, course_name),
-            year:academic_year!students_academic_year_fkey(academic_year)
+            group:groups(group_id, group_code, group_name, Category),
+            course:courses(course_id, course_code, course_name),
+            year:academic_year(academic_year)
           `
           )
-          .order("full_name");
+          .order("full_name")
+          .limit(1000);
 
         if (studentsError) throw studentsError;
 
@@ -658,7 +672,7 @@ export default function Promote() {
         // Fetch courses
         const { data: coursesData, error: coursesError } = await supabase
           .from("courses")
-          .select("course_id, course_code, course_name")
+          .select("course_id, course_code, course_name, group_name")
           .order("course_name");
 
         if (coursesError) throw coursesError;
@@ -714,11 +728,53 @@ export default function Promote() {
     return students.filter((student) => {
       const matchesYear =
         !filters.academic_year ||
-        student.academic_year === filters.academic_year;
-      const matchesGroup =
-        !filters.group_name || student.group_code === filters.group_name;
-      const matchesCourse =
-        !filters.course_name || student.course_code === filters.course_name;
+        normalizeString(student.academic_year) === normalizeString(filters.academic_year);
+
+      let matchesGroup = !filters.group_name;
+      if (!matchesGroup) {
+        // filters.group_name is the Code.
+        // Check if student has this code
+        if (student.group_code === filters.group_name) {
+          matchesGroup = true;
+        } else {
+          // Fallback: check against group_name string if code is missing/mismatch
+          // Find the name for this code
+          const gObj = groups.find((g) => g.group_code === filters.group_name);
+          const gName = gObj ? gObj.group_name : filters.group_name;
+          // Check if student's group_name matches the Name OR the Code
+          if (
+            student.group_name &&
+            (
+              (gName && normalizeString(student.group_name) === normalizeString(gName)) ||
+              normalizeString(student.group_name) === normalizeString(filters.group_name)
+            )
+          ) {
+            matchesGroup = true;
+          }
+        }
+      }
+
+      let matchesCourse = !filters.course_name;
+      if (!matchesCourse) {
+        // filters.course_name is the Code.
+        if (student.course_code === filters.course_name) {
+          matchesCourse = true;
+        } else {
+          // Fallback
+          const cObj = courses.find((c) => c.course_code === filters.course_name);
+          const cName = cObj ? cObj.course_name : filters.course_name;
+          if (
+            student.course_name &&
+            (
+              (cName && normalizeString(student.course_name) === normalizeString(cName)) ||
+              normalizeString(student.course_name) === normalizeString(filters.course_name)
+            )
+          ) {
+            matchesCourse = true;
+          }
+        }
+      }
+
       const matchesSemester =
         !filters.current_semester ||
         String(student.current_semester || "") === String(filters.current_semester);
@@ -746,11 +802,8 @@ export default function Promote() {
           .includes(searchTerm) ||
         String(student.id || "").includes(searchTerm);
 
-      if (searchTerm) {
-        return matchesSearch;
-      }
-
       return (
+        matchesSearch &&
         matchesYear &&
         matchesGroup &&
         matchesCourse &&
@@ -758,7 +811,7 @@ export default function Promote() {
         matchesCategory
       );
     });
-  }, [students, filters, normalizedCategoryFilter, studentIdSearch]);
+  }, [students, filters, normalizedCategoryFilter, studentIdSearch, groups, courses]);
 
   const studentStats = useMemo(() => {
     const summary = {
@@ -1028,8 +1081,10 @@ export default function Promote() {
         hall_ticket_no: editForm.hall_ticket_no,
         academic_year: editForm.academic_year,
         Category: editForm.category,
-        group_name: editForm.group_code,
-        course_name: editForm.course_code,
+        group_name: editForm.group_name,
+        course_name: editForm.course_name,
+        group_id: groups.find((g) => g.group_code === editForm.group_code)?.group_id,
+        course_id: courses.find((c) => c.course_code === editForm.course_code)?.course_id,
         full_name: editForm.full_name,
         gender: editForm.gender,
         date_of_birth: editForm.date_of_birth,
@@ -1304,6 +1359,10 @@ export default function Promote() {
               <p className="text-muted mb-0">
                 Use the hall ticket field or filters to quickly locate a student.
               </p>
+            </div>
+            <div className="text-end">
+              <h2 className="fw-bold mb-0 text-primary">{filteredStudents.length}</h2>
+              <p className="text-muted mb-0 small text-uppercase fw-semibold">Students Found</p>
             </div>
           </div>
           <div className="row g-3">
