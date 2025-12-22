@@ -1080,7 +1080,9 @@ export default function Setup() {
         return prev.category ? { ...prev, category: "" } : prev;
       }
       if (categories.includes(prev.category)) return prev;
-      return { ...prev, category: categories[0] };
+      // Do not auto-select the first category; keep it empty if invalid or not set
+      if (!prev.category) return prev;
+      return { ...prev, category: "" };
     });
   }, [categories]);
 

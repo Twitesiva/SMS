@@ -1695,16 +1695,22 @@ export default function Students() {
                     <div className="students-modal-card">
                       <div className="students-modal-card-header">
                         <p className="students-modal-card-title">Residence</p>
-                        <span className="students-modal-card-meta">
-                          {viewingStudent.pincode ? `PIN ${viewingStudent.pincode}` : ""}
-                        </span>
                       </div>
                       <div className="students-modal-card-body">
                         <div className="students-modal-card-value text-capitalize">
                           {viewingStudent.address || "-"}
                         </div>
-                        <div className="text-muted small mt-2">
-                          {viewingStudent.state || "-"}
+                        <div className="mt-2">
+                          <span className="text-muted small">State : </span>
+                          <span className="fw-semibold">
+                            {viewingStudent.state || "-"}
+                          </span>
+                        </div>
+                        <div className="mt-2">
+                          <span className="text-muted small">Pin : </span>
+                          <span className="fw-semibold">
+                            {viewingStudent.pincode || "-"}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -1716,14 +1722,18 @@ export default function Students() {
                         <span className="students-modal-card-meta">Family Info</span>
                       </div>
                       <div className="students-modal-card-body">
-                        <div className="fw-semibold">
-                          {viewingStudent.father_name || "-"}
+                        <div>
+                          <span className="text-muted small">Father Name : </span>
+                          <span className="fw-semibold">
+                            {viewingStudent.father_name || "-"}
+                          </span>
                         </div>
-                        <div className="text-muted small">Father</div>
-                        <div className="fw-semibold mt-3">
-                          {viewingStudent.mother_name || "-"}
+                        <div className="mt-3">
+                          <span className="text-muted small">Mother Name : </span>
+                          <span className="fw-semibold">
+                            {viewingStudent.mother_name || "-"}
+                          </span>
                         </div>
-                        <div className="text-muted small">Mother</div>
                       </div>
                     </div>
                   </div>
@@ -1734,21 +1744,27 @@ export default function Students() {
                         <span className="students-modal-card-meta">Core details</span>
                       </div>
                       <div className="students-modal-card-body">
-                        <div className="fw-semibold">
-                          {viewingStudent.aadhar_number || "-"}
+                        <div>
+                          <span className="text-muted small">Aadhar : </span>
+                          <span className="fw-semibold">
+                            {viewingStudent.aadhar_number || "-"}
+                          </span>
                         </div>
-                        <div className="text-muted small">Aadhar</div>
-                        <div className="fw-semibold mt-3">
-                          {viewingStudent.religion || "-"}
+                        <div className="mt-3">
+                          <span className="text-muted small">Religion : </span>
+                          <span className="fw-semibold">
+                            {viewingStudent.religion || "-"}
+                          </span>
                         </div>
-                        <div className="text-muted small">Religion</div>
-                        <div className="fw-semibold mt-3 text-capitalize">
-                          {viewingStudent.caste || "-"}
-                          {viewingStudent.sub_caste
-                            ? ` • ${viewingStudent.sub_caste}`
-                            : ""}
+                        <div className="mt-3 text-capitalize">
+                          <span className="text-muted small">Caste : </span>
+                          <span className="fw-semibold">
+                            {viewingStudent.caste || "-"}
+                            {viewingStudent.sub_caste
+                              ? ` • ${viewingStudent.sub_caste}`
+                              : ""}
+                          </span>
                         </div>
-                        <div className="text-muted small">Caste / Sub Caste</div>
                       </div>
                     </div>
                   </div>
