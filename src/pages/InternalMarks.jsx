@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import AdminShell from '../components/AdminShell'
 import { supabase } from '../../supabaseClient'
+import { showToast } from '../store/ui'
 
 export default function InternalMarks() {
     const [exams, setExams] = useState([])
@@ -210,7 +211,7 @@ export default function InternalMarks() {
                     .in('id', studentIdsToFetch),
                 supabase
                     .from('marks')
-                    .select('student_id, subject_id, internal_marks')
+                    .select('student_id, subject_id, internal_marks, theory_marks')
                     .in('student_id', studentIdsToFetch)
                     .in('subject_id', validSubjectIds)
             ])
@@ -245,6 +246,8 @@ export default function InternalMarks() {
                     studentName: student?.full_name || 'Unknown',
                     hallTicketNo: student?.hall_ticket_no || 'N/A',
                     internalMarks: existingMark ? existingMark.internal_marks : '',
+                    theoryMarks: existingMark ? existingMark.theory_marks : 0, // Store theory marks for total calculation
+                    isSaved: !!existingMark
                 }
             })
 
@@ -264,12 +267,15 @@ export default function InternalMarks() {
         try {
             // Prepare payload
             // Upsert based on (student_id, subject_id)
-            const updates = studentList.map(student => ({
-                student_id: student.studentId,
-                subject_id: student.subjectId,
-                internal_marks: student.internalMarks === '' ? 0 : student.internalMarks,
-                // We default to 0 if empty, or you might want to handle nulls differently
-            }))
+            const updates = studentList.map(student => {
+                const internal = student.internalMarks === '' ? 0 : Number(student.internalMarks)
+                const theory = Number(student.theoryMarks) || 0
+                return {
+                    student_id: student.studentId,
+                    subject_id: student.subjectId,
+                    internal_marks: internal,
+                }
+            })
 
             const { error } = await supabase
                 .from('marks')
@@ -277,10 +283,11 @@ export default function InternalMarks() {
 
             if (error) throw error
 
-            alert('Internal marks saved successfully!')
+            showToast('Internal marks saved successfully!', { type: 'success' })
+            setSelectedSubjectId('')
         } catch (error) {
             console.error('Error saving marks:', error)
-            alert('Failed to save marks.')
+            showToast('Failed to save marks.', { type: 'error' })
         } finally {
             setIsSaving(false)
         }
@@ -494,7 +501,10 @@ export default function InternalMarks() {
                                             <tr key={student.id}>
                                                 <td>{index + 1}</td>
                                                 <td>{student.hallTicketNo}</td>
-                                                <td>{student.studentName}</td>
+                                                <td>
+                                                    {student.studentName}
+                                                    {student.isSaved && <span className="badge bg-success ms-2">Saved</span>}
+                                                </td>
                                                 <td>
                                                     <input
                                                         type="number"
@@ -502,11 +512,15 @@ export default function InternalMarks() {
                                                         value={student.internalMarks}
                                                         onChange={(e) => {
                                                             const newValue = e.target.value
-                                                            setStudentList(prev => prev.map((s, i) =>
-                                                                i === index ? { ...s, internalMarks: newValue } : s
-                                                            ))
+                                                            const numValue = Number(newValue)
+                                                            if (newValue === '' || (numValue >= 0 && numValue <= 30)) {
+                                                                setStudentList(prev => prev.map((s, i) =>
+                                                                    i === index ? { ...s, internalMarks: newValue } : s
+                                                                ))
+                                                            }
                                                         }}
                                                         placeholder="Marks"
+                                                        max="30"
                                                     />
                                                 </td>
                                             </tr>

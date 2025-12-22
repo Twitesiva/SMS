@@ -170,6 +170,19 @@ export default function Results() {
         return
       }
 
+      // 0. Fetch current internal marks for this student + subject
+      const { data: currentMarkRow, error: markFetchErr } = await supabase
+        .from('marks')
+        .select('internal_marks')
+        .eq('student_id', scanData.student_id)
+        .eq('subject_id', scanData.subject_id)
+        .maybeSingle() // Use maybeSingle to avoid error if no row exists
+
+      if (markFetchErr) throw markFetchErr
+
+      const currentInternal = currentMarkRow?.internal_marks || 0
+      const newTotal = Number(currentInternal) + Number(obtained)
+
       // Upsert marks: match on student_id + subject_id
       // Update theory_marks and link the barcode_id
       const { error } = await supabase.from('marks').upsert({
@@ -177,6 +190,7 @@ export default function Results() {
         subject_id: scanData.subject_id,
         barcode_id: barcodeId,
         theory_marks: obtained,
+        internal_marks: currentInternal, // Ensure internal marks are preserved/set
         max_marks: max
       }, { onConflict: 'student_id, subject_id' })
 

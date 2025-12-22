@@ -34,7 +34,7 @@ const HallTicketTemplate = ({ student, papers, examLabel }) => (
           }
           alt="Student"
           className="rounded border mt-1"
-          style={{ width: 80, height: 80, objectFit: "cover" }}
+          style={{ width: 80, height: 80, objectFit: "cover", objectPosition: "top" }}
         />
       </div>
     </div>
@@ -1088,7 +1088,7 @@ export default function HallTickets() {
                         }
                         alt="Student"
                         className="rounded border mt-2"
-                        style={{ width: 96, height: 96, objectFit: "cover" }}
+                        style={{ width: 96, height: 96, objectFit: "cover", objectPosition: "top" }}
                       />
                     </div>
                   </div>

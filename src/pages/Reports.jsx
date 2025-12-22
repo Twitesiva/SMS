@@ -172,8 +172,8 @@ export default function Reports() {
                     .select(
                         `
             *,
-            group:groups!students_group_name_fkey(group_code, group_name),
-            course:courses!students_course_name_fkey(course_code, course_name),
+            group:groups!students_group_id_fkey(group_code, group_name),
+            course:courses!fk_students_course(course_code, course_name),
             year:academic_year!students_academic_year_fkey(academic_year)
           `
                     )

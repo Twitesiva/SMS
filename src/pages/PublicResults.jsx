@@ -72,10 +72,10 @@ export default function PublicResults() {
         .from('students')
         .select(`
           *,
-          group:groups!students_group_name_fkey (
+          group:groups!students_group_id_fkey (
             group_name
           ),
-          course:courses!students_course_name_fkey (
+          course:courses!fk_students_course (
             course_name
           )
         `)
@@ -94,6 +94,8 @@ export default function PublicResults() {
         .from('results')
         .select(`
           marks_obtained,
+          internal_marks,
+          theory_marks,
           max_marks,
           semester,
           exam:exam_master (
@@ -261,7 +263,9 @@ export default function PublicResults() {
                               <th className="text-center fw-bold text-uppercase" style={{ width: '60px', border: '1px solid black' }}>S.No</th>
                               <th className="ps-3 fw-bold text-uppercase" style={{ border: '1px solid black' }}>Subject</th>
                               <th className="text-center fw-bold text-uppercase" style={{ border: '1px solid black' }}>Semester</th>
-                              <th className="text-center fw-bold text-uppercase" style={{ border: '1px solid black' }}>Marks</th>
+                              <th className="text-center fw-bold text-uppercase" style={{ border: '1px solid black' }}>Internal</th>
+                              <th className="text-center fw-bold text-uppercase" style={{ border: '1px solid black' }}>Theory</th>
+                              <th className="text-center fw-bold text-uppercase" style={{ border: '1px solid black' }}>Total</th>
                               <th className="text-center fw-bold text-uppercase" style={{ border: '1px solid black' }}>Credit Points</th>
                               <th className="text-center fw-bold text-uppercase" style={{ border: '1px solid black' }}>Grade</th>
                               <th className="text-center fw-bold text-uppercase" style={{ border: '1px solid black' }}>Status</th>
@@ -284,6 +288,8 @@ export default function PublicResults() {
                                     {res.subject?.subject_code || '-'} - {res.subject?.subject_name}
                                   </td>
                                   <td className="text-center" style={{ border: '1px solid black' }}>{res.subject?.semester_number || res.semester || '-'}</td>
+                                  <td className="text-center" style={{ border: '1px solid black' }}>{res.internal_marks}</td>
+                                  <td className="text-center" style={{ border: '1px solid black' }}>{res.theory_marks}</td>
                                   <td className="text-center" style={{ border: '1px solid black' }}>{res.marks_obtained}</td>
                                   <td className="text-center" style={{ border: '1px solid black' }}>{res.subject?.category?.credits || '-'}</td>
                                   <td className="text-center fw-bold" style={{ border: '1px solid black' }}>{getGrade(res.marks_obtained)}</td>
