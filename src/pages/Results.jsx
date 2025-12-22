@@ -153,10 +153,12 @@ export default function Results() {
     setSavingMarks(true)
     setMarksError('')
     try {
-      if (!barcodeId) {
-        setDecodeError('Invalid barcode context')
+      if (!scanData || !scanData.student_id || !scanData.subject_id) {
+        setDecodeError('Missing student or subject information')
         return
       }
+
+      // Check if marks exist for this barcode specifically (to prevent double scanning)
       const { data: existingMarks, error: existingErr } = await supabase
         .from('marks')
         .select('id')
@@ -168,12 +170,15 @@ export default function Results() {
         return
       }
 
-      const { error } = await supabase.from('marks').insert({
+      // Upsert marks: match on student_id + subject_id
+      // Update theory_marks and link the barcode_id
+      const { error } = await supabase.from('marks').upsert({
+        student_id: scanData.student_id,
+        subject_id: scanData.subject_id,
         barcode_id: barcodeId,
-        marks_obtained: obtained,
+        theory_marks: obtained,
         max_marks: max
-      })
-      if (error) throw error
+      }, { onConflict: 'student_id, subject_id' })
 
       if (error) throw error
 

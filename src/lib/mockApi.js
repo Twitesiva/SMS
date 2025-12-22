@@ -1026,7 +1026,7 @@ export const api = {
       supabase
         .from(TABLES.students)
         .select(
-          "id, student_id, hall_ticket_no, academic_year, group_name, course_name, full_name, gender, date_of_birth, phone_number, email, address, father_name, mother_name, nationality, state, aadhar_number, pincode, religion, caste, sub_caste, photo_url, cert_url, status, created_at, current_semester"
+          "id, student_id, hall_ticket_no, academic_year, group_name, course_name, full_name, gender, date_of_birth, phone_number, address, father_name, mother_name, nationality, state, aadhar_number, pincode, religion, caste, photo_url, cert_url, status, created_at, current_semester"
         )
         .order("created_at", { ascending: false }),
       "Unable to fetch students"
@@ -1063,11 +1063,9 @@ export const api = {
     let query = supabase
       .from(TABLES.examSchedules)
       .select(
-        "schedule_id, academic_year, group_code, course_code, semester_number, subject_code, exam_date, exam_start_time, exam_end_time, category"
+        "schedule_id, academic_year, semester_number, subject_code, exam_date, exam_start_time, exam_end_time, category"
       );
     if (filters.academic_year) query = query.eq("academic_year", filters.academic_year);
-    if (filters.group_code) query = query.eq("group_code", filters.group_code);
-    if (filters.course_code) query = query.eq("course_code", filters.course_code);
     if (filters.semester_number !== undefined && filters.semester_number !== null) {
       query = query.eq("semester_number", filters.semester_number);
     }
@@ -1224,5 +1222,48 @@ export const api = {
         "Unable to save fee categories"
       );
     }
+  },
+  getStudentByHallTicket: async (hallTicketNo) => {
+    const row = await runMaybeSingle(
+      supabase
+        .from(TABLES.students)
+        .select("*")
+        .eq("hall_ticket_no", hallTicketNo)
+        .maybeSingle(),
+      "Unable to find student"
+    );
+    if (!row) return null;
+
+    const student = mapStudent(row);
+
+    // Fetch full course name using the course code (stored in course_name column of students table)
+    if (student.course_name) {
+      const courseRow = await runMaybeSingle(
+        supabase
+          .from(TABLES.courses)
+          .select("course_name")
+          .eq("course_code", student.course_name)
+          .maybeSingle()
+      );
+      if (courseRow && courseRow.course_name) {
+        student.course_display = courseRow.course_name;
+      }
+    }
+
+    // Fetch full group name using the group code (stored in group column of student object / group_name of DB)
+    if (student.group) {
+      const groupRow = await runMaybeSingle(
+        supabase
+          .from(TABLES.groups)
+          .select("group_name")
+          .eq("group_code", student.group)
+          .maybeSingle()
+      );
+      if (groupRow && groupRow.group_name) {
+        student.group_display = groupRow.group_name;
+      }
+    }
+
+    return student;
   },
 };

@@ -255,32 +255,39 @@ export default function PublicResults() {
                         </div>
                       </div>
                       <div className="table-responsive">
-                        <table className="table table-hover mb-0 align-middle">
-                          <thead className="bg-light">
-                            <tr>
-                              <th className="text-center" style={{ width: '60px' }}>S.No</th>
-                              <th className="ps-4">Subject</th>
-                              <th className="text-center">Semester</th>
-                              <th className="text-center">Grade</th>
-                              <th className="text-center">Status</th>
+                        <table className="table table-bordered border-dark mb-0 align-middle" style={{ borderColor: 'black' }}>
+                          <thead>
+                            <tr className="align-middle">
+                              <th className="text-center fw-bold text-uppercase" style={{ width: '60px', border: '1px solid black' }}>S.No</th>
+                              <th className="ps-3 fw-bold text-uppercase" style={{ border: '1px solid black' }}>Subject</th>
+                              <th className="text-center fw-bold text-uppercase" style={{ border: '1px solid black' }}>Semester</th>
+                              <th className="text-center fw-bold text-uppercase" style={{ border: '1px solid black' }}>Marks</th>
+                              <th className="text-center fw-bold text-uppercase" style={{ border: '1px solid black' }}>Credit Points</th>
+                              <th className="text-center fw-bold text-uppercase" style={{ border: '1px solid black' }}>Grade</th>
+                              <th className="text-center fw-bold text-uppercase" style={{ border: '1px solid black' }}>Status</th>
                             </tr>
                           </thead>
                           <tbody>
                             {items.map((res, idx) => {
-                              const isPass = Number(res.marks_obtained) >= 35; // Example pass logic, simplistic
-                              // Or use grade if available
+                              const isPass = Number(res.marks_obtained) >= 35;
                               const status = Number(res.marks_obtained) >= 35 ? 'PASS' : 'FAIL';
+                              // Keep row highlighting for Fail if desired, but user image is B&W/Clean. 
+                              // User's text "1 R-23 - React 3 25 3 F FAIL" implies we might want to keep the FAIL status logic but maybe not the whole row color if it clashes with the "image format".
+                              // The image is a timetable, so it doesn't have pass/fail colors.
+                              // I will keep the rowClass logic but ensure borders override it if needed.
                               const rowClass = status === 'FAIL' ? 'table-danger' : '';
 
                               return (
                                 <tr key={idx} className={rowClass}>
-                                  <td className="text-center">{idx + 1}</td>
-                                  <td className="ps-4">
+                                  <td className="text-center" style={{ border: '1px solid black' }}>{idx + 1}</td>
+                                  <td className="ps-3" style={{ border: '1px solid black' }}>
                                     {res.subject?.subject_code || '-'} - {res.subject?.subject_name}
                                   </td>
-                                  <td className="text-center">{res.subject?.semester_number || res.semester || '-'}</td>
-                                  <td className="text-center fw-bold">{getGrade(res.marks_obtained)}</td>
-                                  <td className="text-center">
+                                  <td className="text-center" style={{ border: '1px solid black' }}>{res.subject?.semester_number || res.semester || '-'}</td>
+                                  <td className="text-center" style={{ border: '1px solid black' }}>{res.marks_obtained}</td>
+                                  <td className="text-center" style={{ border: '1px solid black' }}>{res.subject?.category?.credits || '-'}</td>
+                                  <td className="text-center fw-bold" style={{ border: '1px solid black' }}>{getGrade(res.marks_obtained)}</td>
+                                  <td className="text-center" style={{ border: '1px solid black' }}>
                                     <span className={`badge ${status === 'PASS' ? 'bg-success' : 'bg-danger'}`}>
                                       {status}
                                     </span>

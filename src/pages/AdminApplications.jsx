@@ -16,6 +16,7 @@ export default function AdminApplications() {
     student_id: '',
     ht_no: '',
     academic_year: '',
+    admission_year: '',
     group: '',
     group_code: '',
     course_id: '',
@@ -31,10 +32,8 @@ export default function AdminApplications() {
     address: '',
     mobile: '',
     Parent_no: '',
-    email: '',
     religion: '',
     caste: '',
-    sub_caste: '',
     current_semester: ''
   }
 
@@ -54,6 +53,9 @@ export default function AdminApplications() {
   const [filteredGroups, setFilteredGroups] = useState([])
   const [filteredCourses, setFilteredCourses] = useState([])
   const [duplicateErrors, setDuplicateErrors] = useState({ student_id: false, ht_no: false })
+
+  const currentYear = new Date().getFullYear()
+  const admissionYearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 3 + i)
 
   const handle = (key, value) => setForm((prev) => ({ ...prev, [key]: value }))
 
@@ -252,6 +254,7 @@ export default function AdminApplications() {
         student_id: form.student_id || `STU${Date.now().toString().slice(-6)}`,
         hall_ticket_no: form.ht_no || null,
         academic_year: form.academic_year,
+        admission_year: form.admission_year || null,
         group_name: form.group_code || form.group,
         course_name: courseCode,
         current_semester: form.current_semester,
@@ -268,10 +271,8 @@ export default function AdminApplications() {
         address: form.address,
         phone_number: form.mobile,
         Parent_no: form.Parent_no,
-        email: form.email || null,
         religion: form.religion || null,
         caste: form.caste || null,
-        sub_caste: form.sub_caste || null,
         photo_url: photo ? URL.createObjectURL(photo) : null,
         cert_url: cert ? URL.createObjectURL(cert) : null,
         status: 'ACTIVE',
@@ -355,7 +356,23 @@ export default function AdminApplications() {
                         ))}
                       </select>
                     </div>
-                    <div className="col-md-3">
+                    <div className="col-md-2">
+                      <label className="form-label">Admission Year</label>
+                      <select
+                        className="form-select"
+                        value={form.admission_year}
+                        onChange={(e) => handle('admission_year', e.target.value)}
+                        required
+                      >
+                        <option value="">Select Year</option>
+                        {admissionYearOptions.map((year) => (
+                          <option key={year} value={year}>
+                            {year}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-md-2">
                       <label className="form-label">Group</label>
                       <select
                         className="form-select"
@@ -377,7 +394,7 @@ export default function AdminApplications() {
                         ))}
                       </select>
                     </div>
-                    <div className="col-md-3">
+                    <div className="col-md-2">
                       <label className="form-label">Course</label>
                       <select
                         className="form-select"
@@ -479,10 +496,7 @@ export default function AdminApplications() {
                       <label className="form-label">Parent Mobile</label>
                       <input type="tel" className="form-control" value={form.Parent_no} onChange={onNumericChange('Parent_no', 10)} required maxLength={10} placeholder="Parent's 10-digit mobile" />
                     </div>
-                    <div className="col-md-4">
-                      <label className="form-label">Email</label>
-                      <input type="email" className="form-control" value={form.email} onChange={(e) => handle('email', e.target.value)} />
-                    </div>
+
                     <div className="col-md-4">
                       <label className="form-label">Nationality</label>
                       <input className="form-control" value={form.nationality} onChange={(e) => handle('nationality', e.target.value)} />
@@ -522,10 +536,7 @@ export default function AdminApplications() {
                         ))}
                       </select>
                     </div>
-                    <div className="col-md-4">
-                      <label className="form-label">Sub Caste</label>
-                      <input className="form-control" value={form.sub_caste} onChange={(e) => handle('sub_caste', e.target.value)} />
-                    </div>
+
                     <div className="col-12">
                       <label className="form-label">Permanent Address</label>
                       <textarea className="form-control" rows="2" value={form.address} onChange={(e) => handle('address', e.target.value)} required />

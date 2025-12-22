@@ -767,7 +767,7 @@ export default function HallTickets() {
           const { data: students, error: studentError } = await supabase
             .from("students")
             .select(
-              "id, student_id, full_name, hall_ticket_no, group_name, course_name, gender, email, photo_url"
+              "id, student_id, full_name, hall_ticket_no, group_name, course_name, gender, photo_url"
             )
             .in("id", studentIds);
           if (studentError) throw studentError;

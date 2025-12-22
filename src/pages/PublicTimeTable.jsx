@@ -30,35 +30,24 @@ const parseScheduleCodes = (subjectCode) => {
 }
 
 export default function PublicTimeTable() {
-  const [years, setYears] = useState([])
-  const [groups, setGroups] = useState([])
-  const [courses, setCourses] = useState([])
   const [subjects, setSubjects] = useState([])
   const [filters, setFilters] = useState({ academic_year: '', group_code: '', course_code: '' })
   const [examSchedule, setExamSchedule] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [hallTicket, setHallTicket] = useState('')
+  const [searching, setSearching] = useState(false)
+  const [foundStudent, setFoundStudent] = useState(null)
 
   useEffect(() => {
     let isActive = true
-    Promise.all([
-      api.listAcademicYears(),
-      api.listGroups(),
-      api.listCourses(),
-      api.listSubjects(),
-    ])
-      .then(([yearsData, groupsData, coursesData, subjectsData]) => {
+    api.listSubjects()
+      .then((subjectsData) => {
         if (!isActive) return
-        setYears(yearsData || [])
-        setGroups(groupsData || [])
-        setCourses(coursesData || [])
         setSubjects(subjectsData || [])
       })
       .catch(() => {
         if (!isActive) return
-        setYears([])
-        setGroups([])
-        setCourses([])
         setSubjects([])
       })
     return () => {
@@ -66,15 +55,6 @@ export default function PublicTimeTable() {
     }
   }, [])
 
-  const availableCourses = useMemo(() => {
-    if (!filters.group_code) return courses
-    return courses.filter(
-      (course) =>
-        !course.group_code ||
-        course.group_code === filters.group_code ||
-        course.groupCode === filters.group_code
-    )
-  }, [courses, filters.group_code])
 
   const subjectNameMap = useMemo(() => {
     const map = {}
@@ -83,14 +63,14 @@ export default function PublicTimeTable() {
         Array.isArray(subject.subjectCodes) && subject.subjectCodes.length
           ? subject.subjectCodes
           : subject.subjectCode
-          ? [subject.subjectCode]
-          : []
+            ? [subject.subjectCode]
+            : []
       const names =
         Array.isArray(subject.subjectNames) && subject.subjectNames.length
           ? subject.subjectNames
           : subject.subjectName
-          ? [subject.subjectName]
-          : []
+            ? [subject.subjectName]
+            : []
       codes.forEach((code, index) => {
         if (!code) return
         const labelSource =
@@ -135,7 +115,11 @@ export default function PublicTimeTable() {
         })
       })
     })
-    return expanded
+    return expanded.sort((a, b) => {
+      const semA = Number(a.semester_number) || 0
+      const semB = Number(b.semester_number) || 0
+      return semA - semB
+    })
   }, [examSchedule, subjectNameMap])
 
   const hasFilters =
@@ -162,7 +146,42 @@ export default function PublicTimeTable() {
     api.listExamSchedules(query)
       .then((data) => {
         if (!isActive) return
-        setExamSchedule(data || [])
+
+        let filtered = data || []
+
+        // Filter by course/group if specified, using the subjects map
+        if (filters.course_code || filters.group_code) {
+          filtered = filtered.filter((item) => {
+            if (!item.subject_code) return false
+            const itemCode = String(item.subject_code).trim().toLowerCase()
+
+            // Find the subject definition to know its course/group
+            const sub = subjects.find((s) =>
+              s.subjectCodes && s.subjectCodes.some(c => String(c).trim().toLowerCase() === itemCode)
+            )
+
+            // If subject definition not found, include it (don't strictly hide it)
+            if (!sub) return true
+
+            if (filters.course_code && sub.courseName !== filters.course_code) return false
+
+            return true
+          })
+        }
+
+        // Find the latest exam schedule (largest exam_master_id)
+        if (filtered.length > 0) {
+          const maxExamId = filtered.reduce((max, item) => {
+            const current = Number(item.exam_master_id) || 0
+            return current > max ? current : max
+          }, 0)
+
+          if (maxExamId > 0) {
+            filtered = filtered.filter(item => Number(item.exam_master_id) === maxExamId)
+          }
+        }
+
+        setExamSchedule(filtered)
       })
       .catch((err) => {
         if (!isActive) return
@@ -178,71 +197,115 @@ export default function PublicTimeTable() {
   }, [filters, hasFilters])
 
   const handleFilterChange = (key, value) => {
+    setFoundStudent(null) // clear found student context if user manually changes filters
     setFilters((prev) => ({
       ...prev,
       [key]: value,
     }))
   }
 
+  const handleSearch = async () => {
+    if (!hallTicket.trim()) return
+    setSearching(true)
+    setError('')
+    setFoundStudent(null)
+    try {
+      const student = await api.getStudentByHallTicket(hallTicket.trim())
+      if (student) {
+        setFoundStudent(student)
+        setFilters({
+          academic_year: student.academic_year || '',
+          group_code: student.group || '',
+          course_code: student.course_name || '',
+        })
+      } else {
+        setError('Student not found with this Hall Ticket Number')
+        setFilters({ academic_year: '', group_code: '', course_code: '' })
+        setExamSchedule([])
+      }
+    } catch (err) {
+      console.error(err)
+      setError('Error searching for student')
+    } finally {
+      setSearching(false)
+    }
+  }
+
   return (
     <div className="container py-5">
       <div className="row mb-4">
-      
+
       </div>
       <div className="row justify-content-center">
         <div className="col-lg-10">
           <div className="card card-soft p-4">
             <h4 className="mb-3">Exam Time Table</h4>
-            <div className="row g-3 mb-4">
-              <div className="col-md-4">
-                <label className="form-label">Academic Year</label>
-                <select
-                  className="form-select"
-                  value={filters.academic_year}
-                  onChange={(e) => handleFilterChange('academic_year', e.target.value)}
-                >
-                  <option value="">All years</option>
-                  {years.map((year) => (
-                    <option key={year.id} value={year.academic_year}>
-                      {year.academic_year}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="col-md-4">
-                <label className="form-label">Group</label>
-                <select
-                  className="form-select"
-                  value={filters.group_code}
-                  onChange={(e) => handleFilterChange('group_code', e.target.value)}
-                >
-                  <option value="">All groups</option>
-                  {groups.map((group) => (
-                    <option key={group.id} value={group.code}>
-                      {group.name} ({group.code})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="col-md-4">
-                <label className="form-label">Course</label>
-                <select
-                  className="form-select"
-                  value={filters.course_code}
-                  onChange={(e) => handleFilterChange('course_code', e.target.value)}
-                >
-                  <option value="">All courses</option>
-                  {availableCourses.map((course) => (
-                    <option key={course.id} value={course.code}>
-                      {course.name} ({course.code})
-                    </option>
-                  ))}
-                </select>
+
+            <div className="row g-3 mb-4 align-items-end">
+              <div className="col-md-8">
+                <label className="form-label">Search by Hall Ticket Number</label>
+                <div className="input-group">
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Enter Hall Ticket Number"
+                    value={hallTicket}
+                    onChange={(e) => setHallTicket(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  />
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleSearch}
+                    disabled={searching || !hallTicket.trim()}
+                  >
+                    {searching ? 'Searching...' : 'Search'}
+                  </button>
+                </div>
               </div>
             </div>
+
+            {foundStudent && (
+              <div className="card mb-4 border">
+                <div className="card-header bg-light">
+                  <h6 className="mb-0 fw-bold text-dark">Student Details</h6>
+                </div>
+                <div className="card-body">
+                  <div className="row g-3">
+                    <div className="col-12">
+                      <span className="text-muted">Student Name : </span>
+                      <span className="fw-medium">{foundStudent.full_name}</span>
+                    </div>
+                    <div className="col-12">
+                      <span className="text-muted">Hall Ticket No : </span>
+                      <span className="fw-medium">{foundStudent.hall_ticket_no}</span>
+                    </div>
+                    <div className="col-12">
+                      <span className="text-muted">Academic Year : </span>
+                      <span className="fw-medium">{foundStudent.academic_year}</span>
+                    </div>
+                    <div className="col-12">
+                      <span className="text-muted">Course : </span>
+                      <span className="fw-medium">{foundStudent.course_display || foundStudent.course_name}</span>
+                    </div>
+                    <div className="col-12">
+                      <span className="text-muted">Group : </span>
+                      <span className="fw-medium">{foundStudent.group_display || foundStudent.group}</span>
+                    </div>
+                    <div className="col-12">
+                      <span className="text-muted">Current Semester : </span>
+                      <span className="fw-medium">{foundStudent.current_semester}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <hr className="my-4" />
+
+
             {!hasFilters ? (
               <div className="text-muted">
-                Select a year, group, or course above to load the timetable.
+                Please enter your Hall Ticket Number to view the timetable.
               </div>
             ) : loading ? (
               <p className="text-muted">Loading timetable...</p>
@@ -255,30 +318,28 @@ export default function PublicTimeTable() {
                 <table className="table mb-0">
                   <thead>
                     <tr>
+                      <th>S.No</th>
+                      <th>Subject</th>
                       <th>Semester</th>
-                      <th>Subject Name</th>
-                      <th>Subject Code</th>
                       <th>Date</th>
-                      <th>Start</th>
-                      <th>End</th>
-                      <th>Category</th>
+                      <th>Start Time</th>
+                      <th>End Time</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {scheduleRows.map((row) => (
+                    {scheduleRows.map((row, index) => (
                       <tr
                         key={
                           row.id ??
                           `${row.subject_code}-${row.semester_number}-${row.exam_date}`
                         }
                       >
+                        <td>{index + 1}</td>
+                        <td>{row.displayCode} - {row.displayName}</td>
                         <td>{row.semester_number || '-'}</td>
-                        <td>{row.displayName}</td>
-                        <td>{row.displayCode}</td>
                         <td>{formatDate(row.exam_date)}</td>
                         <td>{formatTime(row.exam_start_time)}</td>
                         <td>{formatTime(row.exam_end_time)}</td>
-                        <td>{row.category || '-'}</td>
                       </tr>
                     ))}
                   </tbody>

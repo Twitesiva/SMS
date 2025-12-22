@@ -126,7 +126,8 @@ export default function ResultPublish() {
                         barcodes (
                             id,
                             marks (
-                                marks_obtained,
+                                internal_marks,
+                                theory_marks,
                                 max_marks,
                                 barcode_id
                             )
@@ -189,13 +190,19 @@ export default function ResultPublish() {
 
                     (sub.barcodes || []).forEach(barcode => {
                         (barcode.marks || []).forEach(mark => {
+                            const internal = mark.internal_marks || 0;
+                            const theory = mark.theory_marks || 0;
+                            const total = internal + theory;
+
                             // Payload for DB
                             resultsPayload.push({
                                 student_id: reg.student_id,
                                 exam_id: reg.exam_id,
                                 subject_id: sub.subject_id,
                                 semester: reg.semester,
-                                marks_obtained: mark.marks_obtained,
+                                marks_obtained: total,
+                                internal_marks: internal,
+                                theory_marks: theory,
                                 max_marks: mark.max_marks || 100,
                                 barcode_id: mark.barcode_id
                             });
@@ -205,7 +212,7 @@ export default function ResultPublish() {
                                 hallTicket,
                                 studentName,
                                 subject: `${subjectCode} - ${subjectName}`,
-                                marks: mark.marks_obtained
+                                marks: total
                             });
                         });
                     });

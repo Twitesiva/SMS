@@ -82,6 +82,7 @@ export default function Payments() {
   const [courses, setCourses] = useState([]);
   const [students, setStudents] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [fetchedCategories, setFetchedCategories] = useState([]);
 
   // Form
   const [form, setForm] = useState({
@@ -138,6 +139,33 @@ export default function Payments() {
 
   // New state for tracking failed subjects
   const [failedSubjectIds, setFailedSubjectIds] = useState(new Set());
+
+  useEffect(() => {
+    const fetchDistinctCategories = async () => {
+      try {
+        const { data: feesData } = await supabase
+          .from("fee_structure")
+          .select("category");
+        const { data: groupsData } = await supabase
+          .from("groups")
+          .select("Category");
+
+        const cats = new Set();
+        (feesData || []).forEach(f => {
+          if (f.category) cats.add(normalizeCategoryValue(f.category));
+        });
+        (groupsData || []).forEach(g => {
+          if (g.Category) cats.add(normalizeCategoryValue(g.Category));
+          if (g.category) cats.add(normalizeCategoryValue(g.category));
+        });
+
+        setFetchedCategories(Array.from(cats));
+      } catch (err) {
+        console.error("Error fetching categories:", err);
+      }
+    };
+    fetchDistinctCategories();
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -244,11 +272,14 @@ export default function Payments() {
       isMounted = false;
     };
   }, [modalStudent?.id]);
+
   const normalizedSelectedExamName = useMemo(
     () => (form.examName || "").trim().toLowerCase() || null,
     [form.examName]
   );
+
   const [allowPaymentWithoutSelection, setAllowPaymentWithoutSelection] = useState(false);
+
   const examFeeData = useMemo(() => {
     if (!modalFeeInfo?.categories?.length) return null;
     const categories = modalFeeInfo.categories.filter((cat) =>
@@ -282,8 +313,9 @@ export default function Payments() {
       subject.year ??
       ""
     );
+
   const categoryOptions = useMemo(() => {
-    const categories = new Set();
+    const categories = new Set(fetchedCategories);
     years.forEach((year) => {
       if (year.category) categories.add(year.category);
     });
@@ -297,15 +329,11 @@ export default function Payments() {
       if (keyA !== keyB) return keyA - keyB;
       return a.localeCompare(b);
     });
-  }, [years, groups]);
+  }, [years, groups, fetchedCategories]);
 
   const availableYears = useMemo(() => {
-    if (!form.category) return years;
-    const normalizedCategory = normalizeCategoryValue(form.category);
-    return years.filter(
-      (year) => normalizeCategoryValue(year.category) === normalizedCategory
-    );
-  }, [years, form.category]);
+    return years;
+  }, [years]);
 
   const availableGroups = useMemo(() => {
     if (!form.category) return groups;
@@ -1392,12 +1420,37 @@ export default function Payments() {
   const filteredStudents = useMemo(() => {
     return students.filter((s) => {
       const matchesYear = !form.year || s.academic_year === form.year;
+
+      const targetGroupCode = normalizeSearchValue(form.group_code);
+      const targetGroupName = normalizeSearchValue(form.group);
       const matchesGroup =
-        !form.group_code ||
-        [s.group_code, s.group, s.group_name].includes(form.group_code);
+        !targetGroupCode ||
+        [s.group_code, s.group, s.group_name].some((val) => {
+          const distinct = normalizeSearchValue(val);
+          return (
+            distinct === targetGroupCode ||
+            (targetGroupName && distinct === targetGroupName)
+          );
+        });
+
+      const targetCourseCode = normalizeSearchValue(form.courseCode);
+      const selectedCourse = courses.find(
+        (c) => normalizeSearchValue(c.courseCode) === targetCourseCode
+      );
+      const targetCourseName = normalizeSearchValue(
+        selectedCourse?.courseName || ""
+      );
+
       const matchesCourse =
-        !form.courseCode ||
-        [s.course_code, s.course_name, s.course_id].includes(form.courseCode);
+        !targetCourseCode ||
+        [s.course_code, s.course_name, s.course_id].some((val) => {
+          const distinct = normalizeSearchValue(val);
+          return (
+            distinct === targetCourseCode ||
+            (targetCourseName && distinct === targetCourseName)
+          );
+        });
+
       const matchesSemester =
         !form.semester ||
         !s.semester ||
@@ -1434,8 +1487,10 @@ export default function Payments() {
     });
   }, [
     students,
+    courses,
     form.year,
     form.group_code,
+    form.group,
     form.courseCode,
     form.semester,
     form.category,
@@ -1645,11 +1700,20 @@ export default function Payments() {
       }
       const academicYear =
         modalStudent.academic_year || modalStudent.academicYear || "";
-      const groupValue =
+      const groupRawValue =
         modalStudent.group ||
         modalStudent.group_name ||
         modalStudent.group_code ||
         "";
+      const matchedGroup = groups.find((g) => {
+        const target = normalizeSearchValue(groupRawValue);
+        return (
+          normalizeSearchValue(g.code) === target ||
+          normalizeSearchValue(g.name) === target
+        );
+      });
+      const groupValue = matchedGroup?.code || groupRawValue;
+
       const courseValue = modalCourseCode;
       const semesterValue =
         modalSemester === "" ||
@@ -1657,7 +1721,19 @@ export default function Payments() {
           modalSemester === null
           ? ""
           : String(modalSemester);
-      if (!academicYear || !groupValue || !courseValue || semesterValue === "") {
+
+      const categoryValue = normalizeCategoryValue(
+        modalStudent.category ||
+        modalStudent.Category ||
+        modalStudent.fee_category
+      );
+
+      if (
+        !academicYear ||
+        !groupValue ||
+        !courseValue ||
+        semesterValue === ""
+      ) {
         setModalFeeInfo(null);
         return;
       }
@@ -1670,6 +1746,7 @@ export default function Payments() {
           .eq("group_code", groupValue)
           .eq("course_code", courseValue)
           .eq("semester", Number(semesterValue))
+          .eq("category", categoryValue)
           .limit(1)
           .maybeSingle();
         if (error) throw error;
@@ -1696,7 +1773,7 @@ export default function Payments() {
       }
     };
     loadFeeInfo();
-  }, [modalStudent, modalCourseCode, modalSemester]);
+  }, [modalStudent, modalCourseCode, modalSemester, groups]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1816,7 +1893,7 @@ export default function Payments() {
       try {
         const { data, error } = await supabase
           .from("Supplementary")
-          .select("Paper-1, Paper-2, Paper-3")
+          .select('"Paper-1", "Paper-2", "Paper-3"')
           .order("created_at", { ascending: false })
           .limit(1);
         if (error) {
@@ -2881,7 +2958,6 @@ export default function Payments() {
             <select
               className="form-select"
               value={form.year}
-              disabled={!form.category}
               onChange={(e) =>
                 setForm({
                   ...form,
