@@ -610,8 +610,8 @@ const toFeeCategoryRow = (category = {}) => ({
 });
 
 const ADMIN_USERS = [
-  { email: "admin@vijayam.edu", role: "ADMIN" },
-  { email: "principal@vijayam.edu", role: "PRINCIPAL" },
+  { email: "admin@gmail.com", password: "admin123", role: "ADMIN" },
+  { email: "principal@gmail.com", password: "principal123", role: "PRINCIPAL" },
 ];
 
 export const api = {
@@ -623,12 +623,16 @@ export const api = {
     return { ok: true };
   },
 
-  login: async (email) => {
+  login: async (email, password) => {
     const user = ADMIN_USERS.find(
-      (u) => u.email.toLowerCase() === String(email).toLowerCase()
+      (u) =>
+        u.email.toLowerCase() === String(email).trim().toLowerCase() &&
+        u.password === String(password)
     );
-    if (!user) throw new Error("Access denied");
-    return { ...user };
+    if (!user) throw new Error("Invalid email or password");
+    // Don't leak the password back
+    const { password: _, ...safeUser } = user;
+    return safeUser;
   },
 
   listApplications: async () => {
