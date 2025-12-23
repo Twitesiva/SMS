@@ -610,8 +610,8 @@ const toFeeCategoryRow = (category = {}) => ({
 });
 
 const ADMIN_USERS = [
-  { email: "admin@gmail.com", password: "admin123", role: "ADMIN" },
-  { email: "principal@gmail.com", password: "principal123", role: "PRINCIPAL" },
+  { email: "admin@vijayam", password: "admin123", role: "ADMIN" },
+  { email: "principal@vijayam", password: "principal123", role: "PRINCIPAL" },
 ];
 
 export const api = {

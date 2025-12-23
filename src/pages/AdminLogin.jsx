@@ -68,7 +68,7 @@ export default function AdminLogin() {
           <label className="admin-login-field">
             <span>Email</span>
             <input
-              type="email"
+              type="text"
               className="admin-login-input"
               value={email}
               autoComplete="username"
