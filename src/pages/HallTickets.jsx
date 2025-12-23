@@ -26,7 +26,7 @@ const HallTicketTemplate = ({ student, papers, examLabel }) => (
         </h6>
         <div className="fw-semibold fs-5">Hall Ticket</div>
       </div>
-      <div className="text-end">
+      <div className="text-end d-flex flex-column align-items-end">
         <img
           src={
             student.photo ||
@@ -36,6 +36,14 @@ const HallTicketTemplate = ({ student, papers, examLabel }) => (
           className="rounded border mt-1"
           style={{ width: 80, height: 80, objectFit: "cover", objectPosition: "top" }}
         />
+        {student.signature && (
+          <img
+            src={student.signature}
+            alt="Sig"
+            className="mt-1"
+            style={{ width: 80, height: 32, objectFit: "contain" }}
+          />
+        )}
       </div>
     </div>
     <div className="d-flex flex-column gap-1 mt-3 text-start">
@@ -75,13 +83,37 @@ const HallTicketTemplate = ({ student, papers, examLabel }) => (
     <div className="mb-2">
       {papers.length > 0 ? (
         <div className="table-responsive">
-          <table className="table table-bordered align-middle mb-0 table-sm" style={{ borderColor: "#dee2e6" }}>
+          <style>
+            {`
+              .ht-table-bordered {
+                border-collapse: collapse !important;
+                border-spacing: 0 !important;
+                width: 100%;
+              }
+              .ht-table-bordered th, 
+              .ht-table-bordered td {
+                border: 1px solid black !important;
+                padding: 4px 8px !important;
+                vertical-align: middle;
+                color: black !important;
+                background: transparent !important;
+                border-radius: 0 !important;
+              }
+              .ht-table-bordered tr {
+                background: transparent !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                border: none !important;
+              }
+            `}
+          </style>
+          <table className="table mb-0 align-middle ht-table-bordered table-sm">
             <thead>
               <tr>
-                <th>Seat No</th>
-                <th>Date</th>
-                <th>Time</th>
-                <th>Subject</th>
+                <th className="fw-bold text-center">Seat No</th>
+                <th className="fw-bold text-center">Date</th>
+                <th className="fw-bold text-center">Time</th>
+                <th className="fw-bold ps-2">Subject</th>
               </tr>
             </thead>
             <tbody>
@@ -89,10 +121,10 @@ const HallTicketTemplate = ({ student, papers, examLabel }) => (
                 <tr
                   key={`${paper.subjectCode}-${paper.seatNumber}-${paper.time}`}
                 >
-                  <td>{paper.seatNumber}</td>
-                  <td>{paper.date}</td>
-                  <td>{paper.time}</td>
-                  <td>{paper.subjectCode} - {paper.subjectName}</td>
+                  <td className="text-center">{paper.seatNumber}</td>
+                  <td className="text-center">{paper.date}</td>
+                  <td className="text-center">{paper.time}</td>
+                  <td className="ps-2">{paper.subjectCode} - {paper.subjectName}</td>
                 </tr>
               ))}
             </tbody>
@@ -113,7 +145,6 @@ const HallTicketTemplate = ({ student, papers, examLabel }) => (
           key={label}
           style={{ minHeight: 80 }}
         >
-
           <p className="mb-0 fw-semibold text-dark text-uppercase small">
             {label}
           </p>
@@ -767,7 +798,7 @@ export default function HallTickets() {
           const { data: students, error: studentError } = await supabase
             .from("students")
             .select(
-              "id, student_id, full_name, hall_ticket_no, group_name, course_name, gender, photo_url"
+              "id, student_id, full_name, hall_ticket_no, group_name, course_name, gender, photo_url, cert_url"
             )
             .in("id", studentIds);
           if (studentError) throw studentError;
@@ -788,6 +819,7 @@ export default function HallTickets() {
             status: reg.status ?? "—",
             email: student?.email ?? "",
             photo: student?.photo_url ?? "",
+            signature: student?.cert_url ?? "",
             studentRowId: student?.id ?? null,
           };
         });
@@ -1080,7 +1112,7 @@ export default function HallTickets() {
                       </h5>
                       <div className="fw-semibold fs-4">Hall Ticket</div>
                     </div>
-                    <div className="text-end">
+                    <div className="text-end d-flex flex-column align-items-end">
                       <img
                         src={
                           modalStudent.photo ||
@@ -1090,6 +1122,14 @@ export default function HallTickets() {
                         className="rounded border mt-2"
                         style={{ width: 96, height: 96, objectFit: "cover", objectPosition: "top" }}
                       />
+                      {modalStudent.signature && (
+                        <img
+                          src={modalStudent.signature}
+                          alt="Sig"
+                          className="mt-2"
+                          style={{ width: 96, height: 40, objectFit: "contain" }}
+                        />
+                      )}
                     </div>
                   </div>
                   <div className="d-flex flex-column gap-2 mt-3 text-start">
@@ -1137,13 +1177,27 @@ export default function HallTickets() {
                     )}
                     {appearingPapers.length > 0 && (
                       <div className="table-responsive">
-                        <table className="table table-bordered align-middle mb-0" style={{ borderColor: "#dee2e6" }}>
+                        <style>
+                          {`
+                            .ht-modal-table-bordered {
+                              border-collapse: collapse !important;
+                              width: 100%;
+                            }
+                            .ht-modal-table-bordered th, 
+                            .ht-modal-table-bordered td {
+                              border: 1px solid black !important;
+                              vertical-align: middle;
+                              color: black !important;
+                            }
+                          `}
+                        </style>
+                        <table className="table mb-0 align-middle ht-modal-table-bordered">
                           <thead>
                             <tr>
-                              <th>Seat No</th>
-                              <th>Date</th>
-                              <th>Time</th>
-                              <th>Subject</th>
+                              <th className="fw-bold text-center">Seat No</th>
+                              <th className="fw-bold text-center">Date</th>
+                              <th className="fw-bold text-center">Time</th>
+                              <th className="fw-bold ps-2">Subject</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1151,10 +1205,10 @@ export default function HallTickets() {
                               <tr
                                 key={`${paper.subjectCode}-${paper.seatNumber}-${paper.time}`}
                               >
-                                <td>{paper.seatNumber}</td>
-                                <td>{paper.date}</td>
-                                <td>{paper.time}</td>
-                                <td>{paper.subjectCode} - {paper.subjectName}</td>
+                                <td className="text-center">{paper.seatNumber}</td>
+                                <td className="text-center">{paper.date}</td>
+                                <td className="text-center">{paper.time}</td>
+                                <td className="ps-2">{paper.subjectCode} - {paper.subjectName}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -1178,7 +1232,6 @@ export default function HallTickets() {
                         key={label}
                         style={{ minHeight: 150 }}
                       >
-
                         <p className="mb-0 fw-semibold text-dark text-uppercase">
                           {label}
                         </p>

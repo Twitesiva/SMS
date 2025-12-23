@@ -123,7 +123,11 @@ export default function Reports() {
         if (!filters.exam_name) return groups;
 
         const presentGroupCodes = new Set(studentsForExam.map(s => s.group_code));
-        return groups.filter(g => presentGroupCodes.has(g.group_code));
+        const filtered = groups.filter(g => presentGroupCodes.has(g.group_code));
+
+        // If filtered list is empty (e.g. no students or mapping issue), fallback to all groups
+        // so the dropdown isn't empty, allowing the user to select a group even if 0 students currently.
+        return filtered.length > 0 ? filtered : groups;
     }, [groups, studentsForExam, filters.exam_name]);
 
     const filteredCourseOptions = useMemo(() => {
@@ -209,15 +213,33 @@ export default function Reports() {
 
                 if (examsError) throw examsError;
 
-                const transformedStudents = studentsData.map((student) => ({
-                    ...student,
-                    group_name: student.group?.group_name || student.group_name,
-                    group_code: student.group?.group_code,
-                    course_name: student.course?.course_name || student.course_name,
-                    course_code: student.course?.course_code,
-                    academic_year: student.year?.academic_year || student.academic_year,
-                    category: student.Category || student.category,
-                }));
+                const transformedStudents = studentsData.map((student) => {
+                    const groupName = student.group?.group_name || student.group_name;
+                    const courseName = student.course?.course_name || student.course_name;
+
+                    // Try to resolve codes from relations first, then fallback to lookup maps
+                    let groupCode = student.group?.group_code;
+                    if (!groupCode && groupName) {
+                        const g = groupsData.find(g => g.group_name === groupName || g.group_name?.trim() === groupName?.trim());
+                        if (g) groupCode = g.group_code;
+                    }
+
+                    let courseCode = student.course?.course_code;
+                    if (!courseCode && courseName) {
+                        const c = coursesData.find(c => c.course_name === courseName || c.course_name?.trim() === courseName?.trim());
+                        if (c) courseCode = c.course_code;
+                    }
+
+                    return {
+                        ...student,
+                        group_name: groupName,
+                        group_code: groupCode,
+                        course_name: courseName,
+                        course_code: courseCode,
+                        academic_year: student.year?.academic_year || student.academic_year,
+                        category: student.Category || student.category,
+                    };
+                });
 
                 setStudents(transformedStudents);
                 setYears(yearsData || []);

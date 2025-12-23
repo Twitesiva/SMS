@@ -28,6 +28,7 @@ const navGroups = [
       { to: "/admin/exams", label: "Create Exam timetable", icon: "bi-journal-check" },
       { to: "/admin/complete-registration", label: "Complete Registration & View Time table", icon: "bi-list-check" },
       { to: "/admin/hall-tickets", label: "Hall Ticket", icon: "bi-ticket-perforated" },
+      { to: "/admin/seat-allocation", label: "Seat Allocation", icon: "bi-grid-3x3-gap" },
     ],
   },
   {

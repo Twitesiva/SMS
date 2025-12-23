@@ -178,22 +178,47 @@ export default function MarksReports() {
 
                 if (resultsError) throw resultsError;
 
-                const transformed = (resultsData || []).map(r => ({
-                    ...r,
-                    id: r.id, // Explicitly ensure ID is present
-                    exam_name: r.exam?.exam_name,
-                    subject_code: r.subject?.subject_code,
-                    subject_name: r.subject?.subject_name,
-                    student_name: r.student?.full_name,
-                    hall_ticket_no: r.student?.hall_ticket_no,
-                    academic_year: r.student?.academic_year,
-                    // Use code from the joined relationship if available, otherwise fallback
-                    group_code: r.student?.group?.group_code || r.student?.group_name,
-                    group_name: r.student?.group?.group_name || r.student?.group_name,
+                const transformed = (resultsData || []).map(r => {
+                    const student = r.student || {};
+                    const groupRel = student.group;
+                    const courseRel = student.course;
 
-                    course_code: r.student?.course?.course_code || r.student?.course_name,
-                    course_name: r.student?.course?.course_name || r.student?.course_name,
-                }));
+                    let groupName = groupRel?.group_name || student.group_name;
+                    let groupCode = groupRel?.group_code;
+
+                    // If no direct relation code, try to find it in the groups master list by name
+                    if (!groupCode && groupName) {
+                        const g = groupsData.find(g => g.group_name === groupName || g.group_name?.trim() === groupName?.trim());
+                        if (g) groupCode = g.group_code;
+                    }
+                    // Fallback to name if still not found, although this might not match the filter if filter expects a code
+                    if (!groupCode) groupCode = groupName;
+
+                    let courseName = courseRel?.course_name || student.course_name;
+                    let courseCode = courseRel?.course_code;
+
+                    if (!courseCode && courseName) {
+                        const c = coursesData.find(c => c.course_name === courseName || c.course_name?.trim() === courseName?.trim());
+                        if (c) courseCode = c.course_code;
+                    }
+                    if (!courseCode) courseCode = courseName;
+
+                    return {
+                        ...r,
+                        id: r.id, // Explicitly ensure ID is present
+                        exam_name: r.exam?.exam_name,
+                        subject_code: r.subject?.subject_code,
+                        subject_name: r.subject?.subject_name,
+                        student_name: student.full_name,
+                        hall_ticket_no: student.hall_ticket_no,
+                        academic_year: student.academic_year,
+
+                        group_code: groupCode,
+                        group_name: groupName,
+                        course_code: courseCode,
+                        course_name: courseName,
+                    };
+                });
 
                 setResults(transformed);
 

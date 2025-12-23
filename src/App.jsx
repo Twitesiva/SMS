@@ -16,6 +16,7 @@ import ExamNameCreation from "./pages/ExamNameCreation.jsx";
 import CompleteRegistration from "./pages/CompleteRegistration.jsx";
 import Payments from "./pages/Payments.jsx";
 import HallTickets from "./pages/HallTickets.jsx";
+import SeatAllocation from "./pages/SeatAllocation.jsx";
 import Results from "./pages/Results.jsx";
 import ResultPublish from "./pages/ResultPublish.jsx";
 import Setup from "./pages/Setup.jsx";
@@ -121,6 +122,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isAuthed}>
               <HallTickets />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/admin/seat-allocation"
+          element={
+            <GuardedRoute isAuthed={isAuthed}>
+              <SeatAllocation />
             </GuardedRoute>
           }
         />
