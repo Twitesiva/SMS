@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { api } from '../lib/mockApi'
 import { useAuth } from '../store/auth'
 import crestAccent from '../assets/media/images.png'
@@ -40,6 +40,38 @@ export default function AdminLogin() {
 
   return (
     <main className="admin-login-shell">
+      <Link
+        to="/"
+        style={{
+          position: 'absolute',
+          top: '2rem',
+          left: '2rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          textDecoration: 'none',
+          color: '#4b5563',
+          fontWeight: 600,
+          fontSize: '0.95rem',
+          zIndex: 10
+        }}
+        className="admin-back-link"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="m15 18-6-6 6-6" />
+        </svg>
+        Back to Home
+      </Link>
       <section className="admin-login-card" aria-live="polite">
         <div className="admin-login-brand">
           <div className="admin-login-logo" aria-hidden="true">
