@@ -3,8 +3,11 @@ import AdminShell from "../components/AdminShell";
 import { supabase } from "../../supabaseClient";
 import { trackPromise } from "../store/ui";
 import * as XLSX from 'xlsx';
+import { logActivity } from "../lib/logger";
+import { useAuth } from "../store/auth";
 
 export default function MarksReports() {
+    const { user } = useAuth();
     const [results, setResults] = useState([]);
     const [filters, setFilters] = useState({
         academic_year: "",
@@ -280,6 +283,14 @@ export default function MarksReports() {
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Marks Report");
         XLSX.writeFile(wb, "Marks_Report.xlsx");
+
+        logActivity(supabase, {
+            description: `${user?.role || 'User'} downloaded Marks Report excel for ${filters.exam_name || 'All Exams'}`,
+            action: 'DOWNLOAD',
+            page: 'Marks Reports',
+            user: user,
+            role: user?.role
+        });
     };
 
     return (

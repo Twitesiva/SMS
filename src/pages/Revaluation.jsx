@@ -2,8 +2,11 @@ import React, { useState, useEffect } from "react";
 import AdminShell from "../components/AdminShell";
 import { supabase } from "../../supabaseClient";
 import { toast } from "react-toastify";
+import { logActivity } from "../lib/logger";
+import { useAuth } from "../store/auth";
 
 export default function Revaluation() {
+    const { user } = useAuth();
     const [exams, setExams] = useState([]);
     const [selectedExam, setSelectedExam] = useState("");
     const [hallTicket, setHallTicket] = useState("");
@@ -261,6 +264,14 @@ export default function Revaluation() {
 
             toast.success("Revaluation mark saved (Pending Publication).");
 
+            await logActivity(supabase, {
+                description: `${user?.role || 'User'} updated revaluation mark for student ${student.hall_ticket_no} (Subject: ${revalModal.subjectName}) to ${revalModal.newRevalMarks}`,
+                action: 'UPDATE',
+                page: 'Revaluation',
+                user: user,
+                role: user?.role
+            });
+
             // Update local state to show the new mark immediately as requested
             setResults((prev) =>
                 prev.map((res) =>
@@ -331,6 +342,15 @@ export default function Revaluation() {
             if (examError) throw examError;
 
             toast.success(`Published ${pendingRevals.length} revaluation result(s) successfully.`);
+
+            await logActivity(supabase, {
+                description: `${user?.role || 'User'} published ${pendingRevals.length} revaluation results for exam ${selectedExam}`,
+                action: 'PUBLISH',
+                page: 'Revaluation',
+                user: user,
+                role: user?.role
+            });
+
             setPublishModal(false);
             setRevalPublished(true); // Update local state immediately
             // Refresh results if student is currently viewed

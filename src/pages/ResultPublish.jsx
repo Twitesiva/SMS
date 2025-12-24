@@ -4,8 +4,11 @@ import ConfirmationModal from "../components/ConfirmationModal";
 import { api } from "../lib/mockApi";
 import { supabase } from "../../supabaseClient";
 import { showToast } from "../store/ui";
+import { logActivity } from "../lib/logger";
+import { useAuth } from "../store/auth";
 
 export default function ResultPublish() {
+    const { user } = useAuth();
     const [exams, setExams] = useState([]);
     const [selectedExamId, setSelectedExamId] = useState("");
     const [loading, setLoading] = useState(false);
@@ -278,6 +281,23 @@ export default function ResultPublish() {
             }
 
             showToast("Results published successfully", { type: "success" });
+
+            const examName = exams.find(e => String(e.id) === String(selectedExamId))?.exam_name || 'Unknown Exam';
+            const filterParts = [];
+            if (filters.academicYear) filterParts.push(`Year: ${filters.academicYear}`);
+            if (filters.group) filterParts.push(`Group: ${filters.group}`);
+            if (filters.course) filterParts.push(`Course: ${filters.course}`);
+            if (filters.semester) filterParts.push(`Semester: ${filters.semester}`);
+            const filterString = filterParts.length > 0 ? ` (Filters: ${filterParts.join(', ')})` : '';
+
+            await logActivity(supabase, {
+                description: `${user?.role || 'User'} published results for exam ${examName}${filterString}`,
+                action: 'PUBLISH',
+                page: 'Result Publish',
+                user: user,
+                role: user?.role
+            });
+
             setSelectedExamId("");
             setFilters({
                 academicYear: "",

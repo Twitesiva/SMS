@@ -1000,6 +1000,19 @@ export default function Students() {
       );
 
       toast.success("Student updated successfully");
+
+      const { user } = await import('../store/auth').then(m => m.useAuth.getState());
+      const { logActivity } = await import('../lib/logger');
+      const userRole = user?.role || 'admin';
+
+      logActivity(supabase, {
+        user,
+        role: userRole,
+        action: 'UPDATE',
+        page: 'Students Details',
+        description: `${userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase()} updated details for student ${editForm.full_name} (${editForm.student_id})`
+      });
+
       setEditingStudent(null);
     } catch (error) {
       console.error("Error updating student:", error);
@@ -1044,6 +1057,18 @@ export default function Students() {
         prev.filter((student) => student.id !== deleteModal.student.id)
       );
       showToast("Student deleted.", { type: "info" });
+
+      const { user } = await import('../store/auth').then(m => m.useAuth.getState());
+      const { logActivity } = await import('../lib/logger');
+      const userRole = user?.role || 'admin';
+
+      logActivity(supabase, {
+        user,
+        role: userRole,
+        action: 'DELETE',
+        page: 'Students Details',
+        description: `${userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase()} deleted student ${deleteModal.student.full_name} (${deleteModal.student.student_id})`
+      });
     } catch (error) {
       console.error("Error deleting student:", error);
       showToast("Unable to delete student.", { type: "danger" });
@@ -1089,6 +1114,19 @@ export default function Students() {
       ));
 
       toast.success("Student status updated successfully");
+
+      const { user } = await import('../store/auth').then(m => m.useAuth.getState());
+      const { logActivity } = await import('../lib/logger');
+      const userRole = user?.role || 'admin';
+
+      logActivity(supabase, {
+        user,
+        role: userRole,
+        action: 'UPDATE',
+        page: 'Students Details',
+        description: `${userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase()} changed status of student ${statusModal.student.full_name} to ${statusModal.selectedStatus}`
+      });
+
       closeStatusModal();
     } catch (error) {
       console.error("Error updating student status:", error);

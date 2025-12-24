@@ -237,6 +237,7 @@ export default function Dashboard() {
   const [payments, setPayments] = useState([]); // Added payments state
   const [regSubjects, setRegSubjects] = useState([]);
   const [marks, setMarks] = useState([]);
+  const [recentActivities, setRecentActivities] = useState([]);
 
   const [students, setStudents] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -270,6 +271,12 @@ export default function Dashboard() {
       supabase.from("courses").select("course_id, course_code, course_name"),
       supabase.from("groups").select("group_id, group_code, group_name"),
       supabase.from("results").select("student_id, result_status, exam_id, marks_obtained, max_marks"),
+      supabase
+        .from("activity_logs")
+        .select("id, user_id, role, action, page, description, created_at")
+        .in('action', ['LOGIN', 'SESSION_ACTIVITY'])
+        .order("created_at", { ascending: false })
+        .limit(2),
     ])
       .then(
         ([
@@ -283,6 +290,7 @@ export default function Dashboard() {
           coursesResult,
           groupsResult,
           resultsResult,
+          activitiesResult,
         ]) => {
           if (!active) return;
           const errors = [
@@ -291,6 +299,7 @@ export default function Dashboard() {
             subjectsResult.error,
             marksResult.error,
             resultsResult.error,
+            activitiesResult.error,
           ].filter(Boolean);
           if (errors.length) {
             setError(errors.map((err) => err.message).join(" · "));
@@ -305,6 +314,33 @@ export default function Dashboard() {
           setCourses(coursesResult.data || []);
           setGroups(groupsResult.data || []);
           setResults(resultsResult.data || []);
+
+          const logs = activitiesResult.data || [];
+          if (logs.length > 0) {
+            const userIds = [...new Set(logs.map(log => log.user_id).filter(Boolean))];
+            if (userIds.length > 0) {
+              supabase
+                .from("profiles")
+                .select("id, full_name, role")
+                .in("id", userIds)
+                .then(({ data: profilesData }) => {
+                  if (!active) return;
+                  const profileMap = {};
+                  (profilesData || []).forEach(p => {
+                    profileMap[p.id] = p;
+                  });
+                  const enrichedLogs = logs.map(log => ({
+                    ...log,
+                    profile: profileMap[log.user_id] || null
+                  }));
+                  setRecentActivities(enrichedLogs);
+                });
+            } else {
+              setRecentActivities(logs);
+            }
+          } else {
+            setRecentActivities([]);
+          }
         })
       .catch((err) => {
         if (active) {
@@ -866,6 +902,68 @@ export default function Dashboard() {
                     No result data available
                   </div>
                 )}
+              </div>
+            </article>
+          </div>
+
+          <div className="dashboard-chart-row mt-4">
+            <article
+              className="dashboard-chart-card card-shadow w-100"
+              style={{ minHeight: "auto", cursor: "default" }}
+            >
+              <div className="dashboard-chart-header d-flex justify-content-between align-items-center">
+                <div>
+                  <h3>Recent Activities</h3>
+                  <p className="text-muted mb-0">System logs for Admin & Principal</p>
+                </div>
+                <button
+                  className="btn btn-sm btn-outline-primary"
+                  onClick={() => navigate("/admin/history")}
+                >
+                  View All
+                </button>
+              </div>
+              <div className="table-responsive p-3">
+                <table className="table table-hover align-middle mb-0">
+                  <thead className="table-light">
+                    <tr>
+                      <th scope="col">Time</th>
+
+                      <th scope="col">Role</th>
+                      <th scope="col">Action</th>
+                      <th scope="col">Page</th>
+                      <th scope="col">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentActivities.length > 0 ? (
+                      recentActivities.map((log) => (
+                        <tr key={log.id}>
+                          <td style={{ whiteSpace: "nowrap", fontSize: "0.9rem" }}>
+                            {new Date(log.created_at).toLocaleString()}
+                          </td>
+
+                          <td>
+                            <span className={`badge ${log.role === 'admin' ? 'bg-primary' : 'bg-info'}`}>
+                              {log.role?.toUpperCase() || "USER"}
+                            </span>
+                          </td>
+                          <td className="fw-medium">{log.action}</td>
+                          <td className="text-muted">{log.page}</td>
+                          <td className="text-muted small" style={{ whiteSpace: "pre-wrap" }}>
+                            {log.description || "-"}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="5" className="text-center text-muted py-4">
+                          No recent activities found
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </article>
           </div>

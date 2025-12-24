@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { api } from '../lib/mockApi'
+import { supabase } from '../../supabaseClient'
 import { useAuth } from '../store/auth'
 import crestAccent from '../assets/media/images.png'
 
@@ -27,11 +27,48 @@ export default function AdminLogin() {
     setLoading(true)
     setError('')
 
+    const cleanEmail = email.trim().toLowerCase()
+    const allowedEmails = ['admin@vijayam.in', 'principal@vijayam.in']
+
+    if (!allowedEmails.includes(cleanEmail)) {
+      setLoading(false)
+      setError('Access denied: Unauthorized email address')
+      return
+    }
+
     try {
-      const user = await api.login(email, password)
-      setUser({ email: user.email, role: user.role })
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password: password,
+      })
+
+      if (authError) throw authError
+
+      // Determine role based on specific email
+      let userRole = 'ADMIN'
+      if (cleanEmail === 'principal@vijayam.in') {
+        userRole = 'PRINCIPAL' // or 'principal', matching your system's role naming convention
+      }
+
+      // Log the login activity
+      const { data: logData } = await supabase.from('activity_logs').insert([
+        {
+          user_id: data.user.id,
+          role: userRole.toLowerCase(),
+          action: 'LOGIN',
+          page: 'Admin Login',
+          description: `1. ${userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase()} logged in successfully`,
+        },
+      ]).select().single()
+
+      setUser({ id: data.user.id, email: data.user.email, role: userRole, sessionLogId: logData?.id })
+
+      // Small delay to ensure session log is propagated/discoverable
+      await new Promise(resolve => setTimeout(resolve, 500))
+
       nav('/admin')
     } catch (err) {
+      console.error(err)
       setError(err.message || 'Unable to sign in right now')
     } finally {
       setLoading(false)

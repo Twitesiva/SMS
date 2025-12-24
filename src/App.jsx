@@ -11,17 +11,17 @@ import Batches from "./pages/Batches.jsx";
 import Courses from "./pages/Courses.jsx";
 import Students from "./pages/Students.jsx";
 import Promote from "./pages/Promote.jsx";
-import Exams from "./pages/Exams.jsx";
+import CreateExam from "./pages/CreateExam.jsx";
 import ExamNameCreation from "./pages/ExamNameCreation.jsx";
 import CompleteRegistration from "./pages/CompleteRegistration.jsx";
-import Payments from "./pages/Payments.jsx";
+import SubjectMapping from "./pages/SubjectMapping.jsx";
 import HallTickets from "./pages/HallTickets.jsx";
 import SeatAllocation from "./pages/SeatAllocation.jsx";
-import Results from "./pages/Results.jsx";
+import MarksEntry from "./pages/MarksEntry.jsx";
 import ResultPublish from "./pages/ResultPublish.jsx";
 import Setup from "./pages/Setup.jsx";
-import Departments from "./pages/Departments.jsx";
-import PaymentsOverview from "./pages/PaymentsOverview.jsx";
+import FeesGeneration from "./pages/FeesGeneration.jsx";
+import Decode from "./pages/Decode.jsx";
 import GuardedRoute from "./components/GuardedRoute.jsx";
 import Preloader from "./components/Preloader.jsx";
 import ToastStack from "./components/ToastStack.jsx";
@@ -31,6 +31,7 @@ import Dashboard from "./pages/Dashboard.jsx";
 import Revaluation from "./pages/Revaluation.jsx";
 import MarksReports from "./pages/MarksReports.jsx";
 import InternalMarks from "./pages/InternalMarks.jsx";
+import History from "./pages/History.jsx";
 
 
 export default function App() {
@@ -86,26 +87,26 @@ export default function App() {
           }
         />
         <Route
-          path="/admin/exams"
+          path="/admin/create-exam"
           element={
             <GuardedRoute isAuthed={isAuthed}>
-              <Exams />
+              <CreateExam />
             </GuardedRoute>
           }
         />
         <Route
-          path="/admin/payments"
+          path="/admin/subject-mapping"
           element={
             <GuardedRoute isAuthed={isAuthed}>
-              <Payments />
+              <SubjectMapping />
             </GuardedRoute>
           }
         />
         <Route
-          path="/admin/payments-overview"
+          path="/admin/decode"
           element={
             <GuardedRoute isAuthed={isAuthed}>
-              <PaymentsOverview />
+              <Decode />
             </GuardedRoute>
           }
         />
@@ -134,10 +135,10 @@ export default function App() {
           }
         />
         <Route
-          path="/admin/results"
+          path="/admin/marks-entry"
           element={
             <GuardedRoute isAuthed={isAuthed}>
-              <Results />
+              <MarksEntry />
             </GuardedRoute>
           }
         />
@@ -174,10 +175,10 @@ export default function App() {
           }
         />
         <Route
-          path="/admin/departments"
+          path="/admin/fees-generation"
           element={
             <GuardedRoute isAuthed={isAuthed}>
-              <Departments />
+              <FeesGeneration />
             </GuardedRoute>
           }
         />
@@ -226,6 +227,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isAuthed}>
               <AdminApplications />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/admin/history"
+          element={
+            <GuardedRoute isAuthed={isAuthed}>
+              <History />
             </GuardedRoute>
           }
         />

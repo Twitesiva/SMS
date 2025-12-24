@@ -3,8 +3,11 @@ import { useEffect, useState, useRef } from 'react'
 import { api } from '../lib/mockApi'
 import { supabase } from '../../supabaseClient'
 import { showToast } from '../store/ui'
+import { logActivity } from '../lib/logger'
+import { useAuth } from '../store/auth'
 
-export default function Results() {
+export default function MarksEntry() {
+  const { user } = useAuth()
   const [students, setStudents] = useState([])
   const [exams, setExams] = useState([])
   const [form, setForm] = useState({ student_id: '', exam_id: '', total: '', grade: '' })
@@ -195,6 +198,16 @@ export default function Results() {
       }, { onConflict: 'student_id, subject_id' })
 
       if (error) throw error
+
+      if (error) throw error
+
+      await logActivity(supabase, {
+        description: `${user?.role || 'User'} entered marks for Subject: ${subject.subject_code}-${subject.subject_name} Marks: ${obtained}`,
+        action: 'UPDATE',
+        page: 'Results Entry',
+        user: user,
+        role: user?.role
+      })
 
       showToast('Marks saved successfully', { type: 'success' })
       setBarcode('')

@@ -1,6 +1,8 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../store/auth";
+import { supabase } from "../../supabaseClient";
+import { logActivity } from "../lib/logger";
 import logo from "../assets/media/images.png";
 
 const navGroups = [
@@ -17,15 +19,15 @@ const navGroups = [
       { to: "/admin/setup/groups", label: "Create Groups & Courses", icon: "bi-diagram-3" },
       { to: "/admin/setup/subjects", label: "Create Subjects", icon: "bi-journal-text" },
       { to: "/admin/students", label: "Students Details", icon: "bi-person-badge" },
-      { to: "/admin/departments", label: "Fees Generation", icon: "bi-mortarboard" },
+      { to: "/admin/fees-generation", label: "Fees Generation", icon: "bi-mortarboard" },
     ],
   },
   {
     title: "Pre-Exam Portal",
     items: [
       { to: "/admin/exam-name-creation", label: "Exam name creation", icon: "bi-pencil-square" },
-      { to: "/admin/payments", label: "Subject Mapping & Payments", icon: "bi-credit-card" },
-      { to: "/admin/exams", label: "Create Exam timetable", icon: "bi-journal-check" },
+      { to: "/admin/subject-mapping", label: "Subject Mapping & Payments", icon: "bi-credit-card" },
+      { to: "/admin/create-exam", label: "Create Exam timetable", icon: "bi-journal-check" },
       { to: "/admin/complete-registration", label: "Complete Registration & View Time table", icon: "bi-list-check" },
       { to: "/admin/hall-tickets", label: "Hall Ticket", icon: "bi-ticket-perforated" },
       { to: "/admin/seat-allocation", label: "Seat Allocation", icon: "bi-grid-3x3-gap" },
@@ -35,8 +37,8 @@ const navGroups = [
     title: "Post-Exam Portal",
     items: [
       { to: "/admin/internal-marks", label: "Internal Marks Entry", icon: "bi-clipboard-check" },
-      { to: "/admin/payments-overview", label: "Decoding", icon: "bi-bar-chart" },
-      { to: "/admin/results", label: "Marks Entry", icon: "bi-award" },
+      { to: "/admin/decode", label: "Decoding", icon: "bi-bar-chart" },
+      { to: "/admin/marks-entry", label: "Marks Entry", icon: "bi-award" },
       { to: "/admin/result-publish", label: "Result Publish", icon: "bi-megaphone" },
       { to: "/admin/promote", label: "Promotion", icon: "bi-people" },
       { to: "/admin/revaluation", label: "Revaluation", icon: "bi-clipboard-check" },
@@ -49,6 +51,12 @@ const navGroups = [
       { to: "/admin/reports", label: "Reports", icon: "bi-file-earmark-text" },
     ],
   },
+  {
+    title: "Recent Activities",
+    items: [
+      { to: "/admin/history", label: "History", icon: "bi-clock-history" },
+    ],
+  },
 ];
 
 const SIDEBAR_SCROLL_KEY = "admin-shell-sidebar-scroll";
@@ -56,7 +64,7 @@ const SIDEBAR_SCROLL_KEY = "admin-shell-sidebar-scroll";
 export default function AdminShell({ children, onSignOut }) {
   const { pathname } = useLocation();
   const navTo = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState({});
   const sidebarRef = useRef(null);
@@ -72,7 +80,28 @@ export default function AdminShell({ children, onSignOut }) {
         [activeGroupIndex]: true,
       }));
     }
-  }, [pathname]);
+
+    // Log page view
+    if (user?.id) {
+      // Find the human-readable label for the current page
+      let pageLabel = pathname;
+      for (const group of navGroups) {
+        const found = group.items.find(item => item.to === pathname);
+        if (found) {
+          pageLabel = found.label;
+          break;
+        }
+      }
+
+      logActivity(supabase, {
+        user,
+        role: user.role,
+        action: 'VIEW',
+        page: pageLabel,
+        description: `${(user.role || 'User').charAt(0).toUpperCase() + (user.role || 'user').slice(1).toLowerCase()} viewed page ${pageLabel}`
+      });
+    }
+  }, [pathname, user]);
 
   const toggleGroup = (index) => {
     if (navGroups[index]?.static) return;

@@ -6,8 +6,11 @@ import { trackPromise, showToast } from "../store/ui";
 import { toast } from "react-toastify";
 import { validateRequiredFields } from "../lib/validation";
 import { api } from "../lib/mockApi";
+import { logActivity } from "../lib/logger";
+import { useAuth } from "../store/auth";
 
 export default function Promote() {
+  const { user } = useAuth();
   const [students, setStudents] = useState([]);
   const [filters, setFilters] = useState({
     academic_year: "",
@@ -946,12 +949,19 @@ export default function Promote() {
 
       await Promise.all(updates);
 
+      await logActivity(supabase, {
+        user,
+        role: user?.role,
+        action: 'UPDATE',
+        page: 'Promote',
+        description: `${user?.role || 'User'} processed promotion for ${studentsToProcess.length} students to ${nextSessionAcademicYear} - Semester ${nextSessionSemester}`
+      });
+
       showToast("Promotion process completed successfully.", { type: "success" });
 
       // Refresh data
       // We can either call loadData() again or manually update local state.
       // For simplicity/accuracy, let's trigger a reload of students or just update local ones.
-      // Creating a simple reload mechanism or just re-calling a load function would be best 
       // but loadData is inside useEffect. 
       // We'll just force a window reload or better, refactor loadData. 
       // Since I can't easily refactor loadData out of useEffect in one go without seeing it all, 
@@ -1135,6 +1145,15 @@ export default function Promote() {
       );
 
       toast.success("Student updated successfully");
+
+      await logActivity(supabase, {
+        user,
+        role: user?.role,
+        action: 'UPDATE',
+        page: 'Promote',
+        description: `${user?.role || 'User'} updated details for student ${editForm.full_name} (${editForm.student_id})`
+      });
+
       setEditingStudent(null);
     } catch (error) {
       console.error("Error updating student:", error);
@@ -1179,6 +1198,14 @@ export default function Promote() {
         prev.filter((student) => student.id !== deleteModal.student.id)
       );
       showToast("Student deleted.", { type: "info" });
+
+      await logActivity(supabase, {
+        user,
+        role: user?.role,
+        action: 'DELETE',
+        page: 'Promote',
+        description: `${user?.role || 'User'} deleted student ${deleteModal.student.full_name} (${deleteModal.student.student_id})`
+      });
     } catch (error) {
       console.error("Error deleting student:", error);
       showToast("Unable to delete student.", { type: "danger" });
@@ -1224,6 +1251,15 @@ export default function Promote() {
       ));
 
       toast.success("Student status updated successfully");
+
+      await logActivity(supabase, {
+        user,
+        role: user?.role,
+        action: 'UPDATE',
+        page: 'Promote',
+        description: `${user?.role || 'User'} changed status of student ${statusModal.student.full_name} to ${statusModal.selectedStatus}`
+      });
+
       closeStatusModal();
     } catch (error) {
       console.error("Error updating student status:", error);

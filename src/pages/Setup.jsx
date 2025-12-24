@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import AdminShell from "../components/AdminShell";
 import { api } from "../lib/mockApi";
+import { supabase } from "../../supabaseClient";
+import { logActivity } from "../lib/logger";
+import { useAuth } from "../store/auth";
 import { validateRequiredFields } from "../lib/validation";
 import AcademicYearsSection from "./AcademicYears";
 import GroupsCoursesSection from "./GroupsCourses";
@@ -358,6 +361,11 @@ export default function Setup() {
     ? tabParam
     : "years";
 
+  const { user } = useAuth();
+  // We'll derive role from user object if available, or default to checking email/metadata if needed.
+  // user object from useAuth usually has { email, role } based on AdminLogin logic.
+  const userRole = user?.role || 'admin';
+
   const [yearForm, setYearForm] = useState({ name: "", category: "", active: true });
   const [academicYears, setAcademicYears] = useState([]);
   const [editingYearId, setEditingYearId] = useState("");
@@ -397,6 +405,13 @@ export default function Setup() {
         });
         if (created) {
           setAcademicYears((prev) => [...prev, created]);
+          logActivity(supabase, {
+            user,
+            role: userRole,
+            action: 'CREATE',
+            page: 'Setup',
+            description: `${(userRole || 'Admin').charAt(0).toUpperCase() + (userRole || 'admin').slice(1).toLowerCase()} created the academic year ${yearForm.name}`
+          });
         }
       }
     } catch (error) {
@@ -418,9 +433,17 @@ export default function Setup() {
   };
 
   const deleteYear = async (id) => {
+    const yearName = resolveYearName(id);
     setAcademicYears((prev) => prev.filter((y) => y.id !== id));
     try {
       await api.deleteAcademicYear?.(id);
+      logActivity(supabase, {
+        user,
+        role: userRole,
+        action: 'DELETE',
+        page: 'Setup',
+        description: `${(userRole || 'Admin').charAt(0).toUpperCase() + (userRole || 'admin').slice(1).toLowerCase()} deleted the academic year ${yearName}`
+      });
     } catch (error) {
       console.error("Failed to delete academic year", error);
       showToast(error?.message || "Failed to delete academic year", {
@@ -505,6 +528,13 @@ export default function Setup() {
             type: "success",
             title: "Group",
           });
+          logActivity(supabase, {
+            user,
+            role: userRole,
+            action: 'CREATE',
+            page: 'Setup',
+            description: `${(userRole || 'Admin').charAt(0).toUpperCase() + (userRole || 'admin').slice(1).toLowerCase()} created Group ${groupForm.name} (${code})`
+          });
         }
       } catch (error) {
         console.error("Error adding group:", error);
@@ -529,6 +559,13 @@ export default function Setup() {
     setGroups((prev) => prev.filter((g) => g.id !== id));
     try {
       await api.deleteGroup?.(id);
+      logActivity(supabase, {
+        user,
+        role: userRole,
+        action: 'DELETE',
+        page: 'Setup',
+        description: `${(userRole || 'Admin').charAt(0).toUpperCase() + (userRole || 'admin').slice(1).toLowerCase()} deleted Group ID ${id}`
+      });
       showToast("Group deleted successfully", {
         type: "success",
         title: "Group",
@@ -654,6 +691,13 @@ export default function Setup() {
             type: "success",
             title: "Course",
           });
+          logActivity(supabase, {
+            user,
+            role: userRole,
+            action: 'CREATE',
+            page: 'Setup',
+            description: `${(userRole || 'Admin').charAt(0).toUpperCase() + (userRole || 'admin').slice(1).toLowerCase()} created Course ${courseName} (${code})`
+          });
         }
       } catch (error) {
         console.error("Error adding course:", error);
@@ -697,6 +741,13 @@ export default function Setup() {
       showToast("Course deleted successfully", {
         type: "success",
         title: "Course",
+      });
+      logActivity(supabase, {
+        user,
+        role: userRole,
+        action: 'DELETE',
+        page: 'Setup',
+        description: `${(userRole || 'Admin').charAt(0).toUpperCase() + (userRole || 'admin').slice(1).toLowerCase()} deleted Course ${course?.courseName || id} (${course?.courseCode || ''})`
       });
     } catch (error) {
       console.error("Error deleting course:", error);
@@ -944,6 +995,13 @@ export default function Setup() {
         setCategoryName("");
         setCategoryCredits(0);
         setEditingCategory("");
+        logActivity(supabase, {
+          user,
+          role: userRole,
+          action: 'UPDATE',
+          page: 'Setup',
+          description: `${(userRole || 'Admin').charAt(0).toUpperCase() + (userRole || 'admin').slice(1).toLowerCase()} updated sub-category ${oldName} to ${trimmed}`
+        });
         showToast("Sub-category updated.", { type: "success" });
       } catch (error) {
         console.error("Failed to update sub-category", error);
@@ -970,6 +1028,13 @@ export default function Setup() {
           }));
           setCategoryName("");
           setCategoryCredits(0);
+          logActivity(supabase, {
+            user,
+            role: userRole,
+            action: 'CREATE',
+            page: 'Setup',
+            description: `${(userRole || 'Admin').charAt(0).toUpperCase() + (userRole || 'admin').slice(1).toLowerCase()} created sub-category ${created.name}`
+          });
           showToast("Sub-category added.", { type: "success" });
         }
       } catch (error) {
@@ -1003,6 +1068,13 @@ export default function Setup() {
     });
     try {
       if (id) await api.deleteSubCategory?.(id);
+      logActivity(supabase, {
+        user,
+        role: userRole,
+        action: 'DELETE',
+        page: 'Setup',
+        description: `${(userRole || 'Admin').charAt(0).toUpperCase() + (userRole || 'admin').slice(1).toLowerCase()} deleted sub-category ${name}`
+      });
       showToast("Sub-category deleted.", { type: "info" });
     } catch (error) {
       console.error("Failed to delete sub-category", error);
@@ -1475,6 +1547,16 @@ export default function Setup() {
       setPendingSubjects([]);
       await loadSubjects();
 
+      // Reset the form
+
+      logActivity(supabase, {
+        user,
+        role: userRole,
+        action: 'CREATE',
+        page: 'Setup',
+        description: `${(userRole || 'Admin').charAt(0).toUpperCase() + (userRole || 'admin').slice(1).toLowerCase()} added ${newSubjects.length} new subject(s)`
+      });
+
       showToast(`Successfully added ${newSubjects.length} subject(s) to the database.`, {
         type: "success"
       });
@@ -1562,6 +1644,15 @@ export default function Setup() {
       if (numericIds.length) {
         await Promise.all(numericIds.map((id) => api.deleteSubject?.(id)));
       }
+
+      logActivity(supabase, {
+        user,
+        role: userRole,
+        action: 'DELETE',
+        page: 'Setup',
+        description: `${(userRole || 'Admin').charAt(0).toUpperCase() + (userRole || 'admin').slice(1).toLowerCase()} deleted ${numericIds.length} subject entry/entries`
+      });
+
       showToast("Subject entries deleted.", { type: "info" });
     } catch (error) {
       console.error("Failed to delete subject", error);

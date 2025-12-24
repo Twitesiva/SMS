@@ -8,12 +8,15 @@ import { TIME_SLOTS } from '../lib/timeSlots'
 import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
 import collegeLogo from '../assets/media/images.png'
+import { logActivity } from '../lib/logger'
+import { useAuth } from '../store/auth'
 
 
 const EXAM_NAME_PREFIX = 'Regular and Supplementary Examinations - '
 
 export default function CompleteRegistration() {
     const navigate = useNavigate()
+    const { user } = useAuth()
     const [exams, setExams] = useState([])
     const [examsLoading, setExamsLoading] = useState(false)
     const [completeRegistrationModalOpen, setCompleteRegistrationModalOpen] = useState(false)
@@ -469,6 +472,14 @@ export default function CompleteRegistration() {
                 .eq('id', completionTargetExam.id)
 
             if (updateError) throw updateError
+
+            await logActivity(supabase, {
+                description: `${user?.role || 'User'} completed registration for exam ${completionTargetExam.exam_name}`,
+                action: 'UPDATE',
+                page: 'Complete Registration & View Time table',
+                user: user,
+                role: user?.role
+            })
 
             const message = assignedCount > 0
                 ? `Successfully assigned ${assignedCount} seat numbers for the exam.`

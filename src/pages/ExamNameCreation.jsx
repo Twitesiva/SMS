@@ -109,6 +109,18 @@ export default function ExamNameCreation() {
         .single()
       if (error) throw error
       await refreshExams()
+      const { user } = await import('../store/auth').then(m => m.useAuth.getState()) // Access auth store
+      const { logActivity } = await import('../lib/logger')
+
+      const userRole = user?.role || 'admin'
+      logActivity(supabase, {
+        user,
+        role: userRole,
+        action: 'CREATE',
+        page: 'Exam name creation',
+        description: `${userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase()} created the exam ${value}`
+      })
+
       setExamNameInput('')
       showToast('Exam Created Successfully.', { type: 'success' })
     } catch (error) {
@@ -154,6 +166,18 @@ export default function ExamNameCreation() {
       await refreshExams()
       showToast('Exam name updated.', { type: 'success' })
       setEditingExam(null)
+      const { user } = await import('../store/auth').then(m => m.useAuth.getState())
+      const { logActivity } = await import('../lib/logger')
+
+      const userRole = user?.role || 'admin'
+      logActivity(supabase, {
+        user,
+        role: userRole,
+        action: 'UPDATE',
+        page: 'Exam name creation',
+        description: `${userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase()} updated the exam to ${value}`
+      })
+
       setExamNameInput('')
     } catch (error) {
       console.error('Failed to update exam name:', error)
@@ -177,6 +201,17 @@ export default function ExamNameCreation() {
         setExamNameInput('')
       }
       showToast('Exam name removed.', { type: 'success' })
+      const { user } = await import('../store/auth').then(m => m.useAuth.getState())
+      const { logActivity } = await import('../lib/logger')
+
+      const userRole = user?.role || 'admin'
+      logActivity(supabase, {
+        user,
+        role: userRole,
+        action: 'DELETE',
+        page: 'Exam name creation',
+        description: `${userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase()} deleted the exam ${target.exam_name}`
+      })
     } catch (error) {
       console.error('Failed to delete exam name:', error)
       showToast('Unable to delete exam name.', { type: 'danger' })

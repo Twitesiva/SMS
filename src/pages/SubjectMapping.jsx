@@ -9,6 +9,8 @@ import {
   getFirstUnpublishedExam,
   isExamResultPublished,
 } from "../lib/examUtils";
+import { useAuth } from "../store/auth";
+import { logActivity } from "../lib/logger";
 
 const EXAM_RELEVANT_FEE_TYPES = new Set(["exam", "full", "partial"]);
 const isExamCoveragePayment = (feeType = "") =>
@@ -75,7 +77,8 @@ const getCategoryNameFromLookup = (subject, lookup) => {
   return "";
 };
 
-export default function Payments() {
+export default function SubjectMapping() {
+  const { user } = useAuth();
   // Master data
   const [years, setYears] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -1071,6 +1074,24 @@ export default function Payments() {
       } catch (error) {
         console.error("Failed to refresh applied registrations:", error);
       }
+
+      // Log activity
+      try {
+        if (user) {
+          const userRole = user.role || "admin";
+          const studentName = activePaymentStudent?.full_name || activePaymentStudent?.name || "Student";
+          await logActivity(supabase, {
+            user,
+            role: userRole,
+            action: "APPLY",
+            page: "Subject Mapping & Payments",
+            description: `${userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase()} applied for exam ${examNameValue} for student ${studentName} (${activePaymentStudent?.student_id})`,
+          });
+        }
+      } catch (err) {
+        console.error("Logging failed", err);
+      }
+
       closeStudentModal();
     } catch (error) {
       console.error("Unable to Apply selected subjects", error);
@@ -2161,6 +2182,22 @@ export default function Payments() {
         type: "success",
         title: "Exam",
       });
+
+      // Log activity
+      try {
+        if (user) {
+          const userRole = user.role || "admin";
+          await logActivity(supabase, {
+            user,
+            role: userRole,
+            action: "DELETE",
+            page: "Subject Mapping & Payments",
+            description: `${userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase()} removed exam application for student ${studentName} (${student.student_id})`,
+          });
+        }
+      } catch (err) {
+        console.error("Logging failed", err);
+      }
     } catch (error) {
       console.error("Unable to delete stored subjects", error);
 
@@ -2784,6 +2821,24 @@ export default function Payments() {
       console.error("Failed to refresh applied registrations:", error);
     }
 
+    // Log activity
+    try {
+      if (user) {
+        const userRole = user.role || "admin";
+        const studentName = activePaymentStudent?.full_name || activePaymentStudent?.name || "Student";
+        const studentId = activePaymentStudent?.student_id || "Unknown ID";
+        await logActivity(supabase, {
+          user,
+          role: userRole,
+          action: "PAYMENT",
+          page: "Subject Mapping & Payments",
+          description: `${userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase()} collected payment of ${formatCurrency(paymentAmount)} via ${paymentMethod} for student ${studentName} (${studentId})`,
+        });
+      }
+    } catch (err) {
+      console.error("Logging failed", err);
+    }
+
     closePaymentModal();
     closeStudentModal();
   };
@@ -3264,6 +3319,7 @@ export default function Payments() {
                                     if (canModifyStoredSubjects) {
                                       return (
                                         <div className="d-flex flex-column align-items-end gap-2">
+                                          <span className="badge bg-soft-success text-success">Applied</span>
                                           <div className="d-flex gap-2 justify-content-end">
                                             <button
                                               type="button"

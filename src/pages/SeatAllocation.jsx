@@ -6,8 +6,11 @@ import { supabase } from "../../supabaseClient";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 import logo from "../assets/media/images.png";
+import { logActivity } from "../lib/logger";
+import { useAuth } from "../store/auth";
 
 export default function SeatAllocation() {
+    const { user } = useAuth();
     const [filters, setFilters] = useState({
         exam: "",
         date: "",
@@ -310,6 +313,15 @@ export default function SeatAllocation() {
             }
 
             pdf.save(`SeatAllocation_${filters.date}.pdf`);
+
+            await logActivity(supabase, {
+                description: `${user?.role || 'User'} downloaded seat allocation list for ${printMetadata?.subjectTitle} (${filters.date})`,
+                action: 'DOWNLOAD',
+                page: 'Seat Allocation',
+                user: user,
+                role: user?.role
+            });
+
             setShowPreview(false); // Close after download
 
         } catch (err) {

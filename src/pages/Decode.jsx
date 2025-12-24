@@ -5,8 +5,11 @@ import html2canvas from 'html2canvas';
 import AdminShell from "../components/AdminShell";
 import { supabase } from "../../supabaseClient";
 import { showToast } from "../store/ui";
+import { logActivity } from "../lib/logger";
+import { useAuth } from "../store/auth";
 
-export default function PaymentsOverview() {
+export default function Decode() {
+  const { user } = useAuth();
   const [studentIdInput, setStudentIdInput] = useState("");
   const [searchingStudent, setSearchingStudent] = useState(false);
   const [studentError, setStudentError] = useState("");
@@ -925,6 +928,15 @@ export default function PaymentsOverview() {
       setShowDecodePopup(false);
       showToast("Successfully Generated Barcode", { type: 'success' });
 
+      const examName = exams.find(e => e.id === selectedExam)?.exam_name || 'Selected Exam';
+      await logActivity(supabase, {
+        user,
+        role: user?.role,
+        action: 'GENERATE_BARCODE',
+        page: 'Barcode Generation',
+        description: `${user?.role || 'User'} generated barcodes for ${examName} - Subject: ${selectedSubjectForDecode?.subject_code} - ${selectedSubjectForDecode?.subject_name} (${updates.length} students)`
+      });
+
       // Refresh the subjects list to show the "View" button
       if (selectedExam && selectedDate) {
         await fetchSubjectsByDate(selectedExam, selectedDate);
@@ -1030,7 +1042,16 @@ export default function PaymentsOverview() {
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-        pdf.save(`${selectedSubjectForDecode?.subject_code || 'subject'}-barcodes.pdf`);
+      pdf.save(`${selectedSubjectForDecode?.subject_code || 'subject'}-barcodes.pdf`);
+
+      const examName = exams.find(e => e.id === selectedExam)?.exam_name || 'Selected Exam';
+      await logActivity(supabase, {
+        user,
+        role: user?.role,
+        action: 'DOWNLOAD',
+        page: 'Barcode Generation',
+        description: `${user?.role || 'User'} downloaded barcode PDF for ${examName} - Subject: ${selectedSubjectForDecode?.subject_code} - ${selectedSubjectForDecode?.subject_name}`
+      });
     } catch (err) {
       console.error('Error generating PDF:', err);
     } finally {
@@ -1098,26 +1119,26 @@ export default function PaymentsOverview() {
                         <th>Barcode</th>
                       </tr>
                     </thead>
-                      <tbody>
-                        {subjectStudents.map((student, index) => (
-                          <tr key={`${student.studentId}-${index}`}>
-                            <td className="text-muted">{index + 1}.</td>
-                            <td>
-                              {selectedSubjectForDecode
-                                ? `${selectedSubjectForDecode.subject_code}-${selectedSubjectForDecode.subject_name}`
-                                : "N/A"}
-                            </td>
-                            <td>{student.hallTicketNo || "N/A"}</td>
-                            <td>
-                              {student.barcode ? (
-                                <Barcode value={student.barcode} height={25} width={1} displayValue={true} fontSize={10} margin={0} />
-                              ) : (
-                                <span className="text-muted">-</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
+                    <tbody>
+                      {subjectStudents.map((student, index) => (
+                        <tr key={`${student.studentId}-${index}`}>
+                          <td className="text-muted">{index + 1}.</td>
+                          <td>
+                            {selectedSubjectForDecode
+                              ? `${selectedSubjectForDecode.subject_code}-${selectedSubjectForDecode.subject_name}`
+                              : "N/A"}
+                          </td>
+                          <td>{student.hallTicketNo || "N/A"}</td>
+                          <td>
+                            {student.barcode ? (
+                              <Barcode value={student.barcode} height={25} width={1} displayValue={true} fontSize={10} margin={0} />
+                            ) : (
+                              <span className="text-muted">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
                   </table>
                 </div>
               ) : (
@@ -1403,7 +1424,7 @@ export default function PaymentsOverview() {
                 </thead>
                 <tbody>
                   {subjects.map((row, index) => {
-                      const key = `${row.subject_code || row.subject_name || ""}-${row.barcode || "none"}-${index}`;
+                    const key = `${row.subject_code || row.subject_name || ""}-${row.barcode || "none"}-${index}`;
                     const isVisible = !!visibleDecodeRows[key];
                     return (
                       <tr key={key}>

@@ -5,8 +5,11 @@ import { api } from "../lib/mockApi";
 import { supabase } from "../../supabaseClient";
 import { validateRequiredFields } from "../lib/validation";
 import { showToast } from "../store/ui";
+import { useAuth } from "../store/auth";
+import { logActivity } from "../lib/logger";
 
-export default function Departments() {
+export default function FeesGeneration() {
+  const { user } = useAuth();
   const [years, setYears] = useState([]);
   const [groups, setGroups] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -324,6 +327,27 @@ export default function Departments() {
         showToast("Category added successfully", { type: "success" });
       }
 
+      // Log activity
+      try {
+        if (user) {
+          const userRole = user.role || 'admin';
+          const action = editingFeeCategoryId ? 'UPDATE' : 'CREATE';
+          const desc = editingFeeCategoryId
+            ? `updated fee category: ${feeCategoryName}`
+            : `created new fee category: ${feeCategoryName}`;
+
+          await logActivity(supabase, {
+            user,
+            role: userRole,
+            action,
+            page: 'Fees Generation',
+            description: `${userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase()} ${desc}`
+          });
+        }
+      } catch (logErr) {
+        console.error("Logging failed", logErr);
+      }
+
       // Refresh categories
       await loadFeeCategories();
       setFeeCategoryName("");
@@ -370,6 +394,22 @@ export default function Departments() {
         .eq("id", id);
 
       if (error) throw error;
+
+      // Log activity
+      try {
+        if (user) {
+          const userRole = user.role || 'admin';
+          await logActivity(supabase, {
+            user,
+            role: userRole,
+            action: 'DELETE',
+            page: 'Fees Generation',
+            description: `${userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase()} deleted fee category: ${category.name}`
+          });
+        }
+      } catch (logErr) {
+        console.error("Logging failed", logErr);
+      }
 
       showToast("Category deleted successfully", { type: "success" });
       await loadFeeCategories();
@@ -607,6 +647,34 @@ export default function Departments() {
 
       if (error) throw error;
 
+      // Log activity
+      try {
+        if (user) {
+          const userRole = user.role || 'admin';
+          const action = isEditingCategoryEntry ? 'UPDATE' : 'CREATE';
+          // Resolve names for better logging
+          const groupObj = groups.find(g => g.code === form.group || g.group_code === form.group || g.groupCode === form.group);
+          const groupName = groupObj ? (groupObj.name || groupObj.group_name || groupObj.groupName || form.group) : form.group;
+
+          const courseObj = courses.find(c => c.code === form.courseCode || c.course_code === form.courseCode || c.courseCode === form.courseCode);
+          const courseName = courseObj ? (courseObj.name || courseObj.course_name || courseObj.courseName || form.courseCode) : form.courseCode;
+
+          const desc = isEditingCategoryEntry
+            ? `updated fee structure for ${form.year} - ${groupName} - ${courseName} - Sem ${form.semester}`
+            : `created/configured fee structure for ${form.year} - ${groupName} - ${courseName} - Sem ${form.semester}`;
+
+          await logActivity(supabase, {
+            user,
+            role: userRole,
+            action,
+            page: 'Fees Generation',
+            description: `${userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase()} ${desc}`
+          });
+        }
+      } catch (logErr) {
+        console.error("Logging failed", logErr);
+      }
+
       await fetchCategoryFees();
       resetFeeEntryForm();
       setSubjects([]);
@@ -649,6 +717,21 @@ export default function Departments() {
       return;
     }
     showToast("Deleting category fee...", { type: "info", title: "Deleting" });
+
+    // Find item details for logging before deletion
+    const itemToDelete = categoryFees.find(c => c.id === id);
+    let details = `ID: ${id}`;
+
+    if (itemToDelete) {
+      const groupObj = groups.find(g => g.code === itemToDelete.group_code || g.group_code === itemToDelete.group_code || g.groupCode === itemToDelete.group_code);
+      const groupName = groupObj ? (groupObj.name || groupObj.group_name || groupObj.groupName || itemToDelete.group_code) : itemToDelete.group_code;
+
+      const courseObj = courses.find(c => c.code === itemToDelete.course_code || c.course_code === itemToDelete.course_code || c.courseCode === itemToDelete.course_code);
+      const courseName = courseObj ? (courseObj.name || courseObj.course_name || courseObj.courseName || itemToDelete.course_code) : itemToDelete.course_code;
+
+      details = `${itemToDelete.academic_year} - ${groupName} - ${courseName} - Sem ${itemToDelete.semester}`;
+    }
+
     try {
       const { error } = await supabase
         .from("fee_structure")
@@ -656,6 +739,22 @@ export default function Departments() {
         .eq("id", id);
 
       if (error) throw error;
+
+      // Log activity
+      try {
+        if (user) {
+          const userRole = user.role || 'admin';
+          await logActivity(supabase, {
+            user,
+            role: userRole,
+            action: 'DELETE',
+            page: 'Fees Generation',
+            description: `${userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase()} deleted fee structure for ${details}`
+          });
+        }
+      } catch (logErr) {
+        console.error("Logging failed", logErr);
+      }
 
       // Refresh the list
       await fetchCategoryFees();

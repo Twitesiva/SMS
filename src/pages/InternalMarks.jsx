@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react'
 import AdminShell from '../components/AdminShell'
 import { supabase } from '../../supabaseClient'
 import { showToast } from '../store/ui'
+import { logActivity } from '../lib/logger'
+import { useAuth } from '../store/auth'
 
 export default function InternalMarks() {
+    const { user } = useAuth()
     const [exams, setExams] = useState([])
     const [selectedExamId, setSelectedExamId] = useState('')
     const [loading, setLoading] = useState(true)
@@ -282,6 +285,20 @@ export default function InternalMarks() {
                 .upsert(updates, { onConflict: 'student_id, subject_id' })
 
             if (error) throw error
+
+            if (error) throw error
+
+            const examName = exams.find(e => e.id === selectedExamId)?.exam_name || 'Selected Exam'
+            const subjectObj = subjects.find(s => s.subject_id.toString() === selectedSubjectId.toString())
+            const subjectName = subjectObj?.subject_name || subjectObj?.subject_code || 'Selected Subject'
+
+            await logActivity(supabase, {
+                user,
+                role: user?.role,
+                action: 'UPDATE',
+                page: 'Internal Marks',
+                description: `${user?.role || 'User'} entered/updated internal marks for ${examName} - ${subjectName} (${studentList.length} students)`
+            })
 
             showToast('Internal marks saved successfully!', { type: 'success' })
             setSelectedSubjectId('')

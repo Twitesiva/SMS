@@ -4,6 +4,8 @@ import { api } from "../lib/mockApi";
 
 import { supabase } from "../../supabaseClient";
 import collegeLogo from "../assets/media/images.png";
+import { logActivity } from "../lib/logger";
+import { useAuth } from "../store/auth";
 
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
@@ -189,6 +191,7 @@ const HallTicketTemplate = ({ student, papers, examLabel }) => (
 );
 
 export default function HallTickets() {
+  const { user } = useAuth();
   const [filters, setFilters] = useState({
     exam: "",
     group: "",
@@ -280,6 +283,14 @@ export default function HallTickets() {
           } else {
             pdf.save(`HallTicket_${printData.student.hallTicket}.pdf`);
           }
+
+          await logActivity(supabase, {
+            description: `${user?.role || 'User'} downloaded/printed hall ticket for student ${printData.student.name} (${printData.student.hallTicket})`,
+            action: 'DOWNLOAD',
+            page: 'Hall Tickets',
+            user: user,
+            role: user?.role
+          });
         } catch (error) {
           console.error("PDF Generation failed", error);
         } finally {
@@ -330,6 +341,14 @@ export default function HallTickets() {
         }
 
         pdf.save(`HallTickets_Batch_${new Date().toISOString().slice(0, 10)}.pdf`);
+
+        await logActivity(supabase, {
+          description: `${user?.role || 'User'} downloaded bulk hall tickets (${elements.length} students)`,
+          action: 'DOWNLOAD',
+          page: 'Hall Tickets',
+          user: user,
+          role: user?.role
+        });
 
       } catch (error) {
         console.error("Bulk PDF Generation failed", error);

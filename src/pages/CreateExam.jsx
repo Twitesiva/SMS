@@ -121,7 +121,7 @@ const mapEntryToDbRecord = (entry) => {
   return record
 }
 
-export default function Exams() {
+export default function CreateExam() {
   const [academicYears, setAcademicYears] = useState([])
   const [subjects, setSubjects] = useState([])
   const [category, setCategory] = useState('')
@@ -717,6 +717,18 @@ export default function Exams() {
         setEditingEntryId(null)
         setEditingDbRecordId(null)
         setFeedback({ message: '', type: '' })
+        const { user } = await import('../store/auth').then(m => m.useAuth.getState())
+        const { logActivity } = await import('../lib/logger')
+        const userRole = user?.role || 'admin'
+        const rec = newEntries[0]
+        logActivity(supabase, {
+          user,
+          role: userRole,
+          action: 'UPDATE',
+          page: 'Exams',
+          description: `${userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase()} updated exam schedule for ${rec.exam_date} - ${rec.subject_code}`
+        })
+
         showToast('Entry updated and saved to the database.', { type: 'success' })
         return
       }
@@ -755,6 +767,19 @@ export default function Exams() {
       const toastMessage = wasEditing
         ? 'Entry updated and saved to the database.'
         : 'Entry added and saved to the database.'
+
+      const { user } = await import('../store/auth').then(m => m.useAuth.getState())
+      const { logActivity } = await import('../lib/logger')
+      const userRole = user?.role || 'admin'
+      const count = newEntries.length
+      logActivity(supabase, {
+        user,
+        role: userRole,
+        action: wasEditing ? 'UPDATE' : 'CREATE',
+        page: 'Exams',
+        description: `${userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase()} ${wasEditing ? 'updated' : 'added'} ${count} exam schedule entr${count === 1 ? 'y' : 'ies'}`
+      })
+
       showToast(toastMessage, { type: 'success' })
     } catch (err) {
       console.error('Error saving entry:', err)
@@ -963,6 +988,18 @@ export default function Exams() {
       )
       const successMessage = 'Exam schedule saved successfully.'
       setFeedback({ message: '', type: '' })
+
+      const { user } = await import('../store/auth').then(m => m.useAuth.getState())
+      const { logActivity } = await import('../lib/logger')
+      const userRole = user?.role || 'admin'
+      logActivity(supabase, {
+        user,
+        role: userRole,
+        action: 'CREATE',
+        page: 'Exams',
+        description: `${userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase()} saved ${entriesToSave.length} pending exam schedule entries`
+      })
+
       showToast(successMessage, { type: 'success' })
 
       // Reset form fields
@@ -1135,6 +1172,17 @@ export default function Exams() {
           .in('schedule_id', recordIds)
         if (error) throw error
         await loadStoredSchedule()
+
+        const { user } = await import('../store/auth').then(m => m.useAuth.getState())
+        const { logActivity } = await import('../lib/logger')
+        const userRole = user?.role || 'admin'
+        logActivity(supabase, {
+          user,
+          role: userRole,
+          action: 'DELETE',
+          page: 'Exams',
+          description: `${userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase()} deleted ${uniqueIds.length} exam schedule entr${uniqueIds.length === 1 ? 'y' : 'ies'}`
+        })
       }
       setQueuedEntries((prev) => prev.filter((entry) => !removalSet.has(entry.id)))
       setSelectedPreviewEntries((prev) => {
