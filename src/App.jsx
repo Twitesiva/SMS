@@ -1,37 +1,40 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./store/auth";
-import PublicApply from "./pages/PublicApply.jsx";
-import Home from "./pages/Home.jsx";
-import PublicResults from "./pages/PublicResults.jsx";
-import PublicTimeTable from "./pages/PublicTimeTable.jsx";
-import ApplicationManual from "./pages/ApplicationManual.jsx";
-import AdminApplications from "./pages/AdminApplications.jsx";
-import AdminLogin from "./pages/AdminLogin.jsx";
-import Batches from "./pages/Batches.jsx";
-import Courses from "./pages/Courses.jsx";
-import Students from "./pages/Students.jsx";
-import Promote from "./pages/Promote.jsx";
-import CreateExam from "./pages/CreateExam.jsx";
-import ExamNameCreation from "./pages/ExamNameCreation.jsx";
-import CompleteRegistration from "./pages/CompleteRegistration.jsx";
-import SubjectMapping from "./pages/SubjectMapping.jsx";
-import HallTickets from "./pages/HallTickets.jsx";
-import SeatAllocation from "./pages/SeatAllocation.jsx";
-import MarksEntry from "./pages/MarksEntry.jsx";
-import ResultPublish from "./pages/ResultPublish.jsx";
-import Setup from "./pages/Setup.jsx";
-import FeesGeneration from "./pages/FeesGeneration.jsx";
-import Decode from "./pages/Decode.jsx";
+import PublicApply from "./pages/common/PublicApply.jsx";
+import Home from "./pages/common/Home.jsx";
+import Intro from "./pages/common/Intro.jsx";
+import RoleSelection from "./pages/common/RoleSelection.jsx";
+
+import PublicResults from "./pages/common/PublicResults.jsx";
+import PublicTimeTable from "./pages/common/PublicTimeTable.jsx";
+import ApplicationManual from "./pages/common/ApplicationManual.jsx";
+import AdminApplications from "./pages/exam/AdminApplications.jsx";
+import AdminLogin from "./pages/common/AdminLogin.jsx";
+import Batches from "./pages/exam/Batches.jsx";
+import Courses from "./pages/exam/Courses.jsx";
+import Students from "./pages/exam/Students.jsx";
+import Promote from "./pages/exam/Promote.jsx";
+import CreateExam from "./pages/exam/CreateExam.jsx";
+import ExamNameCreation from "./pages/exam/ExamNameCreation.jsx";
+import CompleteRegistration from "./pages/exam/CompleteRegistration.jsx";
+import SubjectMapping from "./pages/exam/SubjectMapping.jsx";
+import HallTickets from "./pages/exam/HallTickets.jsx";
+import SeatAllocation from "./pages/exam/SeatAllocation.jsx";
+import MarksEntry from "./pages/exam/MarksEntry.jsx";
+import ResultPublish from "./pages/exam/ResultPublish.jsx";
+import Setup from "./pages/exam/Setup.jsx";
+import FeesGeneration from "./pages/exam/FeesGeneration.jsx";
+import Decode from "./pages/exam/Decode.jsx";
 import GuardedRoute from "./components/GuardedRoute.jsx";
 import Preloader from "./components/Preloader.jsx";
 import ToastStack from "./components/ToastStack.jsx";
-import StudentPayOverview from "./pages/StudentPayOverview.jsx";
-import Reports from "./pages/Reports.jsx";
-import Dashboard from "./pages/Dashboard.jsx";
-import Revaluation from "./pages/Revaluation.jsx";
-import MarksReports from "./pages/MarksReports.jsx";
-import InternalMarks from "./pages/InternalMarks.jsx";
-import History from "./pages/History.jsx";
+import StudentPayOverview from "./pages/exam/StudentPayOverview.jsx";
+import Reports from "./pages/exam/Reports.jsx";
+import Dashboard from "./pages/exam/Dashboard.jsx";
+import Revaluation from "./pages/exam/Revaluation.jsx";
+import MarksReports from "./pages/exam/MarksReports.jsx";
+import InternalMarks from "./pages/exam/InternalMarks.jsx";
+import History from "./pages/exam/History.jsx";
 
 
 export default function App() {
@@ -40,7 +43,11 @@ export default function App() {
   return (
     <>
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Intro />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/roles" element={<RoleSelection />} />
+
+
         <Route path="/apply" element={<PublicApply />} />
         <Route path="/application" element={<ApplicationManual />} />
         <Route path="/public/results" element={<PublicResults />} />
