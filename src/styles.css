@@ -4150,7 +4150,6 @@ body {
 
 .admission-portal__col-sno,
 .admission-portal__col-duration,
-.admission-portal__col-eligibility,
 .admission-portal__col-register {
   text-align: center;
 }
@@ -4163,7 +4162,6 @@ body {
   width: 140px;
 }
 
-.admission-portal__col-eligibility,
 .admission-portal__col-register {
   width: 160px;
 }

@@ -84,7 +84,6 @@ export default function AdmissionPortal() {
                   <th className="admission-portal__col-sno">S.No</th>
                   <th>Name of the Programme</th>
                   <th className="admission-portal__col-duration">Duration</th>
-                  <th className="admission-portal__col-eligibility">Eligibility</th>
                   <th className="admission-portal__col-register">Registration Form</th>
                 </tr>
               </thead>
@@ -105,9 +104,6 @@ export default function AdmissionPortal() {
                       </div>
                     </td>
                     <td className="admission-portal__col-duration">{getDuration(course)}</td>
-                    <td className="admission-portal__col-eligibility">
-                      <span className="admission-portal__table-link">Click Here</span>
-                    </td>
                     <td className="admission-portal__col-register">
                       <Link to="/apply" className="admission-portal__table-link">
                         Apply Now <i className="bi bi-box-arrow-up-right"></i>
@@ -117,7 +113,7 @@ export default function AdmissionPortal() {
                 ))}
                 {courses.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="admission-portal__empty">
+                    <td colSpan={4} className="admission-portal__empty">
                       No admission courses available yet.
                     </td>
                   </tr>
