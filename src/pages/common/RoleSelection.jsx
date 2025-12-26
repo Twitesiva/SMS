@@ -8,6 +8,9 @@ export default function RoleSelection() {
 
     const handleNavigation = (role) => {
         switch (role) {
+            case 'admission-portal':
+                alert("Admission Portal coming soon!");
+                break;
             case 'exam-portal':
                 navigate('/admin/login');
                 break;
@@ -35,6 +38,13 @@ export default function RoleSelection() {
             icon: 'bi-mortarboard-fill',
             desc: 'Access Student Portal, Results & Timetables',
             className: 'student'
+        },
+        {
+            id: 'admission-portal',
+            label: 'Admission Portal',
+            icon: 'bi-journal-text',
+            desc: 'Admissions, Applications & Enquiries',
+            className: 'admission-portal'
         },
         {
             id: 'staff',

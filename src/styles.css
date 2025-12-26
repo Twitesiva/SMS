@@ -3983,6 +3983,191 @@ body {
   }
 }
 
+.admission-portal {
+  min-height: 100vh;
+  padding: clamp(2rem, 5vw, 3.5rem);
+  --admission-maroon: #8e1f3d;
+  --admission-border: #e6c8cf;
+  background: #fbf6f6;
+  color: #2f1d0d;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.admission-portal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.admission-portal__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: #4b5563;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0.7rem 1.4rem;
+  border-radius: 999px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admission-portal__back:hover {
+  transform: translateX(-4px);
+  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.16);
+}
+
+.admission-portal__brand {
+  width: 70px;
+  height: 70px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0.45rem;
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.12);
+}
+
+.admission-portal__brand img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.admission-portal__content {
+  max-width: 960px;
+  margin: 0 auto;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.admission-portal__content h1 {
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  margin: 0;
+}
+
+.admission-portal__subtitle {
+  margin: 0 auto;
+  max-width: 560px;
+  color: rgba(74, 54, 32, 0.8);
+  font-size: 1rem;
+}
+
+.admission-portal__table-wrapper {
+  margin-top: 1rem;
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid var(--admission-border);
+  box-shadow: none;
+  padding: 0;
+  overflow-x: auto;
+}
+
+.admission-portal__table-title {
+  text-align: left;
+  font-weight: 600;
+  color: #2f1d0d;
+  padding: 0.75rem 0.9rem;
+  border-bottom: 1px solid var(--admission-border);
+}
+
+.admission-portal__status {
+  padding: 1rem;
+  font-weight: 600;
+  color: rgba(74, 54, 32, 0.85);
+}
+
+.admission-portal__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+  min-width: 720px;
+}
+
+.admission-portal__table thead th {
+  background: var(--admission-maroon);
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.85rem 0.75rem;
+  border: 1px solid var(--admission-border);
+}
+
+.admission-portal__table tbody td {
+  padding: 0.85rem 0.75rem;
+  border: 1px solid var(--admission-border);
+  color: #2f1d0d;
+  vertical-align: middle;
+}
+
+.admission-portal__table tbody tr:last-child td {
+  border-bottom: 1px solid var(--admission-border);
+}
+
+.admission-portal__table tbody tr:nth-child(even) td {
+  background: #fff6f6;
+}
+
+.admission-portal__empty {
+  text-align: center;
+  padding: 1.5rem;
+  color: rgba(74, 54, 32, 0.7);
+}
+
+.admission-portal__program {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.admission-portal__program-name {
+  font-weight: 600;
+}
+
+.admission-portal__program-meta {
+  font-size: 0.8rem;
+  color: rgba(74, 54, 32, 0.7);
+}
+
+.admission-portal__table-link {
+  color: #1a73e8;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+}
+
+.admission-portal__table-link:hover {
+  text-decoration: underline;
+}
+
+.admission-portal__col-sno,
+.admission-portal__col-duration,
+.admission-portal__col-eligibility,
+.admission-portal__col-register {
+  text-align: center;
+}
+
+.admission-portal__col-sno {
+  width: 70px;
+}
+
+.admission-portal__col-duration {
+  width: 140px;
+}
+
+.admission-portal__col-eligibility,
+.admission-portal__col-register {
+  width: 160px;
+}
+
 .home-hero__control .home-hero__microcopy {
   color: rgba(255, 255, 255, 0.82);
 }

@@ -4,6 +4,7 @@ import PublicApply from "./pages/common/PublicApply.jsx";
 import Home from "./pages/common/Home.jsx";
 import Intro from "./pages/common/Intro.jsx";
 import RoleSelection from "./pages/common/RoleSelection.jsx";
+import AdmissionPortal from "./pages/common/AdmissionPortal.jsx";
 
 import PublicResults from "./pages/common/PublicResults.jsx";
 import PublicTimeTable from "./pages/common/PublicTimeTable.jsx";
@@ -46,6 +47,7 @@ export default function App() {
         <Route path="/" element={<Intro />} />
         <Route path="/home" element={<Home />} />
         <Route path="/roles" element={<RoleSelection />} />
+        <Route path="/admission" element={<AdmissionPortal />} />
 
 
         <Route path="/apply" element={<PublicApply />} />
