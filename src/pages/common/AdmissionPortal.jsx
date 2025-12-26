@@ -59,22 +59,30 @@ export default function AdmissionPortal() {
   return (
     <div className="admission-portal">
       <div className="admission-portal__header">
+        <div className="admission-portal__brand-block">
+          <div className="admission-portal__brand">
+            <img src={crestPrimary} alt="Vijayam crest" />
+          </div>
+          <div className="admission-portal__brand-text">
+            <div className="admission-portal__brand-title">Vijayam Arts & Science College</div>
+            <div className="admission-portal__brand-sub">Admissions Office</div>
+          </div>
+        </div>
         <Link to="/home" className="admission-portal__back">
           <i className="bi bi-arrow-left"></i> Back to Home
         </Link>
-        <div className="admission-portal__brand">
-          <img src={crestPrimary} alt="Vijayam crest" />
-        </div>
       </div>
 
       <div className="admission-portal__content">
-        <h1>Admission Portal</h1>
-        <p className="admission-portal__subtitle">
-          Explore groups, courses, and duration. Start your registration in minutes.
-        </p>
+        <div className="admission-portal__intro">
+          <h1>Admission Portal</h1>
+          <p className="admission-portal__subtitle">
+            Explore groups, courses, and duration. Start your registration in minutes.
+          </p>
+        </div>
 
         <div className="admission-portal__table-wrapper">
-          <div className="admission-portal__table-title">Admission Programmes</div>
+          <div className="admission-portal__table-title">ADMISSION PROGRAMMES</div>
           {loading && <div className="admission-portal__status">Loading admission data...</div>}
           {!loading && error && <div className="admission-portal__status">{error}</div>}
           {!loading && !error && (
@@ -122,6 +130,55 @@ export default function AdmissionPortal() {
             </table>
           )}
         </div>
+
+        <section className="admission-portal__steps">
+          <div className="admission-portal__steps-text">
+            <p className="admission-portal__steps-eyebrow">YOUR ONLINE APPLICATION</p>
+            <h2 className="admission-portal__steps-heading">
+              Follow these steps to complete your admission
+            </h2>
+            <ul className="admission-portal__steps-list">
+              <li>Register and create a new account.</li>
+              <li>Fill the application form online.</li>
+              <li>Upload required documents.</li>
+              <li>Submit your application.</li>
+            </ul>
+          </div>
+
+          <div className="admission-portal__steps-card">
+            <div className="admission-portal__steps-card-title">STEPS TO FOLLOW</div>
+            <ol className="admission-portal__steps-flow">
+              <li className="admission-portal__step admission-portal__step--green">
+                <span className="admission-portal__step-badge">01</span>
+                <span className="admission-portal__step-icon">
+                  <i className="bi bi-person-plus"></i>
+                </span>
+                <span className="admission-portal__step-text">Register Yourself</span>
+              </li>
+              <li className="admission-portal__step admission-portal__step--coral">
+                <span className="admission-portal__step-badge">02</span>
+                <span className="admission-portal__step-icon">
+                  <i className="bi bi-pencil-square"></i>
+                </span>
+                <span className="admission-portal__step-text">Fill Application Form Online</span>
+              </li>
+              <li className="admission-portal__step admission-portal__step--blue">
+                <span className="admission-portal__step-badge">03</span>
+                <span className="admission-portal__step-icon">
+                  <i className="bi bi-upload"></i>
+                </span>
+                <span className="admission-portal__step-text">Upload Required Documents</span>
+              </li>
+              <li className="admission-portal__step admission-portal__step--teal">
+                <span className="admission-portal__step-badge">04</span>
+                <span className="admission-portal__step-icon">
+                  <i className="bi bi-check2-circle"></i>
+                </span>
+                <span className="admission-portal__step-text">Submit Application</span>
+              </li>
+            </ol>
+          </div>
+        </section>
       </div>
     </div>
   )
