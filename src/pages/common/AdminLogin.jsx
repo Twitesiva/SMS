@@ -96,8 +96,8 @@ export default function AdminLogin() {
 
       <div className="admin-login-portal__content">
         <div className="admin-login-portal__intro">
-          <h1>Admin login</h1>
-          <p>Sign in to manage Vijayam exams.</p>
+          <h1>Admission portal login</h1>
+          <p>Sign in to manage Vijayam Admissions.</p>
         </div>
 
         <section className="admin-login-card admin-login-card--portal" aria-live="polite">
