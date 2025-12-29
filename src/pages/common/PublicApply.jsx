@@ -171,7 +171,7 @@ export default function PublicApply() {
           <div className="card card-soft p-4">
             <div className="d-flex align-items-center gap-2 mb-2">
               <img src={crestPrimary} className="brand-logo" alt="Vijayam crest" />
-              <div><h3 className="fw-bold mb-0">Vijayam College of Arts & Science</h3><div className="text-muted">Chennai</div></div>
+              <div><h3 className="fw-bold mb-0">Vijayam College of Arts & Science</h3><div className="text-muted"></div></div>
             </div>
             <h5 className="mt-3">Apply for Admission</h5>
             <form onSubmit={submit}>
@@ -244,7 +244,7 @@ export default function PublicApply() {
 
                 <div className="col-12"><h6 className="fw-bold mb-1">Uploads</h6><hr className="hr-soft" /></div>
                 <div className="col-md-6"><label className="form-label">Upload Photo</label><input type="file" accept="image/*" className="form-control" onChange={e=>setPhoto(e.target.files?.[0]||null)} /></div>
-                <div className="col-md-6"><label className="form-label">Upload Certificate</label><input type="file" accept="application/pdf,image/*" className="form-control" onChange={e=>setCert(e.target.files?.[0]||null)} /></div>
+                <div className="col-md-6"><label className="form-label">Upload Transfer Certificate</label><input type="file" accept="image/*" className="form-control" onChange={e=>setCert(e.target.files?.[0]||null)} /></div>
 
                 <div className="col-12 d-flex justify-content-end gap-2 mt-2">
                   <button type="button" className="btn btn-outline-secondary" onClick={resetAll}>Clear</button>
