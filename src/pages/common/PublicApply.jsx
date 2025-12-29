@@ -39,8 +39,10 @@ export default function PublicApply() {
   })
   const [photo, setPhoto] = useState(null)
   const [cert, setCert] = useState(null)
+  const [tenthMarksheet, setTenthMarksheet] = useState(null)
+  const [twelthMarksheet, setTwelthMarksheet] = useState(null)
+  const [fileInputKey, setFileInputKey] = useState(0)
   const [loading, setLoading] = useState(false)
-  const [msg, setMsg] = useState('')
   const [courses, setCourses] = useState([])
   const [groups, setGroups] = useState([])
   const handle = (k,v)=> setForm(p=>({...p,[k]:v}))
@@ -81,7 +83,8 @@ export default function PublicApply() {
       twelth_register_no: '',
       twelth_percentage: ''
     })
-    setPhoto(null); setCert(null)
+    setPhoto(null); setCert(null); setTenthMarksheet(null); setTwelthMarksheet(null)
+    setFileInputKey((k) => k + 1)
   }
 
   const isDigits = (val, len) => new RegExp(`^\\d{${len}}$`).test(val)
@@ -108,7 +111,7 @@ export default function PublicApply() {
   })
 
   const submit = async (e) => {
-    e.preventDefault(); setMsg(''); setLoading(true)
+    e.preventDefault(); setLoading(true)
     const requiredFields = {
       'Application No': form.application_no,
       'Admission Year': form.admission_year,
@@ -158,8 +161,12 @@ export default function PublicApply() {
       const uploads = {}
       const photoUrl = photo ? await fileToDataUrl(photo) : null
       const certUrl = cert ? await fileToDataUrl(cert) : null
+      const tenthMarksheetUrl = tenthMarksheet ? await fileToDataUrl(tenthMarksheet) : null
+      const twelthMarksheetUrl = twelthMarksheet ? await fileToDataUrl(twelthMarksheet) : null
       if (photoUrl) uploads.photo_url = photoUrl
       if (certUrl) uploads.cert_url = certUrl
+      if (tenthMarksheetUrl) uploads.tenth_marksheet_url = tenthMarksheetUrl
+      if (twelthMarksheetUrl) uploads.twelth_marksheet_url = twelthMarksheetUrl
       await api.submitApplication({
         ...form,
         admission_year: Number(form.admission_year),
@@ -169,9 +176,11 @@ export default function PublicApply() {
         twelth_percentage: form.twelth_percentage === '' ? null : Number(form.twelth_percentage),
         ...uploads
       })
-      setMsg('Application submitted! Admin/Principal will contact you after approval.')
+      showToast('Application submitted! Admin/Principal will contact you after approval.', { type: 'success', title: 'Submitted' })
       resetAll()
-    } catch (err) { setMsg(err.message || 'Error submitting form') }
+    } catch (err) {
+      showToast(err.message || 'Error submitting form', { type: 'danger', title: 'Submission failed' })
+    }
     finally { setLoading(false) }
   }
 
@@ -299,10 +308,26 @@ export default function PublicApply() {
                     </div>
                   </div>
                   <div className="row g-3">
-                    <div className="col-md-4"><label className="form-label">10th Register No</label><input className="form-control" value={form.tenth_register_no} onChange={e=>handle('tenth_register_no',e.target.value)} /></div>
-                    <div className="col-md-2"><label className="form-label">10th %</label><input className="form-control" inputMode="decimal" value={form.tenth_percentage} onChange={onDecimalChange('tenth_percentage',100)} placeholder="0 - 100" /></div>
-                    <div className="col-md-4"><label className="form-label">12th Register No</label><input className="form-control" value={form.twelth_register_no} onChange={e=>handle('twelth_register_no',e.target.value)} /></div>
-                    <div className="col-md-2"><label className="form-label">12th %</label><input className="form-control" inputMode="decimal" value={form.twelth_percentage} onChange={onDecimalChange('twelth_percentage',100)} placeholder="0 - 100" /></div>
+                    <div className="col-md-4"><label className="form-label">10TH REGISTER NO</label><input className="form-control" value={form.tenth_register_no} onChange={e=>handle('tenth_register_no',e.target.value)} /></div>
+                    <div className="col-md-2"><label className="form-label">10TH %</label><input className="form-control" inputMode="decimal" value={form.tenth_percentage} onChange={onDecimalChange('tenth_percentage',100)} placeholder="0 - 100" /></div>
+                    <div className="col-md-4"><label className="form-label">12TH REGISTER NO</label><input className="form-control" value={form.twelth_register_no} onChange={e=>handle('twelth_register_no',e.target.value)} /></div>
+                    <div className="col-md-2"><label className="form-label">12TH %</label><input className="form-control" inputMode="decimal" value={form.twelth_percentage} onChange={onDecimalChange('twelth_percentage',100)} placeholder="0 - 100" /></div>
+                  </div>
+                  <div className="row g-3 mt-1">
+                    <div className="col-md-6">
+                      <label className="form-label">Upload 10TH Marksheet</label>
+                      <div className="public-apply-upload">
+                        <input key={`tenth-${fileInputKey}`} type="file" accept="image/*" className="form-control" onChange={e=>setTenthMarksheet(e.target.files?.[0]||null)} />
+                        <small className="public-apply-upload-hint text-muted">Image only</small>
+                      </div>
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label">Upload 12TH Marksheet</label>
+                      <div className="public-apply-upload">
+                        <input key={`twelth-${fileInputKey}`} type="file" accept="image/*" className="form-control" onChange={e=>setTwelthMarksheet(e.target.files?.[0]||null)} />
+                        <small className="public-apply-upload-hint text-muted">Image only</small>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -318,14 +343,14 @@ export default function PublicApply() {
                     <div className="col-md-6">
                       <label className="form-label">Upload Photo</label>
                       <div className="public-apply-upload">
-                        <input type="file" accept="image/*" className="form-control" onChange={e=>setPhoto(e.target.files?.[0]||null)} />
+                        <input key={`photo-${fileInputKey}`} type="file" accept="image/*" className="form-control" onChange={e=>setPhoto(e.target.files?.[0]||null)} />
                         <small className="public-apply-upload-hint text-muted">Image only</small>
                       </div>
                     </div>
                     <div className="col-md-6">
                       <label className="form-label">Upload Transfer Certificate</label>
                       <div className="public-apply-upload">
-                        <input type="file" accept="image/*" className="form-control" onChange={e=>setCert(e.target.files?.[0]||null)} />
+                        <input key={`cert-${fileInputKey}`} type="file" accept="image/*" className="form-control" onChange={e=>setCert(e.target.files?.[0]||null)} />
                         <small className="public-apply-upload-hint text-muted">Image only</small>
                       </div>
                     </div>
@@ -337,7 +362,6 @@ export default function PublicApply() {
                   <button className="btn btn-brand" disabled={loading}>{loading?'Submitting...':'Submit'}</button>
                 </div>
               </form>
-              {msg && <div className="alert alert-info mt-3 mb-0 public-apply-alert">{msg}</div>}
             </div>
           </div>
         </div>

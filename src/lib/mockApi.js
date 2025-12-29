@@ -643,6 +643,20 @@ export const api = {
         document_url: app.cert_url,
       });
     }
+    if (app.tenth_marksheet_url) {
+      documents.push({
+        application_id: application.id,
+        document_type: "MARKSHEET_10TH",
+        document_url: app.tenth_marksheet_url,
+      });
+    }
+    if (app.twelth_marksheet_url) {
+      documents.push({
+        application_id: application.id,
+        document_type: "MARKSHEET_12TH",
+        document_url: app.twelth_marksheet_url,
+      });
+    }
 
     if (documents.length > 0) {
       await runQuery(
