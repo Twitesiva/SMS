@@ -18,6 +18,7 @@ const TABLES = {
   feeCategories: "fee_categories",
   adminUsers: "admin_users",
   examSchedules: "exam_schedule",
+  applicationDocuments: "application_documents",
 };
 
 const runQuery = async (query, label) => {
@@ -618,11 +619,39 @@ const ADMIN_USERS = [
 
 export const api = {
   submitApplication: async (app) => {
-    await runQuery(
-      supabase.from(TABLES.applications).insert(toApplicationRow(app)),
+    const application = await runQuery(
+      supabase
+        .from(TABLES.applications)
+        .insert(toApplicationRow(app))
+        .select("id")
+        .single(),
       "Unable to submit application"
     );
-    return { ok: true };
+
+    const documents = [];
+    if (app.photo_url) {
+      documents.push({
+        application_id: application.id,
+        document_type: "PHOTO",
+        document_url: app.photo_url,
+      });
+    }
+    if (app.cert_url) {
+      documents.push({
+        application_id: application.id,
+        document_type: "TRANSFER_CERTIFICATE",
+        document_url: app.cert_url,
+      });
+    }
+
+    if (documents.length > 0) {
+      await runQuery(
+        supabase.from(TABLES.applicationDocuments).insert(documents),
+        "Unable to save application documents"
+      );
+    }
+
+    return { ok: true, id: application.id };
   },
 
   login: async (email, password) => {
