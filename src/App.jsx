@@ -11,7 +11,7 @@ import PublicResults from "./pages/common/PublicResults.jsx";
 import PublicTimeTable from "./pages/common/PublicTimeTable.jsx";
 import ApplicationManual from "./pages/common/ApplicationManual.jsx";
 import AdminApplications from "./pages/exam/AdminApplications.jsx";
-import AdminLogin from "./pages/common/AdminLogin.jsx";
+import AdminLogin from "./pages/admissions/AdminLogin.jsx";
 import Batches from "./pages/exam/Batches.jsx";
 import Courses from "./pages/exam/Courses.jsx";
 import Students from "./pages/exam/Students.jsx";
@@ -37,6 +37,7 @@ import Revaluation from "./pages/exam/Revaluation.jsx";
 import MarksReports from "./pages/exam/MarksReports.jsx";
 import InternalMarks from "./pages/exam/InternalMarks.jsx";
 import History from "./pages/exam/History.jsx";
+import AdmissionsOverview from "./pages/admissions/AdmissionsOverview.jsx";
 
 
 export default function App() {
@@ -254,6 +255,22 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isAuthed}>
               <Dashboard />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/admin/admissions-overview"
+          element={
+            <GuardedRoute isAuthed={isAuthed}>
+              <Navigate to="/admissions/overview" replace />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/admissions/overview"
+          element={
+            <GuardedRoute isAuthed={isAuthed}>
+              <AdmissionsOverview />
             </GuardedRoute>
           }
         />

@@ -68,7 +68,7 @@ export default function AdminLogin() {
       // Small delay to ensure session log is propagated/discoverable
       await new Promise(resolve => setTimeout(resolve, 500))
 
-      nav('/admin')
+      nav('/admissions/overview')
     } catch (err) {
       console.error(err)
       setError(err.message || 'Unable to sign in right now')
