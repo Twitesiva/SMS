@@ -15,7 +15,7 @@ export default function RoleSelection() {
                 navigate('/admin/login');
                 break;
             case 'student':
-                alert("Student Portal coming soon!");
+                navigate('/student/login');
                 break;
             case 'staff':
                 alert("Staff Portal coming soon!");

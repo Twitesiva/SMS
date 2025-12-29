@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./store/auth";
+import { useStudentAuth } from "./store/studentAuth";
 import PublicApply from "./pages/common/PublicApply.jsx";
 import Home from "./pages/common/Home.jsx";
 import Intro from "./pages/common/Intro.jsx";
@@ -13,6 +14,9 @@ import ApplicationManual from "./pages/common/ApplicationManual.jsx";
 import AdminApplications from "./pages/exam/AdminApplications.jsx";
 import AdmissionsLogin from "./pages/admissions/AdminLogin.jsx";
 import ExamLogin from "./pages/exam/ExamLogin.jsx";
+import StudentLogin from "./pages/student/StudentLogin.jsx";
+import StudentDashboard from "./pages/student/StudentDashboard.jsx";
+import StudentSection from "./pages/student/StudentSection.jsx";
 import Batches from "./pages/exam/Batches.jsx";
 import Courses from "./pages/exam/Courses.jsx";
 import Students from "./pages/exam/Students.jsx";
@@ -43,7 +47,9 @@ import AdmissionsOverview from "./pages/admissions/AdmissionsOverview.jsx";
 
 export default function App() {
   const { user, signOut } = useAuth();
+  const { student } = useStudentAuth();
   const isAuthed = !!user;
+  const isStudentAuthed = !!student;
   return (
     <>
       <Routes>
@@ -60,6 +66,7 @@ export default function App() {
         <Route path="/public/timetable" element={<PublicTimeTable />} />
         <Route path="/admin/login" element={<ExamLogin />} />
         <Route path="/admissions/login" element={<AdmissionsLogin />} />
+        <Route path="/student/login" element={<StudentLogin />} />
         <Route
           path="/admin"
           element={
@@ -273,6 +280,22 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isAuthed} redirectTo="/admissions/login">
               <AdmissionsOverview />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/student/dashboard"
+          element={
+            <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
+              <StudentDashboard />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/student/:section"
+          element={
+            <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
+              <StudentSection />
             </GuardedRoute>
           }
         />
