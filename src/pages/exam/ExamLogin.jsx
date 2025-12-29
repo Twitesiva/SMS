@@ -1,13 +1,11 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, Link, useLocation } from 'react-router-dom'
+import { useState } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../../../supabaseClient'
 import { useAuth } from '../../store/auth'
 import crestAccent from '../../assets/media/images.png'
 
-export default function AdminLogin() {
-
+export default function ExamLogin() {
   const nav = useNavigate()
-  const location = useLocation()
   const { setUser } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -15,14 +13,6 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const showAdmissionHint = location.state?.admissionPortal === true
-
-  useEffect(() => {
-    if (!showAdmissionHint) return
-    setRole('ADMIN')
-    setEmail('admin@vijayam.in')
-    setPassword('admin123')
-  }, [showAdmissionHint])
 
   const onLogin = async (event) => {
     event.preventDefault()
@@ -46,29 +36,26 @@ export default function AdminLogin() {
 
       if (authError) throw authError
 
-      // Determine role based on specific email
       let userRole = 'ADMIN'
       if (cleanEmail === 'principal@vijayam.in') {
-        userRole = 'PRINCIPAL' // or 'principal', matching your system's role naming convention
+        userRole = 'PRINCIPAL'
       }
 
-      // Log the login activity
       const { data: logData } = await supabase.from('activity_logs').insert([
         {
           user_id: data.user.id,
           role: userRole.toLowerCase(),
           action: 'LOGIN',
-          page: 'Admin Login',
+          page: 'Exam Portal Login',
           description: `1. ${userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase()} logged in successfully`,
         },
       ]).select().single()
 
       setUser({ id: data.user.id, email: data.user.email, role: userRole, sessionLogId: logData?.id })
 
-      // Small delay to ensure session log is propagated/discoverable
       await new Promise(resolve => setTimeout(resolve, 500))
 
-      nav('/admissions/overview')
+      nav('/admin/dashboard')
     } catch (err) {
       console.error(err)
       setError(err.message || 'Unable to sign in right now')
@@ -86,7 +73,7 @@ export default function AdminLogin() {
           </div>
           <div className="admission-portal__brand-text">
             <div className="admission-portal__brand-title">Vijayam Arts & Science College</div>
-            <div className="admission-portal__brand-sub">Admissions Office</div>
+            <div className="admission-portal__brand-sub">Exam Control Centre</div>
           </div>
         </div>
         <Link to="/roles" className="admission-portal__back">
@@ -96,8 +83,8 @@ export default function AdminLogin() {
 
       <div className="admin-login-portal__content">
         <div className="admin-login-portal__intro">
-          <h1>Admission portal login</h1>
-          <p>Sign in to manage Vijayam Admissions.</p>
+          <h1>Exam portal login</h1>
+          <p>Sign in to manage examinations and results.</p>
         </div>
 
         <section className="admin-login-card admin-login-card--portal" aria-live="polite">

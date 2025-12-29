@@ -9,7 +9,7 @@ export default function RoleSelection() {
     const handleNavigation = (role) => {
         switch (role) {
             case 'admission-portal':
-                navigate('/admin/login', { state: { admissionPortal: true } });
+                navigate('/admissions/login', { state: { admissionPortal: true } });
                 break;
             case 'exam-portal':
                 navigate('/admin/login');

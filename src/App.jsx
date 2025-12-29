@@ -11,7 +11,8 @@ import PublicResults from "./pages/common/PublicResults.jsx";
 import PublicTimeTable from "./pages/common/PublicTimeTable.jsx";
 import ApplicationManual from "./pages/common/ApplicationManual.jsx";
 import AdminApplications from "./pages/exam/AdminApplications.jsx";
-import AdminLogin from "./pages/admissions/AdminLogin.jsx";
+import AdmissionsLogin from "./pages/admissions/AdminLogin.jsx";
+import ExamLogin from "./pages/exam/ExamLogin.jsx";
 import Batches from "./pages/exam/Batches.jsx";
 import Courses from "./pages/exam/Courses.jsx";
 import Students from "./pages/exam/Students.jsx";
@@ -57,7 +58,8 @@ export default function App() {
         <Route path="/application" element={<ApplicationManual />} />
         <Route path="/public/results" element={<PublicResults />} />
         <Route path="/public/timetable" element={<PublicTimeTable />} />
-        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/login" element={<ExamLogin />} />
+        <Route path="/admissions/login" element={<AdmissionsLogin />} />
         <Route
           path="/admin"
           element={
@@ -269,7 +271,7 @@ export default function App() {
         <Route
           path="/admissions/overview"
           element={
-            <GuardedRoute isAuthed={isAuthed}>
+            <GuardedRoute isAuthed={isAuthed} redirectTo="/admissions/login">
               <AdmissionsOverview />
             </GuardedRoute>
           }
