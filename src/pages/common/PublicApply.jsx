@@ -349,10 +349,10 @@ export default function PublicApply() {
                     </div>
                   </div>
                   <div className="row g-3">
-                    <div className="col-md-4"><label className="form-label">10TH REGISTER NO</label><input className="form-control" value={form.tenth_register_no} onChange={e=>handle('tenth_register_no',e.target.value)} /></div>
-                    <div className="col-md-2"><label className="form-label">10TH %</label><input className="form-control" inputMode="decimal" value={form.tenth_percentage} onChange={onDecimalChange('tenth_percentage',100)} placeholder="0 - 100" /></div>
-                    <div className="col-md-4"><label className="form-label">12TH REGISTER NO</label><input className="form-control" value={form.twelth_register_no} onChange={e=>handle('twelth_register_no',e.target.value)} /></div>
-                    <div className="col-md-2"><label className="form-label">12TH %</label><input className="form-control" inputMode="decimal" value={form.twelth_percentage} onChange={onDecimalChange('twelth_percentage',100)} placeholder="0 - 100" /></div>
+                    <div className="col-md-4"><label className="form-label">10th Register No</label><input className="form-control" value={form.tenth_register_no} onChange={e=>handle('tenth_register_no',e.target.value)} /></div>
+                    <div className="col-md-2"><label className="form-label">10th Percentage</label><input className="form-control" inputMode="decimal" value={form.tenth_percentage} onChange={onDecimalChange('tenth_percentage',100)} /></div>
+                    <div className="col-md-4"><label className="form-label">12th Register No</label><input className="form-control" value={form.twelth_register_no} onChange={e=>handle('twelth_register_no',e.target.value)} /></div>
+                    <div className="col-md-2"><label className="form-label">12th Percentage</label><input className="form-control" inputMode="decimal" value={form.twelth_percentage} onChange={onDecimalChange('twelth_percentage',100)} /></div>
                   </div>
                   <div className="row g-3 mt-1">
                     <div className="col-md-6">
@@ -389,7 +389,7 @@ export default function PublicApply() {
                       </div>
                     </div>
                     <div className="col-md-6">
-                      <label className="form-label">Upload Transfer Certificate</label>
+                      <label className="form-label"><span className="fw-bold">Upload Transfer Certificate</span></label>
                       <div className="public-apply-upload">
                         <input key={`cert-${fileInputKey}`} type="file" accept="image/*" className="form-control" onChange={e=>setCert(e.target.files?.[0]||null)} />
                         <small className="public-apply-upload-hint text-muted">Image only</small>
