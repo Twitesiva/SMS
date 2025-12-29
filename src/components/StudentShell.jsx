@@ -70,6 +70,11 @@ export default function StudentShell({ children }) {
           <div className="student-sidebar__footer">
             <div className="student-sidebar__student-id">25CS001</div>
             <div className="student-sidebar__student-name">K JYOSHNA</div>
+            <div className="student-sidebar__datetime">
+              {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+              {' '}
+              {new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+            </div>
           </div>
         </aside>
 

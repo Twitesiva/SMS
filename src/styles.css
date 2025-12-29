@@ -6876,6 +6876,18 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   color: #1a73e8;
 }
 
+.student-sidebar__student-name {
+  font-weight: 600;
+  color: #1a73e8;
+}
+
+.student-sidebar__datetime {
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+  color: #1f2d3d;
+  font-weight: 700;
+}
+
 .student-main {
   flex: 1;
   display: flex;
