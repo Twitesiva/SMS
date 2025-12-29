@@ -15,8 +15,6 @@ export default function RoleSelection() {
                 navigate('/admin/login');
                 break;
             case 'student':
-                // Placeholder or actual route
-                // navigate('/student/login'); 
                 alert("Student Portal coming soon!");
                 break;
             case 'staff':
@@ -40,18 +38,18 @@ export default function RoleSelection() {
             className: 'student'
         },
         {
-            id: 'admission-portal',
-            label: 'Admission Portal',
-            icon: 'bi-journal-text',
-            desc: 'Admissions, Applications & Enquiries',
-            className: 'admission-portal'
-        },
-        {
             id: 'staff',
             label: 'Staff',
             icon: 'bi-person-workspace',
             desc: 'Access Staff Portal, Manage Students',
             className: 'staff'
+        },
+        {
+            id: 'admission-portal',
+            label: 'Admission Portal',
+            icon: 'bi-journal-text',
+            desc: 'Admissions, Applications & Enquiries',
+            className: 'admission-portal'
         },
         {
             id: 'admin',
