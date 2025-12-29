@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { api } from '../../lib/mockApi'
 import { validateRequiredFields } from '../../lib/validation'
 import { showToast } from '../../store/ui'
@@ -187,6 +188,11 @@ export default function PublicApply() {
   return (
     <div className="public-apply-page">
       <div className="container py-5">
+        <div className="d-flex justify-content-end mb-3">
+          <Link to="/admission" className="btn btn-outline-secondary">
+            <i className="bi bi-arrow-left me-2"></i>Back
+          </Link>
+        </div>
         <div className="public-apply-hero mb-4">
           <div className="public-apply-hero-brand">
             <img src={crestPrimary} className="brand-logo public-apply-logo" alt="Vijayam crest" />

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { api } from '../../lib/mockApi'
 import crestPrimary from '../../assets/media/images.png'
 
@@ -109,6 +110,11 @@ export default function AdmissionsOverview() {
 
   return (
     <main className="container py-5">
+      <div className="d-flex justify-content-end mb-3">
+        <Link to="/roles" className="btn btn-outline-secondary">
+          <i className="bi bi-arrow-left me-2"></i>Back
+        </Link>
+      </div>
       <section className="setup-hero mb-4 text-center">
         <div className="setup-hero-copywrap mx-auto text-center" style={{ maxWidth: '640px' }}>
           <div className="admin-applications__crest mx-auto" aria-hidden="true">
