@@ -4,6 +4,7 @@ import { api } from '../../lib/mockApi'
 import crestPrimary from '../../assets/media/images.png'
 
 export default function AdmissionPortal() {
+  const admissionYear = new Date().getFullYear()
   const [courses, setCourses] = useState([])
   const [groups, setGroups] = useState([])
   const [loading, setLoading] = useState(true)
@@ -58,17 +59,16 @@ export default function AdmissionPortal() {
 
   return (
     <div className="admission-portal">
-      <div className="admission-portal__header">
-        <div className="admission-portal__brand-block">
-          <div className="admission-portal__brand">
-            <img src={crestPrimary} alt="Vijayam crest" />
-          </div>
-          <div className="admission-portal__brand-text">
-            <div className="admission-portal__brand-title">Vijayam Arts & Science College</div>
-            <div className="admission-portal__brand-sub">Admissions Office</div>
+      <div className="admission-portal__header admission-portal__hero public-apply-hero">
+        <div className="public-apply-hero-brand">
+          <img src={crestPrimary} className="brand-logo public-apply-logo" alt="Vijayam crest" />
+          <div>
+            <div className="public-apply-eyebrow">ADMISSIONS {admissionYear}</div>
+            <h2 className="public-apply-title">Vijayam College of Arts & Science</h2>
+            <div className="public-apply-subtitle">Chittor</div>
           </div>
         </div>
-        <Link to="/home" className="admission-portal__back">
+        <Link to="/home" className="admission-portal__back admission-portal__back--hero">
           <i className="bi bi-arrow-left"></i> Back to Home
         </Link>
       </div>

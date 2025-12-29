@@ -205,7 +205,7 @@ export default function PublicApply() {
         </div>
 
         <div className="row g-4 justify-content-center">
-          <div className="col-lg-10">
+          <div className="col-12">
             <div className="public-apply-intro mb-4">
               <div className="public-apply-intro-grid">
                 <div>
@@ -240,7 +240,7 @@ export default function PublicApply() {
         </div>
 
         <div className="row g-4 justify-content-center">
-          <div className="col-lg-10">
+          <div className="col-12">
             <div className="card card-soft public-apply-form">
               <div className="public-apply-form-header">
                 <div>
