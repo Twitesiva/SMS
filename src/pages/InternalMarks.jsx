@@ -247,7 +247,8 @@ export default function InternalMarks() {
                     hallTicketNo: student?.hall_ticket_no || 'N/A',
                     internalMarks: existingMark ? existingMark.internal_marks : '',
                     theoryMarks: existingMark ? existingMark.theory_marks : 0, // Store theory marks for total calculation
-                    isSaved: !!existingMark
+                    isSaved: !!existingMark,
+                    error: null
                 }
             })
 
@@ -510,23 +511,32 @@ export default function InternalMarks() {
                                                     {student.studentName}
                                                 </td>
                                                 <td>
-                                                    <input
-                                                        type="number"
-                                                        className="form-control"
-                                                        value={student.internalMarks}
-                                                        disabled={student.isSaved}
-                                                        onChange={(e) => {
-                                                            const newValue = e.target.value
-                                                            const numValue = Number(newValue)
-                                                            if (newValue === '' || (numValue >= 0 && numValue <= 30)) {
+                                                    <div className="d-flex flex-column">
+                                                        <input
+                                                            type="number"
+                                                            className={`form-control ${student.error ? 'is-invalid' : ''}`}
+                                                            value={student.internalMarks}
+                                                            disabled={student.isSaved}
+                                                            onChange={(e) => {
+                                                                const newValue = e.target.value;
+                                                                const numValue = Number(newValue);
+                                                                let error = null;
+                                                                if (newValue !== '' && (numValue < 0 || numValue > 30)) {
+                                                                    error = "Please enter valid marks";
+                                                                }
                                                                 setStudentList(prev => prev.map((s, i) =>
-                                                                    i === index ? { ...s, internalMarks: newValue } : s
-                                                                ))
-                                                            }
-                                                        }}
-                                                        placeholder="Marks"
-                                                        max="30"
-                                                    />
+                                                                    i === index ? { ...s, internalMarks: newValue, error: error } : s
+                                                                ));
+                                                            }}
+                                                            placeholder="Marks"
+                                                            max="30"
+                                                        />
+                                                        {student.error && (
+                                                            <small className="text-danger mt-1">
+                                                                {student.error}
+                                                            </small>
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 <td>
                                                     {student.isSaved ? <span className="badge bg-success">Submitted</span> : <span className="text-muted">-</span>}
@@ -539,7 +549,7 @@ export default function InternalMarks() {
                                     <button
                                         className="btn btn-primary"
                                         onClick={handleSaveMarks}
-                                        disabled={isSaving}
+                                        disabled={isSaving || studentList.some(s => s.error)}
                                     >
                                         {isSaving ? 'Saving...' : 'Save Marks'}
                                     </button>

@@ -195,10 +195,9 @@ export default function Practical() {
             if (studError) throw studError
 
             // 5. Fetch existing marks for these students and subject
-            // Note: We use the list of subjectIds we found earlier for the code
             const { data: existingMarks, error: marksError } = await supabase
                 .from('marks')
-                .select('student_id, theory_marks')
+                .select('id, student_id, subject_id, theory_marks')
                 .in('student_id', uniqueStudentIds)
                 .in('subject_id', subjectIds)
 
@@ -207,17 +206,26 @@ export default function Practical() {
             const marksMap = new Map()
             if (existingMarks) {
                 existingMarks.forEach(m => {
-                    marksMap.set(m.student_id, m.theory_marks)
+                    const key = `${m.student_id}-${m.subject_id}`
+                    marksMap.set(key, m)
                 })
             }
 
-            const formattedStudents = (students || []).map(stud => ({
-                ...stud,
-                subject_id: studentSubjectMap.get(stud.id), // Attach correct subject_id
-                marks: marksMap.has(stud.id) ? marksMap.get(stud.id) : '',
-                isSaved: marksMap.has(stud.id),
-                error: null
-            }))
+            const formattedStudents = (students || []).map(stud => {
+                const sId = stud.id
+                const subId = studentSubjectMap.get(sId)
+                const key = `${sId}-${subId}`
+                const markEntry = marksMap.get(key)
+
+                return {
+                    ...stud,
+                    subject_id: subId,
+                    marks: markEntry ? markEntry.theory_marks : '',
+                    mark_id: markEntry ? markEntry.id : null,
+                    isSaved: !!markEntry,
+                    error: null
+                }
+            })
 
             setStudentsList(formattedStudents)
 
@@ -231,31 +239,67 @@ export default function Practical() {
 
     const handleSaveMark = async (student) => {
         try {
-            if (!student.marks && student.marks !== 0) return;
+            if (student.marks === '' || student.marks === null) return;
+            const marksValue = Number(student.marks);
 
             if (!student.subject_id) {
                 alert("Subject ID missing for student")
                 return
             }
 
-            const { error } = await supabase
-                .from('marks')
-                .upsert({
-                    student_id: student.id,
-                    subject_id: student.subject_id,
-                    theory_marks: student.marks,
-                    // You might want to update updated_at if it exists
-                }, { onConflict: 'student_id, subject_id' })
+            let error;
+            let data;
 
-            if (error) throw error
+            if (student.mark_id) {
+                // Update existing mark
+                const { data: updateData, error: updateError } = await supabase
+                    .from('marks')
+                    .update({
+                        theory_marks: marksValue,
+                    })
+                    .eq('id', student.mark_id)
+                    .select('id')
 
-            setStudentsList(prev => prev.map(s =>
-                s.id === student.id ? { ...s, isSaved: true } : s
-            ))
+                error = updateError;
+                data = updateData;
+            } else {
+                // Insert new mark
+                const { data: insertData, error: insertError } = await supabase
+                    .from('marks')
+                    .insert({
+                        student_id: student.id,
+                        subject_id: student.subject_id,
+                        theory_marks: marksValue,
+                    })
+                    .select('id')
+
+                error = insertError;
+                data = insertData;
+            }
+
+            if (error) {
+                if (error.message && error.message.includes('column "id" does not exist')) {
+                    console.error("DB ERROR: Check 'marks' table triggers (e.g. set_max_marks_by_subject). Likely referencing invalid column 'id' on 'subjects' table.");
+                    alert("Database Error: Trigger function likely references missing column 'id'. Please check schema.");
+                }
+                throw error
+            }
+
+            // Update local state
+            setStudentsList(prev => prev.map(s => {
+                if (s.id === student.id) {
+                    return {
+                        ...s,
+                        isSaved: true,
+                        mark_id: data && data[0] ? data[0].id : s.mark_id // Update the mark_id from response
+                    }
+                }
+                return s
+            }))
 
         } catch (error) {
             console.error('Error saving mark:', error)
-            alert('Failed to save mark')
+            alert(`Failed to save mark: ${error.message}`)
         }
     }
 
