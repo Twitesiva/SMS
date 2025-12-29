@@ -138,11 +138,18 @@ export default function AdmissionPortal() {
               Follow these steps to complete your admission
             </h2>
             <ul className="admission-portal__steps-list">
-              <li>Register and create a new account.</li>
+              <li>Register by filling the above details.</li>
               <li>Fill the application form online.</li>
               <li>Upload required documents.</li>
               <li>Submit your application.</li>
             </ul>
+            <div className="admission-portal__note">
+              <div className="admission-portal__note-title">NOTE</div>
+              <ul className="admission-portal__note-list">
+                <li>Upload clear photo in jpg or png format. Suggested size 135px x 175px (max 200KB).</li>
+                <li>Upload transfer certificate and marksheets in jpg or png format (max 200KB each).</li>
+              </ul>
+            </div>
           </div>
 
           <div className="admission-portal__steps-card">

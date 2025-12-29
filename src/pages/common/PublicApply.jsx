@@ -198,6 +198,37 @@ export default function PublicApply() {
           </div>
         </div>
 
+        <div className="public-apply-intro mb-4">
+          <div className="public-apply-intro-grid">
+            <div>
+              <div className="public-apply-intro-eyebrow">YOUR ONLINE APPLICATION</div>
+              <h4 className="public-apply-intro-title">Follow these steps to complete your admission</h4>
+              <ul className="public-apply-intro-list">
+                <li>Register by filling the above details</li>
+                <li>Fill the application form online.</li>
+                <li>Upload required documents.</li>
+                <li>Submit your application.</li>
+              </ul>
+              <div className="public-apply-note">
+                <div className="public-apply-note-title">NOTE</div>
+                <ul className="public-apply-note-list">
+                  <li>Upload clear photo in jpg or png format. Suggested size 135px x 175px (max 200KB).</li>
+                  <li>Upload transfer certificate and marksheets in jpg or png format (max 200KB each).</li>
+                </ul>
+              </div>
+            </div>
+            <div className="public-apply-steps">
+              <div className="public-apply-steps-title">STEPS TO FOLLOW</div>
+              <div className="public-apply-steps-grid">
+                <div className="public-apply-step"><span className="public-apply-step-num">01</span><span className="public-apply-step-text">Register Yourself</span></div>
+                <div className="public-apply-step"><span className="public-apply-step-num">02</span><span className="public-apply-step-text">Fill Application Form Online</span></div>
+                <div className="public-apply-step"><span className="public-apply-step-num">03</span><span className="public-apply-step-text">Upload Required Documents</span></div>
+                <div className="public-apply-step"><span className="public-apply-step-num">04</span><span className="public-apply-step-text">Submit Application</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="row g-4 justify-content-center">
           <div className="col-lg-10">
             <div className="card card-soft public-apply-form">
