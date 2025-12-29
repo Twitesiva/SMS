@@ -17,6 +17,7 @@ import ExamLogin from "./pages/exam/ExamLogin.jsx";
 import StudentLogin from "./pages/student/StudentLogin.jsx";
 import StudentDashboard from "./pages/student/StudentDashboard.jsx";
 import StudentSection from "./pages/student/StudentSection.jsx";
+import StudentPersonalDetails from "./pages/student/StudentPersonalDetails.jsx";
 import Batches from "./pages/exam/Batches.jsx";
 import Courses from "./pages/exam/Courses.jsx";
 import Students from "./pages/exam/Students.jsx";
@@ -288,6 +289,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
               <StudentDashboard />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/student/personal-details"
+          element={
+            <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
+              <StudentPersonalDetails />
             </GuardedRoute>
           }
         />

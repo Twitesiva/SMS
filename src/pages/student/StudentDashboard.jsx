@@ -19,6 +19,7 @@ export default function StudentDashboard() {
   const statusLabel = statusRaw
     ? statusRaw.charAt(0).toUpperCase() + statusRaw.slice(1).toLowerCase()
     : 'Active'
+  const photoSrc = student?.photo_url || student?.photo || ''
 
   return (
     <StudentShell>
@@ -45,8 +46,8 @@ export default function StudentDashboard() {
           <div className="student-card student-card--status">
             <div className="student-card__body student-card__body--center">
               <div className="student-avatar">
-                {student?.photo_url ? (
-                  <img src={student.photo_url} alt={student?.full_name || 'Student'} />
+                {photoSrc ? (
+                  <img src={photoSrc} alt={student?.full_name || 'Student'} />
                 ) : (
                   <div className="student-avatar__fallback">
                     {(student?.full_name || 'ST').slice(0, 2).toUpperCase()}
