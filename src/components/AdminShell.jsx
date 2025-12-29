@@ -28,13 +28,14 @@ const navGroups = [
       { to: "/admin/exams", label: "Create Exam timetable", icon: "bi-journal-check" },
       { to: "/admin/complete-registration", label: "Complete Registration & View Time table", icon: "bi-list-check" },
       { to: "/admin/hall-tickets", label: "Hall Ticket", icon: "bi-ticket-perforated" },
+      { to: "/admin/practical", label: "Practical", icon: "bi-flask" },
+      { to: "/admin/internal-marks", label: "Internal Marks Entry", icon: "bi-clipboard-check" },
       { to: "/admin/seat-allocation", label: "Seat Allocation", icon: "bi-grid-3x3-gap" },
     ],
   },
   {
     title: "Post-Exam Portal",
     items: [
-      { to: "/admin/internal-marks", label: "Internal Marks Entry", icon: "bi-clipboard-check" },
       { to: "/admin/payments-overview", label: "Decoding", icon: "bi-bar-chart" },
       { to: "/admin/results", label: "Marks Entry", icon: "bi-award" },
       { to: "/admin/result-publish", label: "Result Publish", icon: "bi-megaphone" },

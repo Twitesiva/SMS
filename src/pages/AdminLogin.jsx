@@ -29,8 +29,13 @@ export default function AdminLogin() {
 
     try {
       const user = await api.login(email, password)
+
+      if (user.role !== role) {
+        throw new Error('Invalid credentials for selected role')
+      }
+
       setUser({ email: user.email, role: user.role })
-      nav('/admin')
+      nav('/admin/dashboard')
     } catch (err) {
       setError(err.message || 'Unable to sign in right now')
     } finally {
@@ -84,7 +89,7 @@ export default function AdminLogin() {
           </div>
         </div>
 
-        <form className="admin-login-form" onSubmit={onLogin}>
+        <form className="admin-login-form" onSubmit={onLogin} autoComplete="off">
           <label className="admin-login-field">
             <span>Login as</span>
             <select
@@ -103,7 +108,7 @@ export default function AdminLogin() {
               type="text"
               className="admin-login-input"
               value={email}
-              autoComplete="username"
+              autoComplete="off"
               onChange={(event) => setEmail(event.target.value)}
               required
             />
@@ -117,7 +122,7 @@ export default function AdminLogin() {
                 className="admin-login-input"
                 style={{ paddingRight: '2.5rem', width: '100%' }}
                 value={password}
-                autoComplete="current-password"
+                autoComplete="new-password"
                 onChange={(event) => setPassword(event.target.value)}
                 required
               />

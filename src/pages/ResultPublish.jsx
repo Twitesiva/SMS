@@ -109,10 +109,8 @@ export default function ResultPublish() {
         setPublishing(true);
         try {
 
-            // 1. Fetch registrations with nested marks data
-            // We fetch the core structure but remove the direct relation joins to avoid schema errors.
-            // 1. Fetch registrations with nested marks data
-            // We fetch the core structure but remove the direct relation joins to avoid schema errors.
+            // 1. Fetch registrations
+            // Remove deep nesting for marks/barcodes as we will fetch marks separately to handle null barcodes
             let regQuery = supabase
                 .from('exam_registrations')
                 .select(`
@@ -122,16 +120,7 @@ export default function ResultPublish() {
                     semester,
                     exam_registration_subjects (
                         id,
-                        subject_id,
-                        barcodes (
-                            id,
-                            marks (
-                                internal_marks,
-                                theory_marks,
-                                max_marks,
-                                barcode_id
-                            )
-                        )
+                        subject_id
                     )
                 `)
                 .eq('exam_id', selectedExamId);
@@ -158,21 +147,34 @@ export default function ResultPublish() {
                 }
             });
 
-            // 3. Fetch Students and Subjects in parallel
-            const [studentsRes, subjectsRes] = await Promise.all([
+            // 3. Fetch Students, Subjects, and Marks in parallel
+            const [studentsRes, subjectsRes, marksRes] = await Promise.all([
                 studentIds.size > 0
                     ? supabase.from('students').select('id, full_name, hall_ticket_no').in('id', Array.from(studentIds))
                     : { data: [] },
                 subjectIds.size > 0
                     ? supabase.from('subjects').select('subject_id, subject_name, subject_code').in('subject_id', Array.from(subjectIds))
+                    : { data: [] },
+                (studentIds.size > 0 && subjectIds.size > 0)
+                    ? supabase.from('marks')
+                        .select('student_id, subject_id, internal_marks, theory_marks, max_marks, barcode_id')
+                        .in('student_id', Array.from(studentIds))
+                        .in('subject_id', Array.from(subjectIds))
                     : { data: [] }
             ]);
 
             if (studentsRes.error) throw studentsRes.error;
             if (subjectsRes.error) throw subjectsRes.error;
+            if (marksRes.error) throw marksRes.error;
 
             const studentMap = new Map((studentsRes.data || []).map(s => [s.id, s]));
             const subjectMap = new Map((subjectsRes.data || []).map(s => [s.subject_id, s]));
+
+            // Map marks by "student_id-subject_id"
+            const marksMap = new Map();
+            (marksRes.data || []).forEach(m => {
+                marksMap.set(`${m.student_id}-${m.subject_id}`, m);
+            });
 
             // 4. Flatten and transform into results format
             const resultsPayload = [];
@@ -188,34 +190,35 @@ export default function ResultPublish() {
                     const subjectCode = subject?.subject_code || "N/A";
                     const subjectName = subject?.subject_name || "Unknown";
 
-                    (sub.barcodes || []).forEach(barcode => {
-                        (barcode.marks || []).forEach(mark => {
-                            const internal = mark.internal_marks || 0;
-                            const theory = mark.theory_marks || 0;
-                            const total = internal + theory;
+                    // Look up mark
+                    const mark = marksMap.get(`${reg.student_id}-${sub.subject_id}`);
 
-                            // Payload for DB
-                            resultsPayload.push({
-                                student_id: reg.student_id,
-                                exam_id: reg.exam_id,
-                                subject_id: sub.subject_id,
-                                semester: reg.semester,
-                                marks_obtained: total,
-                                internal_marks: internal,
-                                theory_marks: theory,
-                                max_marks: mark.max_marks || 100,
-                                barcode_id: mark.barcode_id
-                            });
+                    if (mark) {
+                        const internal = mark.internal_marks || 0;
+                        const theory = mark.theory_marks || 0;
+                        const total = internal + theory;
 
-                            // Preview for UI
-                            previewList.push({
-                                hallTicket,
-                                studentName,
-                                subject: `${subjectCode} - ${subjectName}`,
-                                marks: total
-                            });
+                        // Payload for DB
+                        resultsPayload.push({
+                            student_id: reg.student_id,
+                            exam_id: reg.exam_id,
+                            subject_id: sub.subject_id,
+                            semester: reg.semester,
+                            marks_obtained: total,
+                            internal_marks: internal,
+                            theory_marks: theory,
+                            max_marks: mark.max_marks || 100,
+                            barcode_id: mark.barcode_id // Can be null now, which is allowed
                         });
-                    });
+
+                        // Preview for UI
+                        previewList.push({
+                            hallTicket,
+                            studentName,
+                            subject: `${subjectCode} - ${subjectName}`,
+                            marks: total
+                        });
+                    }
                 });
             });
 

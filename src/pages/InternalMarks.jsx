@@ -369,9 +369,13 @@ export default function InternalMarks() {
 
             if (subjectData) {
                 subjectData.forEach(subj => {
-                    if (examSubjectCodes.has(subj.subject_code) && !seenCodes.has(subj.subject_code)) {
-                        seenCodes.add(subj.subject_code)
-                        uniqueSubjects.push(subj)
+                    const code = subj.subject_code
+                    if (examSubjectCodes.has(code) && !seenCodes.has(code)) {
+                        // Filter out practical subjects (ending with 'P')
+                        if (!code.trim().toUpperCase().endsWith('P')) {
+                            seenCodes.add(code)
+                            uniqueSubjects.push(subj)
+                        }
                     }
                 })
             }
@@ -494,6 +498,7 @@ export default function InternalMarks() {
                                             <th style={{ width: '20%' }}>Hall Ticket No</th>
                                             <th style={{ width: '35%' }}>Student Name</th>
                                             <th style={{ width: '20%' }}>Internal Marks</th>
+                                            <th style={{ width: '20%' }}>Status</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -503,13 +508,13 @@ export default function InternalMarks() {
                                                 <td>{student.hallTicketNo}</td>
                                                 <td>
                                                     {student.studentName}
-                                                    {student.isSaved && <span className="badge bg-success ms-2">Saved</span>}
                                                 </td>
                                                 <td>
                                                     <input
                                                         type="number"
                                                         className="form-control"
                                                         value={student.internalMarks}
+                                                        disabled={student.isSaved}
                                                         onChange={(e) => {
                                                             const newValue = e.target.value
                                                             const numValue = Number(newValue)
@@ -522,6 +527,9 @@ export default function InternalMarks() {
                                                         placeholder="Marks"
                                                         max="30"
                                                     />
+                                                </td>
+                                                <td>
+                                                    {student.isSaved ? <span className="badge bg-success">Submitted</span> : <span className="text-muted">-</span>}
                                                 </td>
                                             </tr>
                                         ))}

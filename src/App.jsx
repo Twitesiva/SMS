@@ -31,6 +31,8 @@ import Dashboard from "./pages/Dashboard.jsx";
 import Revaluation from "./pages/Revaluation.jsx";
 import MarksReports from "./pages/MarksReports.jsx";
 import InternalMarks from "./pages/InternalMarks.jsx";
+import Practical from "./pages/Practical.jsx";
+
 
 
 export default function App() {
@@ -122,6 +124,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isAuthed}>
               <HallTickets />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/admin/practical"
+          element={
+            <GuardedRoute isAuthed={isAuthed}>
+              <Practical />
             </GuardedRoute>
           }
         />

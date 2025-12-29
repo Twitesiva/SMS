@@ -146,6 +146,11 @@ export default function PaymentsOverview() {
       const uniqueSubjectsMap = new Map();
       if (subjectsData) {
         subjectsData.forEach(s => {
+          // Filter out subjects ending with 'P'
+          if (s.subject_code && s.subject_code.trim().toUpperCase().endsWith('P')) {
+            return;
+          }
+
           if (uniqueSubjectsMap.has(s.subject_code)) {
             const existing = uniqueSubjectsMap.get(s.subject_code);
             // If the current duplicate has isGenerated=true, use it (or update existing)
@@ -307,14 +312,22 @@ export default function PaymentsOverview() {
       try {
         const { data, error } = await supabase
           .from('exam_schedule')
-          .select('exam_date')
+          .select('exam_date, subject_code')
           .eq('exam_master_id', selectedExam)
           .order('exam_date', { ascending: true });
 
         if (error) throw error;
 
+        // Filter out dates that only have practical subjects (ending in 'P')
+        // We do this by keeping only rows where subject_code does NOT end in 'P'
+        // Then we get unique dates from those rows.
+        const validRows = data.filter(item => {
+          const code = item.subject_code || '';
+          return !code.trim().toUpperCase().endsWith('P');
+        });
+
         // Get unique dates and format them
-        const uniqueDates = [...new Set(data.map(item => item.exam_date))];
+        const uniqueDates = [...new Set(validRows.map(item => item.exam_date))];
         setExamDates(uniqueDates);
 
         // Reset selected date and clear related states
@@ -1030,7 +1043,7 @@ export default function PaymentsOverview() {
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-        pdf.save(`${selectedSubjectForDecode?.subject_code || 'subject'}-barcodes.pdf`);
+      pdf.save(`${selectedSubjectForDecode?.subject_code || 'subject'}-barcodes.pdf`);
     } catch (err) {
       console.error('Error generating PDF:', err);
     } finally {
@@ -1098,26 +1111,26 @@ export default function PaymentsOverview() {
                         <th>Barcode</th>
                       </tr>
                     </thead>
-                      <tbody>
-                        {subjectStudents.map((student, index) => (
-                          <tr key={`${student.studentId}-${index}`}>
-                            <td className="text-muted">{index + 1}.</td>
-                            <td>
-                              {selectedSubjectForDecode
-                                ? `${selectedSubjectForDecode.subject_code}-${selectedSubjectForDecode.subject_name}`
-                                : "N/A"}
-                            </td>
-                            <td>{student.hallTicketNo || "N/A"}</td>
-                            <td>
-                              {student.barcode ? (
-                                <Barcode value={student.barcode} height={25} width={1} displayValue={true} fontSize={10} margin={0} />
-                              ) : (
-                                <span className="text-muted">-</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
+                    <tbody>
+                      {subjectStudents.map((student, index) => (
+                        <tr key={`${student.studentId}-${index}`}>
+                          <td className="text-muted">{index + 1}.</td>
+                          <td>
+                            {selectedSubjectForDecode
+                              ? `${selectedSubjectForDecode.subject_code}-${selectedSubjectForDecode.subject_name}`
+                              : "N/A"}
+                          </td>
+                          <td>{student.hallTicketNo || "N/A"}</td>
+                          <td>
+                            {student.barcode ? (
+                              <Barcode value={student.barcode} height={25} width={1} displayValue={true} fontSize={10} margin={0} />
+                            ) : (
+                              <span className="text-muted">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
                   </table>
                 </div>
               ) : (
@@ -1403,7 +1416,7 @@ export default function PaymentsOverview() {
                 </thead>
                 <tbody>
                   {subjects.map((row, index) => {
-                      const key = `${row.subject_code || row.subject_name || ""}-${row.barcode || "none"}-${index}`;
+                    const key = `${row.subject_code || row.subject_name || ""}-${row.barcode || "none"}-${index}`;
                     const isVisible = !!visibleDecodeRows[key];
                     return (
                       <tr key={key}>
