@@ -244,6 +244,7 @@ export default function PublicApply() {
 
                 <div className="col-12"><h6 className="fw-bold mb-1">Uploads</h6><hr className="hr-soft" /></div>
                 <div className="col-md-6"><label className="form-label">Upload Photo</label><input type="file" accept="image/*" className="form-control" onChange={e=>setPhoto(e.target.files?.[0]||null)} /></div>
+                <div className="col-md-6"><label className="form-label">Upload Certificate</label><input type="file" accept="application/pdf,image/*" className="form-control" onChange={e=>setCert(e.target.files?.[0]||null)} /></div>
 
                 <div className="col-12 d-flex justify-content-end gap-2 mt-2">
                   <button type="button" className="btn btn-outline-secondary" onClick={resetAll}>Clear</button>
