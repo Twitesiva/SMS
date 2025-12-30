@@ -25,6 +25,17 @@ const adminNavGroups = [
     ]
   },
   {
+    title: 'Department',
+    static: true,
+    items: [
+      {
+        to: '/admin-portal/department',
+        label: 'Department',
+        icon: 'bi-diagram-3'
+      }
+    ]
+  },
+  {
     title: 'Class Time Table',
     static: true,
     items: [
@@ -68,50 +79,85 @@ export default function ProfileCreation() {
               <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                 <div>
                   <h4 className="mb-1">Profile creation</h4>
-                  <p className="text-muted mb-0">Create new admin profiles with access, role, and contact details.</p>
+                  <p className="text-muted mb-0">Create new staff profiles with academic, contact, and employment details.</p>
                 </div>
                 <button type="button" className="btn btn-outline-secondary">Reset</button>
               </div>
 
               <form className="row g-3" onSubmit={(event) => event.preventDefault()}>
                 <div className="col-md-6">
-                  <label className="form-label">Full name</label>
+                  <label className="form-label">Staff ID</label>
+                  <input className="form-control" type="text" placeholder="Enter staff ID" />
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label">Full Name</label>
                   <input className="form-control" type="text" placeholder="Enter full name" />
                 </div>
                 <div className="col-md-6">
-                  <label className="form-label">Role</label>
+                  <label className="form-label">Gender</label>
                   <select className="form-select" defaultValue="">
-                    <option value="" disabled>Select role</option>
-                    <option value="ADMIN">Admin</option>
-                    <option value="ADMISSIONS">Admissions</option>
-                    <option value="FINANCE">Finance</option>
-                    <option value="ACADEMICS">Academics</option>
+                    <option value="" disabled>Select gender</option>
+                    <option value="MALE">Male</option>
+                    <option value="FEMALE">Female</option>
+                    <option value="OTHER">Other</option>
                   </select>
                 </div>
                 <div className="col-md-6">
-                  <label className="form-label">Email address</label>
+                  <label className="form-label">DOB</label>
+                  <input className="form-control" type="date" />
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label">Phone</label>
+                  <input className="form-control" type="tel" placeholder="Enter phone number" />
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label">Aadhar no</label>
+                  <input className="form-control" type="text" placeholder="Enter Aadhar number" />
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label">Email</label>
                   <input className="form-control" type="email" placeholder="name@vijayam.in" />
                 </div>
                 <div className="col-md-6">
-                  <label className="form-label">Mobile number</label>
-                  <input className="form-control" type="tel" placeholder="Enter mobile number" />
+                  <label className="form-label">Address</label>
+                  <input className="form-control" type="text" placeholder="Enter address" />
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label">Designation</label>
+                  <input className="form-control" type="text" placeholder="Enter designation" />
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label">Qualification</label>
+                  <input className="form-control" type="text" placeholder="Enter qualification" />
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label">Experience</label>
+                  <input className="form-control" type="text" placeholder="Enter experience" />
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label">Joining Date</label>
+                  <input className="form-control" type="date" />
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label">Employment Type</label>
+                  <select className="form-select" defaultValue="">
+                    <option value="" disabled>Select employment type</option>
+                    <option value="FULL_TIME">Full-time</option>
+                    <option value="PART_TIME">Part-time</option>
+                    <option value="CONTRACT">Contract</option>
+                  </select>
                 </div>
                 <div className="col-md-6">
                   <label className="form-label">Department</label>
-                  <input className="form-control" type="text" placeholder="Department or unit" />
+                  <input className="form-control" type="text" placeholder="Enter department" />
                 </div>
                 <div className="col-md-6">
-                  <label className="form-label">Access level</label>
+                  <label className="form-label">Status</label>
                   <select className="form-select" defaultValue="">
-                    <option value="" disabled>Select access level</option>
-                    <option value="FULL">Full access</option>
-                    <option value="LIMITED">Limited access</option>
-                    <option value="READ_ONLY">Read only</option>
+                    <option value="" disabled>Select status</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
                   </select>
-                </div>
-                <div className="col-12">
-                  <label className="form-label">Notes</label>
-                  <textarea className="form-control" rows="3" placeholder="Add optional notes or permissions"></textarea>
                 </div>
                 <div className="col-12 d-flex justify-content-end gap-2">
                   <button type="button" className="btn btn-outline-secondary">Save draft</button>
