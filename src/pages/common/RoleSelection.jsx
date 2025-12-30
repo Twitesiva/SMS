@@ -48,7 +48,7 @@ export default function RoleSelection() {
             label: 'Admission Portal',
             icon: 'bi-journal-text',
             desc: 'Admissions, Applications & Enquiries',
-            className: 'admission-portal'
+            className: 'admission-card'
         },
         {
             id: 'admin',
