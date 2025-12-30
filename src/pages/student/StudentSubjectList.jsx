@@ -259,7 +259,6 @@ export default function StudentSubjectList() {
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Semester</th>
                   <th>Sub category</th>
                   <th>Subject name</th>
                 </tr>
@@ -268,7 +267,7 @@ export default function StudentSubjectList() {
                 {tableRows.map((row) =>
                   row.type === 'group' ? (
                     <tr className="student-subjects-table-group" key={row.key}>
-                      <td colSpan={4}>
+                      <td colSpan={3}>
                         <div className="student-subjects-table-group__content">
                           <span className="student-subjects-table-group__label">{row.label}</span>
                           <span className="student-subjects-table-group__count">
@@ -280,7 +279,6 @@ export default function StudentSubjectList() {
                   ) : (
                     <tr key={row.key}>
                       <td>{row.index}</td>
-                      <td>{formatSemesterLabel(row.semester)}</td>
                       <td>{row.category}</td>
                       <td>{row.subjectName}</td>
                     </tr>

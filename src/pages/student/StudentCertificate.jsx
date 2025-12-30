@@ -1,14 +1,48 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 import crest from '../../assets/media/images.png'
 import StudentShell from '../../components/StudentShell'
 import { useStudentAuth } from '../../store/studentAuth'
+import { supabase } from '../../../supabaseClient'
 
 export default function StudentCertificate() {
   const { student } = useStudentAuth()
   const certificateRef = useRef(null)
   const [certificateExporting, setCertificateExporting] = useState(false)
+  const [studentDetails, setStudentDetails] = useState(null)
+  const details = studentDetails || student
+  const renderField = (value) =>
+    value ? (
+      <span className="student-certificate__fill">{value}</span>
+    ) : (
+      <span className="student-certificate__blank" aria-hidden="true"></span>
+    )
+
+  useEffect(() => {
+    if (!student?.id && !student?.student_id) return
+    const loadDetails = async () => {
+      try {
+        let query = supabase
+          .from('students')
+          .select(
+            'id, student_id, full_name, father_name, mother_name, course_name, academic_year, current_semester, hall_ticket_no, group_name'
+          )
+        if (student?.id) {
+          query = query.eq('id', student.id)
+        } else {
+          query = query.eq('student_id', student.student_id)
+        }
+        const { data, error } = await query.maybeSingle()
+        if (error) throw error
+        if (data) setStudentDetails(data)
+      } catch (err) {
+        console.error('Failed to load student details for certificate', err)
+      }
+    }
+
+    loadDetails()
+  }, [student?.id, student?.student_id])
 
   const handleCertificateDownload = () => {
     const node = certificateRef.current
@@ -65,7 +99,7 @@ export default function StudentCertificate() {
               </div>
             </div>
             <div className="student-certificate__meta">
-              <div>Certificate No: VJY/BC/{student?.student_id || '0000'}</div>
+              <div>Certificate No: VJY/BC/{details?.student_id || '0000'}</div>
               <div>
                 Date:{' '}
                 {new Date().toLocaleDateString('en-GB', {
@@ -88,53 +122,39 @@ export default function StudentCertificate() {
           <div className="student-certificate__title">Bonafide Certificate</div>
 
           <div className="student-certificate__body">
-            <p className="student-certificate__text">
-              This is to certify that{' '}
-              <span className="student-certificate__highlight">
-                {student?.full_name || 'Student Name'}
-              </span>{' '}
-              (Student ID:{' '}
-              <span className="student-certificate__highlight">
-                {student?.student_id || '—'}
-              </span>
-              ) is a bonafide student of Vijayam Arts & Science College. The student is
-              enrolled in{' '}
-              <span className="student-certificate__highlight">
-                {student?.course_name || student?.course || 'Course'}
-              </span>{' '}
-              {student?.group_name ? `(${student.group_name})` : ''} for the academic year{' '}
-              <span className="student-certificate__highlight">
-                {student?.academic_year || '—'}
-              </span>{' '}
-              and is currently studying in{' '}
-              <span className="student-certificate__highlight">
-                {student?.current_semester
-                  ? `Semester ${student.current_semester}`
-                  : 'the current semester'}
-              </span>
-              .
-            </p>
+            <div className="student-certificate__content">
+              <p className="student-certificate__text">
+                This is to certify that Mr./Ms.{' '}
+                {renderField(details?.full_name)}
+                , son/daughter of Mr./Ms.{` `}
+                {renderField(details?.father_name)}
+                , is a bonafide student of{' '}
+                <span className="student-certificate__fill">Vijayam Arts & Science College</span>
+                .
+              </p>
 
-            <div className="student-certificate__details">
-              <div className="student-certificate__detail">
-                <span>Register No.</span>
-                <span>{student?.hall_ticket_no || '—'}</span>
-              </div>
-              <div className="student-certificate__detail">
-                <span>Course</span>
-                <span>{student?.course_name || student?.course || '—'}</span>
-              </div>
-              <div className="student-certificate__detail">
-                <span>Academic Year</span>
-                <span>{student?.academic_year || '—'}</span>
-              </div>
-              <div className="student-certificate__detail">
-                <span>Issued For</span>
-                <span>Official purposes</span>
-              </div>
-              <div className="student-certificate__detail">
-                <span>Group</span>
-                <span>{student?.group_name || student?.group || '—'}</span>
+              <p className="student-certificate__text">
+                He/She is studying in{' '}
+                {renderField(
+                  [details?.course_name || details?.course, details?.group_name]
+                    .filter(Boolean)
+                    .join(' ')
+                )}{' '}
+                (Course / Department / Year / Semester) during the academic year{' '}
+                {renderField(details?.academic_year)}
+                .
+              </p>
+
+              <p className="student-certificate__text">
+                This certificate is issued for the purpose of{' '}
+                <span className="student-certificate__blank" aria-hidden="true"></span>.
+              </p>
+
+              <div className="student-certificate__meta-lines">
+                <div className="student-certificate__meta-line">
+                  <span>Date:</span>
+                  <span className="student-certificate__blank" aria-hidden="true"></span>
+                </div>
               </div>
             </div>
           </div>
