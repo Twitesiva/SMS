@@ -22,6 +22,9 @@ import StudentLogin from "./pages/student/StudentLogin.jsx";
 import StudentDashboard from "./pages/student/StudentDashboard.jsx";
 import StudentSection from "./pages/student/StudentSection.jsx";
 import StudentPersonalDetails from "./pages/student/StudentPersonalDetails.jsx";
+import StudentSubjectList from "./pages/student/StudentSubjectList.jsx";
+import StudentCertificate from "./pages/student/StudentCertificate.jsx";
+import StudentFeePayment from "./pages/student/StudentFeePayment.jsx";
 import Batches from "./pages/exam/Batches.jsx";
 import Courses from "./pages/exam/Courses.jsx";
 import Students from "./pages/exam/Students.jsx";
@@ -327,6 +330,30 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
               <StudentPersonalDetails />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/student/course-list"
+          element={
+            <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
+              <StudentSubjectList />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/student/certificate"
+          element={
+            <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
+              <StudentCertificate />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/student/fee-payment"
+          element={
+            <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
+              <StudentFeePayment />
             </GuardedRoute>
           }
         />

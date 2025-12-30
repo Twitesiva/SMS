@@ -16,8 +16,9 @@ export default function StudentDashboard() {
   const { student } = useStudentAuth()
   const rows = buildProfileRows(student).filter((row) => row.value)
   const statusRaw = student?.status ? student.status.toString() : 'Active'
-  const statusLabel = statusRaw
-    ? statusRaw.charAt(0).toUpperCase() + statusRaw.slice(1).toLowerCase()
+  const normalizedStatus = statusRaw.trim().toLowerCase() === 'continue' ? 'active' : statusRaw
+  const statusLabel = normalizedStatus
+    ? normalizedStatus.charAt(0).toUpperCase() + normalizedStatus.slice(1).toLowerCase()
     : 'Active'
   const photoSrc = student?.photo_url || student?.photo || ''
 

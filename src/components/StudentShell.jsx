@@ -6,7 +6,7 @@ import crest from '../assets/media/images.png'
 const navItems = [
   { to: '/student/dashboard', label: 'Dashboard', icon: 'bi-speedometer2' },
   { to: '/student/personal-details', label: 'Personal details', icon: 'bi-person' },
-  { to: '/student/course-list', label: 'Course list', icon: 'bi-journal-text' },
+  { to: '/student/course-list', label: 'Subject list', icon: 'bi-journal-text' },
   { to: '/student/grade-mark', label: 'Grade / Mark', icon: 'bi-award' },
   { to: '/student/attendance', label: 'Attendance', icon: 'bi-calendar-check' },
   { to: '/student/exam-result', label: 'Exam result', icon: 'bi-file-earmark-bar-graph' },
@@ -14,6 +14,7 @@ const navItems = [
   { to: '/student/hostel-details', label: 'Hostel details', icon: 'bi-house-door' },
   { to: '/student/transport', label: 'Transport', icon: 'bi-bus-front' },
   { to: '/student/fee-payment', label: 'Fee payment', icon: 'bi-credit-card' },
+  { to: '/student/certificate', label: 'Certificate', icon: 'bi-patch-check' },
 ]
 
 export default function StudentShell({ children }) {
@@ -40,10 +41,10 @@ export default function StudentShell({ children }) {
             <i className={`bi ${collapsed ? 'bi-chevron-double-right' : 'bi-list'}`}></i>
           </button>
           <img src={crest} alt="Vijayam crest" className="student-header__logo" />
-          <div className="student-header__left">
-            <div className="student-header__title">Student Portal</div>
-            <div className="student-header__subtitle">Vijayam Arts & Science College</div>
-          </div>
+          <div className="student-header__portal">Student Portal</div>
+        </div>
+        <div className="student-header__center">
+          <div className="student-header__title">Vijayam Arts & Science College</div>
         </div>
         <div className="student-header__right">
           <button className="student-header__logout" type="button" onClick={handleLogout}>
@@ -68,8 +69,8 @@ export default function StudentShell({ children }) {
           </nav>
 
           <div className="student-sidebar__footer">
-            <div className="student-sidebar__student-id">25CS001</div>
-            <div className="student-sidebar__student-name">K JYOSHNA</div>
+            <div className="student-sidebar__student-id">{student?.student_id || '—'}</div>
+            <div className="student-sidebar__student-name">{student?.full_name || 'Student'}</div>
             <div className="student-sidebar__datetime">
               {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
               {' '}

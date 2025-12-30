@@ -99,7 +99,29 @@ export default function StudentPersonalDetails() {
           <p>Review your profile and personal information.</p>
         </div>
 
-        {loading && <div className="student-details__status">Loading details...</div>}
+        {loading && (
+          <div className="student-details__loading" role="status" aria-live="polite">
+            <div className="student-details__loading-header">
+              <div className="student-loader__spinner" aria-hidden="true"></div>
+              <div>
+                <div className="student-loader__title">Loading personal details</div>
+                <div className="student-loader__subtitle">Fetching your profile and academic info.</div>
+              </div>
+            </div>
+            <div className="student-details__loading-grid" aria-hidden="true">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div className="student-loader-card" key={`loader-card-${index}`}>
+                  <div className="student-loader-card__header student-loader__shimmer"></div>
+                  <div className="student-loader-card__line student-loader__shimmer"></div>
+                  <div className="student-loader-card__line student-loader__shimmer"></div>
+                  <div className="student-loader-card__line student-loader__shimmer"></div>
+                  <div className="student-loader-card__line student-loader__shimmer"></div>
+                </div>
+              ))}
+            </div>
+            <span className="sr-only">Loading details...</span>
+          </div>
+        )}
         {error && !loading && <div className="student-details__status student-details__status--error">{error}</div>}
 
         {!loading && !error && (

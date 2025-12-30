@@ -4,7 +4,6 @@ import StudentShell from '../../components/StudentShell'
 
 const sectionLabels = {
   'personal-details': 'Personal details',
-  'course-list': 'Course list',
   'grade-mark': 'Grade / Mark',
   attendance: 'Attendance',
   'exam-result': 'Exam result',
