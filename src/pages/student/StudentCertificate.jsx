@@ -28,7 +28,7 @@ export default function StudentCertificate() {
         const pageHeight = pdf.internal.pageSize.getHeight()
         const widthScale = pageWidth / canvas.width
         const heightScale = pageHeight / canvas.height
-        const scale = Math.max(widthScale, heightScale)
+        const scale = Math.min(widthScale, heightScale)
         const imgWidth = canvas.width * scale
         const imgHeight = canvas.height * scale
         const xOffset = (pageWidth - imgWidth) / 2
@@ -125,16 +125,16 @@ export default function StudentCertificate() {
                 <span>{student?.course_name || student?.course || '—'}</span>
               </div>
               <div className="student-certificate__detail">
-                <span>Group</span>
-                <span>{student?.group_name || student?.group || '—'}</span>
-              </div>
-              <div className="student-certificate__detail">
                 <span>Academic Year</span>
                 <span>{student?.academic_year || '—'}</span>
               </div>
               <div className="student-certificate__detail">
                 <span>Issued For</span>
                 <span>Official purposes</span>
+              </div>
+              <div className="student-certificate__detail">
+                <span>Group</span>
+                <span>{student?.group_name || student?.group || '—'}</span>
               </div>
             </div>
           </div>

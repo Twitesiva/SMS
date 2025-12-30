@@ -7499,6 +7499,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 
 .student-certificate__paper {
   width: min(980px, 100%);
+  min-height: 720px;
   background: #ffffff;
   border-radius: 22px;
   border: 1px solid #d8e1f2;
@@ -7506,6 +7507,8 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   padding: 2rem;
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .student-certificate__paper::before {
@@ -7597,9 +7600,32 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   visibility: hidden;
 }
 
+.student-certificate--exporting .student-certificate__paper {
+  width: 794px;
+  min-height: 1123px;
+  height: 1123px;
+  border-radius: 0;
+  box-shadow: none;
+  display: block;
+  padding: 2.2rem;
+}
+
+.student-certificate--exporting .student-certificate__body {
+  flex: none;
+}
+
+.student-certificate--exporting .student-certificate__details {
+  grid-template-columns: 1fr;
+  padding: 1rem;
+}
+
+.student-certificate--exporting .student-certificate__footer {
+  margin-top: 1.6rem;
+}
+
 .student-certificate__title {
   text-align: center;
-  margin: 2rem 0 1.2rem;
+  margin: 1.6rem 0 1rem;
   font-size: 1.4rem;
   font-weight: 700;
   color: #0f172a;
@@ -7612,6 +7638,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 .student-certificate__body {
   position: relative;
   z-index: 1;
+  flex: 1;
 }
 
 .student-certificate__text {
