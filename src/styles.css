@@ -1176,6 +1176,103 @@ h6,
   border-bottom: none;
 }
 
+.student-payments-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.student-payments-card {
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 1rem 1.2rem;
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.08);
+}
+
+.student-payments-card__label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.student-payments-card__value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-top: 0.35rem;
+}
+
+.student-payments-table-wrapper {
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+  overflow: auto;
+}
+
+.student-payments-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+}
+
+.student-payments-table thead th {
+  background: #f1f5f9;
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.85rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.student-payments-table tbody td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #edf2f7;
+  color: #1f2937;
+  font-weight: 500;
+}
+
+.student-payments-table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.student-payments-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.student-payments-badge--success {
+  background: rgba(34, 197, 94, 0.15);
+  color: #15803d;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.student-payments-badge--warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.student-payments-badge--danger {
+  background: rgba(239, 68, 68, 0.15);
+  color: #b91c1c;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
 .student-subjects-table-group td {
   background: #e2e8f0;
   color: #0f172a;
