@@ -15,6 +15,8 @@ import AdminApplications from "./pages/exam/AdminApplications.jsx";
 import AdmissionsLogin from "./pages/admissions/AdminLogin.jsx";
 import AdminLogin from "./pages/admin/AdminLogin.jsx";
 import ProfileCreation from "./pages/admin/ProfileCreation.jsx";
+import FeesCreation from "./pages/admin/FeesCreation.jsx";
+import ClassTimeTable from "./pages/admin/ClassTimeTable.jsx";
 import ExamLogin from "./pages/exam/ExamLogin.jsx";
 import StudentLogin from "./pages/student/StudentLogin.jsx";
 import StudentDashboard from "./pages/student/StudentDashboard.jsx";
@@ -74,6 +76,23 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
               <ProfileCreation />
+            </GuardedRoute>
+          }
+        />
+
+        <Route
+          path="/admin-portal/fees-creation"
+          element={
+            <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
+              <FeesCreation />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/admin-portal/class-time-table"
+          element={
+            <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
+              <ClassTimeTable />
             </GuardedRoute>
           }
         />

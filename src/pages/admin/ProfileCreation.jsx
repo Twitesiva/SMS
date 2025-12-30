@@ -3,13 +3,35 @@ import crestPrimary from '../../assets/media/images.png'
 
 const adminNavGroups = [
   {
+    title: 'Fees Creation',
+    static: true,
+    items: [
+      {
+        to: '/admin-portal/fees-creation',
+        label: 'Student Fees Creation',
+        icon: 'bi-currency-rupee'
+      }
+    ]
+  },
+  {
     title: 'Profile Creation',
     static: true,
     items: [
       {
         to: '/admin-portal/profile-creation',
-        label: 'Profile Creation',
+        label: 'Staff Profile Creation',
         icon: 'bi-person-plus-fill'
+      }
+    ]
+  },
+  {
+    title: 'Class Time Table',
+    static: true,
+    items: [
+      {
+        to: '/admin-portal/class-time-table',
+        label: 'Class Time Table',
+        icon: 'bi-calendar-date'
       }
     ]
   }
@@ -41,7 +63,7 @@ export default function ProfileCreation() {
         </section>
 
         <div className="row g-4 justify-content-center mx-0">
-          <div className="col-12 col-lg-10">
+          <div className="col-12">
             <div className="card card-soft p-4">
               <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                 <div>
