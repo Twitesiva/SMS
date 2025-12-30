@@ -1002,6 +1002,12 @@ h6,
   border: 1px solid rgba(37, 81, 150, 0.25);
 }
 
+.students-section-badge-group {
+  background: rgba(14, 116, 144, 0.12);
+  color: #0f2f3a;
+  border: 1px solid rgba(14, 116, 144, 0.25);
+}
+
 .students-section-list {
   display: flex;
   flex-direction: column;
@@ -1041,6 +1047,39 @@ h6,
 
 .subjects-combo-subjects {
   padding-left: 0.25rem;
+}
+
+.student-subject-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.student-subject-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px dashed rgba(15, 23, 42, 0.12);
+}
+
+.student-subject-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.student-subject-name {
+  font-weight: 600;
+  color: #1f2d3d;
+}
+
+.student-subject-code {
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #64748b;
 }
 
 .form-control,
