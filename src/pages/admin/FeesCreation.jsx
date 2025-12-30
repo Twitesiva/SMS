@@ -51,7 +51,96 @@ export default function FeesCreation() {
     const [selectedGroup, setSelectedGroup] = useState('')
     const [selectedCourse, setSelectedCourse] = useState('')
 
-    const [fees, setFees] = useState({})
+    const [feeRows, setFeeRows] = useState([])
+
+    // Fee Categories State
+    const [feeCategories, setFeeCategories] = useState([])
+    const [newFeeCategory, setNewFeeCategory] = useState('')
+    const [editingCategory, setEditingCategory] = useState(null)
+    const [editValue, setEditValue] = useState('')
+
+    const handleAddCategory = async (e) => {
+        e.preventDefault()
+        const categoryName = newFeeCategory.trim()
+        if (!categoryName) return
+
+        try {
+            const { data, error } = await supabase
+                .from('academic_fee_categories')
+                .insert([{ name: categoryName }])
+                .select()
+                .single()
+
+            if (error) {
+                if (error.code === '23505') { // Unique violation
+                    toast.warning('Category already exists')
+                } else {
+                    throw error
+                }
+                return
+            }
+
+            setFeeCategories([...feeCategories, data])
+            setNewFeeCategory('')
+            toast.success('Category added')
+        } catch (error) {
+            console.error('Error adding category:', error)
+            toast.error('Failed to add category')
+        }
+    }
+
+
+    const handleRemoveCategory = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this category?')) return
+
+        try {
+            const { error } = await supabase
+                .from('academic_fee_categories')
+                .delete()
+                .eq('id', id)
+
+            if (error) throw error
+
+            setFeeCategories(feeCategories.filter(c => c.id !== id))
+            toast.success('Category removed')
+        } catch (error) {
+            console.error('Error removing category:', error)
+            toast.error('Failed to remove category')
+        }
+    }
+
+    const handleEditClick = (category) => {
+        setEditingCategory(category.id)
+        setEditValue(category.name)
+    }
+
+    const handleUpdateCategory = async () => {
+        if (!editValue.trim()) return
+
+        try {
+            const { error } = await supabase
+                .from('academic_fee_categories')
+                .update({ name: editValue.trim() })
+                .eq('id', editingCategory)
+
+            if (error) throw error
+
+            setFeeCategories(feeCategories.map(cat =>
+                cat.id === editingCategory ? { ...cat, name: editValue.trim() } : cat
+            ))
+            setEditingCategory(null)
+            setEditValue('')
+            toast.success('Category updated')
+        } catch (error) {
+            console.error('Error updating category:', error)
+            toast.error('Failed to update category')
+        }
+    }
+
+    const handleCancelEdit = () => {
+        setEditingCategory(null)
+        setEditValue('')
+    }
 
     useEffect(() => {
         fetchMasterData()
@@ -60,6 +149,15 @@ export default function FeesCreation() {
     const fetchMasterData = async () => {
         try {
             setIsLoading(true)
+
+            // Fetch Fee Categories
+            const { data: categoriesData, error: categoriesError } = await supabase
+                .from('academic_fee_categories')
+                .select('*')
+                .eq('is_active', true)
+                .order('name')
+            if (categoriesError) throw categoriesError
+            setFeeCategories(categoriesData || [])
 
             // Fetch Academic Years
             const { data: yearsData, error: yearsError } = await supabase
@@ -107,39 +205,39 @@ export default function FeesCreation() {
     const handleGroupChange = (e) => {
         setSelectedGroup(e.target.value)
         setSelectedCourse('')
-        setFees({})
+        setFeeRows([])
     }
 
     // Handle Course Change
     const handleCourseChange = (e) => {
         const courseId = e.target.value
         setSelectedCourse(courseId)
-
-        // Initialize fees inputs based on duration
-        const course = courses.find(c => c.course_id.toString() === courseId)
-        if (course && course.duration_years) {
-            const initialFees = {}
-            for (let i = 1; i <= course.duration_years; i++) {
-                initialFees[i] = ''
-            }
-            setFees(initialFees)
-        } else {
-            setFees({})
-        }
-    }
-
-    const handleFeeChange = (year, value) => {
-        setFees(prev => ({
-            ...prev,
-            [year]: value
-        }))
+        // Reset fees when course changes
+        setFeeRows([])
     }
 
     const handleReset = () => {
         setSelectedYear('')
         setSelectedGroup('')
         setSelectedCourse('')
-        setFees({})
+        setFeeRows([])
+    }
+
+    const handleAddRow = () => {
+        setFeeRows([
+            ...feeRows,
+            { id: crypto.randomUUID(), categoryId: '', amount: '' }
+        ])
+    }
+
+    const handleRemoveRow = (rowId) => {
+        setFeeRows(feeRows.filter(row => row.id !== rowId))
+    }
+
+    const handleRowChange = (rowId, field, value) => {
+        setFeeRows(feeRows.map(row =>
+            row.id === rowId ? { ...row, [field]: value } : row
+        ))
     }
 
     const handleSubmit = (e) => {
@@ -151,11 +249,24 @@ export default function FeesCreation() {
         }
 
         // Logic to save fees structure would go here
+        // Transform rows to expected backend format
+        const feesBreakdown = feeRows.reduce((acc, row) => {
+            if (row.categoryId && row.amount) {
+                acc[row.categoryId] = row.amount
+            }
+            return acc
+        }, {})
+
+        if (Object.keys(feesBreakdown).length === 0) {
+            toast.error('Please add at least one fee category with an amount')
+            return
+        }
+
         console.log('Submitting Fees Structure:', {
             academic_year_id: selectedYear,
             group_id: selectedGroup,
             course_id: selectedCourse,
-            fees_breakdown: fees
+            fees_breakdown: feesBreakdown
         })
         toast.success('Fees structure saved successfully (Console Log)')
     }
@@ -185,6 +296,74 @@ export default function FeesCreation() {
                 </section>
 
                 <div className="row g-4 justify-content-center mx-0">
+                    {/* Fee Categories Section */}
+                    <div className="col-12">
+                        <div className="card card-soft p-4">
+                            <h4 className="mb-1">Fee Categories</h4>
+                            <p className="text-muted mb-3">Manage the categories that can be any fee structure.</p>
+
+                            <div className="row align-items-end g-3">
+                                <div className="col-md-6">
+                                    <label className="form-label">Add a fee category</label>
+                                    <div className="d-flex gap-3">
+                                        <input
+                                            type="text"
+                                            className="form-control"
+                                            placeholder="e.g., Tuition"
+                                            value={newFeeCategory}
+                                            onChange={(e) => setNewFeeCategory(e.target.value)}
+                                        />
+                                        <button className="btn btn-primary px-4 text-nowrap" onClick={handleAddCategory}>Add Category</button>
+                                    </div>
+                                </div>
+                                <div className="col-12">
+                                    <div className="row g-3 mt-3">
+                                        {feeCategories.map((cat) => (
+                                            <div key={cat.id} className="col-md-6">
+                                                <div className="d-flex justify-content-between align-items-center p-3 border rounded bg-white shadow-sm h-100">
+                                                    {editingCategory === cat.id ? (
+                                                        <div className="d-flex gap-2 w-100 align-items-center">
+                                                            <input
+                                                                type="text"
+                                                                className="form-control"
+                                                                value={editValue}
+                                                                onChange={(e) => setEditValue(e.target.value)}
+                                                                autoFocus
+                                                            />
+                                                            <button className="btn btn-sm btn-success text-nowrap" onClick={handleUpdateCategory}>Save</button>
+                                                            <button className="btn btn-sm btn-secondary text-nowrap" onClick={handleCancelEdit}>Cancel</button>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <div className="fw-bold fs-6">{cat.name}</div>
+                                                            <div className="d-flex gap-2">
+                                                                <button
+                                                                    className="btn btn-sm btn-light text-primary fw-bold px-3 border"
+                                                                    onClick={() => handleEditClick(cat)}
+                                                                    style={{ backgroundColor: '#eff6ff', borderColor: '#bfdbfe', color: '#1d4ed8' }}
+                                                                >
+                                                                    Edit
+                                                                </button>
+                                                                <button
+                                                                    className="btn btn-sm btn-light text-danger fw-bold px-3 border"
+                                                                    onClick={() => handleRemoveCategory(cat.id)}
+                                                                    style={{ backgroundColor: '#fef2f2', borderColor: '#fecaca', color: '#dc2626' }}
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
                     <div className="col-12">
                         {/* Fee Structure Creation Card */}
                         <div className="card card-soft p-4">
@@ -253,28 +432,83 @@ export default function FeesCreation() {
                                         </select>
                                     </div>
 
-                                    {/* Dynamic Fees Inputs */}
-                                    {selectedCourse && Object.keys(fees).length > 0 && (
+                                    {/* Fee Categories & Inputs */}
+                                    {selectedCourse && (
                                         <div className="col-12 mt-4">
-                                            <h5 className="mb-3">Fee Breakdown (Per Year)</h5>
-                                            <div className="row g-3">
-                                                {Object.keys(fees).map((year) => (
-                                                    <div key={year} className="col-md-4">
-                                                        <label className="form-label">Year {year} Fee <span className="text-danger">*</span></label>
-                                                        <div className="input-group">
-                                                            <span className="input-group-text">₹</span>
-                                                            <input
-                                                                type="number"
-                                                                className="form-control"
-                                                                placeholder="Enter amount"
-                                                                value={fees[year]}
-                                                                onChange={(e) => handleFeeChange(year, e.target.value)}
-                                                                min="0"
+                                            <h5 className="mb-3">Start Creating Fee Structure</h5>
+
+                                            {/* Headers */}
+                                            {feeRows.length > 0 && (
+                                                <div className="row g-3 mb-2 px-1">
+                                                    <div className="col-md-6">
+                                                        <label className="form-label text-muted small text-uppercase fw-bold">Fee Category *</label>
+                                                    </div>
+                                                    <div className="col-md-6">
+                                                        <label className="form-label text-muted small text-uppercase fw-bold">Amount *</label>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Dynamic Rows */}
+                                            <div className="d-flex flex-column gap-3">
+                                                {feeRows.map((row) => (
+                                                    <div key={row.id} className="row g-3 align-items-center">
+                                                        <div className="col-md-6">
+                                                            <select
+                                                                className="form-select"
+                                                                value={row.categoryId}
+                                                                onChange={(e) => handleRowChange(row.id, 'categoryId', e.target.value)}
                                                                 required
-                                                            />
+                                                            >
+                                                                <option value="" disabled>Select category</option>
+                                                                {feeCategories.map(cat => (
+                                                                    <option
+                                                                        key={cat.id}
+                                                                        value={cat.id}
+                                                                        disabled={feeRows.some(r => r.categoryId === cat.id.toString() && r.id !== row.id)}
+                                                                    >
+                                                                        {cat.name}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                        <div className="col-md-6">
+                                                            <div className="d-flex gap-2 align-items-center">
+                                                                <div className="input-group">
+                                                                    <span className="input-group-text">₹</span>
+                                                                    <input
+                                                                        type="number"
+                                                                        className="form-control"
+                                                                        placeholder="Enter amount"
+                                                                        value={row.amount}
+                                                                        onChange={(e) => handleRowChange(row.id, 'amount', e.target.value)}
+                                                                        min="0"
+                                                                        required
+                                                                    />
+                                                                </div>
+                                                                <button
+                                                                    type="button"
+                                                                    className="btn btn-outline-danger btn-sm rounded-pill px-3"
+                                                                    onClick={() => handleRemoveRow(row.id)}
+                                                                >
+                                                                    Remove
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ))}
+                                            </div>
+
+                                            {/* Add Button */}
+                                            <div className="mt-3">
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-outline-primary rounded-pill px-4"
+                                                    onClick={handleAddRow}
+                                                >
+                                                    <i className="bi bi-plus-lg me-2"></i>
+                                                    Add fee category
+                                                </button>
                                             </div>
                                         </div>
                                     )}
