@@ -1027,22 +1027,23 @@ h6,
 }
 
 .subjects-combo-card {
-  border-radius: 20px;
+  border-radius: 24px;
   border: 1px solid rgba(76, 117, 242, 0.18);
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(235, 240, 255, 0.95));
-  box-shadow: 0 18px 30px rgba(15, 23, 42, 0.12);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(231, 239, 255, 0.92));
+  box-shadow: 0 22px 38px rgba(15, 23, 42, 0.12);
 }
 
 .subjects-combo-header {
   border-bottom: 1px solid rgba(76, 117, 242, 0.15);
-  padding-bottom: 0.75rem;
-  margin-bottom: 0.75rem;
+  padding-bottom: 0.9rem;
+  margin-bottom: 1rem;
 }
 
 .subjects-combo-category {
-  border-radius: 16px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  background: rgba(255, 255, 255, 0.9);
+  border-radius: 18px;
+  border: 1px solid rgba(76, 117, 242, 0.18);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(242, 247, 255, 0.96));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
 }
 
 .subjects-combo-subjects {
@@ -1057,12 +1058,39 @@ h6,
   gap: 0.7rem;
 }
 
+.student-subject-category {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px dashed rgba(76, 117, 242, 0.2);
+}
+
+.student-subject-category__title {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.75rem;
+  color: #1f2d3d;
+}
+
+.student-subject-category__meta {
+  font-size: 0.72rem;
+  color: #64748b;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
 .student-subject-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding-bottom: 0.6rem;
-  border-bottom: 1px dashed rgba(15, 23, 42, 0.12);
+  border-bottom: 1px dashed rgba(76, 117, 242, 0.18);
+  position: relative;
+  padding-left: 1.2rem;
 }
 
 .student-subject-item:last-child {
@@ -1070,16 +1098,106 @@ h6,
   padding-bottom: 0;
 }
 
+.student-subject-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.45rem;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #4c75f2, #7aa8ff);
+  box-shadow: 0 0 0 4px rgba(76, 117, 242, 0.15);
+}
+
 .student-subject-name {
   font-weight: 600;
   color: #1f2d3d;
+  letter-spacing: 0.02em;
 }
 
 .student-subject-code {
-  font-size: 0.75rem;
-  letter-spacing: 0.14em;
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #64748b;
+  color: #1f2d3d;
+  background: rgba(76, 117, 242, 0.12);
+  border: 1px solid rgba(76, 117, 242, 0.2);
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+}
+
+.student-subjects-table-wrapper {
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+  padding: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.student-subjects-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+  font-size: 0.9rem;
+}
+
+.student-subjects-table thead th {
+  background: #f1f5f9;
+  color: #0f172a;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-size: 0.8rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  font-weight: 700;
+}
+
+.student-subjects-table tbody td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #edf2f7;
+  color: #1f2937;
+  font-weight: 500;
+}
+
+.student-subjects-table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.student-subjects-table tbody td:first-child {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.student-subjects-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.student-subjects-table-group td {
+  background: #e2e8f0;
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-bottom: 1px solid #dbe3ef;
+}
+
+.student-subjects-table-group__content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.student-subjects-table-group__count {
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: none;
+  color: #1f2937;
 }
 
 .form-control,

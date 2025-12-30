@@ -24,9 +24,9 @@ const toRoman = (value) => {
 }
 
 const formatSemesterLabel = (value) => {
-  const roman = toRoman(value)
-  if (roman === '-') return 'Semester'
-  return `${roman} Semester`
+  const num = Number(value)
+  if (Number.isNaN(num)) return 'Semester'
+  return `Semester ${num}`
 }
 
 const normalizeSubject = (row = {}) => {
@@ -39,30 +39,55 @@ const normalizeSubject = (row = {}) => {
   }
 }
 
-const groupSubjectsBySemester = (rows = []) => {
-  const grouped = new Map()
+const resolveCategoryName = (row = {}, lookup) => {
+  const direct =
+    row.category ||
+    row.category_name ||
+    row.categoryName ||
+    row.subject_category?.category_name ||
+    ''
+  if (direct) return direct
+  const categoryId = row.category_id ?? row.categoryId
+  if (categoryId && lookup?.get(String(categoryId))) {
+    return lookup.get(String(categoryId))
+  }
+  return 'General'
+}
+
+const groupSubjectsBySemesterAndCategory = (rows = [], categoryLookup) => {
+  const semesterMap = new Map()
   rows.forEach((row) => {
     const semesterValue =
       row.semester_number ?? row.semester ?? row.semesterNumber ?? row.semester
     const semester = Number(semesterValue)
-    const key = Number.isNaN(semester) ? 'NA' : semester
-    const list = grouped.get(key) || []
-    list.push(normalizeSubject(row))
-    grouped.set(key, list)
+    const semesterKey = Number.isNaN(semester) ? 'NA' : semester
+    const categoryName = resolveCategoryName(row, categoryLookup)
+    if (!semesterMap.has(semesterKey)) {
+      semesterMap.set(semesterKey, new Map())
+    }
+    const categoryMap = semesterMap.get(semesterKey)
+    if (!categoryMap.has(categoryName)) {
+      categoryMap.set(categoryName, [])
+    }
+    categoryMap.get(categoryName).push(normalizeSubject(row))
   })
 
-  const entries = Array.from(grouped.entries())
+  return Array.from(semesterMap.entries())
     .sort((a, b) => {
       if (a[0] === 'NA') return 1
       if (b[0] === 'NA') return -1
       return Number(a[0]) - Number(b[0])
     })
-    .map(([semester, subjects]) => ({
-      semester,
-      subjects: subjects.sort((a, b) => a.subjectName.localeCompare(b.subjectName)),
-    }))
-
-  return entries
+    .map(([semester, categories]) => {
+      const categoryEntries = Array.from(categories.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([name, subjects]) => ({
+          name,
+          subjects: subjects.sort((a, b) => a.subjectName.localeCompare(b.subjectName)),
+        }))
+      const totalCount = categoryEntries.reduce((sum, entry) => sum + entry.subjects.length, 0)
+      return { semester, categories: categoryEntries, totalCount }
+    })
 }
 
 export default function StudentSection() {
@@ -72,6 +97,33 @@ export default function StudentSection() {
   const [subjectGroups, setSubjectGroups] = useState([])
   const [subjectLoading, setSubjectLoading] = useState(false)
   const [subjectError, setSubjectError] = useState('')
+  const tableRows = useMemo(() => {
+    const rows = []
+    let rowIndex = 0
+    subjectGroups.forEach((group) => {
+      rows.push({
+        type: 'group',
+        key: `semester-${group.semester}`,
+        label: formatSemesterLabel(group.semester),
+        count: group.totalCount,
+      })
+      group.categories.forEach((category) => {
+        category.subjects.forEach((subject) => {
+          rowIndex += 1
+          rows.push({
+            type: 'row',
+            key: `${group.semester}-${category.name}-${subject.id}`,
+            index: rowIndex,
+            semester: group.semester,
+            category: category.name,
+            subjectName: subject.subjectName,
+            subjectCode: subject.subjectCode,
+          })
+        })
+      })
+    })
+    return rows
+  }, [subjectGroups])
 
   useEffect(() => {
     if (section !== 'course-list') return
@@ -92,18 +144,66 @@ export default function StudentSection() {
       setSubjectLoading(true)
       setSubjectError('')
       try {
-        let query = supabase
-          .from('subjects')
-          .select('subject_id, subject_code, subject_name, semester_number, course_name, academic_year')
-          .eq('course_name', courseFilter)
-
-        if (student.academic_year) {
-          query = query.eq('academic_year', student.academic_year)
+        let resolvedCourseCode = courseFilter
+        try {
+          const { data: courseRows, error: courseError } = await supabase
+            .from('courses')
+            .select('course_code, course_name')
+            .or(`course_code.ilike.${courseFilter},course_name.ilike.${courseFilter}`)
+          if (courseError) {
+            console.error('Failed to resolve course code', courseError)
+          } else if (courseRows?.length) {
+            const lower = courseFilter.toLowerCase()
+            const matched = courseRows.find(
+              (row) =>
+                row.course_code?.toLowerCase() === lower ||
+                row.course_name?.toLowerCase() === lower
+            )
+            if (matched?.course_code) {
+              resolvedCourseCode = matched.course_code
+            }
+          }
+        } catch (courseLookupError) {
+          console.error('Course lookup failed', courseLookupError)
         }
 
-        const { data, error } = await query.order('semester_number', { ascending: true })
-        if (error) throw error
-        setSubjectGroups(groupSubjectsBySemester(data || []))
+        const fetchSubjects = async (courseValue) => {
+          let subjectsQuery = supabase
+            .from('subjects')
+            .select('subject_id, subject_code, subject_name, semester_number, course_name, academic_year, category_id')
+            .eq('course_name', courseValue)
+          if (student.academic_year) {
+            subjectsQuery = subjectsQuery.eq('academic_year', student.academic_year)
+          }
+          return subjectsQuery.order('semester_number', { ascending: true })
+        }
+
+        let subjectsRes = await fetchSubjects(resolvedCourseCode)
+        if (
+          !subjectsRes.error &&
+          (!subjectsRes.data || subjectsRes.data.length === 0) &&
+          resolvedCourseCode !== courseFilter
+        ) {
+          subjectsRes = await fetchSubjects(courseFilter)
+        }
+
+        if (subjectsRes.error) throw subjectsRes.error
+
+        const categoriesRes = await supabase
+          .from('subject_category')
+          .select('category_id, category_name')
+        const categoryLookup = new Map()
+        if (categoriesRes?.data?.length) {
+          categoriesRes.data.forEach((category) => {
+            if (category?.category_id) {
+              categoryLookup.set(String(category.category_id), category.category_name || '')
+            }
+          })
+        }
+        if (categoriesRes?.error) {
+          console.error('Failed to load subject categories', categoriesRes.error)
+        }
+        setSubjectGroups(groupSubjectsBySemesterAndCategory(subjectsRes.data || [], categoryLookup))
       } catch (err) {
         console.error(err)
         setSubjectError(err?.message || 'Unable to load subjects right now.')
@@ -175,39 +275,45 @@ export default function StudentSection() {
             <div className="student-details__status">No subjects found for your course.</div>
           )}
 
-          {!subjectLoading && !subjectError && subjectGroups.length > 0 && (
-            <div className="students-section-list">
-              {subjectGroups.map((group) => (
-                <div className="subjects-combo-card card" key={`semester-${group.semester}`}>
-                  <div className="card-body">
-                    <div className="subjects-combo-header d-flex align-items-start justify-content-between">
-                      <div>
-                        <div className="fw-semibold">{formatSemesterLabel(group.semester)}</div>
-                        <div className="text-muted small">
-                          {group.subjects.length} subject{group.subjects.length !== 1 ? 's' : ''}
-                        </div>
-                      </div>
-                      {Number(group.semester) === Number(student?.current_semester) && (
-                        <span className="students-section-badge students-section-badge-course">
-                          Current semester
-                        </span>
-                      )}
-                    </div>
-                    <div className="subjects-combo-category p-3 mb-0">
-                      <ul className="student-subject-list">
-                        {group.subjects.map((subject) => (
-                          <li className="student-subject-item" key={subject.id}>
-                            <span className="student-subject-name">{subject.subjectName}</span>
-                            {subject.subjectCode && (
-                              <span className="student-subject-code">{subject.subjectCode}</span>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              ))}
+          {!subjectLoading &&
+            !subjectError &&
+            tableRows.some((row) => row.type === 'row') && (
+            <div className="student-subjects-table-wrapper">
+              <table className="student-subjects-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Semester</th>
+                    <th>Sub category</th>
+                    <th>Subject name</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tableRows.map((row) =>
+                    row.type === 'group' ? (
+                      <tr className="student-subjects-table-group" key={row.key}>
+                        <td colSpan={4}>
+                          <div className="student-subjects-table-group__content">
+                            <span className="student-subjects-table-group__label">
+                              {row.label}
+                            </span>
+                            <span className="student-subjects-table-group__count">
+                              {row.count} Subjects
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      <tr key={row.key}>
+                        <td>{row.index}</td>
+                        <td>{formatSemesterLabel(row.semester)}</td>
+                        <td>{row.category}</td>
+                        <td>{row.subjectName}</td>
+                      </tr>
+                    )
+                  )}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
