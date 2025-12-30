@@ -5,7 +5,7 @@ import { supabase } from "../../supabaseClient";
 import { logActivity } from "../lib/logger";
 import logo from "../assets/media/images.png";
 
-const navGroups = [
+const defaultNavGroups = [
   {
     title: "Dashboard",
     static: true,
@@ -61,7 +61,15 @@ const navGroups = [
 
 const SIDEBAR_SCROLL_KEY = "admin-shell-sidebar-scroll";
 
-export default function AdminShell({ children, onSignOut }) {
+export default function AdminShell({
+  children,
+  onSignOut,
+  navGroups = defaultNavGroups,
+  brandTitle = "Exam Management System",
+  brandSubtitle = "Arts & Science·Chittoor",
+  footerTitle = "Exam Management Studio",
+  footerSubtitle = "Crafted for Vijayam College",
+}) {
   const { pathname } = useLocation();
   const navTo = useNavigate();
   const { signOut, user } = useAuth();
@@ -101,7 +109,7 @@ export default function AdminShell({ children, onSignOut }) {
         description: `${(user.role || 'User').charAt(0).toUpperCase() + (user.role || 'user').slice(1).toLowerCase()} viewed page ${pageLabel}`
       });
     }
-  }, [pathname, user]);
+  }, [pathname, user, navGroups]);
 
   const toggleGroup = (index) => {
     if (navGroups[index]?.static) return;
@@ -179,19 +187,21 @@ export default function AdminShell({ children, onSignOut }) {
               className="brand-logo shadow-sm"
               style={{ width: 80, height: 80, objectFit: "contain" }}
             />
-            <div className="sidebar-brand-info text-uppercase">
-              <div
-                className="heading-font fw-600"
-                style={{ letterSpacing: "0.2em", fontSize: "0.95rem" }}
-              >
-                Vijayam Arts & Science College
+            <div className="sidebar-brand-info">
+              <div className="sidebar-brand-title">
+                <span className="sidebar-brand-title__main">Vijayam</span>
+                <span className="sidebar-brand-title__sub">
+                  Arts & Science College
+                </span>
               </div>
-              <div
-                className="sidebar-brand-subtitle fw-semibold"
-                style={{ fontSize: "0.85rem", letterSpacing: "0.18em" }}
-              >
-                Arts & Science<span style={{ padding: "0 0.4rem" }}>&middot;</span>Chittoor
-              </div>
+              {brandSubtitle ? (
+                <div
+                  className="sidebar-brand-subtitle fw-semibold"
+                  style={{ fontSize: "0.85rem", letterSpacing: "0.18em" }}
+                >
+                  {brandSubtitle}
+                </div>
+              ) : null}
             </div>
           </div>
           <button
@@ -323,18 +333,17 @@ export default function AdminShell({ children, onSignOut }) {
           })}
         </nav>
 
-
         <div className="sidebar-footer text-center small text-muted">
           <div style={{ color: "#4c75f2", letterSpacing: "0.15em" }}>
-            Exam Management Studio
+            {footerTitle}
           </div>
-          <div style={{ color: "#a569bd" }}>Crafted for Vijayam College</div>
+          <div style={{ color: "#a569bd" }}>{footerSubtitle}</div>
         </div>
       </aside>
 
       <main className="admin-main p-4">
         <div className="brandbar rounded px-3 py-2 mb-3 d-flex align-items-center justify-content-between header-shadow">
-          <div className="brandbar-title">Exam Management System</div>
+          <div className="brandbar-title">{brandTitle}</div>
           <button
             className="btn btn-outline-secondary modern-signout"
             onClick={handleSignOut}

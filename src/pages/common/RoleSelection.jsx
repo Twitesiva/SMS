@@ -21,8 +21,7 @@ export default function RoleSelection() {
                 alert("Staff Portal coming soon!");
                 break;
             case 'admin':
-                // Maybe different admin login or just placeholder since Exam Portal covers the requested flow
-                alert("Admin Dashboard access via Exam Portal for now.");
+                navigate('/admin-portal/login');
                 break;
             default:
                 break;

@@ -13,6 +13,8 @@ import PublicTimeTable from "./pages/common/PublicTimeTable.jsx";
 import ApplicationManual from "./pages/common/ApplicationManual.jsx";
 import AdminApplications from "./pages/exam/AdminApplications.jsx";
 import AdmissionsLogin from "./pages/admissions/AdminLogin.jsx";
+import AdminLogin from "./pages/admin/AdminLogin.jsx";
+import ProfileCreation from "./pages/admin/ProfileCreation.jsx";
 import ExamLogin from "./pages/exam/ExamLogin.jsx";
 import StudentLogin from "./pages/student/StudentLogin.jsx";
 import StudentDashboard from "./pages/student/StudentDashboard.jsx";
@@ -66,6 +68,15 @@ export default function App() {
         <Route path="/public/results" element={<PublicResults />} />
         <Route path="/public/timetable" element={<PublicTimeTable />} />
         <Route path="/admin/login" element={<ExamLogin />} />
+        <Route path="/admin-portal/login" element={<AdminLogin />} />
+        <Route
+          path="/admin-portal/profile-creation"
+          element={
+            <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
+              <ProfileCreation />
+            </GuardedRoute>
+          }
+        />
         <Route path="/admissions/login" element={<AdmissionsLogin />} />
         <Route path="/student/login" element={<StudentLogin />} />
         <Route
