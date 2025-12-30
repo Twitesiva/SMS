@@ -34,7 +34,9 @@ export default function AdminApplications() {
     Parent_no: '',
     religion: '',
     caste: '',
-    current_semester: ''
+    current_semester: '',
+    is_hostel: '',
+    is_transport: ''
   }
 
   const [form, setForm] = useState({
@@ -227,6 +229,16 @@ export default function AdminApplications() {
       'Address': form.address,
       'Semester': form.current_semester
     }
+
+    if (form.is_hostel === '') {
+      showToast('Please select Student Type (Hostel/Dayscholar).', { type: 'warning' })
+      return
+    }
+    if (form.is_hostel === false && form.is_transport === '') {
+      showToast('Please select College Transport option.', { type: 'warning' })
+      return
+    }
+
     if (!validateRequiredFields(requiredFields, { title: 'Incomplete application' })) return
     if (!isDigits(form.mobile, 10)) {
       showToast('Enter a valid 10-digit mobile number.', { type: 'warning', title: 'Invalid mobile' })
@@ -276,6 +288,8 @@ export default function AdminApplications() {
         photo_url: photo ? URL.createObjectURL(photo) : null,
         cert_url: cert ? URL.createObjectURL(cert) : null,
         status: 'ACTIVE',
+        is_hostel: form.is_hostel,
+        is_transport: form.is_hostel ? false : form.is_transport,
         created_at: new Date().toISOString()
       }
 
@@ -536,6 +550,56 @@ export default function AdminApplications() {
                         ))}
                       </select>
                     </div>
+
+                    <div className="col-md-4">
+                      <label className="form-label">Student Type</label>
+                      <select
+                        className="form-select"
+                        value={form.is_hostel === '' ? '' : (form.is_hostel ? 'Hostel' : 'Dayscholar')}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          if (value === '') {
+                            handle('is_hostel', '')
+                            handle('is_transport', '')
+                            return
+                          }
+                          const isHostel = value === 'Hostel'
+                          setForm(prev => ({
+                            ...prev,
+                            is_hostel: isHostel,
+                            is_transport: isHostel ? false : '' // partial reset if going to dayscholar
+                          }))
+                        }}
+                        required
+                      >
+                        <option value="">Select</option>
+                        <option value="Dayscholar">Dayscholar</option>
+                        <option value="Hostel">Hostel</option>
+                      </select>
+                    </div>
+
+                    {form.is_hostel === false && (
+                      <div className="col-md-4">
+                        <label className="form-label">College Transport</label>
+                        <select
+                          className="form-select"
+                          value={form.is_transport === '' ? '' : (form.is_transport ? 'Yes' : 'No')}
+                          onChange={(e) => {
+                            const v = e.target.value
+                            if (v === '') {
+                              handle('is_transport', '')
+                            } else {
+                              handle('is_transport', v === 'Yes')
+                            }
+                          }}
+                          required
+                        >
+                          <option value="">Select</option>
+                          <option value="No">No</option>
+                          <option value="Yes">Yes</option>
+                        </select>
+                      </div>
+                    )}
 
                     <div className="col-12">
                       <label className="form-label">Permanent Address</label>
