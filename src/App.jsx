@@ -17,6 +17,7 @@ import AdminLogin from "./pages/admin/AdminLogin.jsx";
 import ProfileCreation from "./pages/admin/ProfileCreation.jsx";
 import FeesCreation from "./pages/admin/FeesCreation.jsx";
 import ClassTimeTable from "./pages/admin/ClassTimeTable.jsx";
+import ClassTimeTableCreation from "./pages/admin/ClassTimeTableCreation.jsx";
 import Department from "./pages/admin/Department.jsx";
 import ExamLogin from "./pages/exam/ExamLogin.jsx";
 import StudentLogin from "./pages/student/StudentLogin.jsx";
@@ -97,6 +98,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
               <ClassTimeTable />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/admin-portal/class-time-table-creation"
+          element={
+            <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
+              <ClassTimeTableCreation />
             </GuardedRoute>
           }
         />

@@ -46,6 +46,17 @@ const adminNavGroups = [
                 icon: 'bi-calendar-date'
             }
         ]
+    },
+    {
+        title: 'Class Time Table Creation',
+        static: true,
+        items: [
+            {
+                to: '/admin-portal/class-time-table-creation',
+                label: 'Class Time Table Creation',
+                icon: 'bi-calendar-plus'
+            }
+        ]
     }
 ]
 
