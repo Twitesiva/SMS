@@ -7,6 +7,26 @@ import 'react-toastify/dist/ReactToastify.css'
 
 const adminNavGroups = [
     {
+        title: 'Student Portal',
+        items: [
+            {
+                to: '/admin-portal/academic-years',
+                label: 'Academic Years',
+                icon: 'bi-calendar3'
+            },
+            {
+                to: '/admin-portal/groups-courses',
+                label: 'Groups & Courses',
+                icon: 'bi-diagram-3'
+            },
+            {
+                to: '/admin-portal/subjects',
+                label: 'Subjects',
+                icon: 'bi-journal-text'
+            }
+        ]
+    },
+    {
         title: 'Fees Creation',
         static: true,
         items: [
