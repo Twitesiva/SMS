@@ -21,7 +21,7 @@ import AcademicYears from "./pages/admin/AcademicYears.jsx";
 import GroupsCourses from "./pages/admin/GroupsCourses.jsx";
 import Subjects from "./pages/admin/Subjects.jsx";
 import ClassTimeTable from "./pages/admin/ClassTimeTable.jsx";
-import ClassTimeTableCreation from "./pages/admin/ClassTimeTableCreation.jsx";
+
 import StaffSubjectMapping from "./pages/admin/StaffSubjectMapping.jsx";
 import Department from "./pages/admin/Department.jsx";
 import ExamLogin from "./pages/exam/ExamLogin.jsx";
@@ -144,14 +144,7 @@ export default function App() {
             </GuardedRoute>
           }
         />
-        <Route
-          path="/admin-portal/class-time-table-creation"
-          element={
-            <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
-              <ClassTimeTableCreation />
-            </GuardedRoute>
-          }
-        />
+
         <Route
           path="/admin-portal/department"
           element={
