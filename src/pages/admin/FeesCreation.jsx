@@ -50,13 +50,13 @@ const adminNavGroups = [
         ]
     },
     {
-        title: 'Department',
+        title: 'Staff Management',
         static: true,
         items: [
             {
-                to: '/admin-portal/department',
-                label: 'Department',
-                icon: 'bi-diagram-3'
+                to: '/admin-portal/subject-mapping',
+                label: 'Subject Mapping',
+                icon: 'bi-person-lines-fill'
             }
         ]
     },
@@ -68,6 +68,17 @@ const adminNavGroups = [
                 to: '/admin-portal/class-time-table',
                 label: 'Class Time Table',
                 icon: 'bi-calendar-date'
+            }
+        ]
+    },
+    {
+        title: 'Class Time Table Creation',
+        static: true,
+        items: [
+            {
+                to: '/admin-portal/class-time-table-creation',
+                label: 'Class Time Table Creation',
+                icon: 'bi-calendar-plus'
             }
         ]
     }

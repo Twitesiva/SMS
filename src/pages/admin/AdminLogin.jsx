@@ -9,8 +9,8 @@ const ADMIN_PASSWORD = 'admin123'
 export default function AdminLogin() {
   const nav = useNavigate()
   const { setUser } = useAuth()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [email, setEmail] = useState(ADMIN_EMAIL)
+  const [password, setPassword] = useState(ADMIN_PASSWORD)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -73,7 +73,7 @@ export default function AdminLogin() {
                 type="text"
                 className="admin-login-input"
                 value={email}
-                autoComplete="username"
+                autoComplete="off"
                 onChange={(event) => setEmail(event.target.value)}
                 required
               />
@@ -86,7 +86,7 @@ export default function AdminLogin() {
                   type={showPassword ? 'text' : 'password'}
                   className="admin-login-input"
                   value={password}
-                  autoComplete="current-password"
+                  autoComplete="new-password"
                   onChange={(event) => setPassword(event.target.value)}
                   required
                 />

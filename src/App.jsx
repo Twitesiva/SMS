@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./store/auth";
 import { useStudentAuth } from "./store/studentAuth";
+import { useStaffAuth } from "./store/staffAuth";
 import PublicApply from "./pages/common/PublicApply.jsx";
 import Home from "./pages/common/Home.jsx";
 import Intro from "./pages/common/Intro.jsx";
@@ -20,10 +21,14 @@ import AcademicYears from "./pages/admin/AcademicYears.jsx";
 import GroupsCourses from "./pages/admin/GroupsCourses.jsx";
 import Subjects from "./pages/admin/Subjects.jsx";
 import ClassTimeTable from "./pages/admin/ClassTimeTable.jsx";
+import ClassTimeTableCreation from "./pages/admin/ClassTimeTableCreation.jsx";
+import StaffSubjectMapping from "./pages/admin/StaffSubjectMapping.jsx";
 import Department from "./pages/admin/Department.jsx";
 import ExamLogin from "./pages/exam/ExamLogin.jsx";
 import StudentLogin from "./pages/student/StudentLogin.jsx";
+import StaffLogin from "./pages/staff/StaffLogin.jsx";
 import StudentDashboard from "./pages/student/StudentDashboard.jsx";
+import StaffDashboard from "./pages/staff/StaffDashboard.jsx";
 import StudentSection from "./pages/student/StudentSection.jsx";
 import StudentPersonalDetails from "./pages/student/StudentPersonalDetails.jsx";
 import StudentSubjectList from "./pages/student/StudentSubjectList.jsx";
@@ -60,8 +65,10 @@ import AdmissionsOverview from "./pages/admissions/AdmissionsOverview.jsx";
 export default function App() {
   const { user, signOut } = useAuth();
   const { student } = useStudentAuth();
+  const { staff } = useStaffAuth();
   const isAuthed = !!user;
   const isStudentAuthed = !!student;
+  const isStaffAuthed = !!staff;
   return (
     <>
       <Routes>
@@ -128,6 +135,14 @@ export default function App() {
           }
         />
         <Route
+          path="/admin-portal/class-time-table-creation"
+          element={
+            <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
+              <ClassTimeTableCreation />
+            </GuardedRoute>
+          }
+        />
+        <Route
           path="/admin-portal/department"
           element={
             <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
@@ -135,8 +150,25 @@ export default function App() {
             </GuardedRoute>
           }
         />
+        <Route
+          path="/admin-portal/subject-mapping"
+          element={
+            <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
+              <StaffSubjectMapping />
+            </GuardedRoute>
+          }
+        />
         <Route path="/admissions/login" element={<AdmissionsLogin />} />
         <Route path="/student/login" element={<StudentLogin />} />
+        <Route path="/staff/login" element={<StaffLogin />} />
+        <Route
+          path="/staff/dashboard"
+          element={
+            <GuardedRoute isAuthed={isStaffAuthed} redirectTo="/staff/login">
+              <StaffDashboard />
+            </GuardedRoute>
+          }
+        />
         <Route
           path="/admin"
           element={
