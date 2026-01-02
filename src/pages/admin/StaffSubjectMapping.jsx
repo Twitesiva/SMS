@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../../supabaseClient'
 import AdminShell from '../../components/AdminShell'
 import crestPrimary from '../../assets/media/images.png'
-import { v4 as uuidv4 } from 'uuid'
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
@@ -412,8 +411,8 @@ export default function StaffSubjectMapping() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {subjects.map(subject => (
-                                        <tr key={subject.id || uuidv4()}>
+                                    {subjects.map((subject, index) => (
+                                        <tr key={subject.id || subject.subject_id || subject.subject_code || `${subject.subject_name || 'subject'}-${index}`}>
                                             <td>{subject.subject_code || subject.code || '-'}</td>
                                             <td>{subject.subject_name}</td>
                                             <td>{subject.subject_type || '-'}</td>
