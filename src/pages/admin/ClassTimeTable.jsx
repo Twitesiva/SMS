@@ -80,6 +80,17 @@ const adminNavGroups = [
     ]
   },
   {
+    title: 'Department',
+    static: true,
+    items: [
+      {
+        to: '/admin-portal/department',
+        label: 'Department',
+        icon: 'bi-diagram-3'
+      }
+    ]
+  },
+  {
     title: 'Class Time Table',
     static: true,
     items: [
@@ -180,6 +191,7 @@ export default function ClassTimeTable() {
   }
 
   const showTimetable = selectedSemester && subjects.length > 0
+  const hasFilters = selectedAcademicYear && selectedGroup && selectedCourseCode && selectedSemester
 
   return (
     <AdminShell
@@ -273,17 +285,33 @@ export default function ClassTimeTable() {
         }
       `}</style>
 
-      <div className="desktop-container">
-        <section className="setup-hero text-center mb-4">
-          <img src={crestPrimary} alt="crest" />
-          <h3>Vijayam Arts & Science College</h3>
+      <div className="desktop-container" style={{ overflowX: 'hidden' }}>
+        <section className="setup-hero mb-4 text-center">
+          <div className="setup-hero-copywrap mx-auto text-center" style={{ maxWidth: '640px' }}>
+            <div className="admin-applications__crest mx-auto" aria-hidden="true">
+              <img src={crestPrimary} alt="Vijayam crest" />
+            </div>
+            <h3 className="setup-hero-title mb-2">Vijayam Arts & Science College</h3>
+            <p className="setup-hero-copy mb-3">Plan weekly class schedules and keep teaching slots organized.</p>
+            <div className="setup-hero-chips d-flex flex-wrap gap-2 justify-content-center">
+              <span className="setup-hero-chip text-uppercase">SMART EXAMINATION PLATFORM</span>
+              <span className="setup-hero-chip text-uppercase">ACADEMIC OPERATIONS</span>
+              <span className="setup-hero-chip text-uppercase">TIMETABLE CONTROL</span>
+            </div>
+          </div>
         </section>
 
-        <div className="card card-soft p-4 mb-4">
-          <div className="row g-3">
+        <div className="students-section-shell card card-soft mb-4">
+          <div className="students-section-shell-header mb-3">
+            <div>
+              <h5 className="section-title mb-1">Class Time Table</h5>
+              <p className="students-section-copy small mb-0">Filter by academic year, group, course, and semester.</p>
+            </div>
+          </div>
 
+          <div className="students-section-form row g-3 align-items-end">
             <div className="col-md-3">
-              <label className="form-label fw-semibold">Academic Year</label>
+              <label className="form-label fw-bold mb-1">Academic Year</label>
               <select
                 className="form-select"
                 onChange={e => setSelectedAcademicYear(e.target.value)}
@@ -298,7 +326,7 @@ export default function ClassTimeTable() {
             </div>
 
             <div className="col-md-3">
-              <label className="form-label fw-semibold">Group</label>
+              <label className="form-label fw-bold mb-1">Group</label>
               <select
                 className="form-select"
                 onChange={e => {
@@ -316,7 +344,7 @@ export default function ClassTimeTable() {
             </div>
 
             <div className="col-md-3">
-              <label className="form-label fw-semibold">Course</label>
+              <label className="form-label fw-bold mb-1">Course</label>
               <select
                 className="form-select"
                 onChange={e => {
@@ -334,7 +362,7 @@ export default function ClassTimeTable() {
             </div>
 
             <div className="col-md-3">
-              <label className="form-label fw-semibold">Semester</label>
+              <label className="form-label fw-bold mb-1">Semester</label>
               <select
                 className="form-select"
                 onChange={e => {
@@ -354,77 +382,96 @@ export default function ClassTimeTable() {
                 ))}
               </select>
             </div>
-
           </div>
         </div>
 
-
-        {showTimetable && (
-          <div className="card card-soft tt-wrapper">
-            <div className="p-4 pb-5">
-              <table className="tt-table text-center">
-                <thead>
-                  <tr>
-                    <th>DAY</th>
-                    {TIME_SLOTS.map(slot => (
-                      <th key={slot.key}>
-                        <div className="tt-head-title">{slot.label}</div>
-                        <div className="tt-head-time">{slot.time}</div>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {DAYS.map((day, i) => (
-                    <tr key={day}>
-                      <th className="tt-day">{day}</th>
-
-                      {TIME_SLOTS.map(slot => {
-                        if (slot.type === 'break') {
-                          return (
-                            <td key={slot.key} className="tt-break">
-                              {BREAK_LETTERS[i]}
-                            </td>
-                          )
-                        }
-
-                        if (slot.type === 'lunch') {
-                          return (
-                            <td key={slot.key} className="tt-lunch">
-                              {LUNCH_LETTERS[i]}
-                            </td>
-                          )
-                        }
-
-                        return (
-                          <td key={slot.key} className="tt-period">
-                            <select
-                              className="form-select tt-select"
-                              value={timetable?.[day]?.[slot.key] || ''}
-                              onChange={e =>
-                                handleCellChange(day, slot.key, e.target.value)
-                              }
-                            >
-                              <option value="">Select Subject</option>
-                              {subjects.map(s => (
-                                <option
-                                  key={s.subject_name}
-                                  value={s.subject_name}
-                                  title={s.subject_name}
-                                >
-                                  {s.subject_name}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-                        )
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {showTimetable ? (
+          <div className="students-table-panel card card-soft p-4 mb-4">
+            <div className="students-table-panel-header mb-3">
+              <div>
+                <p className="students-table-panel-title mb-1 text-white">Weekly Timetable</p>
+                <p className="students-table-panel-copy small mb-0">
+                  Assign subjects to each period for the selected semester.
+                </p>
+              </div>
             </div>
+
+            <div className="tt-wrapper">
+              <div className="p-4 pb-5">
+                <table className="tt-table text-center">
+                  <thead>
+                    <tr>
+                      <th>DAY</th>
+                      {TIME_SLOTS.map(slot => (
+                        <th key={slot.key}>
+                          <div className="tt-head-title">{slot.label}</div>
+                          <div className="tt-head-time">{slot.time}</div>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {DAYS.map((day, i) => (
+                      <tr key={day}>
+                        <th className="tt-day">{day}</th>
+
+                        {TIME_SLOTS.map(slot => {
+                          if (slot.type === 'break') {
+                            return (
+                              <td key={slot.key} className="tt-break">
+                                {BREAK_LETTERS[i]}
+                              </td>
+                            )
+                          }
+
+                          if (slot.type === 'lunch') {
+                            return (
+                              <td key={slot.key} className="tt-lunch">
+                                {LUNCH_LETTERS[i]}
+                              </td>
+                            )
+                          }
+
+                          return (
+                            <td key={slot.key} className="tt-period">
+                              <select
+                                className="form-select tt-select"
+                                value={timetable?.[day]?.[slot.key] || ''}
+                                onChange={e =>
+                                  handleCellChange(day, slot.key, e.target.value)
+                                }
+                              >
+                                <option value="">Select Subject</option>
+                                {subjects.map(s => (
+                                  <option
+                                    key={s.subject_name}
+                                    value={s.subject_name}
+                                    title={s.subject_name}
+                                  >
+                                    {s.subject_name}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                          )
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="card card-soft p-4 text-center text-muted">
+            <div className="mb-2">
+              <i className="bi bi-calendar2-range fs-2"></i>
+            </div>
+            <h5 className="mb-1">No timetable yet</h5>
+            <p className="mb-0 small">
+              {hasFilters ? 'No subjects found for this selection.' : 'Select filters to build the timetable.'}
+            </p>
           </div>
         )}
       </div>

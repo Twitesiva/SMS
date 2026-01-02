@@ -50,6 +50,17 @@ const adminNavGroups = [
     ]
   },
   {
+    title: 'Staff Management',
+    static: true,
+    items: [
+      {
+        to: '/admin-portal/subject-mapping',
+        label: 'Subject Mapping',
+        icon: 'bi-person-lines-fill'
+      }
+    ]
+  },
+  {
     title: 'Department',
     static: true,
     items: [
@@ -198,4 +209,6 @@ export default function AcademicYears() {
     </AdminShell>
   )
 }
+
+
 

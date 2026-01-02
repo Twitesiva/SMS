@@ -49,17 +49,28 @@ const adminNavGroups = [
             }
         ]
     },
-    {
-        title: 'Staff Management',
-        static: true,
-        items: [
-            {
-                to: '/admin-portal/subject-mapping',
-                label: 'Subject Mapping',
-                icon: 'bi-person-lines-fill'
-            }
-        ]
-    },
+      {
+          title: 'Staff Management',
+          static: true,
+          items: [
+              {
+                  to: '/admin-portal/subject-mapping',
+                  label: 'Subject Mapping',
+                  icon: 'bi-person-lines-fill'
+              }
+          ]
+      },
+      {
+          title: 'Department',
+          static: true,
+          items: [
+              {
+                  to: '/admin-portal/department',
+                  label: 'Department',
+                  icon: 'bi-diagram-3'
+              }
+          ]
+      },
     {
         title: 'Class Time Table',
         static: true,

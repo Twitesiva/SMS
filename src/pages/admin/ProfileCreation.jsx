@@ -59,6 +59,17 @@ const adminNavGroups = [
     ]
   },
   {
+    title: 'Department',
+    static: true,
+    items: [
+      {
+        to: '/admin-portal/department',
+        label: 'Department',
+        icon: 'bi-diagram-3'
+      }
+    ]
+  },
+  {
     title: 'Class Time Table',
     static: true,
     items: [
