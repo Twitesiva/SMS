@@ -4,7 +4,51 @@ import { useStaffAuth } from '../store/staffAuth'
 import crest from '../assets/media/images.png'
 
 const navItems = [
-    { to: '/staff/dashboard', label: 'Dashboard', icon: 'bi-speedometer2' },
+    {
+        to: '/staff/dashboard',
+        label: 'Dashboard',
+        icon: 'bi-speedometer2',
+    },
+    {
+        to: '/staff/attendance',
+        label: 'Student Attendance',
+        icon: 'bi-clipboard-check',
+    },
+    {
+        to: '/staff/students',
+        label: 'Student Records',
+        icon: 'bi-people',
+    },
+    {
+        to: '/staff/timetable',
+        label: 'Academic Timetable',
+        icon: 'bi-calendar-week',
+    },
+    {
+        to: '/staff/performance',
+        label: 'Academic Performance Feedback',
+        icon: 'bi-graph-up-arrow',
+    },
+    {
+        to: '/staff/announcements',
+        label: 'Official Announcements',
+        icon: 'bi-megaphone',
+    },
+    {
+        to: '/staff/materials',
+        label: 'Learning Materials',
+        icon: 'bi-folder2-open',
+    },
+        {
+        to: '/staff/my-attendance',
+        label: 'My Attendance Overview',
+        icon: 'bi-person-check',
+    },
+    {
+        to: '/staff/leave',
+        label: 'Leave & On-Duty Management',
+        icon: 'bi-person-lines-fill',
+    },
 ]
 
 export default function StaffShell({ children }) {
