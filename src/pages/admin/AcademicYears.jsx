@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import AdminShell from '../../components/AdminShell'
 import crestPrimary from '../../assets/media/images.png'
 import AcademicYearsSection from '../exam/AcademicYears'
@@ -19,6 +19,11 @@ const adminNavGroups = [
         to: '/admin-portal/groups-courses',
         label: 'Groups & Courses',
         icon: 'bi-diagram-3'
+      },
+      {
+        to: '/admin-portal/subjects',
+        label: 'Subjects',
+        icon: 'bi-journal-text'
       }
     ]
   },
@@ -193,3 +198,4 @@ export default function AcademicYears() {
     </AdminShell>
   )
 }
+

@@ -1,4 +1,4 @@
-import AdminShell from '../../components/AdminShell'
+﻿import AdminShell from '../../components/AdminShell'
 import crestPrimary from '../../assets/media/images.png'
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { supabase } from '../../../supabaseClient'
@@ -18,6 +18,11 @@ const adminNavGroups = [
                 to: '/admin-portal/groups-courses',
                 label: 'Groups & Courses',
                 icon: 'bi-diagram-3'
+            },
+            {
+                to: '/admin-portal/subjects',
+                label: 'Subjects',
+                icon: 'bi-journal-text'
             }
         ]
     },
@@ -501,7 +506,7 @@ export default function FeesCreation() {
                                                         <div className="col-md-6">
                                                             <div className="d-flex gap-2 align-items-center">
                                                                 <div className="input-group">
-                                                                    <span className="input-group-text">₹</span>
+                                                                    <span className="input-group-text">â‚¹</span>
                                                                     <input
                                                                         type="number"
                                                                         className="form-control"
@@ -551,3 +556,4 @@ export default function FeesCreation() {
         </AdminShell>
     )
 }
+

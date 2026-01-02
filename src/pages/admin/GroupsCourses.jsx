@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import AdminShell from '../../components/AdminShell'
 import crestPrimary from '../../assets/media/images.png'
 import GroupsCoursesSection from '../exam/GroupsCourses'
@@ -19,6 +19,11 @@ const adminNavGroups = [
         to: '/admin-portal/groups-courses',
         label: 'Groups & Courses',
         icon: 'bi-diagram-3'
+      },
+      {
+        to: '/admin-portal/subjects',
+        label: 'Subjects',
+        icon: 'bi-journal-text'
       }
     ]
   },
@@ -383,3 +388,4 @@ export default function GroupsCourses() {
     </AdminShell>
   )
 }
+
