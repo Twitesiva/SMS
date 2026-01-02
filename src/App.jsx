@@ -20,6 +20,7 @@ import FeesCreation from "./pages/admin/FeesCreation.jsx";
 import AcademicYears from "./pages/admin/AcademicYears.jsx";
 import GroupsCourses from "./pages/admin/GroupsCourses.jsx";
 import Subjects from "./pages/admin/Subjects.jsx";
+import FeesCollection from "./pages/admin/FeesCollection.jsx";
 import ClassTimeTable from "./pages/admin/ClassTimeTable.jsx";
 import ClassTimeTableCreation from "./pages/admin/ClassTimeTableCreation.jsx";
 import StaffSubjectMapping from "./pages/admin/StaffSubjectMapping.jsx";
@@ -34,6 +35,7 @@ import StudentPersonalDetails from "./pages/student/StudentPersonalDetails.jsx";
 import StudentSubjectList from "./pages/student/StudentSubjectList.jsx";
 import StudentCertificate from "./pages/student/StudentCertificate.jsx";
 import StudentFeePayment from "./pages/student/StudentFeePayment.jsx";
+import StudentHostelDetails from "./pages/student/StudentHostelDetails.jsx";
 import Batches from "./pages/exam/Batches.jsx";
 import Courses from "./pages/exam/Courses.jsx";
 import Students from "./pages/exam/Students.jsx";
@@ -99,6 +101,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
               <FeesCreation />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/admin-portal/fees-collection"
+          element={
+            <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
+              <FeesCollection />
             </GuardedRoute>
           }
         />
@@ -422,6 +432,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
               <StudentFeePayment />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/student/hostel-details"
+          element={
+            <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
+              <StudentHostelDetails />
             </GuardedRoute>
           }
         />

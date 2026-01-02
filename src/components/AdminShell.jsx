@@ -60,6 +60,10 @@ const defaultNavGroups = [
 ];
 
 const SIDEBAR_SCROLL_KEY = "admin-shell-sidebar-scroll";
+const isUuid = (value = "") =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    String(value)
+  );
 
 export default function AdminShell({
   children,
@@ -90,7 +94,7 @@ export default function AdminShell({
     }
 
     // Log page view
-    if (user?.id) {
+    if (user?.id && isUuid(user.id)) {
       // Find the human-readable label for the current page
       let pageLabel = pathname;
       for (const group of navGroups) {
