@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { supabase } from '../../../supabaseClient'
 import AdminShell from '../../components/AdminShell'
 import crestPrimary from '../../assets/media/images.png'
@@ -35,6 +35,16 @@ const adminNavGroups = [
                 to: '/admin-portal/fees-creation',
                 label: 'Student Fees Creation',
                 icon: 'bi-currency-rupee'
+            }
+        ]
+    },    {
+        title: 'Fees Collection',
+        static: true,
+        items: [
+            {
+                to: '/admin-portal/fees-collection',
+                label: 'Fees Collection',
+                icon: 'bi-cash-stack'
             }
         ]
     },
@@ -478,3 +488,4 @@ export default function StaffSubjectMapping() {
         </AdminShell>
     )
 }
+

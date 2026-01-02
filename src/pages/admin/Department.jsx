@@ -32,7 +32,17 @@ const adminNavGroups = [
         icon: 'bi-currency-rupee'
       }
     ]
-  },
+  },    {
+        title: 'Fees Collection',
+        static: true,
+        items: [
+            {
+                to: '/admin-portal/fees-collection',
+                label: 'Fees Collection',
+                icon: 'bi-cash-stack'
+            }
+        ]
+    },
   {
     title: 'Profile Creation',
     static: true,
@@ -151,6 +161,7 @@ export default function Department() {
     </AdminShell>
   )
 }
+
 
 
 
