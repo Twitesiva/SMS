@@ -3,17 +3,32 @@ import crestPrimary from '../../assets/media/images.png'
 import { useState } from 'react'
 
 const adminNavGroups = [
-    {
-        title: 'Fees Creation',
-        static: true,
-        items: [
-            {
-                to: '/admin-portal/fees-creation',
-                label: 'Student Fees Creation',
-                icon: 'bi-currency-rupee'
-            }
-        ]
-    },
+  {
+    title: 'Student Portal',
+    items: [
+      {
+        to: '/admin-portal/academic-years',
+        label: 'Academic Years',
+        icon: 'bi-calendar3'
+      },
+      {
+        to: '/admin-portal/groups-courses',
+        label: 'Groups & Courses',
+        icon: 'bi-diagram-3'
+      }
+    ]
+  },
+  {
+    title: 'Fees Creation',
+    static: true,
+    items: [
+      {
+        to: '/admin-portal/fees-creation',
+        label: 'Student Fees Creation',
+        icon: 'bi-currency-rupee'
+      }
+    ]
+  },
     {
         title: 'Profile Creation',
         static: true,
