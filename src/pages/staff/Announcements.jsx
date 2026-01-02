@@ -1,12 +1,12 @@
 import React from 'react'
 import StaffShell from '../../components/StaffShell'
 
-export default function StudentRecords() {
+export default function Announcements() {
     return (
-        <StaffShell title="Student Records">
+        <StaffShell title="Official Announcements">
             <div className="card card-soft p-4">
-                <h3>Student Records</h3>
-                <p>View and manage student records.</p>
+                <h3>Official Announcements</h3>
+                <p>View official announcements.</p>
                 <div className="alert alert-info">Coming Soon</div>
             </div>
         </StaffShell>

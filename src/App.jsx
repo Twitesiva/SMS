@@ -29,7 +29,17 @@ import StudentLogin from "./pages/student/StudentLogin.jsx";
 import StaffLogin from "./pages/staff/StaffLogin.jsx";
 import StudentDashboard from "./pages/student/StudentDashboard.jsx";
 import StaffDashboard from "./pages/staff/StaffDashboard.jsx";
+import StudentAttendance from "./pages/staff/StudentAttendance.jsx";
+import StudentRecords from "./pages/staff/StudentRecords.jsx";
+import AcademicTimetable from "./pages/staff/AcademicTimetable.jsx";
+import PerformanceFeedback from "./pages/staff/PerformanceFeedback.jsx";
+import Announcements from "./pages/staff/Announcements.jsx";
+import LearningMaterials from "./pages/staff/LearningMaterials.jsx";
+import MyAttendance from "./pages/staff/MyAttendance.jsx";
+import LeaveManagement from "./pages/staff/LeaveManagement.jsx";
 import StudentSection from "./pages/student/StudentSection.jsx";
+
+
 import StudentPersonalDetails from "./pages/student/StudentPersonalDetails.jsx";
 import StudentSubjectList from "./pages/student/StudentSubjectList.jsx";
 import StudentCertificate from "./pages/student/StudentCertificate.jsx";
@@ -166,6 +176,70 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isStaffAuthed} redirectTo="/staff/login">
               <StaffDashboard />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/staff/attendance"
+          element={
+            <GuardedRoute isAuthed={isStaffAuthed} redirectTo="/staff/login">
+              <StudentAttendance />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/staff/students"
+          element={
+            <GuardedRoute isAuthed={isStaffAuthed} redirectTo="/staff/login">
+              <StudentRecords />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/staff/timetable"
+          element={
+            <GuardedRoute isAuthed={isStaffAuthed} redirectTo="/staff/login">
+              <AcademicTimetable />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/staff/performance"
+          element={
+            <GuardedRoute isAuthed={isStaffAuthed} redirectTo="/staff/login">
+              <PerformanceFeedback />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/staff/announcements"
+          element={
+            <GuardedRoute isAuthed={isStaffAuthed} redirectTo="/staff/login">
+              <Announcements />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/staff/materials"
+          element={
+            <GuardedRoute isAuthed={isStaffAuthed} redirectTo="/staff/login">
+              <LearningMaterials />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/staff/my-attendance"
+          element={
+            <GuardedRoute isAuthed={isStaffAuthed} redirectTo="/staff/login">
+              <MyAttendance />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/staff/leave"
+          element={
+            <GuardedRoute isAuthed={isStaffAuthed} redirectTo="/staff/login">
+              <LeaveManagement />
             </GuardedRoute>
           }
         />
