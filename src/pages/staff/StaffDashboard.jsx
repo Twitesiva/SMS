@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import StaffShell from '../../components/StaffShell'
 import { useStaffAuth } from '../../store/staffAuth'
+import { supabase } from '../../../supabaseClient'
 
 const buildProfileRows = (staff) => [
     { label: 'Staff Name', value: staff?.full_name },
@@ -15,38 +17,76 @@ const buildProfileRows = (staff) => [
 
 export default function StaffDashboard() {
     const { staff } = useStaffAuth()
+
     const rows = buildProfileRows(staff).filter((row) => row.value)
+
     const statusRaw = staff?.status ? staff.status.toString() : 'Active'
-    const normalizedStatus = statusRaw.trim().toLowerCase() === 'continue' ? 'active' : statusRaw
+    const normalizedStatus =
+        statusRaw.trim().toLowerCase() === 'continue' ? 'active' : statusRaw
     const statusLabel = normalizedStatus
-        ? normalizedStatus.charAt(0).toUpperCase() + normalizedStatus.slice(1).toLowerCase()
+        ? normalizedStatus.charAt(0).toUpperCase() +
+          normalizedStatus.slice(1).toLowerCase()
         : 'Active'
 
-    // Assuming teachers table doesn't have photo_url yet, or maybe it wasn't in the schema provided. 
-    // The schema didn't show 'photo_url'. I will check if I can use a default or if the user forgot it. 
-    // User schema: id, staff_id, full_name, gender, date_of_birth, aadhar_number, phone_number, email, address, designation, qualification, experience_years, joining_date, status, created_at.
-    // No photo_url. I'll just use initials.
     const photoSrc = ''
+
+    /* ===============================
+       STATE
+    ================================ */
+    const [assignments, setAssignments] = useState([])
+
+    /* ===============================
+       FETCH DATA
+    ================================ */
+    useEffect(() => {
+        if (staff?.id) {
+            fetchAssignments(staff.id)
+        }
+    }, [staff])
+
+    const fetchAssignments = async (teacherId) => {
+        const { data, error } = await supabase
+            .from('teacher_subject_mapping')
+            .select(`
+                semester,
+                subjects (
+                    subject_code,
+                    subject_name
+                ),
+                courses (
+                    course_name
+                ),
+                groups (
+                    group_name
+                )
+            `)
+            .eq('teacher_id', teacherId)
+            .eq('is_active', true)
+
+        if (!error) {
+            setAssignments(data || [])
+        }
+    }
 
     return (
         <StaffShell>
             <div className="student-dashboard">
+
+                {/* ===============================
+                   PROFILE SECTION (UNCHANGED)
+                ================================ */}
                 <div className="student-dashboard__grid">
                     <div className="student-card student-card--profile">
                         <div className="student-card__header">Staff Profile</div>
                         <div className="student-card__body">
-                            {rows.length === 0 ? (
-                                <div className="student-card__empty">No staff details found.</div>
-                            ) : (
-                                <div className="student-profile">
-                                    {rows.map((row) => (
-                                        <div key={row.label} className="student-profile__row">
-                                            <div className="student-profile__label">{row.label}</div>
-                                            <div className="student-profile__value">{row.value}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                            <div className="student-profile">
+                                {rows.map((row) => (
+                                    <div key={row.label} className="student-profile__row">
+                                        <div className="student-profile__label">{row.label}</div>
+                                        <div className="student-profile__value">{row.value}</div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
 
@@ -54,17 +94,70 @@ export default function StaffDashboard() {
                         <div className="student-card__body student-card__body--center">
                             <div className="student-avatar">
                                 {photoSrc ? (
-                                    <img src={photoSrc} alt={staff?.full_name || 'Staff'} />
+                                    <img src={photoSrc} alt="staff" />
                                 ) : (
                                     <div className="student-avatar__fallback">
-                                        {(staff?.full_name || 'ST').slice(0, 2).toUpperCase()}
+                                        {(staff?.full_name || 'ST')
+                                            .slice(0, 2)
+                                            .toUpperCase()}
                                     </div>
                                 )}
                             </div>
-                            <div className="student-status">Current Status: {statusLabel}</div>
+                            <div className="student-status">
+                                Current Status: {statusLabel}
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                {/* ===============================
+                   CONSOLIDATED TEACHING DETAILS
+                ================================ */}
+                <div className="student-card mt-4 mb-4">
+                    <div className="student-card__header">
+                        Teaching Assignment Details
+                    </div>
+
+                    <div className="student-card__body">
+                        <table className="table table-bordered table-sm">
+                            <thead>
+                                <tr>
+                                    <th style={{ width: '60px' }}>S.No</th>
+                                    <th>Course</th>
+                                    <th>Group</th>
+                                    <th>Subject</th>
+                                    <th>Semester</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {assignments.length === 0 ? (
+                                    <tr>
+                                        <td
+                                            colSpan="5"
+                                            className="text-center text-muted"
+                                        >
+                                            No teaching assignments found
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    assignments.map((row, index) => (
+                                        <tr key={index}>
+                                            <td>{index + 1}</td>
+                                            <td>{row.courses?.course_name}</td>
+                                            <td>{row.groups?.group_name}</td>
+                                            <td>
+                                                {row.subjects?.subject_code} –{' '}
+                                                {row.subjects?.subject_name}
+                                            </td>
+                                            <td>Semester {row.semester}</td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
             </div>
         </StaffShell>
     )

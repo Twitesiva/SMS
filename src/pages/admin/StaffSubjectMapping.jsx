@@ -1,11 +1,11 @@
-﻿import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../../../supabaseClient'
 import AdminShell from '../../components/AdminShell'
 import crestPrimary from '../../assets/media/images.png'
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
-// --- Navigation Definition (Consistent across Admin pages) ---
+// --- Navigation Definition ---
 const adminNavGroups = [
     {
         title: 'Student Portal',
@@ -37,7 +37,8 @@ const adminNavGroups = [
                 icon: 'bi-currency-rupee'
             }
         ]
-    },    {
+    },
+    {
         title: 'Fees Collection',
         static: true,
         items: [
@@ -92,68 +93,89 @@ const adminNavGroups = [
             }
         ]
     },
-    {
-        title: 'Class Time Table Creation',
-        static: true,
-        items: [
-            {
-                to: '/admin-portal/class-time-table-creation',
-                label: 'Class Time Table Creation',
-                icon: 'bi-calendar-plus'
-            }
-        ]
-    }
 ]
 
 export default function StaffSubjectMapping() {
-    const [academicYears, setAcademicYears] = useState([])
     const [courses, setCourses] = useState([])
     const [groups, setGroups] = useState([])
     const [subjects, setSubjects] = useState([])
     const [teachers, setTeachers] = useState([])
+    const [availableSemesters, setAvailableSemesters] = useState([])
+    const [categories, setCategories] = useState([]) // Store category map
 
-    const [selectedYear, setSelectedYear] = useState('')
-    const [selectedGroup, setSelectedGroup] = useState('') // This holds group_name for filtering
-    const [selectedGroupId, setSelectedGroupId] = useState(null) // Holds actual group_id
-    const [selectedCourse, setSelectedCourse] = useState('') // This holds course_code for filtering
-    const [selectedCourseId, setSelectedCourseId] = useState(null) // Holds actual course_id
+    const [selectedGroup, setSelectedGroup] = useState('')
+    const [selectedGroupId, setSelectedGroupId] = useState(null)
+    const [selectedCourse, setSelectedCourse] = useState('')
+    const [selectedCourseId, setSelectedCourseId] = useState(null)
     const [selectedSemester, setSelectedSemester] = useState('')
 
     const [loading, setLoading] = useState(false)
     const [saving, setSaving] = useState(false)
-
-    // Mapping state: { subjectId: teacherId }
-    // We'll store mappings in a Map or Object for quick access
-    // But since we iterate over subjects, maybe just enriching subjects is easier?
-    // Let's keep existing pattern but load from teacher_subject_mapping table.
 
     useEffect(() => {
         fetchInitialData()
     }, [])
 
     useEffect(() => {
-        if (selectedYear && selectedCourse && selectedSemester && selectedGroup) {
+        if (selectedCourse) {
+            fetchAvailableSemesters(selectedCourse)
+        } else {
+            setAvailableSemesters([])
+            setSelectedSemester('')
+        }
+    }, [selectedCourse])
+
+    useEffect(() => {
+        if (selectedCourse && selectedSemester && selectedGroup) {
             fetchSubjectsAndMappings()
         } else {
             setSubjects([])
         }
-    }, [selectedYear, selectedCourse, selectedSemester, selectedGroup])
+    }, [selectedCourse, selectedSemester, selectedGroup])
 
     const fetchInitialData = async () => {
         try {
             setLoading(true)
-            const { data: years } = await supabase.from('academic_year').select('academic_year')
             const { data: grps } = await supabase.from('groups').select('group_name, group_id')
             const { data: tchs } = await supabase.from('teachers').select('id, full_name, staff_id').eq('status', 'ACTIVE')
+            const { data: cats } = await supabase.from('subject_category').select('*') // Load categories
 
-            setAcademicYears(years || [])
             setGroups(grps || [])
             setTeachers(tchs || [])
+            setCategories(cats || [])
         } catch (error) {
             console.error('Error fetching initial data', error)
             toast.error('Failed to load initial data')
         } finally {
             setLoading(false)
+        }
+    }
+
+    // Helper to get category name
+    const getCategoryName = (catId) => {
+        const cat = categories.find(c => c.category_id === catId || c.id === catId)
+        return cat ? cat.category_name : '-'
+    }
+
+    const fetchAvailableSemesters = async (courseCode) => {
+        try {
+            const { data, error } = await supabase
+                .from('subjects')
+                .select('semester_number')
+                .eq('course_name', courseCode)
+
+            if (error) throw error
+
+            const sems = new Set()
+            data?.forEach(row => {
+                if (row.semester_number) sems.add(row.semester_number)
+            })
+
+            const sortedSems = Array.from(sems).sort((a, b) => a - b)
+            setAvailableSemesters(sortedSems)
+
+        } catch (error) {
+            console.error('Error fetching semesters', error)
         }
     }
 
@@ -187,8 +209,7 @@ export default function StaffSubjectMapping() {
             const { data: subjectData, error: subjectError } = await supabase
                 .from('subjects')
                 .select('*')
-                .eq('academic_year', selectedYear)
-                .eq('course_name', selectedCourse) // Use course_code as stored in subjects? Check schema. USUALLY course_name holds code in this system based on prev files.
+                .eq('course_name', selectedCourse)
                 .eq('semester_number', selectedSemester)
                 .order('subject_name')
 
@@ -200,11 +221,9 @@ export default function StaffSubjectMapping() {
             }
 
             // 2. Fetch Existing Mappings
-            // We need IDs for group and course to query mapping table accurately
             const groupId = selectedGroupId || findGroupId(selectedGroup)
-            const courseId = selectedCourseId || findCourseId(selectedCourse) // Note: course_code matches 'selectedCourse'
+            const courseId = selectedCourseId || findCourseId(selectedCourse)
 
-            // Ideally we should have IDs. If not, we might fail to save correctly.
             if (!groupId || !courseId) {
                 console.warn('Group ID or Course ID missing for mapping query')
             }
@@ -219,16 +238,16 @@ export default function StaffSubjectMapping() {
 
             if (mappingError) throw mappingError
 
-            // Create lookup for existing mappings
             const mappingMap = new Map()
             mappingData?.forEach(m => {
                 mappingMap.set(m.subject_id, m.teacher_id)
             })
 
-            // Merge data
-            const mergedSubjects = subjectData.map(sub => ({
+            // Merge data with index for S.No
+            const mergedSubjects = subjectData.map((sub, index) => ({
                 ...sub,
-                teacher_id: mappingMap.get(sub.id) || '' // Pre-fill if exists
+                teacher_id: mappingMap.get(sub.subject_id || sub.id) || '', // Check both subject_id and id
+                sNo: index + 1
             }))
 
             setSubjects(mergedSubjects)
@@ -242,8 +261,10 @@ export default function StaffSubjectMapping() {
     }
 
     const handleStaffAssignment = (subjectId, staffId) => {
+        // subjectId passed here is usually 'id' or 'subject_id' from database
+        // Ensure we match correct property
         setSubjects(prev => prev.map(sub =>
-            sub.id === subjectId ? { ...sub, teacher_id: staffId } : sub
+            (sub.id === subjectId || sub.subject_id === subjectId) ? { ...sub, teacher_id: staffId } : sub
         ))
     }
 
@@ -253,7 +274,6 @@ export default function StaffSubjectMapping() {
             return
         }
 
-        // Resolving IDs again to be safe
         const groupId = groups.find(g => g.group_name === selectedGroup)?.group_id
         const courseId = courses.find(c => c.course_code === selectedCourse)?.course_id
 
@@ -265,36 +285,10 @@ export default function StaffSubjectMapping() {
         try {
             setSaving(true)
 
-            // Prepare upsert payloads
-            // The table has a unique constraint on (teacher_id, subject_id, ...) ? 
-            // NO, the unique constraint is on (teacher_id, subject_id, course_id, group_id, semester).
-            // Wait, that means ONE teacher per subject-course-group-sem combo?
-            // Actually, standard requirement is usually ONE teacher for a subject in a class.
-            // So unique constraint (subject_id, course_id, group_id, semester) would make sense to prevent multiple teachers?
-            // But the provided schema says: unique (teacher_id, subject_id, course_id, group_id, semester). 
-            // This means a teacher can't be assigned TWICE to the SAME subject in the same context. 
-            // But it DOES allows multiple teachers for the same subject? 
-            // USUALLY for a simple mapping UI, we want to assign ONE teacher per subject.
-            // We will perform a DELETE based on subject/course/group/sem before inserting new to ensure replacement, 
-            // OR we rely on upsert if we had a Primary Key. But we don't know the ID of existing mapping easily without fetching it.
+            // Map subject IDs properly (prefer subject_id if available, else id)
+            const subjectIds = subjects.map(s => s.subject_id || s.id)
 
-            // Strategy:
-            // For each subject in the list:
-            // 1. If teacher_id is selected: Upsert/Insert
-            // 2. If teacher_id is empty/removed: Delete existing active mapping for this subject?
-
-            // Safer Approach given the schema:
-            // We want to ensure for this (subject, group, course, sem) there is arguably only one active teacher (based on UI dropdown).
-            // So first, disable/delete existing active mappings for these subjects in this context.
-
-            const subjectIds = subjects.map(s => s.id)
-
-            // 1. Deactivate/Delete old mappings for these subjects in this context
-            // We'll just delete them for simplicity to keep table clean, or set is_active false.
-            // Let's delete to avoid clutter if history isn't critical, or just upsert if we can match unique keys.
-            // Since unique key includes 'teacher_id', upserting is tricky if we change teachers (it would create a NEW row for new teacher, old one remains).
-            // So we MUST delete old active mappings for these subjects first.
-
+            // 1. Deactivate/Delete old mappings
             await supabase
                 .from('teacher_subject_mapping')
                 .delete()
@@ -303,14 +297,12 @@ export default function StaffSubjectMapping() {
                 .eq('course_id', courseId)
                 .eq('semester', selectedSemester)
 
-            console.log('Cleared old mappings')
-
             // 2. Insert new mappings
             const newMappings = subjects
-                .filter(sub => sub.teacher_id) // Only those with a teacher assigned
+                .filter(sub => sub.teacher_id)
                 .map(sub => ({
                     teacher_id: sub.teacher_id,
-                    subject_id: sub.id,
+                    subject_id: sub.subject_id || sub.id,
                     course_id: courseId,
                     group_id: groupId,
                     semester: parseInt(selectedSemester),
@@ -326,7 +318,15 @@ export default function StaffSubjectMapping() {
             }
 
             toast.success('Subject mapping saved successfully!')
-            fetchSubjectsAndMappings() // Refresh
+
+            // Refreshes reset
+            setSelectedGroup('')
+            setSelectedGroupId(null)
+            setSelectedCourse('')
+            setSelectedCourseId(null)
+            setSelectedSemester('')
+            setSubjects([]) // Explicitly clear, though useEffect will likely handle it
+
         } catch (error) {
             console.error('Error saving assignments', error)
             toast.error('Failed to save assignments.' + error.message)
@@ -356,21 +356,7 @@ export default function StaffSubjectMapping() {
 
                 <div className="card card-soft p-4 mb-4">
                     <div className="row g-3">
-                        <div className="col-md-3">
-                            <label className="form-label fw-semibold">Academic Year</label>
-                            <select
-                                className="form-select"
-                                value={selectedYear}
-                                onChange={e => setSelectedYear(e.target.value)}
-                            >
-                                <option value="">Select Year</option>
-                                {academicYears.map(y => (
-                                    <option key={y.academic_year} value={y.academic_year}>{y.academic_year}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="col-md-3">
+                        <div className="col-md-4">
                             <label className="form-label fw-semibold">Group</label>
                             <select
                                 className="form-select"
@@ -378,10 +364,8 @@ export default function StaffSubjectMapping() {
                                 onChange={e => {
                                     const val = e.target.value
                                     setSelectedGroup(val)
-                                    // Find and set ID immediately for clarity, though we resolve it later too
                                     const grp = groups.find(g => g.group_name === val)
                                     setSelectedGroupId(grp ? grp.group_id : null)
-
                                     fetchCourses(val)
                                 }}
                             >
@@ -392,7 +376,7 @@ export default function StaffSubjectMapping() {
                             </select>
                         </div>
 
-                        <div className="col-md-3">
+                        <div className="col-md-4">
                             <label className="form-label fw-semibold">Course</label>
                             <select
                                 className="form-select"
@@ -400,7 +384,6 @@ export default function StaffSubjectMapping() {
                                 onChange={e => {
                                     const val = e.target.value
                                     setSelectedCourse(val)
-                                    // Find and set ID
                                     const crs = courses.find(c => c.course_code === val)
                                     setSelectedCourseId(crs ? crs.course_id : null)
                                 }}
@@ -412,17 +395,20 @@ export default function StaffSubjectMapping() {
                             </select>
                         </div>
 
-                        <div className="col-md-3">
+                        <div className="col-md-4">
                             <label className="form-label fw-semibold">Semester</label>
                             <select
                                 className="form-select"
                                 value={selectedSemester}
                                 onChange={e => setSelectedSemester(e.target.value)}
+                                disabled={!selectedCourse}
                             >
                                 <option value="">Select Semester</option>
-                                {[1, 2, 3, 4, 5, 6, 7, 8].map(s => (
-                                    <option key={s} value={s}>Semester {s}</option>
-                                ))}
+                                {availableSemesters.length > 0 ? (
+                                    availableSemesters.map(s => (
+                                        <option key={s} value={s}>Semester {s}</option>
+                                    ))
+                                ) : null}
                             </select>
                         </div>
                     </div>
@@ -445,23 +431,40 @@ export default function StaffSubjectMapping() {
                             <table className="table table-hover align-middle">
                                 <thead>
                                     <tr>
-                                        <th>Subject Code</th>
-                                        <th>Subject Name</th>
+                                        <th>S.No</th>
+                                        <th>Subject</th>
                                         <th>Type</th>
                                         <th>Assigned Staff</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {subjects.map((subject, index) => (
-                                        <tr key={subject.id || subject.subject_id || subject.subject_code || `${subject.subject_name || 'subject'}-${index}`}>
-                                            <td>{subject.subject_code || subject.code || '-'}</td>
-                                            <td>{subject.subject_name}</td>
-                                            <td>{subject.subject_type || '-'}</td>
+                                        <tr key={subject.id || subject.subject_id || index}>
+                                            <td className="fw-bold text-muted">{index + 1}</td>
+                                            <td>
+                                                <div className="d-flex flex-column">
+                                                    <span className="fw-bold text-dark">
+                                                        {subject.subject_code} - {subject.subject_name}
+                                                    </span>
+                                                    {/* Display sub-category if available */}
+                                                    {getCategoryName(subject.category_id) !== '-' && (
+                                                        <span className="small text-muted">
+                                                            {getCategoryName(subject.category_id)}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span className="badge bg-light text-dark border">
+                                                    {/* If subject_type isn't in DB, fallback to category name logic or generic */}
+                                                    {getCategoryName(subject.category_id)}
+                                                </span>
+                                            </td>
                                             <td>
                                                 <select
                                                     className="form-select"
                                                     value={subject.teacher_id || ''}
-                                                    onChange={e => handleStaffAssignment(subject.id, e.target.value)}
+                                                    onChange={e => handleStaffAssignment(subject.id || subject.subject_id, e.target.value)}
                                                 >
                                                     <option value="">Select Staff</option>
                                                     {teachers.map(t => (
@@ -488,4 +491,3 @@ export default function StaffSubjectMapping() {
         </AdminShell>
     )
 }
-
