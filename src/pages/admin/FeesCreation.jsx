@@ -49,7 +49,7 @@ const adminNavGroups = [
                 icon: 'bi-currency-rupee'
             }
         ]
-    },    {
+    }, {
         title: 'Fees Collection',
         static: true,
         items: [
@@ -71,28 +71,18 @@ const adminNavGroups = [
             }
         ]
     },
-      {
-          title: 'Staff Management',
-          static: true,
-          items: [
-              {
-                  to: '/admin-portal/subject-mapping',
-                  label: 'Subject Mapping',
-                  icon: 'bi-person-lines-fill'
-              }
-          ]
-      },
-      {
-          title: 'Department',
-          static: true,
-          items: [
-              {
-                  to: '/admin-portal/department',
-                  label: 'Department',
-                  icon: 'bi-diagram-3'
-              }
-          ]
-      },
+    {
+        title: 'Staff Management',
+        static: true,
+        items: [
+            {
+                to: '/admin-portal/subject-mapping',
+                label: 'Subject Mapping',
+                icon: 'bi-person-lines-fill'
+            }
+        ]
+    },
+
     {
         title: 'Class Time Table',
         static: true,
