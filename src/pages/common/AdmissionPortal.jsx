@@ -68,9 +68,14 @@ export default function AdmissionPortal() {
             <div className="public-apply-subtitle">Chittor</div>
           </div>
         </div>
-        <Link to="/home" className="admission-portal__back admission-portal__back--hero">
-          <i className="bi bi-arrow-left"></i> Back to Home
-        </Link>
+        <div className="d-flex gap-3">
+          <Link to="/admission/login" className="btn btn-outline-light rounded-pill px-4">
+            <i className="bi bi-person-circle me-2"></i>Track Application
+          </Link>
+          <Link to="/home" className="admission-portal__back admission-portal__back--hero">
+            <i className="bi bi-arrow-left"></i> Back to Home
+          </Link>
+        </div>
       </div>
 
       <div className="admission-portal__content">

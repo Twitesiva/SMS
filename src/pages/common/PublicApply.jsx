@@ -4,13 +4,14 @@ import { api } from '../../lib/mockApi'
 import { validateRequiredFields } from '../../lib/validation'
 import { showToast } from '../../store/ui'
 import crestPrimary from '../../assets/media/images.png'
+import { supabase } from '../../../supabaseClient'
 
 export default function PublicApply() {
   // dropdown option masters (can be moved to Setup later)
-  const GENDERS = ['Male','Female','Other']
-  const CASTES = ['General','OBC','SC','ST','Others']
-  const RELIGIONS = ['Hindu','Muslim','Christian','Sikh','Buddhist','Jain','Others']
-  const STATES = ['Tamil Nadu','Andhra Pradesh','Karnataka','Kerala','Telangana','Maharashtra','Other']
+  const GENDERS = ['Male', 'Female', 'Other']
+  const CASTES = ['General', 'OBC', 'SC', 'ST', 'Others']
+  const RELIGIONS = ['Hindu', 'Muslim', 'Christian', 'Sikh', 'Buddhist', 'Jain', 'Others']
+  const STATES = ['Tamil Nadu', 'Andhra Pradesh', 'Karnataka', 'Kerala', 'Telangana', 'Maharashtra', 'Other']
 
   const buildApplicationNo = () => `APP${new Date().getFullYear()}${String(Date.now()).slice(-6)}`
 
@@ -46,18 +47,20 @@ export default function PublicApply() {
   const [loading, setLoading] = useState(false)
   const [courses, setCourses] = useState([])
   const [groups, setGroups] = useState([])
-  const handle = (k,v)=> setForm(p=>({...p,[k]:v}))
+  const handle = (k, v) => setForm(p => ({ ...p, [k]: v }))
   const selectClass = (val) => (val ? 'form-select public-apply-select is-filled' : 'form-select public-apply-select')
 
-  useEffect(()=>{ (async()=>{
-    try {
-      const [cs, gs] = await Promise.all([
-        api.listCourses(),
-        api.listGroups?.() || []
-      ])
-      setCourses(cs||[]); setGroups(gs||[])
-    } catch { setCourses([]); setGroups([]) }
-  })() }, [])
+  useEffect(() => {
+    (async () => {
+      try {
+        const [cs, gs] = await Promise.all([
+          api.listCourses(),
+          api.listGroups?.() || []
+        ])
+        setCourses(cs || []); setGroups(gs || [])
+      } catch { setCourses([]); setGroups([]) }
+    })()
+  }, [])
 
   const resetAll = () => {
     setForm({
@@ -103,6 +106,7 @@ export default function PublicApply() {
     handle(key, numeric)
   }
 
+  /* upload helper: tries to upload to 'documents' bucket, falls back to base64 if needed */
   const fileToDataUrl = (file) => new Promise((resolve, reject) => {
     if (!file) { resolve(null); return }
     const reader = new FileReader()
@@ -110,6 +114,28 @@ export default function PublicApply() {
     reader.onerror = () => reject(new Error('Unable to read file'))
     reader.readAsDataURL(file)
   })
+
+  const uploadFile = async (file, folder) => {
+    if (!file) return null
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${folder}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .upload(fileName, file)
+
+      if (error) throw error
+
+      const { data: publicData } = supabase.storage
+        .from('documents')
+        .getPublicUrl(fileName)
+
+      return publicData.publicUrl
+    } catch (err) {
+      console.warn('Upload failed, falling back to Base64:', err)
+      return await fileToDataUrl(file)
+    }
+  }
 
   const submit = async (e) => {
     e.preventDefault(); setLoading(true)
@@ -159,27 +185,107 @@ export default function PublicApply() {
     }
 
     try {
-      const uploads = {}
-      const photoUrl = photo ? await fileToDataUrl(photo) : null
-      const certUrl = cert ? await fileToDataUrl(cert) : null
-      const tenthMarksheetUrl = tenthMarksheet ? await fileToDataUrl(tenthMarksheet) : null
-      const twelthMarksheetUrl = twelthMarksheet ? await fileToDataUrl(twelthMarksheet) : null
-      if (photoUrl) uploads.photo_url = photoUrl
-      if (certUrl) uploads.cert_url = certUrl
-      if (tenthMarksheetUrl) uploads.tenth_marksheet_url = tenthMarksheetUrl
-      if (twelthMarksheetUrl) uploads.twelth_marksheet_url = twelthMarksheetUrl
-      await api.submitApplication({
-        ...form,
-        admission_year: Number(form.admission_year),
-        group_id: form.group_id ? Number(form.group_id) : null,
-        course_id: form.course_id ? Number(form.course_id) : null,
-        tenth_percentage: form.tenth_percentage === '' ? null : Number(form.tenth_percentage),
-        twelth_percentage: form.twelth_percentage === '' ? null : Number(form.twelth_percentage),
-        ...uploads
-      })
+      // 1. Upload files
+      const photoUrl = photo ? await uploadFile(photo, 'photos') : null
+      const certUrl = cert ? await uploadFile(cert, 'certificates') : null
+      const tenthUrl = tenthMarksheet ? await uploadFile(tenthMarksheet, 'marksheets') : null
+      const twelthUrl = twelthMarksheet ? await uploadFile(twelthMarksheet, 'marksheets') : null
+
+      // 2. Insert into 'applications'
+      const { data: appData, error: appError } = await supabase
+        .from('applications')
+        .insert([
+          {
+            application_no: form.application_no,
+            admission_year: Number(form.admission_year),
+            group_id: form.group_id ? Number(form.group_id) : null,
+            course_id: form.course_id ? Number(form.course_id) : null,
+            full_name: form.full_name,
+            gender: form.gender,
+            date_of_birth: form.date_of_birth || null,
+            father_name: form.father_name,
+            mother_name: form.mother_name,
+            nationality: form.nationality,
+            state: form.state,
+            religion: form.religion,
+            caste: form.caste,
+            aadhar_number: form.aadhar_number,
+            address: form.address,
+            pincode: form.pincode,
+            phone_number: form.phone_number,
+            parent_no: form.parent_no,
+            tenth_register_no: form.tenth_register_no,
+            tenth_percentage: form.tenth_percentage ? Number(form.tenth_percentage) : null,
+            twelth_register_no: form.twelth_register_no,
+            twelth_percentage: form.twelth_percentage ? Number(form.twelth_percentage) : null,
+            photo_url: photoUrl,
+            cert_url: certUrl,
+            status: 'SUBMITTED',
+            application_status: 'SUBMITTED'
+          }
+        ])
+        .select()
+        .single()
+
+      if (appError) throw appError
+      if (!appData) throw new Error('Failed to create application record.')
+
+      const applicationId = appData.id
+
+      // 3. Insert into 'application_documents'
+      const docsToInsert = []
+      if (tenthUrl) {
+        docsToInsert.push({
+          application_id: applicationId,
+          document_type: '10th Marksheet',
+          document_url: tenthUrl
+        })
+      }
+      if (twelthUrl) {
+        docsToInsert.push({
+          application_id: applicationId,
+          document_type: '12th Marksheet',
+          document_url: twelthUrl
+        })
+      }
+      if (photoUrl) {
+        docsToInsert.push({
+          application_id: applicationId,
+          document_type: 'Photo',
+          document_url: photoUrl
+        })
+      }
+      if (certUrl) {
+        docsToInsert.push({
+          application_id: applicationId,
+          document_type: 'Transfer Certificate',
+          document_url: certUrl
+        })
+      }
+
+      if (docsToInsert.length > 0) {
+        const { error: docError } = await supabase
+          .from('application_documents')
+          .insert(docsToInsert)
+        if (docError) console.error('Error saving documents:', docError)
+      }
+
+      // 4. Insert into 'admissions'
+      const { error: admError } = await supabase
+        .from('admissions')
+        .insert([
+          {
+            application_id: applicationId,
+            admission_status: 'PENDING'
+          }
+        ])
+
+      if (admError) throw admError
+
       showToast('Application submitted! Admin/Principal will contact you after approval.', { type: 'success', title: 'Submitted' })
       resetAll()
     } catch (err) {
+      console.error(err)
       showToast(err.message || 'Error submitting form', { type: 'danger', title: 'Submission failed' })
     }
     finally { setLoading(false) }
@@ -262,7 +368,7 @@ export default function PublicApply() {
                     <div className="col-md-4"><label className="form-label">Application No</label><input className="form-control" value={form.application_no} readOnly /></div>
                     <div className="col-md-4">
                       <label className="form-label"><i className="bi bi-calendar3"></i>Admission Year</label>
-                      <select className={selectClass(form.admission_year)} value={form.admission_year} onChange={e=>handle('admission_year',e.target.value)} required>
+                      <select className={selectClass(form.admission_year)} value={form.admission_year} onChange={e => handle('admission_year', e.target.value)} required>
                         {Array.from({ length: 5 }, (_, i) => {
                           const year = new Date().getFullYear() - 2 + i
                           return <option key={year} value={year}>{year}</option>
@@ -272,16 +378,16 @@ export default function PublicApply() {
 
                     <div className="col-md-3">
                       <label className="form-label"><i className="bi bi-diagram-3"></i>Group</label>
-                      <select className={selectClass(form.group_id)} value={form.group_id} onChange={e=>handle('group_id',e.target.value)} required>
+                      <select className={selectClass(form.group_id)} value={form.group_id} onChange={e => handle('group_id', e.target.value)} required>
                         <option value="">Select Group</option>
-                        {groups.map(g=> (
+                        {groups.map(g => (
                           <option key={g.id} value={g.id}>{g.name || g.group_name || g.code}</option>
                         ))}
                       </select>
                     </div>
                     <div className="col-md-4">
                       <label className="form-label"><i className="bi bi-journal-bookmark"></i>Course</label>
-                      <select className={selectClass(form.course_id)} value={form.course_id} onChange={e=>handle('course_id',e.target.value)} required>
+                      <select className={selectClass(form.course_id)} value={form.course_id} onChange={e => handle('course_id', e.target.value)} required>
                         <option value="">Select Course</option>
                         {courses
                           .filter((course) => {
@@ -294,7 +400,7 @@ export default function PublicApply() {
                               (groupCode && course.group_code === groupCode)
                             )
                           })
-                          .map(c=> (
+                          .map(c => (
                             <option key={c.id} value={c.id}>{c.code ? `${c.code} - ` : ''}{c.name}</option>
                           ))}
                       </select>
@@ -311,11 +417,11 @@ export default function PublicApply() {
                     </div>
                   </div>
                   <div className="row g-3">
-                    <div className="col-md-6"><label className="form-label">Full Name</label><input className="form-control" value={form.full_name} onChange={e=>handle('full_name',e.target.value)} required /></div>
-                    <div className="col-md-3"><label className="form-label"><i className="bi bi-gender-ambiguous"></i>Gender</label><select className={selectClass(form.gender)} value={form.gender} onChange={e=>handle('gender',e.target.value)} required><option value="">Select</option>{GENDERS.map(g=> <option key={g} value={g}>{g}</option>)}</select></div>
-                    <div className="col-md-3"><label className="form-label">Date of Birth</label><input type="date" className="form-control" value={form.date_of_birth} onChange={e=>handle('date_of_birth',e.target.value)} required /></div>
-                    <div className="col-md-6"><label className="form-label">Father's Name</label><input className="form-control" value={form.father_name} onChange={e=>handle('father_name',e.target.value)} /></div>
-                    <div className="col-md-6"><label className="form-label">Mother's Name</label><input className="form-control" value={form.mother_name} onChange={e=>handle('mother_name',e.target.value)} /></div>
+                    <div className="col-md-6"><label className="form-label">Full Name</label><input className="form-control" value={form.full_name} onChange={e => handle('full_name', e.target.value)} required /></div>
+                    <div className="col-md-3"><label className="form-label"><i className="bi bi-gender-ambiguous"></i>Gender</label><select className={selectClass(form.gender)} value={form.gender} onChange={e => handle('gender', e.target.value)} required><option value="">Select</option>{GENDERS.map(g => <option key={g} value={g}>{g}</option>)}</select></div>
+                    <div className="col-md-3"><label className="form-label">Date of Birth</label><input type="date" className="form-control" value={form.date_of_birth} onChange={e => handle('date_of_birth', e.target.value)} required /></div>
+                    <div className="col-md-6"><label className="form-label">Father's Name</label><input className="form-control" value={form.father_name} onChange={e => handle('father_name', e.target.value)} /></div>
+                    <div className="col-md-6"><label className="form-label">Mother's Name</label><input className="form-control" value={form.mother_name} onChange={e => handle('mother_name', e.target.value)} /></div>
                   </div>
                 </div>
 
@@ -328,15 +434,15 @@ export default function PublicApply() {
                     </div>
                   </div>
                   <div className="row g-3">
-                    <div className="col-md-3"><label className="form-label">Mobile</label><input className="form-control" inputMode="tel" maxLength="10" pattern="\\d{10}" value={form.phone_number} onChange={onNumericChange('phone_number',10)} required /></div>
-                    <div className="col-md-3"><label className="form-label">Parent Mobile</label><input className="form-control" inputMode="tel" maxLength="10" pattern="\\d{10}" value={form.parent_no} onChange={onNumericChange('parent_no',10)} required /></div>
-                    <div className="col-md-3"><label className="form-label">Nationality</label><input className="form-control" value={form.nationality} onChange={e=>handle('nationality',e.target.value)} /></div>
-                    <div className="col-md-3"><label className="form-label"><i className="bi bi-geo-alt"></i>State</label><select className={selectClass(form.state)} value={form.state} onChange={e=>handle('state',e.target.value)}><option value="">Select</option>{STATES.map(s=> <option key={s} value={s}>{s}</option>)}</select></div>
-                    <div className="col-md-4"><label className="form-label">Aadhar No</label><input className="form-control" inputMode="numeric" maxLength="12" pattern="\\d{12}" placeholder="12 digits" value={form.aadhar_number} onChange={onNumericChange('aadhar_number',12)} /></div>
-                    <div className="col-md-4"><label className="form-label">Postal Code (PIN)</label><input className="form-control" inputMode="numeric" maxLength="6" pattern="\\d{6}" placeholder="6 digits" value={form.pincode} onChange={onNumericChange('pincode',6)} required /></div>
-                    <div className="col-md-4"><label className="form-label"><i className="bi bi-book"></i>Religion</label><select className={selectClass(form.religion)} value={form.religion} onChange={e=>handle('religion',e.target.value)}><option value="">Select</option>{RELIGIONS.map(r=> <option key={r} value={r}>{r}</option>)}</select></div>
-                    <div className="col-md-4"><label className="form-label"><i className="bi bi-people"></i>Caste</label><select className={selectClass(form.caste)} value={form.caste} onChange={e=>handle('caste',e.target.value)}><option value="">Select</option>{CASTES.map(c=> <option key={c} value={c}>{c}</option>)}</select></div>
-                    <div className="col-12"><label className="form-label">Address</label><textarea className="form-control" rows="2" value={form.address} onChange={e=>handle('address',e.target.value)} required></textarea></div>
+                    <div className="col-md-3"><label className="form-label">Mobile</label><input className="form-control" inputMode="tel" maxLength="10" pattern="\\d{10}" value={form.phone_number} onChange={onNumericChange('phone_number', 10)} required /></div>
+                    <div className="col-md-3"><label className="form-label">Parent Mobile</label><input className="form-control" inputMode="tel" maxLength="10" pattern="\\d{10}" value={form.parent_no} onChange={onNumericChange('parent_no', 10)} required /></div>
+                    <div className="col-md-3"><label className="form-label">Nationality</label><input className="form-control" value={form.nationality} onChange={e => handle('nationality', e.target.value)} /></div>
+                    <div className="col-md-3"><label className="form-label"><i className="bi bi-geo-alt"></i>State</label><select className={selectClass(form.state)} value={form.state} onChange={e => handle('state', e.target.value)}><option value="">Select</option>{STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
+                    <div className="col-md-4"><label className="form-label">Aadhar No</label><input className="form-control" inputMode="numeric" maxLength="12" pattern="\\d{12}" placeholder="12 digits" value={form.aadhar_number} onChange={onNumericChange('aadhar_number', 12)} /></div>
+                    <div className="col-md-4"><label className="form-label">Postal Code (PIN)</label><input className="form-control" inputMode="numeric" maxLength="6" pattern="\\d{6}" placeholder="6 digits" value={form.pincode} onChange={onNumericChange('pincode', 6)} required /></div>
+                    <div className="col-md-4"><label className="form-label"><i className="bi bi-book"></i>Religion</label><select className={selectClass(form.religion)} value={form.religion} onChange={e => handle('religion', e.target.value)}><option value="">Select</option>{RELIGIONS.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
+                    <div className="col-md-4"><label className="form-label"><i className="bi bi-people"></i>Caste</label><select className={selectClass(form.caste)} value={form.caste} onChange={e => handle('caste', e.target.value)}><option value="">Select</option>{CASTES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                    <div className="col-12"><label className="form-label">Address</label><textarea className="form-control" rows="2" value={form.address} onChange={e => handle('address', e.target.value)} required></textarea></div>
                   </div>
                 </div>
 
@@ -349,23 +455,23 @@ export default function PublicApply() {
                     </div>
                   </div>
                   <div className="row g-3">
-                    <div className="col-md-4"><label className="form-label">10th Register No</label><input className="form-control" value={form.tenth_register_no} onChange={e=>handle('tenth_register_no',e.target.value)} /></div>
-                    <div className="col-md-2"><label className="form-label">10th Percentage</label><input className="form-control" inputMode="decimal" value={form.tenth_percentage} onChange={onDecimalChange('tenth_percentage',100)} /></div>
-                    <div className="col-md-4"><label className="form-label">12th Register No</label><input className="form-control" value={form.twelth_register_no} onChange={e=>handle('twelth_register_no',e.target.value)} /></div>
-                    <div className="col-md-2"><label className="form-label">12th Percentage</label><input className="form-control" inputMode="decimal" value={form.twelth_percentage} onChange={onDecimalChange('twelth_percentage',100)} /></div>
+                    <div className="col-md-4"><label className="form-label">10th Register No</label><input className="form-control" value={form.tenth_register_no} onChange={e => handle('tenth_register_no', e.target.value)} /></div>
+                    <div className="col-md-2"><label className="form-label">10th Percentage</label><input className="form-control" inputMode="decimal" value={form.tenth_percentage} onChange={onDecimalChange('tenth_percentage', 100)} /></div>
+                    <div className="col-md-4"><label className="form-label">12th Register No</label><input className="form-control" value={form.twelth_register_no} onChange={e => handle('twelth_register_no', e.target.value)} /></div>
+                    <div className="col-md-2"><label className="form-label">12th Percentage</label><input className="form-control" inputMode="decimal" value={form.twelth_percentage} onChange={onDecimalChange('twelth_percentage', 100)} /></div>
                   </div>
                   <div className="row g-3 mt-1">
                     <div className="col-md-6">
                       <label className="form-label">Upload 10TH Marksheet</label>
                       <div className="public-apply-upload">
-                        <input key={`tenth-${fileInputKey}`} type="file" accept="image/*" className="form-control" onChange={e=>setTenthMarksheet(e.target.files?.[0]||null)} />
+                        <input key={`tenth-${fileInputKey}`} type="file" accept="image/*" className="form-control" onChange={e => setTenthMarksheet(e.target.files?.[0] || null)} />
                         <small className="public-apply-upload-hint text-muted">Image only</small>
                       </div>
                     </div>
                     <div className="col-md-6">
                       <label className="form-label">Upload 12TH Marksheet</label>
                       <div className="public-apply-upload">
-                        <input key={`twelth-${fileInputKey}`} type="file" accept="image/*" className="form-control" onChange={e=>setTwelthMarksheet(e.target.files?.[0]||null)} />
+                        <input key={`twelth-${fileInputKey}`} type="file" accept="image/*" className="form-control" onChange={e => setTwelthMarksheet(e.target.files?.[0] || null)} />
                         <small className="public-apply-upload-hint text-muted">Image only</small>
                       </div>
                     </div>
@@ -384,14 +490,14 @@ export default function PublicApply() {
                     <div className="col-md-6">
                       <label className="form-label">Upload Photo</label>
                       <div className="public-apply-upload">
-                        <input key={`photo-${fileInputKey}`} type="file" accept="image/*" className="form-control" onChange={e=>setPhoto(e.target.files?.[0]||null)} />
+                        <input key={`photo-${fileInputKey}`} type="file" accept="image/*" className="form-control" onChange={e => setPhoto(e.target.files?.[0] || null)} />
                         <small className="public-apply-upload-hint text-muted">Image only</small>
                       </div>
                     </div>
                     <div className="col-md-6">
                       <label className="form-label"><span className="fw-bold">Upload Transfer Certificate</span></label>
                       <div className="public-apply-upload">
-                        <input key={`cert-${fileInputKey}`} type="file" accept="image/*" className="form-control" onChange={e=>setCert(e.target.files?.[0]||null)} />
+                        <input key={`cert-${fileInputKey}`} type="file" accept="image/*" className="form-control" onChange={e => setCert(e.target.files?.[0] || null)} />
                         <small className="public-apply-upload-hint text-muted">Image only</small>
                       </div>
                     </div>
@@ -400,7 +506,7 @@ export default function PublicApply() {
 
                 <div className="public-apply-actions">
                   <button type="button" className="btn btn-outline-secondary" onClick={resetAll}>Clear</button>
-                  <button className="btn btn-brand" disabled={loading}>{loading?'Submitting...':'Submit'}</button>
+                  <button className="btn btn-brand" disabled={loading}>{loading ? 'Submitting...' : 'Submit'}</button>
                 </div>
               </form>
             </div>

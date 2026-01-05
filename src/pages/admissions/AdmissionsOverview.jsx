@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { supabase } from '../../../supabaseClient'
 import { api } from '../../lib/mockApi'
 import crestPrimary from '../../assets/media/images.png'
+import AdminShell from '../../components/AdminShell'
 
 const formatDate = (value) => {
   if (!value) return '-'
@@ -9,6 +10,23 @@ const formatDate = (value) => {
   if (Number.isNaN(date.getTime())) return '-'
   return date.toLocaleDateString()
 }
+
+const navGroups = [
+  {
+    title: 'Overview',
+    static: true,
+    items: [
+      { to: '/admissions/overview', label: 'Admissions Overview', icon: 'bi-speedometer2' }
+    ]
+  },
+  {
+    title: 'Management',
+    items: [
+      { to: '/admissions/review', label: 'Application Review', icon: 'bi-file-earmark-check' },
+      { to: '/admissions/confirmed', label: 'Confirmed Admissions', icon: 'bi-person-check' }
+    ]
+  }
+]
 
 export default function AdmissionsOverview() {
   const [applications, setApplications] = useState([])
@@ -23,12 +41,17 @@ export default function AdmissionsOverview() {
       setLoading(true)
       setError('')
       try {
-        const [apps, groupList, courseList] = await Promise.all([
-          api.listApplications(),
+        const [appsResponse, groupList, courseList] = await Promise.all([
+          supabase
+            .from('applications')
+            .select('*, admission:admissions(*)')
+            .order('created_at', { ascending: false }),
           api.listGroups?.() || [],
           api.listCourses(),
         ])
-        setApplications(apps || [])
+
+        if (appsResponse.error) throw appsResponse.error
+        setApplications(appsResponse.data || [])
         setGroups(groupList || [])
         setCourses(courseList || [])
       } catch (err) {
@@ -109,12 +132,14 @@ export default function AdmissionsOverview() {
   const clearFilters = () => setFilters({ group_id: '', course_id: '' })
 
   return (
-    <main className="container py-5">
-      <div className="d-flex justify-content-end mb-3">
-        <Link to="/roles" className="btn btn-outline-secondary">
-          <i className="bi bi-arrow-left me-2"></i>Back
-        </Link>
-      </div>
+    <AdminShell
+      navGroups={navGroups}
+      brandTitle="Admissions Portal"
+      brandSubtitle="Vijayam College"
+      footerTitle="Admission Management"
+      footerSubtitle="Administrator Access"
+    >
+
       <section className="setup-hero mb-4 text-center">
         <div className="setup-hero-copywrap mx-auto text-center" style={{ maxWidth: '640px' }}>
           <div className="admin-applications__crest mx-auto" aria-hidden="true">
@@ -211,31 +236,56 @@ export default function AdmissionsOverview() {
                   <th>Group</th>
                   <th>Course</th>
                   <th>Submitted</th>
+                  <th>Doc Verification</th>
+                  <th>Fee Status</th>
+                  <th>Admission Status</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredApplications.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="text-center text-muted py-4">
+                    <td colSpan={9} className="text-center text-muted py-4">
                       No admissions found for the selected filters.
                     </td>
                   </tr>
                 )}
-                {filteredApplications.map((app) => (
-                  <tr key={app.id || app.application_no}>
-                    <td>{app.application_no || '-'}</td>
-                    <td>{app.full_name || '-'}</td>
-                    <td>{app.admission_year || '-'}</td>
-                    <td>{groupLabelFor(app.group_id)}</td>
-                    <td>{courseLabelFor(app.course_id)}</td>
-                    <td>{formatDate(app.created_at)}</td>
-                  </tr>
-                ))}
+                {filteredApplications.map((app) => {
+                  const adm = Array.isArray(app.admission) ? app.admission[0] : app.admission
+                  const docStatus = adm?.document_verification_status || 'Pending'
+                  const feeStatus = adm?.admission_fee_paid ? 'Paid' : 'Pending'
+                  const admissionStatus = adm?.admission_status || 'Pending'
+
+                  return (
+                    <tr key={app.id || app.application_no}>
+                      <td>{app.application_no || '-'}</td>
+                      <td>{app.full_name || '-'}</td>
+                      <td>{app.admission_year || '-'}</td>
+                      <td>{groupLabelFor(app.group_id)}</td>
+                      <td>{courseLabelFor(app.course_id)}</td>
+                      <td>{formatDate(app.created_at)}</td>
+                      <td>
+                        <span className={`badge ${docStatus === 'VERIFIED' ? 'bg-success' : 'bg-warning text-dark'}`}>
+                          {docStatus}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`badge ${feeStatus === 'Paid' ? 'bg-success' : 'bg-danger'}`}>
+                          {feeStatus}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`badge ${admissionStatus === 'APPROVED' ? 'bg-success' : 'bg-secondary'}`}>
+                          {admissionStatus}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
         )}
       </div>
-    </main>
+    </AdminShell>
   )
 }
