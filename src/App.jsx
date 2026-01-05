@@ -12,6 +12,8 @@ import AdmissionPortal from "./pages/common/AdmissionPortal.jsx";
 import PublicResults from "./pages/common/PublicResults.jsx";
 import PublicTimeTable from "./pages/common/PublicTimeTable.jsx";
 import ApplicationManual from "./pages/common/ApplicationManual.jsx";
+import ApplicationLogin from "./pages/common/ApplicationLogin.jsx";
+import ApplicationTracker from "./pages/common/ApplicationTracker.jsx";
 import AdminApplications from "./pages/admin/AdminApplications.jsx";
 import AdmissionsLogin from "./pages/admissions/AdminLogin.jsx";
 import AdminLogin from "./pages/admin/AdminLogin.jsx";
@@ -80,6 +82,8 @@ import MarksReports from "./pages/exam/MarksReports.jsx";
 import InternalMarks from "./pages/exam/InternalMarks.jsx";
 import History from "./pages/exam/History.jsx";
 import AdmissionsOverview from "./pages/admissions/AdmissionsOverview.jsx";
+import ApplicationReview from "./pages/admissions/ApplicationReview";
+import ConfirmedAdmissions from "./pages/admissions/ConfirmedAdmissions.jsx";
 
 
 export default function App() {
@@ -100,6 +104,8 @@ export default function App() {
 
 
         <Route path="/apply" element={<PublicApply />} />
+        <Route path="/admission/login" element={<ApplicationLogin />} />
+        <Route path="/admission/tracker" element={<ApplicationTracker />} />
         <Route path="/application" element={<ApplicationManual />} />
         <Route path="/public/results" element={<PublicResults />} />
         <Route path="/public/timetable" element={<PublicTimeTable />} />
@@ -482,6 +488,22 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isAuthed} redirectTo="/admissions/login">
               <AdmissionsOverview />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/admissions/review"
+          element={
+            <GuardedRoute isAuthed={isAuthed} redirectTo="/admissions/login">
+              <ApplicationReview />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/admissions/confirmed"
+          element={
+            <GuardedRoute isAuthed={isAuthed} redirectTo="/admissions/login">
+              <ConfirmedAdmissions />
             </GuardedRoute>
           }
         />
