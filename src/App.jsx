@@ -25,6 +25,10 @@ import ClassTimeTable from "./pages/admin/ClassTimeTable.jsx";
 import ClassTimeTableCreation from "./pages/admin/ClassTimeTableCreation.jsx";
 import LibraryLogin from "./pages/library/LibraryLogin.jsx";
 import LibraryDashboard from "./pages/library/LibraryDashboard.jsx";
+import LibraryBooks from "./pages/library/Books.jsx";
+import LibraryCirculation from "./pages/library/Circulation.jsx";
+import LibraryFines from "./pages/library/Fines.jsx";
+import LibraryReports from "./pages/library/Reports.jsx";
 
 import StaffSubjectMapping from "./pages/admin/StaffSubjectMapping.jsx";
 
@@ -189,6 +193,10 @@ export default function App() {
         <Route path="/staff/login" element={<StaffLogin />} />
         <Route path="/library/login" element={<LibraryLogin />} />
         <Route path="/library" element={<LibraryDashboard />} />
+        <Route path="/library/books" element={<LibraryBooks />} />
+        <Route path="/library/circulation" element={<LibraryCirculation />} />
+        <Route path="/library/fines" element={<LibraryFines />} />
+        <Route path="/library/reports" element={<LibraryReports />} />
         <Route
           path="/staff/dashboard"
           element={
