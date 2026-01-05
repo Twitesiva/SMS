@@ -13,16 +13,30 @@ const formatDate = (value) => {
 
 const navGroups = [
   {
-    title: 'Overview',
+    title: 'Admissions Overview',
     static: true,
     items: [
       { to: '/admissions/overview', label: 'Admissions Overview', icon: 'bi-speedometer2' }
     ]
   },
   {
-    title: 'Management',
+    title: 'Application Review',
+    static: true,
     items: [
-      { to: '/admissions/review', label: 'Application Review', icon: 'bi-file-earmark-check' },
+      { to: '/admissions/review', label: 'Application Review', icon: 'bi-file-earmark-check' }
+    ]
+  },
+  {
+    title: 'Final Application',
+    static: true,
+    items: [
+      { to: '/admissions/application', label: 'Student Application', icon: 'bi-window-plus' }
+    ]
+  },
+  {
+    title: 'Confirmed Admissions',
+    static: true,
+    items: [
       { to: '/admissions/confirmed', label: 'Confirmed Admissions', icon: 'bi-person-check' }
     ]
   }

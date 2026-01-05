@@ -85,6 +85,7 @@ import History from "./pages/exam/History.jsx";
 import AdmissionsOverview from "./pages/admissions/AdmissionsOverview.jsx";
 import ApplicationReview from "./pages/admissions/ApplicationReview";
 import ConfirmedAdmissions from "./pages/admissions/ConfirmedAdmissions.jsx";
+import AdmissionsApplication from "./pages/admissions/AdmissionsApplication.jsx";
 
 
 export default function App() {
@@ -497,6 +498,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isAuthed} redirectTo="/admissions/login">
               <ApplicationReview />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/admissions/application"
+          element={
+            <GuardedRoute isAuthed={isAuthed} redirectTo="/admissions/login">
+              <AdmissionsApplication />
             </GuardedRoute>
           }
         />

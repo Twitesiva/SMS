@@ -7,16 +7,30 @@ import { showToast } from '../../store/ui'
 
 const navGroups = [
     {
-        title: 'Overview',
+        title: 'Admissions Overview',
         static: true,
         items: [
             { to: '/admissions/overview', label: 'Admissions Overview', icon: 'bi-speedometer2' }
         ]
     },
     {
-        title: 'Management',
+        title: 'Application Review',
+        static: true,
         items: [
-            { to: '/admissions/review', label: 'Application Review', icon: 'bi-file-earmark-check' },
+            { to: '/admissions/review', label: 'Application Review', icon: 'bi-file-earmark-check' }
+        ]
+    },
+    {
+        title: 'Student Application',
+        static: true,
+        items: [
+            { to: '/admissions/application', label: 'Student Application', icon: 'bi-window-plus' }
+        ]
+    },
+    {
+        title: 'Confirmed Admissions',
+        static: true,
+        items: [
             { to: '/admissions/confirmed', label: 'Confirmed Admissions', icon: 'bi-person-check' }
         ]
     }
@@ -54,7 +68,10 @@ export default function ConfirmedAdmissions() {
             .select(`
                 *,
                 documents:application_documents(*),
-                admission:admissions(*)
+                admission:admissions(
+                    *,
+                    student:students(*)
+                )
             `)
             .eq('status', 'CONFIRMED')
             .order('created_at', { ascending: false })
@@ -128,6 +145,12 @@ export default function ConfirmedAdmissions() {
         }
     }
 
+    // Helper to extract student ID safely
+    const getStudentIdDisplay = (app) => {
+        const adm = Array.isArray(app.admission) ? app.admission[0] : app.admission
+        return adm?.student?.student_id || adm?.student_id || 'Pending'
+    }
+
     return (
         <AdminShell
             navGroups={navGroups}
@@ -143,59 +166,86 @@ export default function ConfirmedAdmissions() {
                 </div>
 
                 {selectedApp ? (
-                    <div className="card card-soft p-4 border-2 border-primary">
-                        <div className="d-flex justify-content-between align-items-start border-bottom pb-4 mb-3">
+                    <div className="card shadow-sm border-0 mb-4 overflow-hidden">
+                        {/* Header Banner */}
+                        <div className="bg-primary text-white p-4 d-flex justify-content-between align-items-center">
                             <div>
-                                <h4 className="mb-2 text-primary">{selectedApp.full_name}</h4>
-                                <p className="mb-0 text-muted">Application No: <span className="fw-bold text-dark">{selectedApp.application_no}</span></p>
-                            </div>
-                            <button className="btn btn-outline-secondary btn-sm" onClick={() => setSelectedApp(null)}>
-                                <i className="bi bi-x-lg"></i> Close
-                            </button>
-                        </div>
-
-                        <div className="row g-4">
-                            <div className="col-md-3 text-center">
-                                {selectedApp.photo_url ? (
-                                    <img src={selectedApp.photo_url} alt="Student" className="img-thumbnail" style={{ width: '150px', height: '180px', objectFit: 'cover' }} />
-                                ) : (
-                                    <div className="bg-light d-flex align-items-center justify-content-center border" style={{ width: '150px', height: '180px' }}>
-                                        <i className="bi bi-person fs-1 text-muted"></i>
-                                    </div>
-                                )}
-                                <div className="mt-2">
-                                    <span className="badge bg-success">ADMITTED</span>
+                                <h3 className="mb-1 fw-bold">{selectedApp.full_name}</h3>
+                                <div className="d-flex align-items-center gap-2 opacity-75">
+                                    <i className="bi bi-card-heading"></i>
+                                    <span>Application No: {selectedApp.application_no}</span>
                                 </div>
                             </div>
-                            <div className="col-md-9">
-                                <div className="row g-3">
-                                    <div className="col-md-6">
-                                        <label className="text-muted small text-uppercase">Course</label>
-                                        <div className="fw-bold">{meta.courses[selectedApp.course_id]?.course_name || selectedApp.course_id}</div>
+                            <div className="text-end">
+                                <span className="badge bg-white text-primary px-3 py-2 fw-bold shadow-sm">
+                                    <i className="bi bi-check-circle-fill me-1"></i> ADMITTED
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="card-body p-0">
+                            <div className="row g-0">
+                                {/* Left Sidebar - Photo & ID */}
+                                <div className="col-md-3 bg-light border-end p-4 text-center d-flex flex-column align-items-center justify-content-center">
+                                    <div className="mb-3 position-relative">
+                                        {selectedApp.photo_url ? (
+                                            <img
+                                                src={selectedApp.photo_url}
+                                                alt="Student"
+                                                className="rounded shadow-sm border border-4 border-white"
+                                                style={{ width: '160px', height: '190px', objectFit: 'cover' }}
+                                            />
+                                        ) : (
+                                            <div className="bg-white rounded shadow-sm border border-4 border-white d-flex align-items-center justify-content-center" style={{ width: '160px', height: '190px' }}>
+                                                <i className="bi bi-person-fill fs-1 text-muted"></i>
+                                            </div>
+                                        )}
                                     </div>
-                                    <div className="col-md-6">
-                                        <label className="text-muted small text-uppercase">Group</label>
-                                        <div className="fw-bold">{meta.groups[selectedApp.group_id]?.group_name || selectedApp.group_id}</div>
-                                    </div>
-                                    <div className="col-md-6">
-                                        <label className="text-muted small text-uppercase">Date of Birth</label>
-                                        <div>{selectedApp.date_of_birth}</div>
-                                    </div>
-                                    <div className="col-md-6">
-                                        <label className="text-muted small text-uppercase">Gender</label>
-                                        <div>{selectedApp.gender}</div>
-                                    </div>
-                                    <div className="col-md-6">
-                                        <label className="text-muted small text-uppercase">Phone</label>
-                                        <div>{selectedApp.phone_number}</div>
-                                    </div>
-                                    <div className="col-md-6">
-                                        <label className="text-muted small text-uppercase">Admission ID</label>
-                                        <div className="font-monospace">
-                                            {Array.isArray(selectedApp.admission)
-                                                ? selectedApp.admission[0]?.student_id
-                                                : selectedApp.admission?.student_id || 'Pending Generation'}
+                                    <div className="w-100">
+                                        <div className="text-uppercase text-muted small fw-bold mb-1">Student ID</div>
+                                        <div className="bg-white border rounded p-2 fw-bold text-primary font-monospace shadow-sm">
+                                            {getStudentIdDisplay(selectedApp)}
                                         </div>
+                                    </div>
+                                </div>
+
+                                {/* Right Content - Details Grid */}
+                                <div className="col-md-9 p-4 bg-white">
+                                    <h6 className="text-primary fw-bold text-uppercase mb-3 border-bottom pb-2">Academic & Personal Details</h6>
+
+                                    <div className="d-flex flex-column gap-3 mb-4">
+                                        {[
+                                            { label: 'Student Name', value: selectedApp.full_name },
+                                            { label: 'Course', value: meta.courses[selectedApp.course_id]?.course_name || selectedApp.course_id },
+                                            { label: 'Group', value: meta.groups[selectedApp.group_id]?.group_name || selectedApp.group_id },
+                                            { label: 'Date of Birth', value: selectedApp.date_of_birth ? new Date(selectedApp.date_of_birth).toLocaleDateString() : '-' },
+                                            { label: 'Gender', value: selectedApp.gender },
+                                            { label: 'Phone Number', value: selectedApp.phone_number, monospace: true },
+                                            { label: 'Address', value: `${selectedApp.address} ${selectedApp.state ? `, ${selectedApp.state}` : ''}` }
+                                        ].map((item, idx) => (
+                                            <div key={idx} className="d-flex align-items-baseline gap-3">
+                                                <div className="d-flex justify-content-between text-muted text-uppercase small fw-bold" style={{ minWidth: '160px', width: '160px' }}>
+                                                    <span>{item.label}</span>
+                                                    <span>:</span>
+                                                </div>
+                                                <div className={`fw-bold text-dark ${item.monospace ? 'font-monospace' : ''} text-break`}>
+                                                    {item.value}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Action Footer integrated in right panel or separate */}
+                                    <div className="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                                        <button
+                                            className="btn btn-light border text-muted px-4"
+                                            onClick={() => setSelectedApp(null)}
+                                        >
+                                            Close View
+                                        </button>
+                                        <button className="btn btn-primary px-4">
+                                            <i className="bi bi-printer me-2"></i> Print Admission Letter
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -208,6 +258,7 @@ export default function ConfirmedAdmissions() {
                                 <thead className="table-light">
                                     <tr>
                                         <th>S.No</th>
+                                        <th>Student ID</th>
                                         <th>App No</th>
                                         <th>Student Name</th>
                                         <th>Course</th>
@@ -218,13 +269,14 @@ export default function ConfirmedAdmissions() {
                                 </thead>
                                 <tbody>
                                     {loading ? (
-                                        <tr><td colSpan="7" className="text-center py-4">Loading...</td></tr>
+                                        <tr><td colSpan="8" className="text-center py-4">Loading...</td></tr>
                                     ) : applications.length === 0 ? (
-                                        <tr><td colSpan="7" className="text-center py-4 text-muted">No confirmed admissions found.</td></tr>
+                                        <tr><td colSpan="8" className="text-center py-4 text-muted">No confirmed admissions found.</td></tr>
                                     ) : (
                                         applications.map((app, index) => (
                                             <tr key={app.id}>
                                                 <td>{index + 1}</td>
+                                                <td className="fw-bold font-monospace text-primary">{getStudentIdDisplay(app)}</td>
                                                 <td className="fw-bold">{app.application_no}</td>
                                                 <td>
                                                     <div className="d-flex align-items-center">
@@ -232,7 +284,7 @@ export default function ConfirmedAdmissions() {
                                                         {app.full_name}
                                                     </div>
                                                 </td>
-                                                <td>{meta.courses[app.course_id]?.course_code || '-'}</td>
+                                                <td>{meta.courses[app.course_id]?.course_name || '-'}</td>
                                                 <td>{meta.groups[app.group_id]?.group_name || '-'}</td>
                                                 <td>{app.admission?.confirmed_at || (Array.isArray(app.admission) && app.admission[0]?.confirmed_at) ? new Date(app.admission.confirmed_at || app.admission[0].confirmed_at).toLocaleDateString() : '-'}</td>
                                                 <td>
