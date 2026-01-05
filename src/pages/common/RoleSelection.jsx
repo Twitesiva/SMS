@@ -23,6 +23,9 @@ export default function RoleSelection() {
             case 'admin':
                 navigate('/admin-portal/login');
                 break;
+            case 'library':
+                navigate('/library/login');
+                break;
             default:
                 break;
         }

@@ -124,14 +124,13 @@ export default function AdminShell({
   };
 
   const handleSignOut = () => {
-    if (typeof onSignOut === "function") {
-      onSignOut();
-    } else {
+    const handled = typeof onSignOut === "function" ? onSignOut() : false;
+    if (!handled) {
       try {
         signOut();
       } catch { }
+      navTo("/");
     }
-    navTo("/");
   };
 
   // Restore the sidebar scroll position after navigation changes.

@@ -23,6 +23,8 @@ import Subjects from "./pages/admin/Subjects.jsx";
 import FeesCollection from "./pages/admin/FeesCollection.jsx";
 import ClassTimeTable from "./pages/admin/ClassTimeTable.jsx";
 import ClassTimeTableCreation from "./pages/admin/ClassTimeTableCreation.jsx";
+import LibraryLogin from "./pages/library/LibraryLogin.jsx";
+import LibraryDashboard from "./pages/library/LibraryDashboard.jsx";
 
 import StaffSubjectMapping from "./pages/admin/StaffSubjectMapping.jsx";
 
@@ -185,6 +187,8 @@ export default function App() {
         <Route path="/admissions/login" element={<AdmissionsLogin />} />
         <Route path="/student/login" element={<StudentLogin />} />
         <Route path="/staff/login" element={<StaffLogin />} />
+        <Route path="/library/login" element={<LibraryLogin />} />
+        <Route path="/library" element={<LibraryDashboard />} />
         <Route
           path="/staff/dashboard"
           element={
