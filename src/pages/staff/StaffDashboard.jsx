@@ -115,7 +115,7 @@ export default function StaffDashboard() {
                 ================================ */}
                 <div className="student-card mt-4 mb-4">
                     <div className="student-card__header">
-                        Teaching Assignment Details
+                        Course and Group Details
                     </div>
 
                     <div className="student-card__body">
@@ -136,7 +136,7 @@ export default function StaffDashboard() {
                                             colSpan="5"
                                             className="text-center text-muted"
                                         >
-                                            No teaching assignments found
+                                            No course and group details found
                                         </td>
                                     </tr>
                                 ) : (
