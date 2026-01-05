@@ -30,13 +30,6 @@ export default function RoleSelection() {
 
     const roles = [
         {
-            id: 'student',
-            label: 'Student',
-            icon: 'bi-mortarboard-fill',
-            desc: 'Access Student Portal, Results & Timetables',
-            className: 'student'
-        },
-        {
             id: 'staff',
             label: 'Staff',
             icon: 'bi-person-workspace',
@@ -63,6 +56,34 @@ export default function RoleSelection() {
             icon: 'bi-laptop',
             desc: 'Controller of Examinations Login',
             className: 'exam-portal'
+        },
+        {
+            id: 'student',
+            label: 'Student',
+            icon: 'bi-mortarboard-fill',
+            desc: 'Access Student Portal, Results & Timetables',
+            className: 'student'
+        },
+        {
+            id: 'hostel',
+            label: 'Hostel',
+            icon: 'bi-house-door',
+            desc: 'Hostel Management & Allocation',
+            className: 'hostel'
+        },
+        {
+            id: 'library',
+            label: 'Library',
+            icon: 'bi-journal-bookmark',
+            desc: 'Library Catalog & Issue Desk',
+            className: 'library'
+        },
+        {
+            id: 'transport',
+            label: 'Transport',
+            icon: 'bi-bus-front',
+            desc: 'Transport Routes & Passes',
+            className: 'transport'
         }
     ];
 

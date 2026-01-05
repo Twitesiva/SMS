@@ -1,10 +1,22 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import AdminShell from '../../components/AdminShell'
 import { supabase } from '../../../supabaseClient'
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import crestPrimary from '../../assets/media/images.png'
 const adminNavGroups = [
+
+  {
+    title: 'Exam Applications',
+    static: true,
+    items: [
+      {
+        to: '/admin-portal/applications',
+        label: 'Exam Applications',
+        icon: 'bi-inboxes'
+      }
+    ]
+  },
   {
     title: 'Student Portal',
     items: [
@@ -87,6 +99,17 @@ const adminNavGroups = [
         to: '/admin-portal/class-time-table',
         label: 'Class Time Table',
         icon: 'bi-calendar-date'
+      }
+    ]
+  },
+  {
+    title: 'Class Time Table Creation',
+    static: true,
+    items: [
+      {
+        to: '/admin-portal/class-time-table-creation',
+        label: 'Class Time Table Creation',
+        icon: 'bi-calendar-plus'
       }
     ]
   },
@@ -481,6 +504,7 @@ export default function ProfileCreation() {
     </AdminShell>
   )
 }
+
 
 
 

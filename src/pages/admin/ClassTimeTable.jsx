@@ -1,4 +1,4 @@
-﻿import AdminShell from '../../components/AdminShell'
+import AdminShell from '../../components/AdminShell'
 import crestPrimary from '../../assets/media/images.png'
 import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../../../supabaseClient'
@@ -31,6 +31,18 @@ const TIME_SLOTS = [
    NAV
 ================================ */
 const adminNavGroups = [
+
+  {
+    title: 'Exam Applications',
+    static: true,
+    items: [
+      {
+        to: '/admin-portal/applications',
+        label: 'Exam Applications',
+        icon: 'bi-inboxes'
+      }
+    ]
+  },
   {
     title: 'Student Portal',
     items: [
@@ -114,6 +126,17 @@ const adminNavGroups = [
         to: '/admin-portal/class-time-table',
         label: 'Class Time Table',
         icon: 'bi-calendar-date'
+      }
+    ]
+  },
+  {
+    title: 'Class Time Table Creation',
+    static: true,
+    items: [
+      {
+        to: '/admin-portal/class-time-table-creation',
+        label: 'Class Time Table Creation',
+        icon: 'bi-calendar-plus'
       }
     ]
   }
@@ -987,3 +1010,4 @@ export default function ClassTimeTable() {
     </AdminShell>
   )
 }
+

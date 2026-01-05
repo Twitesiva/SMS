@@ -1,7 +1,19 @@
-﻿import AdminShell from '../../components/AdminShell'
+import AdminShell from '../../components/AdminShell'
 import crestPrimary from '../../assets/media/images.png'
 
 const adminNavGroups = [
+
+  {
+    title: 'Exam Applications',
+    static: true,
+    items: [
+      {
+        to: '/admin-portal/applications',
+        label: 'Exam Applications',
+        icon: 'bi-inboxes'
+      }
+    ]
+  },
   {
     title: 'Student Portal',
     items: [
@@ -87,6 +99,17 @@ const adminNavGroups = [
       }
     ]
   },
+  {
+    title: 'Class Time Table Creation',
+    static: true,
+    items: [
+      {
+        to: '/admin-portal/class-time-table-creation',
+        label: 'Class Time Table Creation',
+        icon: 'bi-calendar-plus'
+      }
+    ]
+  },
 
 ]
 
@@ -151,6 +174,7 @@ export default function Department() {
     </AdminShell>
   )
 }
+
 
 
 

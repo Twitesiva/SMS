@@ -1,4 +1,4 @@
-﻿import AdminShell from '../../components/AdminShell'
+import AdminShell from '../../components/AdminShell'
 import crestPrimary from '../../assets/media/images.png'
 import { useState, useEffect } from 'react'
 import { supabase } from '../../../supabaseClient'
@@ -6,6 +6,18 @@ import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
 const adminNavGroups = [
+
+    {
+        title: 'Exam Applications',
+        static: true,
+        items: [
+            {
+                to: '/admin-portal/applications',
+                label: 'Exam Applications',
+                icon: 'bi-inboxes'
+            }
+        ]
+    },
     {
         title: 'Student Portal',
         items: [
@@ -300,4 +312,5 @@ export default function ClassTimeTableCreation() {
         </AdminShell>
     )
 }
+
 

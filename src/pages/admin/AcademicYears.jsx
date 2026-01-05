@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import AdminShell from '../../components/AdminShell'
 import crestPrimary from '../../assets/media/images.png'
 import AcademicYearsSection from '../exam/AcademicYears'
@@ -7,6 +7,18 @@ import { showToast } from '../../store/ui'
 import { validateRequiredFields } from '../../lib/validation'
 
 const adminNavGroups = [
+
+  {
+    title: 'Exam Applications',
+    static: true,
+    items: [
+      {
+        to: '/admin-portal/applications',
+        label: 'Exam Applications',
+        icon: 'bi-inboxes'
+      }
+    ]
+  },
   {
     title: 'Student Portal',
     items: [
@@ -91,10 +103,21 @@ const adminNavGroups = [
         icon: 'bi-calendar-date'
       }
     ]
+  },
+  {
+    title: 'Class Time Table Creation',
+    static: true,
+    items: [
+      {
+        to: '/admin-portal/class-time-table-creation',
+        label: 'Class Time Table Creation',
+        icon: 'bi-calendar-plus'
+      }
+    ]
   }
 ]
 
-export default function AcademicYears() {
+function AcademicYears() {
   const [yearForm, setYearForm] = useState({ name: '', category: '', active: true })
   const [academicYears, setAcademicYears] = useState([])
   const [editingYearId, setEditingYearId] = useState('')
@@ -219,6 +242,9 @@ export default function AcademicYears() {
     </AdminShell>
   )
 }
+
+export default AcademicYears
+
 
 
 

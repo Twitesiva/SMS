@@ -76,12 +76,18 @@
 }
 
 .role-grid {
-    display: flex;
+    display: grid;
     gap: 1rem;
-    justify-content: center;
+    justify-items: center;
     align-items: center;
     padding: 1rem;
-    flex-wrap: wrap;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+@media (min-width: 1200px) {
+    .role-grid {
+        grid-template-columns: repeat(4, minmax(220px, 1fr));
+    }
 }
 
 .role-card {
