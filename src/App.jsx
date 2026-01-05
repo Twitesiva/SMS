@@ -24,7 +24,7 @@ import FeesCollection from "./pages/admin/FeesCollection.jsx";
 import ClassTimeTable from "./pages/admin/ClassTimeTable.jsx";
 
 import StaffSubjectMapping from "./pages/admin/StaffSubjectMapping.jsx";
-import Department from "./pages/admin/Department.jsx";
+
 import ExamLogin from "./pages/exam/ExamLogin.jsx";
 import StudentLogin from "./pages/student/StudentLogin.jsx";
 import StaffLogin from "./pages/staff/StaffLogin.jsx";
@@ -156,14 +156,7 @@ export default function App() {
           }
         />
 
-        <Route
-          path="/admin-portal/department"
-          element={
-            <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
-              <Department />
-            </GuardedRoute>
-          }
-        />
+
         <Route
           path="/admin-portal/subject-mapping"
           element={
