@@ -68,29 +68,69 @@ export default function ApplicationTracker() {
         navigate('/admission/login')
     }
 
+    const loadRazorpay = () => {
+        return new Promise((resolve) => {
+            const script = document.createElement('script')
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+            script.onload = () => resolve(true)
+            script.onerror = () => resolve(false)
+            document.body.appendChild(script)
+        })
+    }
+
     const handlePayment = async () => {
-        if (!confirm("This is a demo payment gateway. Click OK to simulate successful payment.")) return;
+        const res = await loadRazorpay()
 
-        // Update admission_fee_paid to true
-        if (!admission) return
-
-        try {
-            setLoading(true)
-            const { error } = await supabase
-                .from('admissions')
-                .update({ admission_fee_paid: true })
-                .eq('id', admission.id)
-
-            if (error) throw error
-
-            setAdmission(prev => ({ ...prev, admission_fee_paid: true }))
-            showToast("Payment Successful! Your admission is secured.", { type: 'success' })
-
-        } catch (err) {
-            showToast("Payment failed: " + err.message, { type: 'error' })
-        } finally {
-            setLoading(false)
+        if (!res) {
+            showToast('Razorpay SDK failed to load. Are you online?', { type: 'error' })
+            return
         }
+
+        const options = {
+            key: 'rzp_test_1DP5mmOlF5G5ag', // Demo Test Key
+            amount: 500000, // 5000 INR
+            currency: 'INR',
+            name: 'Vijayam College',
+            description: 'Admission Fee Transaction',
+            image: crestPrimary,
+            handler: async function (response) {
+                // Payment Success
+                try {
+                    setLoading(true)
+                    const { error } = await supabase
+                        .from('admissions')
+                        .update({
+                            admission_fee_paid: true,
+
+                        })
+                        .eq('id', admission.id)
+
+                    if (error) throw error
+
+                    setAdmission(prev => ({ ...prev, admission_fee_paid: true }))
+                    showToast(`Payment Successful! Payment ID: ${response.razorpay_payment_id}`, { type: 'success' })
+
+                } catch (err) {
+                    showToast("Payment verification failed: " + err.message, { type: 'error' })
+                } finally {
+                    setLoading(false)
+                }
+            },
+            prefill: {
+                name: application.full_name,
+                email: application.email || 'student@vijayam.edu',
+                contact: application.phone_number
+            },
+            notes: {
+                address: 'Vijayam College Campus'
+            },
+            theme: {
+                color: '#3399cc'
+            }
+        };
+
+        const paymentObject = new window.Razorpay(options);
+        paymentObject.open();
     }
 
     if (loading) {
@@ -102,10 +142,10 @@ export default function ApplicationTracker() {
     // Determine Status Steps
     const isSubmitted = true
     // Assume approved status implies documents verified for now, or check explicit flag
-    const isVerified = admission?.document_verification_status === 'VERIFIED' || admission?.admission_status === 'APPROVED' || admission?.admission_status === 'CONFIRMED'
+    const isVerified = admission?.document_verification_status === 'VERIFIED'
     const isFeePaid = admission?.admission_fee_paid
-    // Final approval depends on verification and payment
-    const isApproved = isVerified && isFeePaid
+    // Final approval depends on Admin Action (Database Status)
+    const isApproved = admission?.admission_status === 'APPROVED' || admission?.admission_status === 'CONFIRMED'
 
     return (
         <div className="admission-portal" style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
