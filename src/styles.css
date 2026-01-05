@@ -8323,3 +8323,71 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
     display: none;
   }
 }
+.activity-table th {
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: #405166;
+}
+
+.activity-table td {
+  vertical-align: middle;
+}
+
+.activity-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(27, 41, 63, 0.12);
+  background: rgba(27, 41, 63, 0.08);
+  color: #243247;
+}
+
+.activity-badge.is-issued {
+  background: rgba(31, 122, 87, 0.12);
+  border-color: rgba(31, 122, 87, 0.3);
+  color: #1b5f44;
+}
+
+.activity-badge.is-returned {
+  background: rgba(44, 123, 182, 0.14);
+  border-color: rgba(44, 123, 182, 0.35);
+  color: #1f5074;
+}
+
+.activity-badge.is-fine {
+  background: rgba(176, 58, 72, 0.12);
+  border-color: rgba(176, 58, 72, 0.35);
+  color: #8a2835;
+}
+
+.activity-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.activity-name {
+  font-weight: 600;
+  color: #1f2f46;
+}
+
+.activity-name span {
+  font-weight: 500;
+  color: #526177;
+}
+
+.activity-book {
+  font-size: 0.85rem;
+  color: #5b6a80;
+}
+
+.activity-time {
+  font-size: 0.85rem;
+  color: #5b6a80;
+}

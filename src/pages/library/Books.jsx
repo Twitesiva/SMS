@@ -12,8 +12,6 @@ export default function Books() {
     title: '',
     isbn: '',
     author: '',
-    category: '',
-    categoryCustom: '',
     language: '',
     publisher: '',
     published_year: '',
@@ -29,7 +27,7 @@ export default function Books() {
     try {
       const { data: bookRows, error: bookError } = await supabase
         .from('library_books')
-        .select('id, title, category, created_at')
+        .select('id, title, created_at')
         .order('created_at', { ascending: false })
         .limit(10)
 
@@ -75,8 +73,6 @@ export default function Books() {
       title: '',
       isbn: '',
       author: '',
-      category: '',
-      categoryCustom: '',
       language: '',
       publisher: '',
       published_year: '',
@@ -98,7 +94,6 @@ export default function Books() {
       return
     }
 
-    const categoryValue = form.categoryCustom.trim() || form.category.trim() || null
     const copiesCount = Math.max(0, Number(form.copies || 0))
 
     setSaving(true)
@@ -107,7 +102,6 @@ export default function Books() {
         title: form.title.trim(),
         isbn: form.isbn.trim() || null,
         author: form.author.trim() || null,
-        category: categoryValue,
         language: form.language.trim() || null,
         publisher: form.publisher.trim() || null,
         published_year: form.published_year ? Number(form.published_year) : null,
@@ -172,7 +166,7 @@ export default function Books() {
         </section>
 
         <div className="row g-4 justify-content-center mx-0">
-          <div className="col-12 col-lg-7">
+          <div className="col-12">
             <div className="card card-soft p-4">
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <div>
@@ -213,24 +207,7 @@ export default function Books() {
                     onChange={handleChange('author')}
                   />
                 </div>
-                <div className="col-md-3">
-                  <label className="form-label">Category</label>
-                  <select className="form-select" value={form.category} onChange={handleChange('category')}>
-                    <option value="">Select</option>
-                    <option>Computer Science</option>
-                    <option>Management</option>
-                    <option>Commerce</option>
-                    <option>Literature</option>
-                  </select>
-                  <input
-                    className="form-control mt-2"
-                    type="text"
-                    placeholder="Add new category"
-                    value={form.categoryCustom}
-                    onChange={handleChange('categoryCustom')}
-                  />
-                </div>
-                <div className="col-md-3">
+                <div className="col-md-6">
                   <label className="form-label">Language</label>
                   <input
                     className="form-control"
@@ -326,7 +303,6 @@ export default function Books() {
             </div>
           </div>
 
-          <div className="col-12 col-lg-5" />
         </div>
 
         <div className="card card-soft p-4 mt-4">
@@ -342,7 +318,6 @@ export default function Books() {
               <thead className="table-light">
                 <tr>
                   <th>Title</th>
-                  <th>Category</th>
                   <th>Copies</th>
                   <th className="text-end">Status</th>
                 </tr>
@@ -350,7 +325,7 @@ export default function Books() {
               <tbody>
                 {recentBooks.length === 0 ? (
                   <tr>
-                    <td colSpan="4" className="text-center text-muted py-4">No book entries loaded.</td>
+                    <td colSpan="3" className="text-center text-muted py-4">No book entries loaded.</td>
                   </tr>
                 ) : (
                   recentBooks.map((book) => {
@@ -360,7 +335,6 @@ export default function Books() {
                     return (
                       <tr key={book.id}>
                         <td>{book.title || 'Untitled'}</td>
-                        <td>{book.category || '--'}</td>
                         <td>{count}</td>
                         <td className="text-end"><span className={`badge ${badgeClass}`}>{statusLabel}</span></td>
                       </tr>

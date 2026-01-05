@@ -11,7 +11,7 @@ export default function LibraryDashboard() {
     totalBooks: null,
     issuedToday: null,
     overdueItems: null,
-    activeMembers: null
+    issuedLast30Days: null
   })
   const [recentLoans, setRecentLoans] = useState([])
   const [overdueLoans, setOverdueLoans] = useState([])
@@ -26,10 +26,18 @@ export default function LibraryDashboard() {
         startOfDay.setHours(0, 0, 0, 0)
         const endOfDay = new Date()
         endOfDay.setHours(23, 59, 59, 999)
+        const now = new Date()
+        const thirtyDaysAgo = new Date()
+        thirtyDaysAgo.setDate(now.getDate() - 30)
+        thirtyDaysAgo.setHours(0, 0, 0, 0)
 
-        const [booksRes, studentsRes, issuedTodayRes, overdueRes, loansRes, finesRes] = await Promise.all([
+        const [booksRes, issuedLast30DaysRes, issuedTodayRes, overdueRes, loansRes, finesRes] = await Promise.all([
           supabase.from('library_books').select('id', { count: 'exact', head: true }),
-          supabase.from('students').select('id', { count: 'exact', head: true }).eq('status', 'ACTIVE'),
+          supabase
+            .from('library_loans')
+            .select('id', { count: 'exact', head: true })
+            .gte('issued_at', thirtyDaysAgo.toISOString())
+            .lte('issued_at', now.toISOString()),
           supabase
             .from('library_loans')
             .select('id', { count: 'exact', head: true })
@@ -55,7 +63,7 @@ export default function LibraryDashboard() {
         ])
 
         if (booksRes.error) throw booksRes.error
-        if (studentsRes.error) throw studentsRes.error
+        if (issuedLast30DaysRes.error) throw issuedLast30DaysRes.error
         if (issuedTodayRes.error) throw issuedTodayRes.error
         if (overdueRes.error) throw overdueRes.error
         if (loansRes.error) throw loansRes.error
@@ -67,7 +75,7 @@ export default function LibraryDashboard() {
           totalBooks: booksRes.count ?? 0,
           issuedToday: issuedTodayRes.count ?? 0,
           overdueItems: overdueRes.count ?? 0,
-          activeMembers: studentsRes.count ?? 0
+          issuedLast30Days: issuedLast30DaysRes.count ?? 0
         })
 
         setRecentLoans(allLoans.slice(0, 5))
@@ -86,7 +94,9 @@ export default function LibraryDashboard() {
               id: `loan-issued-${loan.id}`,
               time: loan.issued_at,
               title: 'Book Issued',
-              detail: `${student?.full_name || 'Unknown'} (${student?.student_id || '--'}) · ${book?.title || 'Unknown'}`
+              studentName: student?.full_name || 'Unknown',
+              studentId: student?.student_id || '--',
+              bookTitle: book?.title || 'Unknown'
             })
           }
           if (loan.returned_at) {
@@ -94,7 +104,9 @@ export default function LibraryDashboard() {
               id: `loan-returned-${loan.id}`,
               time: loan.returned_at,
               title: 'Book Returned',
-              detail: `${student?.full_name || 'Unknown'} (${student?.student_id || '--'}) · ${book?.title || 'Unknown'}`
+              studentName: student?.full_name || 'Unknown',
+              studentId: student?.student_id || '--',
+              bookTitle: book?.title || 'Unknown'
             })
           }
           return events
@@ -107,7 +119,9 @@ export default function LibraryDashboard() {
             id: `fine-${fine.id}`,
             time: fine.created_at,
             title: fine.status === 'PAID' ? 'Fine Collected' : 'Fine Applied',
-            detail: `${student?.full_name || 'Unknown'} (${student?.student_id || '--'}) · ${book?.title || 'Unknown'}`
+            studentName: student?.full_name || 'Unknown',
+            studentId: student?.student_id || '--',
+            bookTitle: book?.title || 'Unknown'
           }
         })
 
@@ -118,7 +132,7 @@ export default function LibraryDashboard() {
         setActivityEvents(mergedEvents)
       } catch (error) {
         console.error('Failed to load library dashboard', error)
-        setStats({ totalBooks: null, issuedToday: null, overdueItems: null, activeMembers: null })
+        setStats({ totalBooks: null, issuedToday: null, overdueItems: null, issuedLast30Days: null })
         setRecentLoans([])
         setOverdueLoans([])
         setActivityEvents([])
@@ -182,9 +196,9 @@ export default function LibraryDashboard() {
           </div>
           <div className="col-12 col-md-6 col-xl-3">
             <div className="card card-soft p-3 h-100">
-              <div className="text-muted small">Active Members</div>
-              <div className="fs-3 fw-bold">{formatStat(stats.activeMembers)}</div>
-              <div className="small text-muted">Registered students</div>
+              <div className="text-muted small">Overall Issued (last 30 days)</div>
+              <div className="fs-3 fw-bold">{formatStat(stats.issuedLast30Days)}</div>
+              <div className="small text-muted">Total issues in period</div>
             </div>
           </div>
         </div>
@@ -271,7 +285,7 @@ export default function LibraryDashboard() {
             </div>
           </div>
           <div className="table-responsive">
-            <table className="table table-hover align-middle mb-0">
+            <table className="table table-hover align-middle mb-0 activity-table">
               <thead className="table-light">
                 <tr>
                   <th>Activity</th>
@@ -287,9 +301,22 @@ export default function LibraryDashboard() {
                 ) : (
                   activityEvents.map((event) => (
                     <tr key={event.id}>
-                      <td>{event.title}</td>
-                      <td>{event.detail}</td>
-                      <td className="text-end">{event.time ? new Date(event.time).toLocaleString() : '--'}</td>
+                      <td>
+                        <span className={`activity-badge ${event.title === 'Book Issued' ? 'is-issued' : event.title === 'Book Returned' ? 'is-returned' : 'is-fine'}`}>
+                          {event.title}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="activity-detail">
+                          <div className="activity-name">
+                            {event.studentName || 'Unknown'} <span>({event.studentId || '--'})</span>
+                          </div>
+                          <div className="activity-book">{event.bookTitle || 'Unknown'}</div>
+                        </div>
+                      </td>
+                      <td className="text-end activity-time">
+                        {event.time ? new Date(event.time).toLocaleString() : '--'}
+                      </td>
                     </tr>
                   ))
                 )}

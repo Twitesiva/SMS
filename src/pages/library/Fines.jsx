@@ -15,8 +15,7 @@ export default function Fines() {
     studentId: '',
     bookTitle: '',
     amount: '100',
-    paymentMode: 'Cash',
-    remarks: ''
+    paymentMode: 'Cash'
   })
   const [loadingBook, setLoadingBook] = useState(false)
   const [bookStatus, setBookStatus] = useState('')
@@ -214,16 +213,6 @@ export default function Fines() {
                     <option>UPI</option>
                     <option>Card</option>
                   </select>
-                </div>
-                <div className="col-12">
-                  <label className="form-label">Remarks</label>
-                  <textarea
-                    className="form-control"
-                    rows="2"
-                    placeholder="Optional note"
-                    value={fineForm.remarks}
-                    onChange={handleFineChange('remarks')}
-                  />
                 </div>
                 <div className="col-12 d-flex justify-content-end gap-2">
                   <button type="button" className="btn btn-outline-secondary">Save Draft</button>

@@ -10,9 +10,7 @@ export default function Circulation() {
   const [form, setForm] = useState({
     studentId: '',
     bookRef: '',
-    action: 'Issue',
-    dueDate: '',
-    remarks: ''
+    dueDate: ''
   })
   const [saving, setSaving] = useState(false)
 
@@ -46,9 +44,7 @@ export default function Circulation() {
     setForm({
       studentId: '',
       bookRef: '',
-      action: 'Issue',
-      dueDate: '',
-      remarks: ''
+      dueDate: ''
     })
   }
 
@@ -119,137 +115,40 @@ export default function Circulation() {
         return
       }
 
-      if (form.action === 'Issue') {
-        if (!resolved.copy) {
-          showToast('No available copies for this book.', { type: 'warning' })
-          setSaving(false)
-          return
-        }
-
-        const dueDate = form.dueDate ? form.dueDate : null
-        if (!dueDate) {
-          showToast('Select a due date.', { type: 'warning' })
-          setSaving(false)
-          return
-        }
-
-        const { error: insertError } = await supabase
-          .from('library_loans')
-          .insert([
-            {
-              student_id: studentRow.student_id,
-              book_copy_id: resolved.copy.id,
-              due_date: dueDate,
-              status: 'ISSUED',
-              remarks: form.remarks || null
-            }
-          ])
-
-        if (insertError) throw insertError
-
-        const { error: copyUpdateError } = await supabase
-          .from('library_book_copies')
-          .update({ availability: 'ISSUED' })
-          .eq('id', resolved.copy.id)
-
-        if (copyUpdateError) throw copyUpdateError
-
-        showToast('Book issued successfully.', { type: 'success' })
-      } else if (form.action === 'Return') {
-        const { data: loanRows, error: loanError } = await supabase
-          .from('library_loans')
-          .select('id, book_copy_id, due_date, library_book_copies!inner(book_id)')
-          .eq('student_id', studentRow.student_id)
-          .eq('status', 'ISSUED')
-          .eq('library_book_copies.book_id', resolved.book.id)
-          .order('issued_at', { ascending: false })
-          .limit(1)
-
-        if (loanError) throw loanError
-        const loanRow = (loanRows || [])[0]
-        if (!loanRow) {
-          showToast('No active loan found for this student and book.', { type: 'warning' })
-          setSaving(false)
-          return
-        }
-
-        const { error: updateError } = await supabase
-          .from('library_loans')
-          .update({ status: 'RETURNED', returned_at: new Date().toISOString() })
-          .eq('id', loanRow.id)
-
-        if (updateError) throw updateError
-
-        const { error: copyUpdateError } = await supabase
-          .from('library_book_copies')
-          .update({ availability: 'AVAILABLE' })
-          .eq('id', loanRow.book_copy_id)
-
-        if (copyUpdateError) throw copyUpdateError
-
-        const dueDateValue = loanRow.due_date ? new Date(loanRow.due_date) : null
-        const todayValue = new Date()
-        if (dueDateValue && todayValue > dueDateValue) {
-          const { data: existingFines, error: fineCheckError } = await supabase
-            .from('library_fines')
-            .select('id')
-            .eq('loan_id', loanRow.id)
-            .limit(1)
-
-          if (fineCheckError) throw fineCheckError
-          const existingFine = (existingFines || [])[0]
-          if (!existingFine) {
-            const { error: fineError } = await supabase
-              .from('library_fines')
-              .insert([
-                {
-                  loan_id: loanRow.id,
-                  student_id: studentRow.student_id,
-                  amount: 100,
-                  status: 'PENDING'
-                }
-              ])
-
-            if (fineError) throw fineError
-            showToast('Book returned with overdue fine applied.', { type: 'warning' })
-          }
-        }
-
-        showToast('Book returned successfully.', { type: 'success' })
-      } else if (form.action === 'Renew') {
-        const dueDate = form.dueDate ? form.dueDate : null
-        if (!dueDate) {
-          showToast('Select a new due date.', { type: 'warning' })
-          setSaving(false)
-          return
-        }
-
-        const { data: loanRows, error: loanError } = await supabase
-          .from('library_loans')
-          .select('id, library_book_copies!inner(book_id)')
-          .eq('student_id', studentRow.student_id)
-          .eq('status', 'ISSUED')
-          .eq('library_book_copies.book_id', resolved.book.id)
-          .order('issued_at', { ascending: false })
-          .limit(1)
-
-        if (loanError) throw loanError
-        const loanRow = (loanRows || [])[0]
-        if (!loanRow) {
-          showToast('No active loan found for this student and book.', { type: 'warning' })
-          setSaving(false)
-          return
-        }
-
-        const { error: renewError } = await supabase
-          .from('library_loans')
-          .update({ due_date: dueDate })
-          .eq('id', loanRow.id)
-
-        if (renewError) throw renewError
-
-        showToast('Loan renewed successfully.', { type: 'success' })
+      if (!resolved.copy) {
+        showToast('No available copies for this book.', { type: 'warning' })
+        setSaving(false)
+        return
       }
+
+      const dueDate = form.dueDate ? form.dueDate : null
+      if (!dueDate) {
+        showToast('Select a due date.', { type: 'warning' })
+        setSaving(false)
+        return
+      }
+
+      const { error: insertError } = await supabase
+        .from('library_loans')
+        .insert([
+          {
+            student_id: studentRow.student_id,
+            book_copy_id: resolved.copy.id,
+            due_date: dueDate,
+            status: 'ISSUED'
+          }
+        ])
+
+      if (insertError) throw insertError
+
+      const { error: copyUpdateError } = await supabase
+        .from('library_book_copies')
+        .update({ availability: 'ISSUED' })
+        .eq('id', resolved.copy.id)
+
+      if (copyUpdateError) throw copyUpdateError
+
+      showToast('Book issued successfully.', { type: 'success' })
 
       resetForm()
       loadLoans()
@@ -315,33 +214,13 @@ export default function Circulation() {
                     onChange={handleChange('bookRef')}
                   />
                 </div>
-                <div className="col-md-6">
-                  <label className="form-label">Action</label>
-                  <select className="form-select" value={form.action} onChange={handleChange('action')}>
-                    <option>Issue</option>
-                    <option>Return</option>
-                    <option>Renew</option>
-                  </select>
-                </div>
-                {form.action !== 'Return' && (
-                  <div className="col-md-6">
-                    <label className="form-label">Due Date</label>
-                    <input
-                      className="form-control"
-                      type="date"
-                      value={form.dueDate}
-                      onChange={handleChange('dueDate')}
-                    />
-                  </div>
-                )}
                 <div className="col-12">
-                  <label className="form-label">Remarks</label>
-                  <textarea
+                  <label className="form-label">Due Date</label>
+                  <input
                     className="form-control"
-                    rows="2"
-                    placeholder="Optional notes"
-                    value={form.remarks}
-                    onChange={handleChange('remarks')}
+                    type="date"
+                    value={form.dueDate}
+                    onChange={handleChange('dueDate')}
                   />
                 </div>
                 <div className="col-12 d-flex justify-content-end gap-2">
