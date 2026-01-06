@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import AdminShell from '../../components/AdminShell'
 import crestPrimary from '../../assets/media/images.png'
 import { libraryNavGroups } from './nav'
@@ -149,26 +150,31 @@ export default function Books() {
       footerTitle="Library Management Studio"
       footerSubtitle="Crafted for Vijayam College"
     >
-      <div className="desktop-container" style={{ overflowX: 'hidden' }}>
-        <section className="setup-hero mb-4 text-center">
-          <div className="setup-hero-copywrap mx-auto text-center" style={{ maxWidth: '640px' }}>
-            <div className="admin-applications__crest mx-auto" aria-hidden="true">
-              <img src={crestPrimary} alt="Vijayam crest" />
+      <div className="desktop-container library-books-page" style={{ overflowX: 'hidden' }}>
+        <section className="library-books-hero">
+          <div className="library-books-hero__content">
+            <div className="library-books-hero__brand">
+              <div className="library-books-hero__crest" aria-hidden="true">
+                <img src={crestPrimary} alt="Vijayam crest" />
+              </div>
+              <div>
+                <div className="library-books-hero__eyebrow">Library Console</div>
+                <h3 className="library-books-hero__title">Library Book Entry</h3>
+                <p className="library-books-hero__subtitle">Track inventory, metadata, and shelf location details.</p>
+              </div>
             </div>
-            <h3 className="setup-hero-title mb-2">Library Book Entry</h3>
-            <p className="setup-hero-copy mb-3">Track inventory, metadata, and shelf location details.</p>
-            <div className="setup-hero-chips d-flex flex-wrap gap-2 justify-content-center">
-              <span className="setup-hero-chip text-uppercase">CATALOGUE</span>
-              <span className="setup-hero-chip text-uppercase">INVENTORY</span>
-              <span className="setup-hero-chip text-uppercase">METADATA</span>
+            <div className="library-books-hero__chips">
+              <span>Catalogue</span>
+              <span>Inventory</span>
+              <span>Metadata</span>
             </div>
           </div>
         </section>
 
         <div className="row g-4 justify-content-center mx-0">
           <div className="col-12">
-            <div className="card card-soft p-4">
-              <div className="d-flex justify-content-between align-items-center mb-3">
+            <div className="library-books-form-card">
+              <div className="library-books-form-header">
                 <div>
                   <h4 className="mb-1">Book Details</h4>
                   <p className="text-muted mb-0">Add or update catalog information.</p>
@@ -305,17 +311,17 @@ export default function Books() {
 
         </div>
 
-        <div className="card card-soft p-4 mt-4">
-          <div className="d-flex justify-content-between align-items-center mb-3">
+        <div className="library-books-table-card">
+          <div className="library-books-table-header">
             <div>
               <h5 className="mb-1">Recent Book Entries</h5>
               <p className="text-muted mb-0">Track last updated titles and availability.</p>
             </div>
-            <button type="button" className="btn btn-outline-secondary btn-sm">View All</button>
+            <Link to="/library/books/all" className="btn btn-outline-secondary btn-sm">View All</Link>
           </div>
           <div className="table-responsive">
-            <table className="table table-hover align-middle mb-0">
-              <thead className="table-light">
+            <table className="table library-books-table mb-0">
+              <thead>
                 <tr>
                   <th>Title</th>
                   <th>Copies</th>
@@ -331,12 +337,12 @@ export default function Books() {
                   recentBooks.map((book) => {
                     const count = copyCounts[String(book.id)] || 0
                     const statusLabel = count > 0 ? 'Available' : 'Out'
-                    const badgeClass = count > 0 ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'
+                    const badgeClass = count > 0 ? 'library-status library-status--available' : 'library-status library-status--out'
                     return (
                       <tr key={book.id}>
                         <td>{book.title || 'Untitled'}</td>
                         <td>{count}</td>
-                        <td className="text-end"><span className={`badge ${badgeClass}`}>{statusLabel}</span></td>
+                        <td className="text-end"><span className={badgeClass}>{statusLabel}</span></td>
                       </tr>
                     )
                   })

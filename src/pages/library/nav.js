@@ -17,6 +17,11 @@ export const libraryNavGroups = [
         to: '/library/books',
         label: 'Book Entry',
         icon: 'bi-journal-plus'
+      },
+      {
+        to: '/library/books/all',
+        label: 'View Books',
+        icon: 'bi-journal-text'
       }
     ]
   },
@@ -38,6 +43,11 @@ export const libraryNavGroups = [
   {
     title: 'Insights',
     items: [
+      {
+        to: '/library/inventory',
+        label: 'Library Insights',
+        icon: 'bi-clipboard-data'
+      },
       {
         to: '/library/reports',
         label: 'Reports',

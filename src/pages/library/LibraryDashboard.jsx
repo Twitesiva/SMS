@@ -156,57 +156,66 @@ export default function LibraryDashboard() {
       footerTitle="Library Management Studio"
       footerSubtitle="Crafted for Vijayam College"
     >
-      <div className="desktop-container" style={{ overflowX: 'hidden' }}>
-        <section className="setup-hero mb-4 text-center">
-          <div className="setup-hero-copywrap mx-auto text-center" style={{ maxWidth: '640px' }}>
-            <div className="admin-applications__crest mx-auto" aria-hidden="true">
-              <img src={crestPrimary} alt="Vijayam crest" />
+      <div className="desktop-container library-dashboard-page" style={{ overflowX: 'hidden' }}>
+        <section className="library-dashboard-hero">
+          <div className="library-dashboard-hero__content">
+            <div className="library-dashboard-hero__brand">
+              <div className="library-dashboard-hero__crest" aria-hidden="true">
+                <img src={crestPrimary} alt="Vijayam crest" />
+              </div>
+              <div>
+                <div className="library-dashboard-hero__eyebrow">Library Control Center</div>
+                <h3 className="library-dashboard-hero__title">Vijayam Arts & Science College</h3>
+                <p className="library-dashboard-hero__subtitle">
+                  Manage catalogues, lending, and returns with confidence.
+                </p>
+              </div>
             </div>
-            <h3 className="setup-hero-title mb-2">Vijayam Arts & Science College</h3>
-            <p className="setup-hero-copy mb-3">Manage catalogues, lending, and returns with confidence.</p>
-            <div className="setup-hero-chips d-flex flex-wrap gap-2 justify-content-center">
-              <span className="setup-hero-chip text-uppercase">LIBRARY SERVICES</span>
-              <span className="setup-hero-chip text-uppercase">CATALOG MANAGEMENT</span>
-              <span className="setup-hero-chip text-uppercase">ISSUE & RETURN DESK</span>
+            <div className="library-dashboard-hero__chips">
+              <span>Library Services</span>
+              <span>Catalog Management</span>
+              <span>Issue & Return Desk</span>
             </div>
           </div>
         </section>
 
-        <div className="row g-4 justify-content-center mx-0 mb-4">
+        <div className="library-dashboard-stats row g-3 mb-4">
           <div className="col-12 col-md-6 col-xl-3">
-            <div className="card card-soft p-3 h-100">
-              <div className="text-muted small">Total Books</div>
-              <div className="fs-3 fw-bold">{formatStat(stats.totalBooks)}</div>
-              <div className="small text-muted">Library inventory</div>
+            <div className="library-dashboard-stat">
+              <div className="library-dashboard-stat__label">Total Books</div>
+              <div className="library-dashboard-stat__value">{formatStat(stats.totalBooks)}</div>
+              <div className="library-dashboard-stat__meta">Library inventory</div>
             </div>
           </div>
           <div className="col-12 col-md-6 col-xl-3">
-            <div className="card card-soft p-3 h-100">
-              <div className="text-muted small">Issued Today</div>
-              <div className="fs-3 fw-bold">{formatStat(stats.issuedToday)}</div>
-              <div className="small text-muted">New issues today</div>
+            <div className="library-dashboard-stat">
+              <div className="library-dashboard-stat__label">Issued Today</div>
+              <div className="library-dashboard-stat__value">{formatStat(stats.issuedToday)}</div>
+              <div className="library-dashboard-stat__meta">New issues today</div>
             </div>
           </div>
           <div className="col-12 col-md-6 col-xl-3">
-            <div className="card card-soft p-3 h-100">
-              <div className="text-muted small">Overdue Items</div>
-              <div className="fs-3 fw-bold text-danger">{formatStat(stats.overdueItems)}</div>
-              <div className="small text-muted">Pending returns</div>
+            <div className="library-dashboard-stat">
+              <div className="library-dashboard-stat__label">Overdue Items</div>
+              <div className="library-dashboard-stat__value library-dashboard-stat__value--danger">
+                {formatStat(stats.overdueItems)}
+              </div>
+              <div className="library-dashboard-stat__meta">Pending returns</div>
             </div>
           </div>
           <div className="col-12 col-md-6 col-xl-3">
-            <div className="card card-soft p-3 h-100">
-              <div className="text-muted small">Overall Issued (last 30 days)</div>
-              <div className="fs-3 fw-bold">{formatStat(stats.issuedLast30Days)}</div>
-              <div className="small text-muted">Total issues in period</div>
+            <div className="library-dashboard-stat">
+              <div className="library-dashboard-stat__label">Overall Issued (last 30 days)</div>
+              <div className="library-dashboard-stat__value">{formatStat(stats.issuedLast30Days)}</div>
+              <div className="library-dashboard-stat__meta">Total issues in period</div>
             </div>
           </div>
         </div>
 
         <div className="row g-4 justify-content-center mx-0">
           <div className="col-12 col-lg-7">
-            <div className="card card-soft p-4 h-100">
-              <div className="d-flex justify-content-between align-items-center mb-3">
+            <div className="library-dashboard-panel h-100">
+              <div className="library-dashboard-panel__header">
                 <div>
                   <h5 className="mb-1">Recent Circulation</h5>
                   <p className="text-muted mb-0">Latest issue and return activity.</p>
@@ -214,8 +223,8 @@ export default function LibraryDashboard() {
                 <button type="button" className="btn btn-outline-secondary btn-sm">View All</button>
               </div>
               <div className="table-responsive">
-                <table className="table table-hover align-middle mb-0">
-                  <thead className="table-light">
+                <table className="table library-dashboard-table mb-0">
+                  <thead>
                     <tr>
                       <th>Member</th>
                       <th>Book</th>
@@ -237,7 +246,9 @@ export default function LibraryDashboard() {
                             <td>{student?.full_name || 'Unknown'} ({student?.student_id || '--'})</td>
                             <td>{book?.title || 'Unknown'}</td>
                             <td>
-                              <span className={`badge ${loan.status === 'ISSUED' ? 'bg-success-subtle text-success' : 'bg-info-subtle text-info'}`}>
+                              <span
+                                className={`library-status ${loan.status === 'ISSUED' ? 'library-status--issued' : 'library-status--returned'}`}
+                              >
                                 {loan.status || 'Unknown'}
                               </span>
                             </td>
@@ -252,22 +263,27 @@ export default function LibraryDashboard() {
             </div>
           </div>
           <div className="col-12 col-lg-5">
-            <div className="card card-soft p-4 h-100">
-              <h5 className="mb-3">Overdue Watchlist</h5>
+            <div className="library-dashboard-panel h-100">
+              <div className="library-dashboard-panel__header">
+                <div>
+                  <h5 className="mb-1">Overdue Watchlist</h5>
+                  <p className="text-muted mb-0">Members with pending returns.</p>
+                </div>
+              </div>
               {overdueLoans.length === 0 ? (
                 <div className="text-center text-muted py-4">No overdue items yet.</div>
               ) : (
-                <div className="d-flex flex-column gap-3">
+                <div className="library-dashboard-overdue-list">
                   {overdueLoans.map((loan) => {
                     const student = loan.students
                     const book = loan.library_book_copies?.library_books
                     return (
-                      <div key={loan.id} className="d-flex justify-content-between align-items-center">
+                      <div key={loan.id} className="library-dashboard-overdue-item">
                         <div>
                           <div className="fw-semibold">{student?.full_name || 'Unknown'} ({student?.student_id || '--'})</div>
                           <div className="text-muted small">{book?.title || 'Unknown'}</div>
                         </div>
-                        <span className="badge bg-danger">Overdue</span>
+                        <span className="library-status library-status--overdue">Overdue</span>
                       </div>
                     )
                   })}
@@ -277,26 +293,27 @@ export default function LibraryDashboard() {
           </div>
         </div>
 
-        <div className="card card-soft p-4 mt-4">
-          <div className="d-flex justify-content-between align-items-center mb-3">
+        <div className="library-dashboard-panel mt-4">
+          <div className="library-dashboard-panel__header">
             <div>
               <h5 className="mb-1">Activity Log</h5>
               <p className="text-muted mb-0">Latest library actions and updates.</p>
             </div>
           </div>
           <div className="table-responsive">
-            <table className="table table-hover align-middle mb-0 activity-table">
-              <thead className="table-light">
+            <table className="table library-dashboard-table mb-0 activity-table">
+              <thead>
                 <tr>
                   <th>Activity</th>
-                  <th>Details</th>
+                  <th>Member</th>
+                  <th>Book</th>
                   <th className="text-end">Time</th>
                 </tr>
               </thead>
               <tbody>
                 {activityEvents.length === 0 ? (
                   <tr>
-                    <td colSpan="3" className="text-center text-muted py-4">No activity yet.</td>
+                    <td colSpan="4" className="text-center text-muted py-4">No activity yet.</td>
                   </tr>
                 ) : (
                   activityEvents.map((event) => (
@@ -307,12 +324,12 @@ export default function LibraryDashboard() {
                         </span>
                       </td>
                       <td>
-                        <div className="activity-detail">
-                          <div className="activity-name">
-                            {event.studentName || 'Unknown'} <span>({event.studentId || '--'})</span>
-                          </div>
-                          <div className="activity-book">{event.bookTitle || 'Unknown'}</div>
+                        <div className="activity-name">
+                          {event.studentName || 'Unknown'} <span>({event.studentId || '--'})</span>
                         </div>
+                      </td>
+                      <td>
+                        <div className="activity-book">{event.bookTitle || 'Unknown'}</div>
                       </td>
                       <td className="text-end activity-time">
                         {event.time ? new Date(event.time).toLocaleString() : '--'}
