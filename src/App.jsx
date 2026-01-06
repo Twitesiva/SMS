@@ -14,6 +14,7 @@ import PublicTimeTable from "./pages/common/PublicTimeTable.jsx";
 import ApplicationManual from "./pages/common/ApplicationManual.jsx";
 import ApplicationLogin from "./pages/common/ApplicationLogin.jsx";
 import ApplicationTracker from "./pages/common/ApplicationTracker.jsx";
+import Circulars from "./pages/admin/Circulars.jsx";
 import AdminApplications from "./pages/admin/AdminApplications.jsx";
 import AdmissionsLogin from "./pages/admissions/AdminLogin.jsx";
 import AdminLogin from "./pages/admin/AdminLogin.jsx";
@@ -180,6 +181,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
               <ClassTimeTableCreation />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/admin-portal/circulars"
+          element={
+            <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
+              <Circulars />
             </GuardedRoute>
           }
         />

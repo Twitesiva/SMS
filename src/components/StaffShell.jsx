@@ -31,7 +31,7 @@ const navItems = [
     },
     {
         to: '/staff/announcements',
-        label: 'Official Announcements',
+        label: 'Circulars',
         icon: 'bi-megaphone',
     },
     {
@@ -44,7 +44,7 @@ const navItems = [
         label: 'Learning Materials',
         icon: 'bi-folder2-open',
     },
-        {
+    {
         to: '/staff/my-attendance',
         label: 'My Attendance Overview',
         icon: 'bi-person-check',

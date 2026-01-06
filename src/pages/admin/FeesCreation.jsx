@@ -94,6 +94,17 @@ const adminNavGroups = [
             }
         ]
     },
+    {
+        title: 'Circulars',
+        static: true,
+        items: [
+            {
+                to: '/admin-portal/circulars',
+                label: 'Circulars',
+                icon: 'bi-megaphone'
+            }
+        ]
+    },
 
 
 ]
