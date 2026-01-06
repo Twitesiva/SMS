@@ -14,9 +14,9 @@ const navItems = [
   { to: '/student/leave-request', label: 'Leave Request', icon: 'bi-calendar-minus' },
 
   { to: '/student/attendance', label: 'Attendance', icon: 'bi-calendar-check' },
+  { to: '/student/circulars', label: 'Circulars', icon: 'bi-megaphone' },
   { to: '/student/exam-result', label: 'Exam result', icon: 'bi-file-earmark-bar-graph' },
   { to: '/student/transport', label: 'Transport', icon: 'bi-bus-front' },
-  { to: '/student/circulars', label: 'Circulars', icon: 'bi-megaphone' },
 ]
 
 export default function StudentShell({ children }) {

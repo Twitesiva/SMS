@@ -25,12 +25,6 @@ const navItems = [
         icon: 'bi-calendar-week',
     },
     {
-        to: '/staff/performance',
-        label: 'Academic Performance Feedback',
-        icon: 'bi-graph-up-arrow',
-    },
-
-    {
         to: '/staff/circulars',
         label: 'Circulars',
         icon: 'bi-megaphone-fill',
@@ -41,14 +35,19 @@ const navItems = [
         icon: 'bi-folder2-open',
     },
     {
-        to: '/staff/my-attendance',
-        label: 'My Attendance Overview',
-        icon: 'bi-person-check',
-    },
-    {
         to: '/staff/leave',
         label: 'Leave & On-Duty Management',
         icon: 'bi-person-lines-fill',
+    },
+    {
+        to: '/staff/performance',
+        label: 'Academic Performance Feedback',
+        icon: 'bi-graph-up-arrow',
+    },
+    {
+        to: '/staff/my-attendance',
+        label: 'My Attendance Overview',
+        icon: 'bi-person-check',
     },
 ]
 

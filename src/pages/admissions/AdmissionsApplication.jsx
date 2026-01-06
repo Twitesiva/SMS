@@ -30,10 +30,10 @@ const navGroups = [
         ]
     },
     {
-        title: 'Confirmed Admissions',
+        title: 'Admissions Enrolled',
         static: true,
         items: [
-            { to: '/admissions/confirmed', label: 'Confirmed Admissions', icon: 'bi-person-check' }
+            { to: '/admissions/confirmed', label: 'Admissions Enrolled', icon: 'bi-person-check' }
         ]
     }
 ]
