@@ -7420,6 +7420,21 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   justify-self: end;
 }
 
+.student-sidebar__link-badge {
+  margin-left: auto;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
 @media (max-width: 900px) {
   .student-header {
     grid-template-columns: 1fr;

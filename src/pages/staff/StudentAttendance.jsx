@@ -24,6 +24,7 @@ export default function StudentAttendance() {
   ================================ */
   const [students, setStudents] = useState([])
   const [attendance, setAttendance] = useState({})
+  const [leaveStudentIds, setLeaveStudentIds] = useState(new Set())
   const [loading, setLoading] = useState(false)
 
   /* ===============================
@@ -101,9 +102,30 @@ export default function StudentAttendance() {
 
     setStudents(data || [])
 
+    const studentIds = (data || []).map(s => s.id)
+    const todayIso = new Date().toISOString().split('T')[0]
+    let leaveSet = new Set()
+
+    if (studentIds.length > 0) {
+      const { data: leaveRows, error: leaveError } = await supabase
+        .from('leave_requests')
+        .select('applicant_id, from_date, to_date')
+        .eq('applicant_type', 'STUDENT')
+        .in('status', ['APPROVED', 'HOD_APPROVED', 'APPROVED_BY_HOD'])
+        .in('applicant_id', studentIds)
+        .lte('from_date', todayIso)
+        .gte('to_date', todayIso)
+
+      if (!leaveError) {
+        leaveSet = new Set((leaveRows || []).map(r => r.applicant_id))
+      }
+    }
+
+    setLeaveStudentIds(leaveSet)
+
     const defaults = {}
     ;(data || []).forEach(s => {
-      defaults[s.id] = 'PRESENT'
+      defaults[s.id] = leaveSet.has(s.id) ? 'ABSENT' : 'PRESENT'
     })
     setAttendance(defaults)
   }
@@ -283,29 +305,37 @@ const goBackToAttendance = () => {
                 </tr>
               </thead>
               <tbody>
-                {students.map((s, i) => (
+                {students.map((s, i) => {
+                  const onApprovedLeave = leaveStudentIds.has(s.id)
+                  return (
                   <tr key={s.id}>
                     <td>{i + 1}</td>
                     <td>{s.student_id}</td>
                     <td>{s.full_name}</td>
                     <td>
                       <label className="me-4 fw-bold">
-                        <input type="radio"
+                        <input
+                          type="radio"
                           checked={attendance[s.id] === 'PRESENT'}
                           onChange={() =>
                             setAttendance({ ...attendance, [s.id]: 'PRESENT' })}
                         /> Present
                       </label>
                       <label className="fw-bold">
-                        <input type="radio"
+                        <input
+                          type="radio"
                           checked={attendance[s.id] === 'ABSENT'}
                           onChange={() =>
                             setAttendance({ ...attendance, [s.id]: 'ABSENT' })}
                         /> Absent
                       </label>
+                      {onApprovedLeave && (
+                        <span className="badge bg-warning-subtle text-warning ms-3">Approved Leave</span>
+                      )}
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
 
