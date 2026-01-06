@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./store/auth";
 import { useStudentAuth } from "./store/studentAuth";
 import { useStaffAuth } from "./store/staffAuth";
+import { useParentAuth } from "./store/parentAuth";
 import PublicApply from "./pages/common/PublicApply.jsx";
 import Home from "./pages/common/Home.jsx";
 import Intro from "./pages/common/Intro.jsx";
@@ -51,7 +52,10 @@ import LearningMaterials from "./pages/staff/LearningMaterials.jsx";
 import MyAttendance from "./pages/staff/MyAttendance.jsx";
 import LeaveManagement from "./pages/staff/LeaveManagement.jsx";
 import StaffCirculars from "./pages/staff/StaffCirculars.jsx";
+
 import StudentSection from "./pages/student/StudentSection.jsx";
+import ParentLogin from "./pages/parent/ParentLogin.jsx";
+import ParentDashboard from "./pages/parent/ParentDashboard.jsx";
 
 
 import StudentPersonalDetails from "./pages/student/StudentPersonalDetails.jsx";
@@ -98,9 +102,11 @@ export default function App() {
   const { user, signOut } = useAuth();
   const { student } = useStudentAuth();
   const { staff } = useStaffAuth();
+  const { parent } = useParentAuth();
   const isAuthed = !!user;
   const isStudentAuthed = !!student;
   const isStaffAuthed = !!staff;
+  const isParentAuthed = !!parent;
   return (
     <>
       <Routes>
@@ -211,6 +217,7 @@ export default function App() {
           }
         />
         <Route path="/admissions/login" element={<AdmissionsLogin />} />
+        <Route path="/parent/login" element={<ParentLogin />} />
         <Route path="/student/login" element={<StudentLogin />} />
         <Route path="/staff/login" element={<StaffLogin />} />
         <Route path="/library/login" element={<LibraryLogin />} />
@@ -315,6 +322,22 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isAuthed}>
               <Courses />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/parent/dashboard"
+          element={
+            <GuardedRoute isAuthed={isParentAuthed} redirectTo="/parent/login">
+              <ParentDashboard />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/parent/*"
+          element={
+            <GuardedRoute isAuthed={isParentAuthed} redirectTo="/parent/login">
+              <ParentDashboard />
             </GuardedRoute>
           }
         />
