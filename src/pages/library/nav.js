@@ -26,11 +26,11 @@ export const libraryNavGroups = [
     ]
   },
   {
-    title: 'Circulation',
+    title: 'Book Outgoing',
     items: [
       {
         to: '/library/circulation',
-        label: 'Book Outgoing',
+        label: 'Book issue & return',
         icon: 'bi-arrow-left-right'
       },
       {

@@ -12,7 +12,13 @@ export default function Circulation() {
     bookRef: '',
     dueDate: ''
   })
+  const [returnForm, setReturnForm] = useState({
+    studentId: '',
+    loanId: ''
+  })
+  const [returnLoans, setReturnLoans] = useState([])
   const [saving, setSaving] = useState(false)
+  const [returning, setReturning] = useState(false)
 
   const loadLoans = async () => {
     try {
@@ -40,12 +46,21 @@ export default function Circulation() {
     setForm((prev) => ({ ...prev, [key]: event.target.value }))
   }
 
+  const handleReturnChange = (key) => (event) => {
+    setReturnForm((prev) => ({ ...prev, [key]: event.target.value }))
+  }
+
   const resetForm = () => {
     setForm({
       studentId: '',
       bookRef: '',
       dueDate: ''
     })
+    setReturnForm({
+      studentId: '',
+      loanId: ''
+    })
+    setReturnLoans([])
   }
 
   const resolveBookCopy = async (bookRef) => {
@@ -159,6 +174,54 @@ export default function Circulation() {
       setSaving(false)
     }
   }
+
+  const handleReturn = async (event) => {
+    event.preventDefault()
+    if (!returnForm.studentId.trim()) {
+      showToast('Enter a student ID.', { type: 'warning' })
+      return
+    }
+    if (!returnForm.loanId) {
+      showToast('Select a book to return.', { type: 'warning' })
+      return
+    }
+
+    setReturning(true)
+    try {
+      const loanId = Number(returnForm.loanId)
+      const { error: loanUpdateError } = await supabase
+        .from('library_loans')
+        .update({ status: 'RETURNED', returned_at: new Date().toISOString() })
+        .eq('id', loanId)
+
+      if (loanUpdateError) throw loanUpdateError
+
+      const loanMatch = returnLoans.find((loan) => loan.id === loanId)
+      const copyId = loanMatch?.book_copy_id
+      if (!copyId) {
+        showToast('Book copy not found for this loan.', { type: 'warning' })
+        setReturning(false)
+        return
+      }
+
+      const { error: copyUpdateError } = await supabase
+        .from('library_book_copies')
+        .update({ availability: 'AVAILABLE' })
+        .eq('id', copyId)
+
+      if (copyUpdateError) throw copyUpdateError
+
+      showToast('Book returned successfully.', { type: 'success' })
+      setReturnForm({ studentId: '', loanId: '' })
+      setReturnLoans([])
+      loadLoans()
+    } catch (err) {
+      console.error('Failed to return book', err)
+      showToast('Unable to process return right now.', { type: 'danger' })
+    } finally {
+      setReturning(false)
+    }
+  }
   return (
     <AdminShell
       navGroups={libraryNavGroups}
@@ -174,7 +237,7 @@ export default function Circulation() {
               <img src={crestPrimary} alt="Vijayam crest" />
             </div>
             <h3 className="setup-hero-title mb-2">Book Outgoing</h3>
-            <p className="setup-hero-copy mb-3">Issue, return, and renew books seamlessly.</p>
+            <p className="setup-hero-copy mb-3">Book issue &amp; return.</p>
             <div className="setup-hero-chips d-flex flex-wrap gap-2 justify-content-center">
               <span className="setup-hero-chip text-uppercase">ISSUE DESK</span>
               <span className="setup-hero-chip text-uppercase">RETURNS</span>
@@ -188,12 +251,17 @@ export default function Circulation() {
             <div className="card card-soft p-4">
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <div>
-                  <h4 className="mb-1">Issue / Return</h4>
-                  <p className="text-muted mb-0">Process member transactions quickly.</p>
+                  <h4 className="mb-1">Book Outgoing</h4>
+                  <p className="text-muted mb-0">Book issue &amp; return.</p>
                 </div>
-                <button type="button" className="btn btn-outline-secondary">Reset</button>
+                <button type="button" className="btn btn-outline-secondary" onClick={resetForm}>
+                  Reset
+                </button>
               </div>
               <form className="row g-3" onSubmit={handleSubmit}>
+                <div className="col-12">
+                  <div className="text-uppercase text-muted small fw-semibold">Issue Book</div>
+                </div>
                 <div className="col-12">
                   <label className="form-label">Student ID</label>
                   <input
@@ -227,6 +295,85 @@ export default function Circulation() {
                   <button type="button" className="btn btn-outline-secondary" onClick={resetForm}>Clear</button>
                   <button type="submit" className="btn btn-primary" disabled={saving}>
                     {saving ? 'Saving...' : 'Submit'}
+                  </button>
+                </div>
+              </form>
+              <hr className="my-4" />
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                  <h4 className="mb-1">Return Book</h4>
+                  <p className="text-muted mb-0">Receive books back from members.</p>
+                </div>
+              </div>
+              <form className="row g-3" onSubmit={handleReturn}>
+                <div className="col-12">
+                  <label className="form-label">Student ID</label>
+                  <input
+                    className="form-control"
+                    type="text"
+                    placeholder="STU-1001"
+                    value={returnForm.studentId}
+                    onChange={(event) => {
+                      const value = event.target.value
+                      setReturnForm((prev) => ({ ...prev, studentId: value, loanId: '' }))
+                      setReturnLoans([])
+                    }}
+                    onBlur={async () => {
+                      if (!returnForm.studentId.trim()) return
+                      try {
+                        const { data: loanRows, error: loanError } = await supabase
+                          .from('library_loans')
+                          .select(
+                            'id, book_copy_id, due_date, students(full_name,student_id), library_book_copies(book_id, library_books(title))'
+                          )
+                          .eq('student_id', returnForm.studentId.trim())
+                          .eq('status', 'ISSUED')
+                          .order('issued_at', { ascending: false })
+
+                        if (loanError) throw loanError
+                        setReturnLoans(loanRows || [])
+                        if ((loanRows || []).length === 1) {
+                          setReturnForm((prev) => ({ ...prev, loanId: String(loanRows[0].id) }))
+                        }
+                      } catch (err) {
+                        console.error('Failed to load return loans', err)
+                        setReturnLoans([])
+                      }
+                    }}
+                  />
+                </div>
+                <div className="col-12">
+                  <label className="form-label">Issued Book</label>
+                  <select
+                    className="form-select"
+                    value={returnForm.loanId}
+                    onChange={handleReturnChange('loanId')}
+                    disabled={!returnLoans.length}
+                  >
+                    <option value="">
+                      {returnForm.studentId.trim()
+                        ? returnLoans.length
+                          ? 'Select a book'
+                          : 'No active loans found'
+                        : 'Enter student ID to load books'}
+                    </option>
+                    {returnLoans.map((loan) => {
+                      const bookTitle = loan.library_book_copies?.library_books?.title || 'Unknown'
+                      const dueDate = loan.due_date || '--'
+                      return (
+                        <option key={loan.id} value={loan.id}>
+                          {bookTitle} • Due {dueDate}
+                        </option>
+                      )
+                    })}
+                  </select>
+                </div>
+                <div className="col-12 d-flex justify-content-end gap-2">
+                  <button type="button" className="btn btn-outline-secondary" onClick={resetForm}>
+                    Clear
+                  </button>
+                  <button type="submit" className="btn btn-primary" disabled={returning}>
+                    {returning ? 'Processing...' : 'Receive Book'}
                   </button>
                 </div>
               </form>
