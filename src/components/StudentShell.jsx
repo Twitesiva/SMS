@@ -12,7 +12,7 @@ const navItems = [
   { to: '/student/fee-payment', label: 'Fee payment', icon: 'bi-credit-card' },
   { to: '/student/certificate', label: 'Certificate', icon: 'bi-patch-check' },
   { to: '/student/leave-request', label: 'Leave Request', icon: 'bi-calendar-minus' },
-  { to: '/student/grade-mark', label: 'Grade / Mark', icon: 'bi-award' },
+
   { to: '/student/attendance', label: 'Attendance', icon: 'bi-calendar-check' },
   { to: '/student/exam-result', label: 'Exam result', icon: 'bi-file-earmark-bar-graph' },
   { to: '/student/transport', label: 'Transport', icon: 'bi-bus-front' },

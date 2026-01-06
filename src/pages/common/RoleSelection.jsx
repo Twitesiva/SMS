@@ -26,6 +26,9 @@ export default function RoleSelection() {
             case 'library':
                 navigate('/library/login');
                 break;
+            case 'parent':
+                navigate('/parent/login'); // Placeholder for parent login
+                break;
             default:
                 break;
         }
@@ -68,11 +71,11 @@ export default function RoleSelection() {
             className: 'student'
         },
         {
-            id: 'hostel',
-            label: 'Hostel',
-            icon: 'bi-house-door',
-            desc: 'Hostel Management & Allocation',
-            className: 'hostel'
+            id: 'parent',
+            label: 'Parent',
+            icon: 'bi-people-fill',
+            desc: 'Access Parent Portal, Monitor Student Progress',
+            className: 'parent'
         },
         {
             id: 'library',
@@ -82,12 +85,20 @@ export default function RoleSelection() {
             className: 'library'
         },
         {
+            id: 'hostel',
+            label: 'Hostel',
+            icon: 'bi-house-door',
+            desc: 'Hostel Management & Allocation',
+            className: 'hostel'
+        },
+        {
             id: 'transport',
             label: 'Transport',
             icon: 'bi-bus-front',
             desc: 'Transport Routes & Passes',
             className: 'transport'
-        }
+        },
+        
     ];
 
     return (

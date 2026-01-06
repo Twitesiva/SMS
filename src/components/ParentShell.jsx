@@ -1,66 +1,25 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { useStaffAuth } from '../store/staffAuth'
+import { useParentAuth } from '../store/parentAuth'
 import crest from '../assets/media/images.png'
 
 const navItems = [
-    {
-        to: '/staff/dashboard',
-        label: 'Dashboard',
-        icon: 'bi-speedometer2',
-    },
-    {
-        to: '/staff/attendance',
-        label: 'Student Attendance',
-        icon: 'bi-clipboard-check',
-    },
-    {
-        to: '/staff/students',
-        label: 'Student Records',
-        icon: 'bi-people',
-    },
-    {
-        to: '/staff/timetable',
-        label: 'Academic Timetable',
-        icon: 'bi-calendar-week',
-    },
-    {
-        to: '/staff/performance',
-        label: 'Academic Performance Feedback',
-        icon: 'bi-graph-up-arrow',
-    },
-
-    {
-        to: '/staff/circulars',
-        label: 'Circulars',
-        icon: 'bi-megaphone-fill',
-    },
-    {
-        to: '/staff/materials',
-        label: 'Learning Materials',
-        icon: 'bi-folder2-open',
-    },
-    {
-        to: '/staff/my-attendance',
-        label: 'My Attendance Overview',
-        icon: 'bi-person-check',
-    },
-    {
-        to: '/staff/leave',
-        label: 'Leave & On-Duty Management',
-        icon: 'bi-person-lines-fill',
-    },
+    { to: '/parent/dashboard', label: 'Dashboard', icon: 'bi-speedometer2' },
+    { to: '/parent/student-details', label: 'Student Details', icon: 'bi-person-badge' },
+    { to: '/parent/attendance', label: 'Attendance', icon: 'bi-calendar-check' },
+    { to: '/parent/results', label: 'Exam Results', icon: 'bi-file-earmark-bar-graph' },
+    { to: '/parent/timetable', label: 'Timetable', icon: 'bi-clock-history' },
 ]
 
-export default function StaffShell({ children }) {
+export default function ParentShell({ children }) {
     const { pathname } = useLocation()
     const navTo = useNavigate()
-    const { staff, signOut } = useStaffAuth()
+    const { parent, signOut } = useParentAuth()
     const [collapsed, setCollapsed] = useState(false)
 
     const handleLogout = () => {
         signOut()
-        navTo('/staff/login')
+        navTo('/parent/login')
     }
 
     return (
@@ -76,7 +35,7 @@ export default function StaffShell({ children }) {
                         <i className={`bi ${collapsed ? 'bi-chevron-double-right' : 'bi-list'}`}></i>
                     </button>
                     <img src={crest} alt="Vijayam crest" className="student-header__logo" />
-                    <div className="student-header__portal">Staff Portal</div>
+                    <div className="student-header__portal">Parent Portal</div>
                 </div>
                 <div className="student-header__center">
                     <div className="student-header__title">Vijayam Arts & Science College</div>
@@ -104,8 +63,8 @@ export default function StaffShell({ children }) {
                     </nav>
 
                     <div className="student-sidebar__footer">
-                        <div className="student-sidebar__student-id">{staff?.staff_id || '—'}</div>
-                        <div className="student-sidebar__student-name">{staff?.full_name || 'Staff'}</div>
+                        <div className="student-sidebar__student-id">{parent?.student_id || '—'}</div>
+                        <div className="student-sidebar__student-name">{parent?.full_name || 'Student'}</div>
                         <div className="student-sidebar__datetime">
                             {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                             {' '}
