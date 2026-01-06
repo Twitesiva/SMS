@@ -41,7 +41,7 @@ import StudentLogin from "./pages/student/StudentLogin.jsx";
 import StaffLogin from "./pages/staff/StaffLogin.jsx";
 import StudentDashboard from "./pages/student/StudentDashboard.jsx";
 import StaffDashboard from "./pages/staff/StaffDashboard.jsx";
-import StudentAttendance from "./pages/staff/StudentAttendance.jsx";
+import StaffStudentAttendance from "./pages/staff/StudentAttendance.jsx";
 import StudentRecords from "./pages/staff/StudentRecords.jsx";
 import AcademicTimetable from "./pages/staff/AcademicTimetable.jsx";
 import PerformanceFeedback from "./pages/staff/PerformanceFeedback.jsx";
@@ -59,6 +59,7 @@ import StudentFeePayment from "./pages/student/StudentFeePayment.jsx";
 import StudentHostelDetails from "./pages/student/StudentHostelDetails.jsx";
 import StudentTimeTable from "./pages/student/StudentTimeTable.jsx";
 import StudentLeaveRequest from "./pages/student/StudentLeaveRequest.jsx";
+import StudentAttendance from "./pages/student/StudentAttendance.jsx";
 import Batches from "./pages/exam/Batches.jsx";
 import Courses from "./pages/exam/Courses.jsx";
 import Students from "./pages/exam/Students.jsx";
@@ -221,7 +222,7 @@ export default function App() {
           path="/staff/attendance"
           element={
             <GuardedRoute isAuthed={isStaffAuthed} redirectTo="/staff/login">
-              <StudentAttendance />
+              <StaffStudentAttendance />
             </GuardedRoute>
           }
         />
@@ -566,6 +567,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
               <StudentFeePayment />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/student/attendance"
+          element={
+            <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
+              <StudentAttendance />
             </GuardedRoute>
           }
         />
