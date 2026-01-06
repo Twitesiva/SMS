@@ -28,10 +28,10 @@ const navGroups = [
         ]
     },
     {
-        title: 'Confirmed Admissions',
+        title: 'Admissions Enrolled',
         static: true,
         items: [
-            { to: '/admissions/confirmed', label: 'Confirmed Admissions', icon: 'bi-person-check' }
+            { to: '/admissions/confirmed', label: 'Admissions Enrolled', icon: 'bi-person-check' }
         ]
     }
 ]
@@ -155,13 +155,13 @@ export default function ConfirmedAdmissions() {
         <AdminShell
             navGroups={navGroups}
             brandTitle="Admissions Portal"
-            brandSubtitle="Confirmed Admissions"
+            brandSubtitle="Admissions Enrolled"
             footerTitle="Admission Management"
             footerSubtitle="Administrator Access"
         >
             <div className="container-fluid p-0">
                 <div className="d-flex justify-content-between align-items-center mb-4">
-                    <h4 className="mb-0">Confirmed Admissions</h4>
+                    <h4 className="mb-0">Admissions Enrolled</h4>
                     <span className="badge bg-success fs-6">{applications.length} Students</span>
                 </div>
 

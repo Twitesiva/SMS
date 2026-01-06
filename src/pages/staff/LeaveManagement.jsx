@@ -555,7 +555,7 @@ export default function LeaveManagement() {
                 </div>
               ) : (
                 <div className="vstack gap-4">
-                  {myRequests.map((req) => {
+                  {myRequests.slice(0, 2).map((req) => {
                     const isPending = req.status === 'PENDING';
                     const isApproved = req.status === 'APPROVED';
                     const isRejected = req.status === 'REJECTED';
