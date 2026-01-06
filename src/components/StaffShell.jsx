@@ -29,11 +29,7 @@ const navItems = [
         label: 'Academic Performance Feedback',
         icon: 'bi-graph-up-arrow',
     },
-    {
-        to: '/staff/announcements',
-        label: 'Circulars',
-        icon: 'bi-megaphone',
-    },
+
     {
         to: '/staff/circulars',
         label: 'Circulars',

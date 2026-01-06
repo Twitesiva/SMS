@@ -46,7 +46,7 @@ import StaffStudentAttendance from "./pages/staff/StudentAttendance.jsx";
 import StudentRecords from "./pages/staff/StudentRecords.jsx";
 import AcademicTimetable from "./pages/staff/AcademicTimetable.jsx";
 import PerformanceFeedback from "./pages/staff/PerformanceFeedback.jsx";
-import Announcements from "./pages/staff/Announcements.jsx";
+
 import LearningMaterials from "./pages/staff/LearningMaterials.jsx";
 import MyAttendance from "./pages/staff/MyAttendance.jsx";
 import LeaveManagement from "./pages/staff/LeaveManagement.jsx";
@@ -261,14 +261,7 @@ export default function App() {
             </GuardedRoute>
           }
         />
-        <Route
-          path="/staff/announcements"
-          element={
-            <GuardedRoute isAuthed={isStaffAuthed} redirectTo="/staff/login">
-              <Announcements />
-            </GuardedRoute>
-          }
-        />
+
         <Route
           path="/staff/circulars"
           element={

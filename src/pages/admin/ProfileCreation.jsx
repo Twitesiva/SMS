@@ -59,7 +59,7 @@ const adminNavGroups = [
     ]
   },
   {
-    title: 'Profile Creation',
+    title: 'Staff Profile Creation',
     static: true,
     items: [
       {
@@ -283,7 +283,7 @@ export default function ProfileCreation() {
             <div className="card card-soft p-4">
               <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                 <div>
-                  <h4 className="mb-1">Profile creation</h4>
+                  <h4 className="mb-1">Staff Profile creation</h4>
                   <p className="text-muted mb-0">Create new staff profiles with academic, contact, and employment details.</p>
                 </div>
                 <button type="button" className="btn btn-outline-secondary" onClick={() => {
