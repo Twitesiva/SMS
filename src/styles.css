@@ -1,4 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&display=swap");
 
 :root {
   /* Company Palette Tokens */
@@ -962,10 +963,14 @@ h6,
   box-shadow: 0 35px 55px rgba(15, 23, 42, 0.15);
 }
 
-.students-section-shell-header {
-  border-bottom: 1px solid rgba(76, 117, 242, 0.15);
-  padding-bottom: 1rem;
-  margin-bottom: 1rem;
+.students-section-shell-header,
+.student-details__header {
+  padding: 1rem 1.2rem;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.14), rgba(96, 165, 250, 0.14));
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  box-shadow: 0 18px 30px rgba(15, 23, 42, 0.08);
+  margin-bottom: 1.5rem;
 }
 
 .students-section-copy {
@@ -7133,6 +7138,8 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   background: linear-gradient(180deg, #f3f6fb 0%, #eef2f7 45%, #ffffff 100%);
   color: #1f2d3d;
   --student-header-height: 72px;
+  font-family: "Source Sans 3", "Manrope", "Space Grotesk", "Cabinet Grotesk", system-ui, -apple-system,
+    "Segoe UI", sans-serif;
 }
 
 .student-body {
@@ -7574,18 +7581,17 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   box-shadow: 0 18px 30px rgba(15, 23, 42, 0.08);
 }
 
-.student-details__header {
-  margin-bottom: 1.5rem;
-}
-
 .student-details__header h2 {
   margin: 0 0 0.35rem;
-  color: #1f2d3d;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .student-details__header p {
   margin: 0;
-  color: #64748b;
+  color: #475569;
+  letter-spacing: 0.04em;
 }
 
 .student-details__status {
@@ -8406,39 +8412,47 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 
 
 .student-attendance__panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   border-radius: 20px;
   padding: 1.4rem;
   background: #ffffff;
   border: 1px solid rgba(15, 23, 42, 0.08);
   box-shadow: 0 20px 45px rgba(15, 23, 42, 0.1);
+  width: 100%;
 }
 
 .student-attendance__panel-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   gap: 1rem;
   margin-bottom: 1rem;
+  text-align: center;
+  width: 100%;
 }
 
 .student-attendance__donut-wrap {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
-  flex-wrap: wrap;
+  gap: 1rem;
+  width: 100%;
 }
 
 .student-attendance__donut {
-  width: 170px;
-  height: 170px;
+  width: 200px;
+  height: 200px;
   border-radius: 50%;
   display: grid;
   place-items: center;
 }
 
 .student-attendance__donut-center {
-  width: 118px;
-  height: 118px;
+  width: 136px;
+  height: 136px;
   border-radius: 50%;
   background: #ffffff;
   display: grid;
@@ -8465,6 +8479,18 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   gap: 0.5rem;
   font-size: 0.9rem;
   color: #475569;
+  width: 100%;
+  max-width: 240px;
+  justify-items: center;
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .student-attendance__donut-wrap {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
 }
 
 .student-attendance__legend-swatch {
@@ -8564,27 +8590,367 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   margin-bottom: 1rem;
 }
 
-.student-attendance__table-tools {
-  display: flex;
-  align-items: flex-end;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  margin-bottom: 0;
-  justify-content: flex-end;
-}
-
-.student-attendance__filter {
+/* Student learning materials */
+.student-materials {
   display: grid;
-  gap: 0.35rem;
-  min-width: 200px;
+  gap: 1.5rem;
+  font-family: "Manrope", "Space Grotesk", "Cabinet Grotesk", system-ui, -apple-system,
+    "Segoe UI", sans-serif;
 }
 
-.student-attendance__filter-label {
+.student-materials h1,
+.student-materials h2,
+.student-materials h3,
+.student-materials h4,
+.student-materials h5,
+.student-materials h6 {
+  font-weight: 700;
+}
+
+.student-materials__hero {
+  border-radius: 26px;
+  padding: 1.8rem;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 55%, #2563eb 100%);
+  color: #ffffff;
+  box-shadow: 0 24px 50px rgba(15, 23, 42, 0.35);
+}
+
+.student-materials__eyebrow {
+  font-size: 0.7rem;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.student-materials__title {
+  margin: 0.4rem 0 0.5rem;
+  font-size: clamp(1.7rem, 2.6vw, 2.2rem);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.student-materials__subtitle {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.student-materials__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.student-materials__subjects {
+  display: grid;
+  gap: 1rem;
+}
+
+.student-materials__section-header h4 {
+  margin: 0 0 0.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.student-materials__section-header--subjects {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(96, 165, 250, 0.12));
+  border: 1px solid rgba(37, 99, 235, 0.18);
+}
+
+.student-materials__section-chip {
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.18);
+  color: #1d4ed8;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.student-subjects-accordion {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.student-subjects-accordion__item {
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+
+.student-subjects-accordion__trigger {
+  width: 100%;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.16) 0%, rgba(147, 197, 253, 0.2) 100%);
+  color: #1e293b;
+  border: none;
+  padding: 0.85rem 1.2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: default;
+}
+
+.student-subjects-accordion__label {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.75rem;
+}
+
+.student-subjects-accordion__meta {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+
+.student-subjects-accordion__panel {
+  padding: 1rem 1.2rem 1.2rem;
+  background: #f8fafc;
+}
+
+.student-subjects-accordion__table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 0.6rem;
+}
+
+.student-subjects-accordion__table thead th {
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #64748b;
+  border: none;
+  padding: 0.6rem 0.75rem;
+  background: transparent;
+}
+
+.student-subjects-accordion__table tbody tr {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.2);
+}
+
+.student-subjects-accordion__table tbody td {
+  border: none;
+  padding: 0.75rem 0.8rem;
+}
+
+.student-subjects-accordion__link {
+  border: none;
+  background: linear-gradient(135deg, #2563eb, #60a5fa);
+  color: #ffffff;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.student-subjects-accordion__link:hover {
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.3);
+}
+
+.student-subjects-accordion__muted {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.student-materials__stat {
+  border-radius: 18px;
+  padding: 1.2rem;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(226, 235, 255, 0.92));
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 140px;
+}
+
+.student-materials__stat-head {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.student-materials__stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(37, 99, 235, 0.15);
+  color: #1d4ed8;
+  font-size: 1rem;
+}
+
+.student-materials__stat-icon--resources {
+  background: rgba(14, 116, 144, 0.15);
+  color: #0e7490;
+}
+
+.student-materials__stat-label {
   font-size: 0.7rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: #64748b;
-  text-align: right;
+}
+
+.student-materials__stat-value {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.1;
+}
+
+.student-materials__stat-meta {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.student-materials__list {
+  display: grid;
+  gap: 1rem;
+}
+
+.student-materials__card {
+  border-radius: 22px;
+  padding: 1.4rem 1.6rem;
+  background: #0f172a;
+  color: #f8fafc;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 22px 45px rgba(15, 23, 42, 0.35);
+  position: relative;
+  overflow: hidden;
+}
+
+.student-materials__card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 85% 20%, rgba(59, 130, 246, 0.35), transparent 55%);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.student-materials__card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  position: relative;
+  z-index: 1;
+}
+
+.student-materials__subject {
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(248, 250, 252, 0.7);
+  margin-bottom: 0.4rem;
+}
+
+.student-materials__title-text {
+  margin: 0;
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.student-materials__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.student-materials__quick-view {
+  border: 1px solid rgba(248, 250, 252, 0.35);
+  background: rgba(248, 250, 252, 0.12);
+  color: #f8fafc;
+  padding: 0.25rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.student-materials__quick-view:hover {
+  background: rgba(248, 250, 252, 0.22);
+}
+
+.student-materials__badge {
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(248, 250, 252, 0.15);
+  color: #f8fafc;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  border: 1px solid rgba(248, 250, 252, 0.2);
+}
+
+.student-materials__card-footer {
+  margin-top: 1.2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  position: relative;
+  z-index: 1;
+}
+
+.student-materials__date {
+  font-size: 0.85rem;
+  color: rgba(226, 232, 240, 0.7);
+}
+
+.student-materials__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #f8fafc;
+  text-decoration: none;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.student-materials__link::after {
+  content: "↗";
+  font-size: 0.8rem;
+}
+
+.student-materials__link.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.student-materials__empty {
+  padding: 1.2rem;
+  border-radius: 14px;
+  background: rgba(248, 250, 252, 0.9);
+  border: 1px dashed rgba(148, 163, 184, 0.4);
+  color: #475569;
 }
 
 .student-attendance__table-meta {
@@ -8640,6 +9006,151 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 .student-attendance__subject-code {
   font-size: 0.8rem;
   color: #64748b;
+}
+
+.student-attendance__date-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.75rem;
+  border-radius: 12px;
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+  font-weight: 600;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+}
+
+.student-attendance__calendar-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.student-attendance__main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+.student-attendance__month-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.student-attendance__month-select {
+  border: none;
+  background: transparent;
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #1d4ed8;
+  outline: none;
+  cursor: pointer;
+}
+
+.student-attendance__month-select:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.4);
+  outline-offset: 2px;
+  border-radius: 999px;
+}
+
+.student-attendance__calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.4rem;
+  background: #f8fafc;
+  padding: 0.8rem;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.student-attendance__calendar-head {
+  text-align: center;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #64748b;
+  padding: 0.35rem 0;
+}
+
+.student-attendance__calendar-cell {
+  min-height: 52px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  position: relative;
+}
+
+.student-attendance__calendar-cell.is-empty {
+  background: transparent;
+  border: none;
+}
+
+.student-attendance__calendar-cell.is-present {
+  background: rgba(34, 197, 94, 0.18);
+  border-color: rgba(34, 197, 94, 0.35);
+}
+
+@media (max-width: 1100px) {
+  .student-attendance__main {
+    grid-template-columns: 1fr;
+  }
+}
+
+.student-attendance__calendar-cell.is-absent {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.student-attendance__calendar-cell.is-neutral {
+  background: #ffffff;
+}
+
+.student-attendance__calendar-date {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.student-attendance__calendar-legend {
+  display: flex;
+  gap: 1.2rem;
+  align-items: center;
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+.student-attendance__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.student-attendance__legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.student-attendance__legend-dot.is-present {
+  background: #22c55e;
+}
+
+.student-attendance__legend-dot.is-absent {
+  background: #ef4444;
 }
 
 .student-attendance-badge {
@@ -8869,13 +9380,6 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
     align-items: flex-start;
   }
 
-  .student-attendance__table-tools {
-    align-items: stretch;
-  }
-
-  .student-attendance__filter {
-    width: 100%;
-  }
 }
 
 @media (max-width: 576px) {

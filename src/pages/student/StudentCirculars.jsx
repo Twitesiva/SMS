@@ -64,16 +64,11 @@ export default function StudentCirculars() {
 
   return (
     <StudentShell>
-      <div className="student-circulars">
-        <section className="student-circulars__hero">
-          <div>
-            <div className="student-circulars__eyebrow">Student Portal</div>
-            <h2 className="student-circulars__title">Circulars</h2>
-            <p className="student-circulars__subtitle">
-              Official announcements and updates for students.
-            </p>
-          </div>
-        </section>
+      <div className="student-details student-circulars">
+        <div className="student-details__header">
+          <h2>Circulars</h2>
+          <p>Official announcements and updates for students.</p>
+        </div>
 
         <div className="student-circulars__list">
           {loading ? (

@@ -8,9 +8,44 @@ export default function StudentAttendance() {
   const [records, setRecords] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [page, setPage] = useState(1)
-  const [dateFilter, setDateFilter] = useState('')
-  const pageSize = 12
+  const [viewMonth, setViewMonth] = useState(() => new Date())
+
+  const monthOptions = useMemo(
+    () => [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December'
+    ],
+    []
+  )
+
+  const yearOptions = useMemo(() => {
+    const years = new Set([new Date().getFullYear(), viewMonth.getFullYear()])
+    records.forEach((row) => {
+      const date = row.attendance_sessions?.attendance_date
+      if (date) {
+        years.add(new Date(`${date}T00:00:00`).getFullYear())
+      }
+    })
+
+    if (years.size < 5) {
+      const base = viewMonth.getFullYear()
+      for (let offset = -2; offset <= 2; offset += 1) {
+        years.add(base + offset)
+      }
+    }
+
+    return Array.from(years).sort((a, b) => a - b)
+  }, [records, viewMonth])
 
   useEffect(() => {
     const loadAttendance = async () => {
@@ -78,7 +113,6 @@ export default function StudentAttendance() {
         })
 
         setRecords(merged)
-        setPage(1)
       } catch (err) {
         console.error('Failed to load attendance', err)
         setError('Unable to load attendance right now.')
@@ -138,29 +172,51 @@ export default function StudentAttendance() {
     return 'student-attendance-badge'
   }
 
-  const totalPages = Math.max(1, Math.ceil(records.length / pageSize))
-  const currentPage = Math.min(page, totalPages)
-  const startIndex = (currentPage - 1) * pageSize
-  const filteredRecords = dateFilter
-    ? records.filter((row) => row.attendance_sessions?.attendance_date === dateFilter)
-    : records
-  const totalPagesFiltered = Math.max(1, Math.ceil(filteredRecords.length / pageSize))
-  const currentPageFiltered = Math.min(page, totalPagesFiltered)
-  const startIndexFiltered = (currentPageFiltered - 1) * pageSize
-  const pageRows = filteredRecords.slice(startIndexFiltered, startIndexFiltered + pageSize)
+  const statusByDate = useMemo(() => {
+    const map = new Map()
+    records.forEach((row) => {
+      const date = row.attendance_sessions?.attendance_date
+      if (!date) return
+      const existing = map.get(date) || []
+      existing.push(row.status)
+      map.set(date, existing)
+    })
+    return map
+  }, [records])
+
+  const calendar = useMemo(() => {
+    const year = viewMonth.getFullYear()
+    const month = viewMonth.getMonth()
+    const firstDay = new Date(year, month, 1).getDay()
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+    const cells = []
+    for (let i = 0; i < firstDay; i += 1) {
+      cells.push({ type: 'empty', key: `empty-${i}` })
+    }
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+      const statuses = statusByDate.get(dateKey) || []
+      let status = ''
+      if (statuses.includes('ABSENT')) {
+        status = 'absent'
+      } else if (statuses.includes('PRESENT') || statuses.includes('LATE')) {
+        status = 'present'
+      }
+      cells.push({ type: 'day', key: dateKey, day, status })
+    }
+    while (cells.length % 7 !== 0) {
+      cells.push({ type: 'empty', key: `tail-${cells.length}` })
+    }
+    return { cells }
+  }, [viewMonth, statusByDate])
 
   return (
     <StudentShell>
-      <div className="student-attendance">
-        <section className="student-attendance__hero">
-          <div className="student-attendance__hero-content">
-            <div className="student-attendance__eyebrow">Student Portal</div>
-            <h2 className="student-attendance__title">Attendance Overview</h2>
-            <p className="student-attendance__subtitle">
-              Track present and absent sessions with subject-wise history.
-            </p>
-          </div>
-        </section>
+      <div className="student-details student-attendance">
+        <div className="student-details__header">
+          <h2>Attendance Overview</h2>
+          <p>Track present and absent sessions with subject-wise history.</p>
+        </div>
 
         <div className="student-attendance__stats">
           <div className="student-attendance__stat">
@@ -205,114 +261,109 @@ export default function StudentAttendance() {
           </div>
         </div>
 
-        <div className="student-attendance__table-card">
-          <div className="student-attendance__table-header">
-            <div>
-              <h4 className="mb-1">Recent Attendance</h4>
-              <p className="text-muted mb-0">Latest sessions with subject details.</p>
-            </div>
-            <div className="student-attendance__table-tools">
-              <div className="student-attendance__filter">
-                <label className="student-attendance__filter-label">Filter by date</label>
-                <input
-                  type="date"
-                  className="form-control"
-                  value={dateFilter}
+        <div className="student-attendance__main">
+          <div className="student-attendance__table-card">
+            <div className="student-attendance__table-header">
+              <div>
+                <h4 className="mb-1">Attendance Calendar</h4>
+                <p className="text-muted mb-0">Monthly calendar view of attendance.</p>
+              </div>
+            <div className="student-attendance__calendar-controls">
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                onClick={() =>
+                  setViewMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
+                }
+              >
+                <i className="bi bi-chevron-left"></i>
+              </button>
+              <div className="student-attendance__month-picker" aria-live="polite">
+                <select
+                  className="student-attendance__month-select"
+                  value={viewMonth.getMonth()}
                   onChange={(event) => {
-                    setDateFilter(event.target.value)
-                    setPage(1)
+                    const nextMonth = Number(event.target.value)
+                    setViewMonth((prev) => new Date(prev.getFullYear(), nextMonth, 1))
                   }}
-                />
-              </div>
-              {dateFilter && (
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary btn-sm"
-                  onClick={() => {
-                    setDateFilter('')
-                    setPage(1)
-                  }}
+                  aria-label="Select month"
                 >
-                  Clear
-                </button>
-              )}
-            </div>
-          </div>
-          {error ? (
-            <div className="student-attendance__empty">{error}</div>
-          ) : (
-            <div className="table-responsive">
-              <table className="table student-attendance__table mb-0">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Subject</th>
-                    <th className="text-end">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr>
-                      <td colSpan="3" className="text-center text-muted py-4">Loading attendance...</td>
-                    </tr>
-                  ) : filteredRecords.length === 0 ? (
-                    <tr>
-                      <td colSpan="3" className="text-center text-muted py-4">No attendance records yet.</td>
-                    </tr>
-                  ) : (
-                    pageRows.map((row) => {
-                      const session = row.attendance_sessions
-                      const subject = session?.subjects
-                      return (
-                        <tr key={row.id}>
-                          <td>{session?.attendance_date || '--'}</td>
-                          <td>
-                            <div className="student-attendance__subject">
-                              {subject?.subject_name || 'Unknown subject'}
-                            </div>
-                          </td>
-                          <td className="text-end">
-                            <span className={statusClass(row.status)}>{formatStatus(row.status)}</span>
-                          </td>
-                        </tr>
-                      )
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {filteredRecords.length > pageSize && !error && (
-            <div className="student-attendance__pagination">
-              <button
-                type="button"
-                className="btn btn-outline-secondary btn-sm"
-                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-                disabled={currentPageFiltered === 1}
-              >
-                Previous
-              </button>
-              <div className="student-attendance__pagination-meta">
-                Page {currentPageFiltered} of {totalPagesFiltered}
+                  {monthOptions.map((month, index) => (
+                    <option key={month} value={index}>
+                      {month}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="student-attendance__month-select"
+                  value={viewMonth.getFullYear()}
+                  onChange={(event) => {
+                    const nextYear = Number(event.target.value)
+                    setViewMonth((prev) => new Date(nextYear, prev.getMonth(), 1))
+                  }}
+                  aria-label="Select year"
+                >
+                  {yearOptions.map((year) => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  ))}
+                </select>
               </div>
               <button
                 type="button"
                 className="btn btn-outline-secondary btn-sm"
-                onClick={() => setPage((prev) => Math.min(totalPagesFiltered, prev + 1))}
-                disabled={currentPageFiltered === totalPagesFiltered}
-              >
-                Next
-              </button>
+                onClick={() =>
+                  setViewMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
+                }
+                >
+                  <i className="bi bi-chevron-right"></i>
+                </button>
+              </div>
             </div>
-          )}
-        </div>
 
-        <div className="student-attendance__insights">
+            {error ? (
+              <div className="student-attendance__empty">{error}</div>
+            ) : loading ? (
+              <div className="student-attendance__empty">Loading attendance...</div>
+            ) : (
+              <>
+                <div className="student-attendance__calendar-grid">
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((label) => (
+                    <div key={label} className="student-attendance__calendar-head">
+                      {label}
+                    </div>
+                  ))}
+                  {calendar.cells.map((cell) => (
+                    <div
+                      key={cell.key}
+                      className={`student-attendance__calendar-cell ${
+                        cell.type === 'day' ? `is-${cell.status || 'neutral'}` : 'is-empty'
+                      }`}
+                    >
+                      {cell.type === 'day' && (
+                        <span className="student-attendance__calendar-date">{cell.day}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div className="student-attendance__calendar-legend">
+                  <span className="student-attendance__legend-item">
+                    <span className="student-attendance__legend-dot is-present"></span> Present
+                  </span>
+                  <span className="student-attendance__legend-item">
+                    <span className="student-attendance__legend-dot is-absent"></span> Absent
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+
           <div className="student-attendance__panel">
             <div className="student-attendance__panel-header">
               <div>
-                <h4 className="mb-1">Attendance Split</h4>
-                <p className="text-muted mb-0">Present vs absent ratio.</p>
+                <h4 className="mb-1">Attendance Summary</h4>
+                <p className="text-muted mb-0">Present and absent counts at a glance.</p>
               </div>
             </div>
             <div className="student-attendance__donut-wrap">
@@ -339,64 +390,6 @@ export default function StudentAttendance() {
                   Absent: {summary.absent}
                 </div>
               </div>
-            </div>
-          </div>
-
-          <div className="student-attendance__panel">
-            <div className="student-attendance__panel-header">
-              <div>
-                <h4 className="mb-1">Weekly Trend</h4>
-                <p className="text-muted mb-0">Attendance rate over the last 7 days.</p>
-              </div>
-            </div>
-            <div className="student-attendance__line-chart">
-              {chartData.weekly.length < 2 ? (
-                <div className="student-attendance__empty">
-                  {chartData.weekly.length === 1 ? (
-                    <>
-                      Latest day: {chartData.weekly[0].dayLabel}, {chartData.weekly[0].dateLabel} ·
-                      {' '}Attendance {chartData.weekly[0].rate}%
-                    </>
-                  ) : (
-                    'No weekly attendance data yet.'
-                  )}
-                </div>
-              ) : (
-                <>
-                  <svg viewBox="0 0 320 160" role="img" aria-label="Weekly attendance trend">
-                    <polyline
-                      fill="none"
-                      stroke="#2a6cf4"
-                      strokeWidth="3"
-                      points={chartData.weekly
-                        .map((item, index) => {
-                          const denominator = Math.max(1, chartData.weekly.length - 1)
-                          const x = (index / denominator) * 300 + 10
-                          const y = 140 - (item.rate / 100) * 120
-                          return `${x},${y}`
-                        })
-                        .join(' ')}
-                    />
-                    {chartData.weekly.map((item, index) => {
-                      const denominator = Math.max(1, chartData.weekly.length - 1)
-                      const x = (index / denominator) * 300 + 10
-                      const y = 140 - (item.rate / 100) * 120
-                      return <circle key={item.key} cx={x} cy={y} r="4" fill="#2a6cf4" />
-                    })}
-                  </svg>
-                  <div
-                    className="student-attendance__line-labels"
-                    style={{ gridTemplateColumns: `repeat(${chartData.weekly.length}, 1fr)` }}
-                  >
-                    {chartData.weekly.map((item) => (
-                      <span key={item.key} className="student-attendance__line-label">
-                        <span>{item.dayLabel}</span>
-                        <span>{item.dateLabel}</span>
-                      </span>
-                    ))}
-                  </div>
-                </>
-              )}
             </div>
           </div>
         </div>

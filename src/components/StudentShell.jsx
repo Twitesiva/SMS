@@ -6,7 +6,7 @@ import crest from '../assets/media/images.png'
 const navItems = [
   { to: '/student/dashboard', label: 'Dashboard', icon: 'bi-speedometer2' },
   { to: '/student/personal-details', label: 'Personal details', icon: 'bi-person' },
-  { to: '/student/course-list', label: 'Subject list', icon: 'bi-journal-text' },
+  { to: '/student/course-list', label: 'Learning Materials', icon: 'bi-journal-text' },
   { to: '/student/time-table', label: 'Time table', icon: 'bi-clock-history' },
   { to: '/student/hostel-details', label: 'Hostel details', icon: 'bi-house-door' },
   { to: '/student/fee-payment', label: 'Fee payment', icon: 'bi-credit-card' },
