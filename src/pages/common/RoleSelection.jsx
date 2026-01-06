@@ -71,18 +71,18 @@ export default function RoleSelection() {
             className: 'student'
         },
         {
-            id: 'parent',
-            label: 'Parent',
-            icon: 'bi-people-fill',
-            desc: 'Access Parent Portal, Monitor Student Progress',
-            className: 'parent'
-        },
-        {
             id: 'library',
             label: 'Library',
             icon: 'bi-journal-bookmark',
             desc: 'Library Catalog & Issue Desk',
             className: 'library'
+        },
+        {
+            id: 'parent',
+            label: 'Parent',
+            icon: 'bi-people-fill',
+            desc: 'Access Parent Portal, Monitor Student Progress',
+            className: 'parent'
         },
         {
             id: 'hostel',

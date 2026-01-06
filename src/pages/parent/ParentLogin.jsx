@@ -8,7 +8,7 @@ export default function ParentLogin() {
     const nav = useNavigate()
     const { setParent } = useParentAuth()
     const [studentId, setStudentId] = useState('')
-    const [parentMobile, setParentMobile] = useState('')
+    const [studentMobile, setStudentMobile] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
 
@@ -18,22 +18,22 @@ export default function ParentLogin() {
         setError('')
 
         const cleanStudentId = studentId.trim()
-        const cleanMobile = parentMobile.trim()
+        const cleanMobile = studentMobile.trim()
 
         try {
-            // Validate credentials against students table using Parent_no
+            // Validate credentials against students table using phone_number (Student Mobile)
             const { data, error: fetchError } = await supabase
                 .from('students')
                 .select(
-                    'id, student_id, full_name, hall_ticket_no, academic_year, group_name, course_name, Parent_no, status, photo_url, current_semester'
+                    'id, student_id, full_name, hall_ticket_no, academic_year, group_name, course_name, Parent_no, phone_number, status, photo_url, current_semester'
                 )
                 .eq('student_id', cleanStudentId)
-                .eq('Parent_no', cleanMobile)
+                .eq('phone_number', cleanMobile)
                 .maybeSingle()
 
             if (fetchError) throw fetchError
             if (!data) {
-                setError('Invalid Student ID or Parent Mobile Number')
+                setError('Invalid Student ID or Student Mobile Number')
                 setLoading(false)
                 return
             }
@@ -60,7 +60,7 @@ export default function ParentLogin() {
                 </div>
 
                 <h2 className="student-login__heading">Parent Login</h2>
-                <p className="student-login__copy">Enter Student ID and Registered Parent Mobile Number.</p>
+                <p className="student-login__copy">Enter Student ID and Registered Student Mobile Number.</p>
 
                 <form className="student-login__form" onSubmit={onLogin} autoComplete="off">
                     <label className="student-login__field">
@@ -76,12 +76,12 @@ export default function ParentLogin() {
                     </label>
 
                     <label className="student-login__field">
-                        <span>Parent Mobile Number</span>
+                        <span>Student Mobile Number</span>
                         <input
                             type="tel"
-                            value={parentMobile}
-                            onChange={(event) => setParentMobile(event.target.value)}
-                            placeholder="Enter Parent Mobile Number"
+                            value={studentMobile}
+                            onChange={(event) => setStudentMobile(event.target.value)}
+                            placeholder="Enter Student Mobile Number"
                             required
                             autoComplete="new-password"
                         />
