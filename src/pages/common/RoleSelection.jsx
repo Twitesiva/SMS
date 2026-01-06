@@ -33,13 +33,6 @@ export default function RoleSelection() {
 
     const roles = [
         {
-            id: 'staff',
-            label: 'Staff',
-            icon: 'bi-person-workspace',
-            desc: 'Access Staff Portal, Manage Students',
-            className: 'staff'
-        },
-        {
             id: 'admission-portal',
             label: 'Admission Portal',
             icon: 'bi-journal-text',
@@ -52,6 +45,13 @@ export default function RoleSelection() {
             icon: 'bi-person-gear',
             desc: 'User Management',
             className: 'admin'
+        },
+        {
+            id: 'staff',
+            label: 'Staff',
+            icon: 'bi-person-workspace',
+            desc: 'Access Staff Portal, Manage Students',
+            className: 'staff'
         },
         {
             id: 'exam-portal',

@@ -616,40 +616,63 @@ export default function FeesCollection() {
               {studentLoaded && studentInfo ? (
                 <div className="row g-4">
                   <div className="col-12 col-md-5">
-                    <div className="card card-soft h-100 p-3">
-                      <div className="text-uppercase text-muted small mb-1">Student</div>
-                      <div className="fw-bold mb-1">{studentInfo.full_name}</div>
-                      <div className="text-muted small mb-3">ID: {studentInfo.student_id}</div>
+                    <div className="card card-soft h-100 p-4">
+                      <h6 className="fw-bold mb-4 pb-2 border-bottom">Student Profile</h6>
 
-                      <div className="text-uppercase text-muted small mb-1">Course</div>
-                      <div className="fw-semibold mb-2">{courseLabel}</div>
+                      <div className="mb-3 row g-0">
+                        <div className="col-5 text-muted small text-uppercase fw-semibold">Student Name</div>
+                        <div className="col-7 fw-bold text-dark">: {studentInfo.full_name}</div>
+                      </div>
 
-                      <div className="text-uppercase text-muted small mb-1">Academic Year</div>
-                      <div className="fw-semibold mb-2">{academicYearLabel}</div>
+                      <div className="mb-3 row g-0">
+                        <div className="col-5 text-muted small text-uppercase fw-semibold">Student ID</div>
+                        <div className="col-7 text-dark">: {studentInfo.student_id}</div>
+                      </div>
 
-                      <div className="text-uppercase text-muted small mb-1">Semester</div>
-                      <div className="fw-semibold mb-2">{semesterDisplay}</div>
+                      <div className="mb-3 row g-0">
+                        <div className="col-5 text-muted small text-uppercase fw-semibold">Course</div>
+                        <div className="col-7 fw-semibold text-dark">: {courseLabel}</div>
+                      </div>
 
-                      <div className="text-uppercase text-muted small mb-1">Status</div>
-                      <div className="fw-semibold text-capitalize">{statusLabel}</div>
+                      <div className="mb-3 row g-0">
+                        <div className="col-5 text-muted small text-uppercase fw-semibold">Academic Year</div>
+                        <div className="col-7 text-dark">: {academicYearLabel}</div>
+                      </div>
+
+                      <div className="mb-3 row g-0">
+                        <div className="col-5 text-muted small text-uppercase fw-semibold">Semester</div>
+                        <div className="col-7 text-dark">: {semesterDisplay}</div>
+                      </div>
+
+                      <div className="row g-0">
+                        <div className="col-5 text-muted small text-uppercase fw-semibold">Status</div>
+                        <div className="col-7 fw-bold text-success text-uppercase">: {statusLabel}</div>
+                      </div>
                     </div>
                   </div>
 
                   <div className="col-12 col-md-7">
-                    <div className="card card-soft mb-3 p-3">
-                      <div className="d-flex justify-content-between text-muted small mb-1">
-                        <span>Total Fee</span>
-                        <span>Rs. {formatMoney(totalFeeDisplay)}</span>
+                    <div className="card card-soft mb-4 border">
+                      <div className="card-header bg-light fw-bold text-uppercase small py-2">
+                        Payment Summary
                       </div>
-                      <div className="d-flex justify-content-between text-muted small mb-1">
-                        <span>Total Paid</span>
-                        <span>Rs. {formatMoney(totalPaid)}</span>
-                      </div>
-                      <div className="d-flex justify-content-between fw-bold">
-                        <span>Outstanding</span>
-                        <span className={outstanding > 0 ? 'text-danger' : 'text-success'}>
-                          Rs. {formatMoney(outstanding)}
-                        </span>
+                      <div className="card-body p-0">
+                        <ul className="list-group list-group-flush">
+                          <li className="list-group-item d-flex justify-content-between align-items-center">
+                            <span className="text-muted">Total Fee</span>
+                            <span className="fw-semibold">₹ {formatMoney(totalFeeDisplay)}</span>
+                          </li>
+                          <li className="list-group-item d-flex justify-content-between align-items-center">
+                            <span className="text-muted">Total Paid</span>
+                            <span className="fw-semibold text-success">₹ {formatMoney(totalPaid)}</span>
+                          </li>
+                          <li className="list-group-item d-flex justify-content-between align-items-center bg-light">
+                            <span className="fw-bold text-dark">Outstanding Balance</span>
+                            <span className={`fw-bold fs-5 ${outstanding > 0 ? 'text-danger' : 'text-success'}`}>
+                              ₹ {formatMoney(outstanding)}
+                            </span>
+                          </li>
+                        </ul>
                       </div>
                     </div>
 
@@ -669,7 +692,7 @@ export default function FeesCollection() {
                               {feeBreakdown.map((row, index) => (
                                 <tr key={`${row.fee_name || 'fee'}-${index}`}>
                                   <td>{row.fee_name || 'Fee'}</td>
-                                  <td className="text-end">Rs. {formatMoney(row.amount)}</td>
+                                  <td className="text-end">₹ {formatMoney(row.amount)}</td>
                                 </tr>
                               ))}
                             </tbody>

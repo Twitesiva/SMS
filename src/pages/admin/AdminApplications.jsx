@@ -10,12 +10,12 @@ import { showToast } from '../../store/ui'
 const adminNavGroups = [
 
   {
-    title: 'Exam Applications',
+    title: 'Applications',
     static: true,
     items: [
       {
         to: '/admin-portal/applications',
-        label: 'Exam Applications',
+        label: 'Applications',
         icon: 'bi-inboxes'
       }
     ]
@@ -106,17 +106,7 @@ const adminNavGroups = [
       }
     ]
   },
-  {
-    title: 'Class Time Table Creation',
-    static: true,
-    items: [
-      {
-        to: '/admin-portal/class-time-table-creation',
-        label: 'Class Time Table Creation',
-        icon: 'bi-calendar-plus'
-      }
-    ]
-  }
+
 ]
 
 export default function AdminApplications() {
@@ -316,6 +306,159 @@ export default function AdminApplications() {
   }
 
   const isDigits = (value, len) => new RegExp(`^\\d{${len}}$`).test(value)
+  const location = useLocation()
+
+  // Pre-fill form if redirected from Application Review
+  useEffect(() => {
+    const autoFill = async () => {
+      if (!location.state?.applicationData || groups.length === 0) return
+
+      const app = location.state.applicationData
+
+      // Auto-set Category based on available groups/years if possible, or default
+      // For now, let's assume UG as default or derived from group
+      // Ideally we should find the group in 'groups' to know its category
+      const foundGroup = groups.find(g => String(g.id || g.group_id) === String(app.group_id))
+      if (foundGroup) {
+        setCategory(foundGroup.category || foundGroup.Category || 'UG') // Trigger category filter
+      }
+
+      const admYear = app.admission_year || app.academic_year?.split('-')[0] || new Date().getFullYear();
+
+      const foundCourse = courses.find(c => String(c.id || c.course_id) === String(app.course_id));
+      // Helper to ensure we get an alphabetic code (e.g. 'CS') instead of numeric ('01')
+      const getAlphabeticCode = (code, name) => {
+        if (code && isNaN(Number(code))) return code.toUpperCase(); // Already alphabetic like 'CS'
+
+        // If code is numeric (e.g. '01'), try to derive from Name (e.g. 'Computer Science' -> 'CS')
+        if (name) {
+          const nameParts = name.split(' ').filter(p => p.length > 0);
+          if (nameParts.length > 1) {
+            // e.g. "Computer Science" -> "CS"
+            return nameParts.map(p => p[0]).join('').toUpperCase().substring(0, 3);
+          } else if (nameParts.length === 1) {
+            // e.g. "Commerce" -> "COM"
+            return nameParts[0].substring(0, 3).toUpperCase();
+          }
+        }
+        return code; // Fallback to whatever we have
+      };
+
+      const rawGrpCode = foundGroup ? (foundGroup.code || foundGroup.group_code) : '';
+      const rawCourseCode = foundCourse ? (foundCourse.courseCode || foundCourse.course_code || foundCourse.code) : '';
+
+      // Determine the best prefix
+      // 1. Try explicit alphanumeric group code from course (rare but possible mapping)
+      // 2. Try group code/name logic (CS from Computer Science)
+      // 3. Fallback to course code
+
+      let idCode = foundCourse?.group_code || foundCourse?.groupCode;
+
+      if (!idCode || !isNaN(Number(idCode))) {
+        // If we don't have a specific text code yet, try deriving from Group
+        idCode = getAlphabeticCode(rawGrpCode, foundGroup?.name || foundGroup?.group_name);
+      }
+
+      // If still nothing or numeric, try course
+      if (!idCode || !isNaN(Number(idCode))) {
+        idCode = getAlphabeticCode(rawCourseCode, foundCourse?.name || foundCourse?.course_name);
+      }
+
+      console.log('DEBUG ID GEN:', { foundCourse, rawGrpCode, rawCourseCode, idCode });
+
+      let nextStudentId = '';
+      let nextHtNo = '';
+
+      // Auto-generate IDs if we have necessary info
+      if (admYear && idCode) {
+        try {
+          const yearShort = String(admYear).substring(2, 4);
+          const prefix = `${yearShort}${idCode}`;
+
+          // Fetch last Student ID for this series
+          const { data: lastStu } = await supabase
+            .from('students')
+            .select('student_id')
+            .ilike('student_id', `${prefix}%`)
+            .order('student_id', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (lastStu && lastStu.student_id) {
+            const suffix = lastStu.student_id.replace(prefix, '');
+            const num = parseInt(suffix, 10);
+            if (!isNaN(num)) {
+              nextStudentId = `${prefix}${String(num + 1).padStart(3, '0')}`;
+            } else {
+              nextStudentId = `${prefix}001`; // Fallback
+            }
+          } else {
+            nextStudentId = `${prefix}001`; // Start of series
+          }
+
+          // Fetch last Hall Ticket No (Global Running Number)
+          // We order by id desc to get the most recently inserted one
+          const { data: lastHt } = await supabase
+            .from('students')
+            .select('hall_ticket_no')
+            .not('hall_ticket_no', 'is', null)
+            .order('id', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (lastHt && lastHt.hall_ticket_no) {
+            // Handle potential non-numeric chars if any, though user implies numeric
+            const htStr = String(lastHt.hall_ticket_no).replace(/\D/g, '');
+            if (htStr) {
+              const htNum = BigInt(htStr);
+              nextHtNo = String(htNum + 1n);
+            }
+          }
+
+        } catch (err) {
+          console.error("Error auto-generating IDs", err);
+        }
+      }
+
+      setForm(prev => ({
+        ...prev,
+        academic_year: String(app.admission_year || app.academic_year || ''),
+        admission_year: app.admission_year,
+        group: foundGroup ? (foundGroup.name || foundGroup.group_name) : '',
+        group_code: rawGrpCode,
+        course_id: app.course_id,
+        // We will need to set course_name in the effect that watches course_id changes
+        full_name: app.full_name,
+        gender: app.gender,
+        dob: app.date_of_birth,
+        father_name: app.father_name,
+        mother_name: app.mother_name,
+        nationality: app.nationality,
+        state: app.state,
+        aadhar_no: app.aadhar_number,
+        postal_code: app.pincode,
+        address: app.address,
+        mobile: app.phone_number,
+        Parent_no: app.parent_no,
+        religion: app.religion,
+        caste: app.caste,
+        // Default placeholders if missing
+        current_semester: 1,
+        is_hostel: false,
+        is_transport: false,
+        // Set Generated IDs
+        student_id: nextStudentId,
+        ht_no: nextHtNo
+      }))
+
+      // If photo exists, we can't easily set the File object, but we can perhaps set a preview url or handle it separately.
+      // For now, simpler to leave photo manual or handle URL in payload if supported. 
+      // AdminApplications expects File object in 'photo' state for upload. 
+      // If we want to use existing URL, we might need to adjust payload construction.
+    }
+
+    autoFill()
+  }, [location.state, groups, courses]) // Depend on groups to ensure they are loaded
 
   const submit = async (event) => {
     event.preventDefault()
@@ -367,6 +510,10 @@ export default function AdminApplications() {
       if (!courseCode) throw new Error('Selected course is missing a course code reference')
       const courseLabel = form.course_name || selectedCourse.courseName || selectedCourse.course_name || ''
 
+      // Use existing photo URL if no new photo file is selected
+      const existingPhotoUrl = location.state?.applicationData?.photo_url
+      const finalPhotoUrl = photo ? URL.createObjectURL(photo) : existingPhotoUrl
+
       const payload = {
         student_id: form.student_id || `STU${Date.now().toString().slice(-6)}`,
         hall_ticket_no: form.ht_no || null,
@@ -390,7 +537,7 @@ export default function AdminApplications() {
         Parent_no: form.Parent_no,
         religion: form.religion || null,
         caste: form.caste || null,
-        photo_url: photo ? URL.createObjectURL(photo) : null,
+        photo_url: finalPhotoUrl || null,
         cert_url: cert ? URL.createObjectURL(cert) : null,
         status: 'ACTIVE',
         is_hostel: form.is_hostel,
@@ -398,12 +545,46 @@ export default function AdminApplications() {
         created_at: new Date().toISOString()
       }
 
-      const { error } = await supabase.from('students').insert([payload])
+      const { data: newStudent, error } = await supabase.from('students').insert([payload]).select().single()
       if (error) throw error
+
+      // If we came from Application Review, link the admission and approve it
+      if (location.state?.applicationData?.id) {
+        const { data: { user } } = await supabase.auth.getUser()
+
+        // 1. Link Student and Approve Admission
+        const { error: linkError } = await supabase
+          .from('admissions')
+          .update({
+            student_id: newStudent.id,
+            admission_status: 'APPROVED',
+            confirmed_at: new Date().toISOString(),
+            confirmed_by: user?.id
+          })
+          .eq('application_id', location.state.applicationData.id)
+
+        if (linkError) {
+          console.error('Failed to link/approve admission', linkError)
+          showToast('Student created, but failed to approve admission.', { type: 'warning' })
+        } else {
+          // 2. Mark Application as Confirmed
+          const { error: appError } = await supabase
+            .from('applications')
+            .update({ status: 'CONFIRMED', application_status: 'CONFIRMED' })
+            .eq('id', location.state.applicationData.id)
+
+          if (appError) {
+            console.error('Failed to confirm application status', appError)
+          }
+        }
+      }
 
       showToast('Application submitted successfully!', { type: 'success', title: 'Success' })
       setMsg('Application saved successfully.')
       resetAll()
+      // Use history replace to clear state so refresh doesn't re-fill
+      window.history.replaceState({}, document.title)
+
     } catch (error) {
       console.error('Unable to submit application', error)
       setMsg(error.message || 'Unable to submit application right now.')

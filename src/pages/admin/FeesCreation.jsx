@@ -94,17 +94,7 @@ const adminNavGroups = [
             }
         ]
     },
-    {
-        title: 'Class Time Table Creation',
-        static: true,
-        items: [
-            {
-                to: '/admin-portal/class-time-table-creation',
-                label: 'Class Time Table Creation',
-                icon: 'bi-calendar-plus'
-            }
-        ]
-    },
+
 
 ]
 
@@ -175,7 +165,7 @@ export default function FeesCreation() {
                 if (editingFeeId && data.id === editingFeeId) {
                     return
                 }
-                setDuplicateWarning(`Fee structure already exists for this combination! (Total: ?${data.total_fee})`)
+                setDuplicateWarning(`Fee structure already exists for this combination! (Total: ₹${data.total_fee})`)
             }
         } catch (err) {
             console.error('Error checking duplicate:', err)
@@ -675,7 +665,7 @@ export default function FeesCreation() {
         return feesToRender.map((fee) => (
             <tr key={fee.id}>
                 <td>{fee.academic_year}</td>
-                <td className="text-end fw-bold">?{fee.hostel_fee}</td>
+                <td className="text-end fw-bold">₹{fee.hostel_fee}</td>
                 <td className="text-end">
                     <div className="d-flex justify-content-end gap-2">
                         <button
@@ -708,7 +698,7 @@ export default function FeesCreation() {
                     <td>{groupName}</td>
                     <td>{courseName}</td>
                     <td>{fee.year_of_study}</td>
-                    <td className="text-end fw-bold">?{fee.total_fee}</td>
+                    <td className="text-end fw-bold">₹{fee.total_fee}</td>
                     <td className="text-end">
                         <div className="d-flex justify-content-end gap-2">
                             <button
@@ -1129,7 +1119,7 @@ export default function FeesCreation() {
                             <div className="col-md-4">
                                 <label className="form-label">Amount <span className="text-danger">*</span></label>
                                 <div className="input-group">
-                                    <span className="input-group-text">?</span>
+                                    <span className="input-group-text">₹</span>
                                     <input
                                         type="number"
                                         className="form-control"

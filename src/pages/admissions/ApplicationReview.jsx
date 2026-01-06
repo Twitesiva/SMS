@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import AdminShell from '../../components/AdminShell'
 import ConfirmationModal from '../../components/ConfirmationModal'
 import { supabase } from '../../../supabaseClient'
@@ -8,16 +8,30 @@ import { showToast } from '../../store/ui'
 
 const navGroups = [
     {
-        title: 'Overview',
+        title: 'Admissions Overview',
         static: true,
         items: [
             { to: '/admissions/overview', label: 'Admissions Overview', icon: 'bi-speedometer2' }
         ]
     },
     {
-        title: 'Management',
+        title: 'Application Review',
+        static: true,
         items: [
-            { to: '/admissions/review', label: 'Application Review', icon: 'bi-file-earmark-check' },
+            { to: '/admissions/review', label: 'Application Review', icon: 'bi-file-earmark-check' }
+        ]
+    },
+    {
+        title: 'Student Application',
+        static: true,
+        items: [
+            { to: '/admissions/application', label: 'Student Application', icon: 'bi-window-plus' }
+        ]
+    },
+    {
+        title: 'Confirmed Admissions',
+        static: true,
+        items: [
             { to: '/admissions/confirmed', label: 'Confirmed Admissions', icon: 'bi-person-check' }
         ]
     }
@@ -105,97 +119,20 @@ export default function ApplicationReview() {
         setShowConfirmModal(true)
     }
 
+    const navigate = useNavigate()
+
     const handleConfirmApproval = async () => {
         if (!searchedApplication) return
 
-        setLoading(true)
-        try {
-            // 1. Get current user (admin)
-            const { data: { user } } = await supabase.auth.getUser()
+        setShowConfirmModal(false)
 
-            // 2. Update Application Status
-            const { error: appError } = await supabase
-                .from('applications')
-                .update({ status: 'CONFIRMED', application_status: 'CONFIRMED' })
-                .eq('id', searchedApplication.id)
-
-            if (appError) throw appError
-
-            // 3. Update Admission Status
-            const { error: admError } = await supabase
-                .from('admissions')
-                .update({
-                    admission_status: 'APPROVED',
-                    confirmed_at: new Date().toISOString(),
-                    confirmed_by: user?.id
-                })
-                .eq('application_id', searchedApplication.id)
-
-            if (admError) throw admError
-
-            // 4. Create Student Record
-            // Generate a temporary student ID (YYYY-RAND)
-            const studentIdCode = `${searchedApplication.admission_year}-${Math.floor(1000 + Math.random() * 9000)}`
-
-            const { data: studentData, error: stuError } = await supabase
-                .from('students')
-                .insert([{
-                    student_id: studentIdCode,
-                    hall_ticket_no: `HT-${studentIdCode}`, // Placeholder
-                    full_name: searchedApplication.full_name,
-                    gender: searchedApplication.gender,
-                    date_of_birth: searchedApplication.date_of_birth,
-                    father_name: searchedApplication.father_name,
-                    mother_name: searchedApplication.mother_name,
-                    nationality: searchedApplication.nationality,
-                    state: searchedApplication.state,
-                    address: searchedApplication.address,
-                    pincode: searchedApplication.pincode,
-                    phone_number: searchedApplication.phone_number,
-                    religion: searchedApplication.religion,
-                    caste: searchedApplication.caste,
-                    photo_url: searchedApplication.photo_url,
-                    admission_year: searchedApplication.admission_year,
-                    course_id: searchedApplication.course_id,
-                    group_id: searchedApplication.group_id,
-                    is_hostel: false, // Default
-                    is_transport: false, // Default
-                    current_semester: 1,
-                    status: 'ACTIVE',
-                    admission_status: 'CONFIRMED',
-                    // Added missing fields based on schema
-                    Parent_no: searchedApplication.parent_no,
-                    aadhar_number: searchedApplication.aadhar_number,
-                    cert_url: searchedApplication.cert_url,
-                    year_of_study: 1,
-                    academic_year: String(searchedApplication.admission_year),
-                    group_name: meta.groups[searchedApplication.group_id]?.group_name || '',
-                    course_name: meta.courses[searchedApplication.course_id]?.course_name || ''
-                }])
-                .select()
-                .single()
-
-            if (stuError) throw stuError
-
-            // 5. Link Student to Admission
-            const { error: linkError } = await supabase
-                .from('admissions')
-                .update({ student_id: studentData.id })
-                .eq('application_id', searchedApplication.id)
-
-            if (linkError) throw linkError
-
-            showToast('Admission Approved Successfully! Student Record Created.', { type: 'success' })
-            setSearchedApplication(prev => ({ ...prev, status: 'CONFIRMED' }))
-            setShowConfirmModal(false)
-            fetchApplications() // Refresh list
-
-        } catch (error) {
-            console.error('Error approving application:', error)
-            showToast('Failed to approve application: ' + error.message, { type: 'error' })
-        } finally {
-            setLoading(false)
-        }
+        // Navigate to Student Application form with data
+        // Status updates will happen after successful student creation
+        navigate('/admissions/application', {
+            state: {
+                applicationData: searchedApplication
+            }
+        })
     }
 
     const handleVerifyDocuments = () => {

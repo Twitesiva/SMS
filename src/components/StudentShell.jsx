@@ -7,14 +7,15 @@ const navItems = [
   { to: '/student/dashboard', label: 'Dashboard', icon: 'bi-speedometer2' },
   { to: '/student/personal-details', label: 'Personal details', icon: 'bi-person' },
   { to: '/student/course-list', label: 'Subject list', icon: 'bi-journal-text' },
+  { to: '/student/time-table', label: 'Time table', icon: 'bi-clock-history' },
+  { to: '/student/hostel-details', label: 'Hostel details', icon: 'bi-house-door' },
+  { to: '/student/fee-payment', label: 'Fee payment', icon: 'bi-credit-card' },
+  { to: '/student/certificate', label: 'Certificate', icon: 'bi-patch-check' },
+  { to: '/student/leave-request', label: 'Leave Request', icon: 'bi-calendar-minus' },
   { to: '/student/grade-mark', label: 'Grade / Mark', icon: 'bi-award' },
   { to: '/student/attendance', label: 'Attendance', icon: 'bi-calendar-check' },
   { to: '/student/exam-result', label: 'Exam result', icon: 'bi-file-earmark-bar-graph' },
-  { to: '/student/time-table', label: 'Time table', icon: 'bi-clock-history' },
-  { to: '/student/hostel-details', label: 'Hostel details', icon: 'bi-house-door' },
   { to: '/student/transport', label: 'Transport', icon: 'bi-bus-front' },
-  { to: '/student/fee-payment', label: 'Fee payment', icon: 'bi-credit-card' },
-  { to: '/student/certificate', label: 'Certificate', icon: 'bi-patch-check' },
 ]
 
 export default function StudentShell({ children }) {

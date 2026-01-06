@@ -58,6 +58,7 @@ import StudentCertificate from "./pages/student/StudentCertificate.jsx";
 import StudentFeePayment from "./pages/student/StudentFeePayment.jsx";
 import StudentHostelDetails from "./pages/student/StudentHostelDetails.jsx";
 import StudentTimeTable from "./pages/student/StudentTimeTable.jsx";
+import StudentLeaveRequest from "./pages/student/StudentLeaveRequest.jsx";
 import Batches from "./pages/exam/Batches.jsx";
 import Courses from "./pages/exam/Courses.jsx";
 import Students from "./pages/exam/Students.jsx";
@@ -86,6 +87,7 @@ import History from "./pages/exam/History.jsx";
 import AdmissionsOverview from "./pages/admissions/AdmissionsOverview.jsx";
 import ApplicationReview from "./pages/admissions/ApplicationReview";
 import ConfirmedAdmissions from "./pages/admissions/ConfirmedAdmissions.jsx";
+import AdmissionsApplication from "./pages/admissions/AdmissionsApplication.jsx";
 
 
 export default function App() {
@@ -504,6 +506,14 @@ export default function App() {
           }
         />
         <Route
+          path="/admissions/application"
+          element={
+            <GuardedRoute isAuthed={isAuthed} redirectTo="/admissions/login">
+              <AdmissionsApplication />
+            </GuardedRoute>
+          }
+        />
+        <Route
           path="/admissions/confirmed"
           element={
             <GuardedRoute isAuthed={isAuthed} redirectTo="/admissions/login">
@@ -540,6 +550,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
               <StudentCertificate />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/student/leave-request"
+          element={
+            <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
+              <StudentLeaveRequest />
             </GuardedRoute>
           }
         />

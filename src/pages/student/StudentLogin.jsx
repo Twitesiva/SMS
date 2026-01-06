@@ -61,15 +61,17 @@ export default function StudentLogin() {
         <h2 className="student-login__heading">Student Login</h2>
         <p className="student-login__copy">Use your student ID and registered mobile number.</p>
 
-        <form className="student-login__form" onSubmit={onLogin}>
+        <form className="student-login__form" onSubmit={onLogin} autoComplete="off">
           <label className="student-login__field">
             <span>Name</span>
             <input
               type="text"
+              name="student_id_entry"
               value={studentId}
               onChange={(event) => setStudentId(event.target.value)}
               placeholder="Student ID"
               required
+              autoComplete="off"
             />
           </label>
 
@@ -77,10 +79,12 @@ export default function StudentLogin() {
             <span>Password</span>
             <input
               type="password"
+              name="student_mobile_entry"
               value={mobile}
               onChange={(event) => setMobile(event.target.value)}
               placeholder="Mobile number"
               required
+              autoComplete="new-password"
             />
           </label>
 

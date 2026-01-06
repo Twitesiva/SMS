@@ -59,15 +59,17 @@ export default function StaffLogin() {
                 <h2 className="student-login__heading">Staff Login</h2>
                 <p className="student-login__copy">Use your Staff ID and registered mobile number.</p>
 
-                <form className="student-login__form" onSubmit={onLogin}>
+                <form className="student-login__form" onSubmit={onLogin} autoComplete="off">
                     <label className="student-login__field">
                         <span>Staff ID</span>
                         <input
                             type="text"
+                            name="staff_id_input"
                             value={staffId}
                             onChange={(event) => setStaffId(event.target.value)}
                             placeholder="Staff ID"
                             required
+                            autoComplete="off"
                         />
                     </label>
 
@@ -75,10 +77,12 @@ export default function StaffLogin() {
                         <span>Mobile Number (Password)</span>
                         <input
                             type="password"
+                            name="staff_mobile_input"
                             value={mobile}
                             onChange={(event) => setMobile(event.target.value)}
                             placeholder="Mobile number"
                             required
+                            autoComplete="new-password"
                         />
                     </label>
 
