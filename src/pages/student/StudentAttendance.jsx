@@ -8,6 +8,9 @@ export default function StudentAttendance() {
   const [records, setRecords] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [page, setPage] = useState(1)
+  const [dateFilter, setDateFilter] = useState('')
+  const pageSize = 12
 
   useEffect(() => {
     const loadAttendance = async () => {
@@ -75,6 +78,7 @@ export default function StudentAttendance() {
         })
 
         setRecords(merged)
+        setPage(1)
       } catch (err) {
         console.error('Failed to load attendance', err)
         setError('Unable to load attendance right now.')
@@ -95,6 +99,33 @@ export default function StudentAttendance() {
     return { total, present, absent, rate }
   }, [records])
 
+  const chartData = useMemo(() => {
+    const getDateKey = (value) => (value ? String(value).slice(0, 10) : '')
+    const today = new Date()
+    const uniqueDates = Array.from(
+      new Set(
+        records
+          .map((row) => getDateKey(row.attendance_sessions?.attendance_date))
+          .filter(Boolean)
+      )
+    ).sort((a, b) => (a < b ? 1 : -1))
+
+    const dayKeys = uniqueDates.slice(0, 5).sort()
+
+    const weekly = dayKeys.map((key) => {
+      const rows = records.filter((row) => getDateKey(row.attendance_sessions?.attendance_date) === key)
+      const total = rows.length
+      const present = rows.filter((row) => row.status === 'PRESENT').length
+      const rate = total > 0 ? Math.round((present / total) * 100) : 0
+      const dateObj = new Date(`${key}T00:00:00`)
+      const dayLabel = dateObj.toLocaleDateString('en-US', { weekday: 'short' })
+      const dateLabel = dateObj.toLocaleDateString('en-US', { month: 'short', day: '2-digit' })
+      return { key, total, present, rate, dayLabel, dateLabel }
+    })
+
+    return { weekly }
+  }, [records])
+
   const formatStatus = (status) => {
     if (status === 'PRESENT') return 'Present'
     if (status === 'ABSENT') return 'Absent'
@@ -106,6 +137,17 @@ export default function StudentAttendance() {
     if (status === 'ABSENT') return 'student-attendance-badge student-attendance-badge--absent'
     return 'student-attendance-badge'
   }
+
+  const totalPages = Math.max(1, Math.ceil(records.length / pageSize))
+  const currentPage = Math.min(page, totalPages)
+  const startIndex = (currentPage - 1) * pageSize
+  const filteredRecords = dateFilter
+    ? records.filter((row) => row.attendance_sessions?.attendance_date === dateFilter)
+    : records
+  const totalPagesFiltered = Math.max(1, Math.ceil(filteredRecords.length / pageSize))
+  const currentPageFiltered = Math.min(page, totalPagesFiltered)
+  const startIndexFiltered = (currentPageFiltered - 1) * pageSize
+  const pageRows = filteredRecords.slice(startIndexFiltered, startIndexFiltered + pageSize)
 
   return (
     <StudentShell>
@@ -169,8 +211,31 @@ export default function StudentAttendance() {
               <h4 className="mb-1">Recent Attendance</h4>
               <p className="text-muted mb-0">Latest sessions with subject details.</p>
             </div>
-            <div className="student-attendance__table-meta">
-              {loading ? 'Loading...' : `${records.length} records`}
+            <div className="student-attendance__table-tools">
+              <div className="student-attendance__filter">
+                <label className="student-attendance__filter-label">Filter by date</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={dateFilter}
+                  onChange={(event) => {
+                    setDateFilter(event.target.value)
+                    setPage(1)
+                  }}
+                />
+              </div>
+              {dateFilter && (
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary btn-sm"
+                  onClick={() => {
+                    setDateFilter('')
+                    setPage(1)
+                  }}
+                >
+                  Clear
+                </button>
+              )}
             </div>
           </div>
           {error ? (
@@ -190,12 +255,12 @@ export default function StudentAttendance() {
                     <tr>
                       <td colSpan="3" className="text-center text-muted py-4">Loading attendance...</td>
                     </tr>
-                  ) : records.length === 0 ? (
+                  ) : filteredRecords.length === 0 ? (
                     <tr>
                       <td colSpan="3" className="text-center text-muted py-4">No attendance records yet.</td>
                     </tr>
                   ) : (
-                    records.slice(0, 12).map((row) => {
+                    pageRows.map((row) => {
                       const session = row.attendance_sessions
                       const subject = session?.subjects
                       return (
@@ -204,9 +269,6 @@ export default function StudentAttendance() {
                           <td>
                             <div className="student-attendance__subject">
                               {subject?.subject_name || 'Unknown subject'}
-                            </div>
-                            <div className="student-attendance__subject-code">
-                              {subject?.subject_code || '--'}
                             </div>
                           </td>
                           <td className="text-end">
@@ -220,7 +282,125 @@ export default function StudentAttendance() {
               </table>
             </div>
           )}
+          {filteredRecords.length > pageSize && !error && (
+            <div className="student-attendance__pagination">
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPageFiltered === 1}
+              >
+                Previous
+              </button>
+              <div className="student-attendance__pagination-meta">
+                Page {currentPageFiltered} of {totalPagesFiltered}
+              </div>
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                onClick={() => setPage((prev) => Math.min(totalPagesFiltered, prev + 1))}
+                disabled={currentPageFiltered === totalPagesFiltered}
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
+
+        <div className="student-attendance__insights">
+          <div className="student-attendance__panel">
+            <div className="student-attendance__panel-header">
+              <div>
+                <h4 className="mb-1">Attendance Split</h4>
+                <p className="text-muted mb-0">Present vs absent ratio.</p>
+              </div>
+            </div>
+            <div className="student-attendance__donut-wrap">
+              <div
+                className="student-attendance__donut"
+                style={{
+                  background: summary.total
+                    ? `conic-gradient(#22c55e ${summary.rate}%, #ef4444 0)`
+                    : 'conic-gradient(#e2e8f0 0%, #e2e8f0 100%)'
+                }}
+              >
+                <div className="student-attendance__donut-center">
+                  <div className="student-attendance__donut-value">{summary.rate}%</div>
+                  <div className="student-attendance__donut-label">Attendance</div>
+                </div>
+              </div>
+              <div className="student-attendance__donut-legend">
+                <div>
+                  <span className="student-attendance__legend-swatch student-attendance__legend-swatch--present"></span>
+                  Present: {summary.present}
+                </div>
+                <div>
+                  <span className="student-attendance__legend-swatch student-attendance__legend-swatch--absent"></span>
+                  Absent: {summary.absent}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="student-attendance__panel">
+            <div className="student-attendance__panel-header">
+              <div>
+                <h4 className="mb-1">Weekly Trend</h4>
+                <p className="text-muted mb-0">Attendance rate over the last 7 days.</p>
+              </div>
+            </div>
+            <div className="student-attendance__line-chart">
+              {chartData.weekly.length < 2 ? (
+                <div className="student-attendance__empty">
+                  {chartData.weekly.length === 1 ? (
+                    <>
+                      Latest day: {chartData.weekly[0].dayLabel}, {chartData.weekly[0].dateLabel} ·
+                      {' '}Attendance {chartData.weekly[0].rate}%
+                    </>
+                  ) : (
+                    'No weekly attendance data yet.'
+                  )}
+                </div>
+              ) : (
+                <>
+                  <svg viewBox="0 0 320 160" role="img" aria-label="Weekly attendance trend">
+                    <polyline
+                      fill="none"
+                      stroke="#2a6cf4"
+                      strokeWidth="3"
+                      points={chartData.weekly
+                        .map((item, index) => {
+                          const denominator = Math.max(1, chartData.weekly.length - 1)
+                          const x = (index / denominator) * 300 + 10
+                          const y = 140 - (item.rate / 100) * 120
+                          return `${x},${y}`
+                        })
+                        .join(' ')}
+                    />
+                    {chartData.weekly.map((item, index) => {
+                      const denominator = Math.max(1, chartData.weekly.length - 1)
+                      const x = (index / denominator) * 300 + 10
+                      const y = 140 - (item.rate / 100) * 120
+                      return <circle key={item.key} cx={x} cy={y} r="4" fill="#2a6cf4" />
+                    })}
+                  </svg>
+                  <div
+                    className="student-attendance__line-labels"
+                    style={{ gridTemplateColumns: `repeat(${chartData.weekly.length}, 1fr)` }}
+                  >
+                    {chartData.weekly.map((item) => (
+                      <span key={item.key} className="student-attendance__line-label">
+                        <span>{item.dayLabel}</span>
+                        <span>{item.dateLabel}</span>
+                      </span>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
       </div>
     </StudentShell>
   )

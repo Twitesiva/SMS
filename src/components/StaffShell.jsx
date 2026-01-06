@@ -35,6 +35,11 @@ const navItems = [
         icon: 'bi-megaphone',
     },
     {
+        to: '/staff/circulars',
+        label: 'Circulars',
+        icon: 'bi-megaphone-fill',
+    },
+    {
         to: '/staff/materials',
         label: 'Learning Materials',
         icon: 'bi-folder2-open',

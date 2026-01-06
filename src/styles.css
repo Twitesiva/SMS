@@ -8398,7 +8398,22 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   pointer-events: none;
 }
 
-.student-attendance__table-header {
+.student-attendance__insights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.2rem;
+}
+
+
+.student-attendance__panel {
+  border-radius: 20px;
+  padding: 1.4rem;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.1);
+}
+
+.student-attendance__panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -8406,7 +8421,186 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   margin-bottom: 1rem;
 }
 
+.student-attendance__donut-wrap {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.student-attendance__donut {
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+
+.student-attendance__donut-center {
+  width: 118px;
+  height: 118px;
+  border-radius: 50%;
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.15);
+}
+
+.student-attendance__donut-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.student-attendance__donut-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.student-attendance__donut-legend {
+  display: grid;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.student-attendance__legend-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  margin-right: 0.5rem;
+}
+
+.student-attendance__legend-swatch--present {
+  background: #22c55e;
+}
+
+.student-attendance__legend-swatch--absent {
+  background: #ef4444;
+}
+
+.student-attendance__line-chart {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.student-attendance__line-chart svg {
+  width: 100%;
+  height: 160px;
+  background: linear-gradient(180deg, rgba(241, 245, 249, 0.9), rgba(248, 250, 252, 0.95));
+  border-radius: 16px;
+  padding: 0.5rem;
+}
+
+.student-attendance__line-labels {
+  display: grid;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+  text-align: center;
+}
+
+.student-attendance__line-label {
+  display: grid;
+  gap: 0.2rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.student-attendance__line-label span:last-child {
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.student-attendance__bar-chart {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.student-attendance__bar-row {
+  display: grid;
+  grid-template-columns: 48px 1fr 32px;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.student-attendance__bar-label {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.student-attendance__bar-track {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.2);
+  overflow: hidden;
+}
+
+.student-attendance__bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(120deg, #2a6cf4, #60a5fa);
+}
+
+.student-attendance__bar-value {
+  text-align: right;
+  font-weight: 600;
+}
+
+
+.student-attendance__table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.student-attendance__table-tools {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0;
+  justify-content: flex-end;
+}
+
+.student-attendance__filter {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 200px;
+}
+
+.student-attendance__filter-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #64748b;
+  text-align: right;
+}
+
 .student-attendance__table-meta {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.student-attendance__pagination {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.student-attendance__pagination-meta {
   font-size: 0.85rem;
   color: #64748b;
 }
@@ -8482,6 +8676,153 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   color: #475569;
 }
 
+/* Student circulars */
+.student-circulars {
+  display: grid;
+  gap: 1.5rem;
+  font-family: "Manrope", "Space Grotesk", "Cabinet Grotesk", system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+}
+
+.student-circulars__hero {
+  border-radius: 26px;
+  padding: 1.8rem;
+  background: linear-gradient(135deg, #0b1f4d 0%, #12336f 55%, #2a6cf4 100%);
+  color: #ffffff;
+  box-shadow: 0 24px 50px rgba(15, 23, 42, 0.35);
+}
+
+.student-circulars__eyebrow {
+  font-size: 0.7rem;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.student-circulars__title {
+  margin: 0.4rem 0 0.5rem;
+  font-size: clamp(1.7rem, 2.6vw, 2.2rem);
+}
+
+.student-circulars__subtitle {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.student-circulars__list {
+  display: grid;
+  gap: 1rem;
+}
+
+.student-circulars__card {
+  border-radius: 28px;
+  padding: 1.9rem 2rem 2.1rem;
+  background: #121826;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 30px 60px rgba(6, 12, 24, 0.55);
+  position: relative;
+  overflow: hidden;
+}
+
+.student-circulars__card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, rgba(37, 99, 235, 0.35), transparent 45%),
+    radial-gradient(circle at 85% 20%, rgba(236, 72, 153, 0.25), transparent 50%);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.student-circulars__card::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 5px;
+  background: linear-gradient(90deg, #f97316, #ef4444, #6366f1);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.student-circulars__card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  position: relative;
+  z-index: 1;
+}
+
+.student-circulars__card-title-wrap {
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+}
+
+.student-circulars__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(248, 250, 252, 0.12);
+  color: #f8fafc;
+  font-size: 1.1rem;
+  border: 1px solid rgba(248, 250, 252, 0.2);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.35);
+}
+
+.student-circulars__card-title {
+  font-size: clamp(1.6rem, 2.2vw, 1.9rem);
+  letter-spacing: 0.04em;
+  margin: 0 0 0.35rem;
+  color: #f8fafc;
+  text-transform: uppercase;
+}
+
+.student-circulars__card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: rgba(248, 250, 252, 0.7);
+}
+
+.student-circulars__badge {
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  z-index: 1;
+}
+
+.student-circulars__card-body {
+  margin: 0;
+  color: rgba(248, 250, 252, 0.88);
+  font-size: 1.02rem;
+  line-height: 1.8;
+  position: relative;
+  z-index: 1;
+}
+
+.student-circulars__empty {
+  padding: 1.2rem;
+  border-radius: 14px;
+  background: rgba(248, 250, 252, 0.9);
+  border: 1px dashed rgba(148, 163, 184, 0.4);
+  color: #475569;
+}
+
 @media (max-width: 992px) {
   .student-portal {
     flex-direction: column;
@@ -8526,6 +8867,14 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   .student-attendance__table-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .student-attendance__table-tools {
+    align-items: stretch;
+  }
+
+  .student-attendance__filter {
+    width: 100%;
   }
 }
 
