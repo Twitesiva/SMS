@@ -7,10 +7,16 @@ import { showToast } from '../../store/ui'
 
 export default function Circulation() {
   const [activeLoans, setActiveLoans] = useState([])
+  const [showAllLoans, setShowAllLoans] = useState(false)
+  const buildDefaultDueDate = () => {
+    const date = new Date()
+    date.setDate(date.getDate() + 30)
+    return date.toISOString().slice(0, 10)
+  }
   const [form, setForm] = useState({
     studentId: '',
     bookRef: '',
-    dueDate: ''
+    dueDate: buildDefaultDueDate()
   })
   const [returnForm, setReturnForm] = useState({
     studentId: '',
@@ -54,7 +60,7 @@ export default function Circulation() {
     setForm({
       studentId: '',
       bookRef: '',
-      dueDate: ''
+      dueDate: buildDefaultDueDate()
     })
     setReturnForm({
       studentId: '',
@@ -247,12 +253,12 @@ export default function Circulation() {
         </section>
 
         <div className="row g-4 justify-content-center mx-0">
-          <div className="col-12 col-lg-5">
-            <div className="card card-soft p-4">
+          <div className="col-12 col-lg-6">
+            <div className="card card-soft p-4 h-100">
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <div>
-                  <h4 className="mb-1">Book Outgoing</h4>
-                  <p className="text-muted mb-0">Book issue &amp; return.</p>
+                  <h4 className="mb-1">Issue Book</h4>
+                  <p className="text-muted mb-0">Issue desk for outgoing books.</p>
                 </div>
                 <button type="button" className="btn btn-outline-secondary" onClick={resetForm}>
                   Reset
@@ -289,19 +295,27 @@ export default function Circulation() {
                     type="date"
                     value={form.dueDate}
                     onChange={handleChange('dueDate')}
+                    readOnly
+                    disabled
                   />
                 </div>
                 <div className="col-12 d-flex justify-content-end gap-2">
-                  <button type="button" className="btn btn-outline-secondary" onClick={resetForm}>Clear</button>
+                  <button type="button" className="btn btn-outline-secondary" onClick={resetForm}>
+                    Clear
+                  </button>
                   <button type="submit" className="btn btn-primary" disabled={saving}>
                     {saving ? 'Saving...' : 'Submit'}
                   </button>
                 </div>
               </form>
-              <hr className="my-4" />
+            </div>
+          </div>
+
+          <div className="col-12 col-lg-6">
+            <div className="card card-soft p-4 h-100">
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <div>
-                  <h4 className="mb-1">Return Book</h4>
+                  <h4 className="mb-1">Return Books</h4>
                   <p className="text-muted mb-0">Receive books back from members.</p>
                 </div>
               </div>
@@ -379,15 +393,28 @@ export default function Circulation() {
               </form>
             </div>
           </div>
+        </div>
 
-          <div className="col-12 col-lg-7">
+        <div className="row g-4 justify-content-center mx-0 mt-1">
+          <div className="col-12">
             <div className="card card-soft p-4 h-100">
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <div>
                   <h4 className="mb-1">Active Loans</h4>
                   <p className="text-muted mb-0">Monitor currently issued books.</p>
                 </div>
-                <button type="button" className="btn btn-outline-secondary btn-sm">Export</button>
+                <div className="d-flex gap-2">
+                  {activeLoans.length > 2 && (
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary btn-sm"
+                      onClick={() => setShowAllLoans((prev) => !prev)}
+                    >
+                      {showAllLoans ? 'Show less' : 'View more'}
+                    </button>
+                  )}
+                  <button type="button" className="btn btn-outline-secondary btn-sm">Export</button>
+                </div>
               </div>
               <div className="table-responsive">
                 <table className="table table-hover align-middle mb-0">
@@ -405,7 +432,7 @@ export default function Circulation() {
                         <td colSpan="4" className="text-center text-muted py-4">No active loans loaded.</td>
                       </tr>
                     ) : (
-                      activeLoans.map((loan) => {
+                      (showAllLoans ? activeLoans : activeLoans.slice(0, 2)).map((loan) => {
                         const student = loan.students
                         const book = loan.library_book_copies?.library_books
                         return (

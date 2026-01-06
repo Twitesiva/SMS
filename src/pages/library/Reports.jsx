@@ -16,7 +16,7 @@ export default function Reports() {
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
       labels.push({
         key,
-        label: date.toLocaleString('en-US', { month: 'long' })
+        label: date.toLocaleString('en-US', { month: 'short', year: 'numeric' })
       })
     }
     return labels
@@ -292,7 +292,7 @@ export default function Reports() {
           <div className="d-flex justify-content-between align-items-center mb-3">
             <div>
               <h5 className="mb-1">Monthly Summary</h5>
-              <p className="text-muted mb-0">Overview of library performance.</p>
+              <p className="text-muted mb-0">Last 3 months overview.</p>
             </div>
             <button type="button" className="btn btn-outline-secondary btn-sm">Export</button>
           </div>
