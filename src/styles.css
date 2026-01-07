@@ -7186,6 +7186,12 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   text-decoration: none;
   font-weight: 600;
   font-size: 0.95rem;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
   border-radius: 14px;
   position: relative;
   transition: background 0.2s ease, color 0.2s ease;
@@ -7240,6 +7246,25 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 .student-sidebar__link.active::before {
   background: #93c5fd;
   box-shadow: 0 0 0 4px rgba(147, 197, 253, 0.25);
+}
+
+.student-sidebar__subnav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0.15rem 0 0.6rem 0;
+}
+
+.student-sidebar__link--sub {
+  margin-left: 2.2rem;
+  margin-right: 0.8rem;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.student-sidebar__link--sub.active {
+  background: rgba(59, 130, 246, 0.18);
 }
 
 .student-portal--collapsed .student-sidebar {

@@ -3,9 +3,11 @@ import StaffShell from '../../components/StaffShell'
 import { useStaffAuth } from '../../store/staffAuth'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
+import { useLocation } from 'react-router-dom'
 
 export default function LeaveManagement() {
   const { staff } = useStaffAuth()
+  const { search } = useLocation()
   const [activeTab, setActiveTab] = useState('apply') // 'apply' | 'approvals'
 
   // Application Form State
@@ -28,6 +30,18 @@ export default function LeaveManagement() {
   const [loadingActioned, setLoadingActioned] = useState(false)
 
   const isHOD = staff?.designation === 'HOD'
+  const studentRequests = requests.filter((req) => req.applicant_type === 'STUDENT')
+  const staffRequests = requests.filter((req) => req.applicant_type === 'STAFF')
+  const studentActionedRequests = actionedRequests.filter((req) => req.applicant_type === 'STUDENT')
+  const staffActionedRequests = actionedRequests.filter((req) => req.applicant_type === 'STAFF')
+  const viewFilter = new URLSearchParams(search).get('view')
+  const showStudentSection = viewFilter !== 'staff'
+  const showStaffSection = viewFilter !== 'students'
+  const pendingCount = viewFilter === 'students'
+    ? studentRequests.length
+    : viewFilter === 'staff'
+      ? staffRequests.length
+      : requests.length
 
   useEffect(() => {
     if (isHOD) {
@@ -254,7 +268,7 @@ export default function LeaveManagement() {
                 onClick={() => setActiveTab('approvals')}
               >
                 Pending Approvals
-                {requests.length > 0 && <span className="badge bg-danger ms-2">{requests.length}</span>}
+                {pendingCount > 0 && <span className="badge bg-danger ms-2">{pendingCount}</span>}
               </button>
             </li>
             <li className="nav-item">
@@ -278,46 +292,106 @@ export default function LeaveManagement() {
               ) : requests.length === 0 ? (
                 <div className="text-muted text-center py-4">No pending requests</div>
               ) : (
-                <div className="table-responsive">
-                  <table className="table align-middle">
-                    <thead>
-                      <tr>
-                        <th>Applicant</th>
-                        <th>Role</th>
-                        <th>Type</th>
-                        <th>Dates</th>
-                        <th>Days</th>
-                        <th>Reason</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {requests.map(req => (
-                        <tr key={req.id}>
-                          <td>
-                            <div className="fw-bold">{req.applicantName}</div>
-                          </td>
-                          <td>
-                            <span className="badge bg-light text-dark border">{req.applicant_type}</span>
-                          </td>
-                          <td>{req.leave_type}</td>
-                          <td>
-                            <div>From: {req.from_date}</div>
-                            <div>To: {req.to_date}</div>
-                          </td>
-                          <td>{req.total_days}</td>
-                          <td style={{ maxWidth: '200px' }}>{req.reason}</td>
-                          <td>
-                            <div className="d-flex gap-2">
-                              <button className="btn btn-sm btn-success" onClick={() => handleApproval(req.id, 'APPROVED')}>Approve</button>
-                              <button className="btn btn-sm btn-danger" onClick={() => handleApproval(req.id, 'REJECTED')}>Reject</button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <>
+                  {showStudentSection && (
+                    <div className="mb-4">
+                      <h6 className="fw-semibold mb-3">Student Leave Requests</h6>
+                      {studentRequests.length === 0 ? (
+                        <div className="text-muted">No pending student requests.</div>
+                      ) : (
+                        <div className="table-responsive">
+                          <table className="table align-middle">
+                            <thead>
+                              <tr>
+                                <th>Applicant</th>
+                                <th>Role</th>
+                                <th>Type</th>
+                                <th>Dates</th>
+                                <th>Days</th>
+                                <th>Reason</th>
+                                <th>Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {studentRequests.map((req) => (
+                                <tr key={req.id}>
+                                  <td>
+                                    <div className="fw-bold">{req.applicantName}</div>
+                                  </td>
+                                  <td>
+                                    <span className="badge bg-light text-dark border">{req.applicant_type}</span>
+                                  </td>
+                                  <td>{req.leave_type}</td>
+                                  <td>
+                                    <div>From: {req.from_date}</div>
+                                    <div>To: {req.to_date}</div>
+                                  </td>
+                                  <td>{req.total_days}</td>
+                                  <td style={{ maxWidth: '200px' }}>{req.reason}</td>
+                                  <td>
+                                    <div className="d-flex gap-2">
+                                      <button className="btn btn-sm btn-success" onClick={() => handleApproval(req.id, 'APPROVED')}>Approve</button>
+                                      <button className="btn btn-sm btn-danger" onClick={() => handleApproval(req.id, 'REJECTED')}>Reject</button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {showStaffSection && (
+                    <div>
+                      <h6 className="fw-semibold mb-3">Staff Leave Requests</h6>
+                      {staffRequests.length === 0 ? (
+                        <div className="text-muted">No pending staff requests.</div>
+                      ) : (
+                        <div className="table-responsive">
+                          <table className="table align-middle">
+                            <thead>
+                              <tr>
+                                <th>Applicant</th>
+                                <th>Role</th>
+                                <th>Type</th>
+                                <th>Dates</th>
+                                <th>Days</th>
+                                <th>Reason</th>
+                                <th>Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {staffRequests.map((req) => (
+                                <tr key={req.id}>
+                                  <td>
+                                    <div className="fw-bold">{req.applicantName}</div>
+                                  </td>
+                                  <td>
+                                    <span className="badge bg-light text-dark border">{req.applicant_type}</span>
+                                  </td>
+                                  <td>{req.leave_type}</td>
+                                  <td>
+                                    <div>From: {req.from_date}</div>
+                                    <div>To: {req.to_date}</div>
+                                  </td>
+                                  <td>{req.total_days}</td>
+                                  <td style={{ maxWidth: '200px' }}>{req.reason}</td>
+                                  <td>
+                                    <div className="d-flex gap-2">
+                                      <button className="btn btn-sm btn-success" onClick={() => handleApproval(req.id, 'APPROVED')}>Approve</button>
+                                      <button className="btn btn-sm btn-danger" onClick={() => handleApproval(req.id, 'REJECTED')}>Reject</button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -333,52 +407,118 @@ export default function LeaveManagement() {
               ) : actionedRequests.length === 0 ? (
                 <div className="text-muted text-center py-4">No history records found</div>
               ) : (
-                <div className="table-responsive">
-                  <table className="table align-middle">
-                    <thead>
-                      <tr>
-                        <th>Applicant</th>
-                        <th>Role</th>
-                        <th>Type</th>
-                        <th>Dates</th>
-                        <th>Status</th>
-                        <th>Actioned On</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {actionedRequests.map((req) => (
-                        <tr key={req.id}>
-                          <td>
-                            <div className="fw-semibold">{req.applicantName}</div>
-                            {req.applicantDetails && <div className="small text-muted">{req.applicantDetails}</div>}
-                          </td>
-                          <td>
-                            <span className="badge bg-secondary bg-opacity-10 text-secondary border">{req.applicant_type}</span>
-                          </td>
-                          <td>
-                            <div>{req.leave_type}</div>
-                            <small className="text-muted">{req.total_days} day(s)</small>
-                          </td>
-                          <td>
-                            <div className="small">{req.from_date} to {req.to_date}</div>
-                            <div className="small text-muted fst-italic">"{req.reason}"</div>
-                          </td>
-                          <td>
-                            {req.status === 'APPROVED' ? (
-                              <span className="badge bg-success bg-opacity-10 text-success px-3 py-2">APPROVED</span>
-                            ) : (
-                              <span className="badge bg-danger bg-opacity-10 text-danger px-3 py-2">REJECTED</span>
-                            )}
-                            {req.hod_remarks && <div className="small text-muted mt-1">Note: {req.hod_remarks}</div>}
-                          </td>
-                          <td className="small text-muted">
-                            {req.actioned_at ? new Date(req.actioned_at).toLocaleDateString() : '-'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <>
+                  {showStudentSection && (
+                    <div className="mb-4">
+                      <h6 className="fw-semibold mb-3">Student Leave History</h6>
+                      {studentActionedRequests.length === 0 ? (
+                        <div className="text-muted">No student history records found.</div>
+                      ) : (
+                        <div className="table-responsive">
+                          <table className="table align-middle">
+                            <thead>
+                              <tr>
+                                <th>Applicant</th>
+                                <th>Role</th>
+                                <th>Type</th>
+                                <th>Dates</th>
+                                <th>Status</th>
+                                <th>Actioned On</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {studentActionedRequests.map((req) => (
+                                <tr key={req.id}>
+                                  <td>
+                                    <div className="fw-semibold">{req.applicantName}</div>
+                                    {req.applicantDetails && <div className="small text-muted">{req.applicantDetails}</div>}
+                                  </td>
+                                  <td>
+                                    <span className="badge bg-secondary bg-opacity-10 text-secondary border">{req.applicant_type}</span>
+                                  </td>
+                                  <td>
+                                    <div>{req.leave_type}</div>
+                                    <small className="text-muted">{req.total_days} day(s)</small>
+                                  </td>
+                                  <td>
+                                    <div className="small">{req.from_date} to {req.to_date}</div>
+                                    <div className="small text-muted fst-italic">"{req.reason}"</div>
+                                  </td>
+                                  <td>
+                                    {req.status === 'APPROVED' ? (
+                                      <span className="badge bg-success bg-opacity-10 text-success px-3 py-2">APPROVED</span>
+                                    ) : (
+                                      <span className="badge bg-danger bg-opacity-10 text-danger px-3 py-2">REJECTED</span>
+                                    )}
+                                    {req.hod_remarks && <div className="small text-muted mt-1">Note: {req.hod_remarks}</div>}
+                                  </td>
+                                  <td className="small text-muted">
+                                    {req.actioned_at ? new Date(req.actioned_at).toLocaleDateString() : '-'}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {showStaffSection && (
+                    <div>
+                      <h6 className="fw-semibold mb-3">Staff Leave History</h6>
+                      {staffActionedRequests.length === 0 ? (
+                        <div className="text-muted">No staff history records found.</div>
+                      ) : (
+                        <div className="table-responsive">
+                          <table className="table align-middle">
+                            <thead>
+                              <tr>
+                                <th>Applicant</th>
+                                <th>Role</th>
+                                <th>Type</th>
+                                <th>Dates</th>
+                                <th>Status</th>
+                                <th>Actioned On</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {staffActionedRequests.map((req) => (
+                                <tr key={req.id}>
+                                  <td>
+                                    <div className="fw-semibold">{req.applicantName}</div>
+                                    {req.applicantDetails && <div className="small text-muted">{req.applicantDetails}</div>}
+                                  </td>
+                                  <td>
+                                    <span className="badge bg-secondary bg-opacity-10 text-secondary border">{req.applicant_type}</span>
+                                  </td>
+                                  <td>
+                                    <div>{req.leave_type}</div>
+                                    <small className="text-muted">{req.total_days} day(s)</small>
+                                  </td>
+                                  <td>
+                                    <div className="small">{req.from_date} to {req.to_date}</div>
+                                    <div className="small text-muted fst-italic">"{req.reason}"</div>
+                                  </td>
+                                  <td>
+                                    {req.status === 'APPROVED' ? (
+                                      <span className="badge bg-success bg-opacity-10 text-success px-3 py-2">APPROVED</span>
+                                    ) : (
+                                      <span className="badge bg-danger bg-opacity-10 text-danger px-3 py-2">REJECTED</span>
+                                    )}
+                                    {req.hod_remarks && <div className="small text-muted mt-1">Note: {req.hod_remarks}</div>}
+                                  </td>
+                                  <td className="small text-muted">
+                                    {req.actioned_at ? new Date(req.actioned_at).toLocaleDateString() : '-'}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
