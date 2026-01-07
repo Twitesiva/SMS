@@ -6,7 +6,7 @@ import crest from '../assets/media/images.png'
 const navItems = [
     {
         to: '/staff/dashboard',
-        label: 'Dashboard',
+        label: 'My Profile',
         icon: 'bi-speedometer2',
     },
     {

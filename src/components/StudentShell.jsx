@@ -5,7 +5,7 @@ import crest from '../assets/media/images.png'
 import { supabase } from '../../supabaseClient'
 
 const navItems = [
-  { to: '/student/dashboard', label: 'Dashboard', icon: 'bi-speedometer2' },
+  { to: '/student/dashboard', label: 'My Profile', icon: 'bi-speedometer2' },
   { to: '/student/personal-details', label: 'Personal details', icon: 'bi-person' },
   { to: '/student/course-list', label: 'Learning Materials', icon: 'bi-journal-text' },
   { to: '/student/time-table', label: 'Time table', icon: 'bi-clock-history' },
