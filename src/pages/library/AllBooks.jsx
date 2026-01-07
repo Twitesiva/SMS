@@ -15,7 +15,7 @@ const emptyEditForm = {
   published_year: '',
   edition: '',
   shelf_code: '',
-  status: 'ACTIVE'
+  status: 'PUBLIC'
 }
 
 export default function AllBooks() {
@@ -23,6 +23,7 @@ export default function AllBooks() {
   const [copyCounts, setCopyCounts] = useState({})
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [searchTermYear, setSearchTermYear] = useState('')
   const [editingBook, setEditingBook] = useState(null)
   const [editForm, setEditForm] = useState(emptyEditForm)
   const [saving, setSaving] = useState(false)
@@ -72,24 +73,41 @@ export default function AllBooks() {
     loadBooks()
   }, [])
 
-  const filteredBooks = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase()
-    if (!term) return books
-    return books.filter((book) => {
-      const haystack = [
-        book.title,
-        book.isbn,
-        book.author,
-        book.publisher,
-        book.language,
-        book.shelf_code
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-      return haystack.includes(term)
+  const uniqueYears = useMemo(() => {
+    const years = new Set()
+    books.forEach((book) => {
+      if (book.published_year) years.add(String(book.published_year))
     })
-  }, [books, searchTerm])
+    return Array.from(years).sort((a, b) => b.localeCompare(a))
+  }, [books])
+
+  const filteredBooks = useMemo(() => {
+    let result = books
+    const term = searchTerm.trim().toLowerCase()
+    
+    if (term) {
+      result = result.filter((book) => {
+        const haystack = [
+          book.title,
+          book.isbn,
+          book.author,
+          book.publisher,
+          book.language,
+          book.shelf_code
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+        return haystack.includes(term)
+      })
+    }
+
+    if (searchTermYear) {
+      result = result.filter((book) => String(book.published_year) === searchTermYear)
+    }
+
+    return result
+  }, [books, searchTerm, searchTermYear])
 
   const stats = useMemo(() => {
     const totalTitles = books.length
@@ -114,7 +132,7 @@ export default function AllBooks() {
       published_year: book.published_year ? String(book.published_year) : '',
       edition: book.edition || '',
       shelf_code: book.shelf_code || '',
-      status: book.status || 'ACTIVE'
+      status: book.status || 'PUBLIC'
     })
   }
 
@@ -147,7 +165,7 @@ export default function AllBooks() {
         published_year: editForm.published_year ? Number(editForm.published_year) : null,
         edition: editForm.edition.trim() || null,
         shelf_code: editForm.shelf_code.trim() || null,
-        status: editForm.status || 'ACTIVE'
+        status: editForm.status || 'PUBLIC'
       }
 
       const { data, error } = await supabase
@@ -259,7 +277,7 @@ export default function AllBooks() {
         <div className="library-catalogue-toolbar">
           <div>
             <h4 className="mb-1">Catalogue Overview</h4>
-            <p className="text-muted mb-0">Search by title, author, ISBN, or shelf code.</p>
+            <p className="text-muted mb-0">Search by title, author, ISBN, shelf code, or year.</p>
           </div>
           <div className="library-catalogue-toolbar__actions">
             <div className="library-catalogue-search">
@@ -274,8 +292,22 @@ export default function AllBooks() {
                 onChange={(event) => setSearchTerm(event.target.value)}
               />
             </div>
-            <button className="btn btn-outline-secondary" type="button" onClick={loadBooks}>
-              Refresh
+            
+            <div style={{ minWidth: '140px' }}>
+              <select 
+                className="form-select" 
+                value={searchTermYear} 
+                onChange={(e) => setSearchTermYear(e.target.value)}
+              >
+                <option value="">All Years</option>
+                {uniqueYears.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
+
+            <button className="btn btn-outline-secondary" type="button" onClick={() => { setSearchTerm(''); setSearchTermYear(''); loadBooks(); }}>
+              Reset
             </button>
           </div>
           <div className="library-catalogue-toolbar__meta">
@@ -433,9 +465,8 @@ export default function AllBooks() {
                     <div className="col-md-4">
                       <label className="form-label">Status</label>
                       <select className="form-select" value={editForm.status} onChange={handleEditChange('status')}>
-                        <option value="ACTIVE">Available</option>
-                        <option value="REFERENCE">Reference Only</option>
-                        <option value="RESTRICTED">Restricted</option>
+                        <option value="PUBLIC">Public</option>
+                        <option value="PRIVATE">Private</option>
                       </select>
                     </div>
                     <div className="col-12 d-flex justify-content-end gap-2">

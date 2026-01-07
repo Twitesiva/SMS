@@ -74,7 +74,7 @@ export default function Circulation() {
     if (!trimmed) return null
 
     const numericId = Number(trimmed)
-    let bookQuery = supabase.from('library_books').select('id, title')
+    let bookQuery = supabase.from('library_books').select('id, title, status')
 
     if (Number.isFinite(numericId) && String(numericId) === trimmed) {
       bookQuery = bookQuery.eq('id', numericId)
@@ -132,6 +132,12 @@ export default function Circulation() {
       const resolved = await resolveBookCopy(form.bookRef)
       if (!resolved || !resolved.book) {
         showToast('Book not found.', { type: 'warning' })
+        setSaving(false)
+        return
+      }
+
+      if (resolved.book.status === 'PRIVATE') {
+        showToast('This book is Private and cannot be issued.', { type: 'warning' })
         setSaving(false)
         return
       }

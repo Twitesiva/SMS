@@ -19,7 +19,7 @@ export default function Books() {
     edition: '',
     copies: '',
     shelf_code: '',
-    status: 'ACTIVE'
+    status: 'PUBLIC'
   })
   const [saving, setSaving] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
@@ -28,7 +28,7 @@ export default function Books() {
     try {
       const { data: bookRows, error: bookError } = await supabase
         .from('library_books')
-        .select('id, title, created_at')
+        .select('id, title, created_at, status')
         .order('created_at', { ascending: false })
         .limit(10)
 
@@ -80,7 +80,7 @@ export default function Books() {
       edition: '',
       copies: '',
       shelf_code: '',
-      status: 'ACTIVE'
+      status: 'PUBLIC'
     })
     setStatusMessage('')
   }
@@ -108,7 +108,7 @@ export default function Books() {
         published_year: form.published_year ? Number(form.published_year) : null,
         edition: form.edition.trim() || null,
         shelf_code: form.shelf_code.trim() || null,
-        status: form.status || 'ACTIVE'
+        status: form.status || 'PUBLIC'
       }
 
       const { data: bookRow, error: bookError } = await supabase
@@ -289,9 +289,8 @@ export default function Books() {
                 <div className="col-md-3">
                   <label className="form-label">Status</label>
                   <select className="form-select" value={form.status} onChange={handleChange('status')}>
-                    <option value="ACTIVE">Available</option>
-                    <option value="REFERENCE">Reference Only</option>
-                    <option value="RESTRICTED">Restricted</option>
+                    <option value="PUBLIC">Public</option>
+                    <option value="PRIVATE">Private</option>
                   </select>
                 </div>
                 <div className="col-12 d-flex justify-content-end gap-2">
@@ -336,8 +335,10 @@ export default function Books() {
                 ) : (
                   recentBooks.map((book) => {
                     const count = copyCounts[String(book.id)] || 0
-                    const statusLabel = count > 0 ? 'Available' : 'Out'
-                    const badgeClass = count > 0 ? 'library-status library-status--available' : 'library-status library-status--out'
+                    const statusLabel = book.status === 'PRIVATE' ? 'Private' : (count > 0 ? 'Available' : 'Out')
+                    const badgeClass = book.status === 'PRIVATE' 
+                      ? 'library-status library-status--restricted'
+                      : (count > 0 ? 'library-status library-status--available' : 'library-status library-status--out')
                     return (
                       <tr key={book.id}>
                         <td>{book.title || 'Untitled'}</td>
