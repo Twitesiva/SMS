@@ -7138,8 +7138,12 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   background: linear-gradient(180deg, #f3f6fb 0%, #eef2f7 45%, #ffffff 100%);
   color: #1f2d3d;
   --student-header-height: 72px;
-  font-family: "Source Sans 3", "Manrope", "Space Grotesk", "Cabinet Grotesk", system-ui, -apple-system,
-    "Segoe UI", sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  letter-spacing: 0.01em;
+  font-family: "Space Grotesk", "Cabinet Grotesk", system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
+    "Helvetica Neue", Arial, sans-serif;
 }
 
 .student-body {
@@ -7181,6 +7185,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   color: rgba(226, 232, 240, 0.88);
   text-decoration: none;
   font-weight: 600;
+  font-size: 0.95rem;
   border-radius: 14px;
   position: relative;
   transition: background 0.2s ease, color 0.2s ease;
@@ -7376,7 +7381,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 }
 
 .student-header__title {
-  font-family: "Cinzel", "Georgia", "Times New Roman", serif;
+  font-family: "Space Grotesk", "Cabinet Grotesk", sans-serif;
   font-weight: 700;
   color: #f8fafc;
   letter-spacing: 0.08em;
@@ -7511,6 +7516,12 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 
 .student-card__body {
   padding: 1rem 1.1rem;
+}
+
+.student-notification__message {
+  font-size: 1.05rem;
+  color: #0b1220;
+  font-weight: 600;
 }
 
 .student-card__body--center {
@@ -8631,7 +8642,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 }
 
 .student-materials__eyebrow {
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   letter-spacing: 0.35em;
   text-transform: uppercase;
   opacity: 0.85;
@@ -8664,6 +8675,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   margin: 0 0 0.35rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  font-size: 1rem;
 }
 
 .student-materials__section-header--subjects {
@@ -8682,7 +8694,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   border-radius: 999px;
   background: rgba(37, 99, 235, 0.18);
   color: #1d4ed8;
-  font-size: 0.7rem;
+  font-size: 0.78rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   font-weight: 600;
@@ -8716,11 +8728,11 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 .student-subjects-accordion__label {
   text-transform: uppercase;
   letter-spacing: 0.2em;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
 }
 
 .student-subjects-accordion__meta {
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   opacity: 0.7;
 }
 
@@ -8737,7 +8749,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 }
 
 .student-subjects-accordion__table thead th {
-  font-size: 0.7rem;
+  font-size: 0.78rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: #64748b;
@@ -8755,6 +8767,8 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 .student-subjects-accordion__table tbody td {
   border: none;
   padding: 0.75rem 0.8rem;
+  font-size: 0.95rem;
+  color: #0f172a;
 }
 
 .student-subjects-accordion__link {
@@ -8763,7 +8777,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   color: #ffffff;
   padding: 0.35rem 0.9rem;
   border-radius: 999px;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -8775,8 +8789,8 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 }
 
 .student-subjects-accordion__muted {
-  font-size: 0.7rem;
-  color: #94a3b8;
+  font-size: 0.78rem;
+  color: #64748b;
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
@@ -8817,7 +8831,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 }
 
 .student-materials__stat-label {
-  font-size: 0.7rem;
+  font-size: 0.78rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: #64748b;
@@ -8831,7 +8845,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 }
 
 .student-materials__stat-meta {
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   color: #64748b;
 }
 
@@ -8870,7 +8884,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 }
 
 .student-materials__subject {
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: rgba(248, 250, 252, 0.7);
@@ -8879,7 +8893,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 
 .student-materials__title-text {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }

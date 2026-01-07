@@ -73,12 +73,12 @@ export default function StudentNotifications() {
           .filter((dateValue) => !onApprovedLeave(dateValue))
           .map((dateValue) => ({
             id: dateValue,
-            title: 'Absent Marked',
-            message: `You were marked absent on ${new Date(`${dateValue}T00:00:00`).toLocaleDateString('en-GB', {
+            title: 'Attendance Update',
+            message: `You have been marked absent on ${new Date(`${dateValue}T00:00:00`).toLocaleDateString('en-GB', {
               day: '2-digit',
-              month: 'short',
+              month: 'long',
               year: 'numeric'
-            })}. If you attended, contact your HOD.`,
+            })}.\nIf this record is incorrect, kindly contact your HOD.`,
             date: dateValue
           }))
 
@@ -118,7 +118,9 @@ export default function StudentNotifications() {
               {notifications.map((note) => (
                 <div key={note.id} className="student-card">
                   <div className="student-card__header">{note.title}</div>
-                  <div className="student-card__body">{note.message}</div>
+                  <div className="student-card__body student-notification__message" style={{ whiteSpace: 'pre-line' }}>
+                    {note.message}
+                  </div>
                 </div>
               ))}
             </div>
