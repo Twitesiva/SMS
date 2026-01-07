@@ -7135,7 +7135,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, #f3f6fb 0%, #eef2f7 45%, #ffffff 100%);
+  background: #f8f9fa;
   color: #1f2d3d;
   --student-header-height: 72px;
   font-size: 1.08rem;
@@ -7322,20 +7322,13 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, #e3e9f4 0%, #d6e0f2 50%, #f7f9fd 100%);
+  background: #f8f9fa;
   position: relative;
   overflow: hidden;
 }
 
 .student-main::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 18% 12%, rgba(79, 123, 255, 0.22), transparent 45%),
-    radial-gradient(circle at 85% 10%, rgba(14, 165, 233, 0.18), transparent 42%),
-    radial-gradient(circle at 78% 82%, rgba(106, 128, 255, 0.24), transparent 48%);
-  pointer-events: none;
+  display: none;
 }
 
 .staff-portal {
@@ -7559,8 +7552,8 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 }
 
 .student-card__header {
-  background: linear-gradient(120deg, #4c75f2, #3f8cf0);
-  color: #ffffff;
+  background: linear-gradient(180deg, #0f1f3d 0%, #14264b 60%, #1a325d 100%);
+  color: #f8fafc;
   padding: 0.85rem 1.1rem;
   font-weight: 600;
 }
@@ -8665,6 +8658,31 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   align-items: flex-end;
   gap: 1rem;
   margin-bottom: 1rem;
+}
+
+.student-attendance__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: flex-start;
+  align-items: flex-end;
+  margin-bottom: 1.2rem;
+  padding: 0.85rem 1rem;
+  border-radius: 16px;
+  background: rgba(248, 250, 252, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.student-attendance__filter {
+  min-width: 160px;
+}
+
+.student-attendance__filter .form-label {
+  font-size: 0.8rem;
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
 }
 
 /* Student learning materials */

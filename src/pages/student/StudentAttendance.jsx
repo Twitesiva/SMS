@@ -8,7 +8,12 @@ export default function StudentAttendance() {
   const [records, setRecords] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [viewMonth, setViewMonth] = useState(() => new Date())
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+  const [filterMonth, setFilterMonth] = useState('')
+  const [filterYear, setFilterYear] = useState('')
+  const [filterSubject, setFilterSubject] = useState('')
+  const [filterStatus, setFilterStatus] = useState('')
 
   const monthOptions = useMemo(
     () => [
@@ -27,25 +32,6 @@ export default function StudentAttendance() {
     ],
     []
   )
-
-  const yearOptions = useMemo(() => {
-    const years = new Set([new Date().getFullYear(), viewMonth.getFullYear()])
-    records.forEach((row) => {
-      const date = row.attendance_sessions?.attendance_date
-      if (date) {
-        years.add(new Date(`${date}T00:00:00`).getFullYear())
-      }
-    })
-
-    if (years.size < 5) {
-      const base = viewMonth.getFullYear()
-      for (let offset = -2; offset <= 2; offset += 1) {
-        years.add(base + offset)
-      }
-    }
-
-    return Array.from(years).sort((a, b) => a - b)
-  }, [records, viewMonth])
 
   useEffect(() => {
     const loadAttendance = async () => {
@@ -133,33 +119,6 @@ export default function StudentAttendance() {
     return { total, present, absent, rate }
   }, [records])
 
-  const chartData = useMemo(() => {
-    const getDateKey = (value) => (value ? String(value).slice(0, 10) : '')
-    const today = new Date()
-    const uniqueDates = Array.from(
-      new Set(
-        records
-          .map((row) => getDateKey(row.attendance_sessions?.attendance_date))
-          .filter(Boolean)
-      )
-    ).sort((a, b) => (a < b ? 1 : -1))
-
-    const dayKeys = uniqueDates.slice(0, 5).sort()
-
-    const weekly = dayKeys.map((key) => {
-      const rows = records.filter((row) => getDateKey(row.attendance_sessions?.attendance_date) === key)
-      const total = rows.length
-      const present = rows.filter((row) => row.status === 'PRESENT').length
-      const rate = total > 0 ? Math.round((present / total) * 100) : 0
-      const dateObj = new Date(`${key}T00:00:00`)
-      const dayLabel = dateObj.toLocaleDateString('en-US', { weekday: 'short' })
-      const dateLabel = dateObj.toLocaleDateString('en-US', { month: 'short', day: '2-digit' })
-      return { key, total, present, rate, dayLabel, dateLabel }
-    })
-
-    return { weekly }
-  }, [records])
-
   const formatStatus = (status) => {
     if (status === 'PRESENT') return 'Present'
     if (status === 'ABSENT') return 'Absent'
@@ -172,43 +131,65 @@ export default function StudentAttendance() {
     return 'student-attendance-badge'
   }
 
-  const statusByDate = useMemo(() => {
-    const map = new Map()
-    records.forEach((row) => {
-      const date = row.attendance_sessions?.attendance_date
-      if (!date) return
-      const existing = map.get(date) || []
-      existing.push(row.status)
-      map.set(date, existing)
+  const formatDate = (value) => {
+    if (!value) return 'N/A'
+    return new Date(`${value}T00:00:00`).toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
     })
-    return map
+  }
+
+  const subjectsList = useMemo(() => {
+    const unique = new Map()
+    records.forEach((row) => {
+      const subject = row.attendance_sessions?.subjects
+      if (subject?.subject_id) {
+        unique.set(subject.subject_id, subject)
+      }
+    })
+    return Array.from(unique.values()).sort((a, b) =>
+      (a.subject_name || '').localeCompare(b.subject_name || '')
+    )
   }, [records])
 
-  const calendar = useMemo(() => {
-    const year = viewMonth.getFullYear()
-    const month = viewMonth.getMonth()
-    const firstDay = new Date(year, month, 1).getDay()
-    const daysInMonth = new Date(year, month + 1, 0).getDate()
-    const cells = []
-    for (let i = 0; i < firstDay; i += 1) {
-      cells.push({ type: 'empty', key: `empty-${i}` })
-    }
-    for (let day = 1; day <= daysInMonth; day += 1) {
-      const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-      const statuses = statusByDate.get(dateKey) || []
-      let status = ''
-      if (statuses.includes('ABSENT')) {
-        status = 'absent'
-      } else if (statuses.includes('PRESENT') || statuses.includes('LATE')) {
-        status = 'present'
-      }
-      cells.push({ type: 'day', key: dateKey, day, status })
-    }
-    while (cells.length % 7 !== 0) {
-      cells.push({ type: 'empty', key: `tail-${cells.length}` })
-    }
-    return { cells }
-  }, [viewMonth, statusByDate])
+  const monthYearOptions = useMemo(() => {
+    const years = new Set()
+    records.forEach((row) => {
+      const dateValue = row.attendance_sessions?.attendance_date
+      if (!dateValue) return
+      years.add(new Date(`${dateValue}T00:00:00`).getFullYear())
+    })
+    return Array.from(years).sort((a, b) => a - b)
+  }, [records])
+
+  const filteredRecords = useMemo(() => {
+    const fromValue = dateFrom ? new Date(`${dateFrom}T00:00:00`) : null
+    const toValue = dateTo ? new Date(`${dateTo}T23:59:59`) : null
+
+    return records.filter((row) => {
+      const dateValue = row.attendance_sessions?.attendance_date
+      const dateObj = dateValue ? new Date(`${dateValue}T00:00:00`) : null
+      const subjectId = row.attendance_sessions?.subjects?.subject_id
+
+      if (fromValue && (!dateObj || dateObj < fromValue)) return false
+      if (toValue && (!dateObj || dateObj > toValue)) return false
+      if (filterYear && (!dateObj || dateObj.getFullYear() !== Number(filterYear))) return false
+      if (filterMonth && (!dateObj || dateObj.getMonth() !== Number(filterMonth))) return false
+      if (filterSubject && String(subjectId) !== String(filterSubject)) return false
+      if (filterStatus && row.status !== filterStatus) return false
+
+      return true
+    })
+  }, [records, dateFrom, dateTo, filterYear, filterMonth, filterSubject, filterStatus])
+
+  const filteredSummary = useMemo(() => {
+    const total = filteredRecords.length
+    const present = filteredRecords.filter((row) => row.status === 'PRESENT').length
+    const absent = filteredRecords.filter((row) => row.status === 'ABSENT').length
+    const rate = total > 0 ? Math.round((present / total) * 100) : 0
+    return { total, present, absent, rate }
+  }, [filteredRecords])
 
   return (
     <StudentShell>
@@ -265,60 +246,86 @@ export default function StudentAttendance() {
           <div className="student-attendance__table-card">
             <div className="student-attendance__table-header">
               <div>
-                <h4 className="mb-1">Attendance Calendar</h4>
-                <p className="text-muted mb-0">Monthly calendar view of attendance.</p>
+                <h4 className="mb-1">Attendance Sessions</h4>
+                <p className="text-muted mb-0">Day and session-wise attendance history.</p>
               </div>
-            <div className="student-attendance__calendar-controls">
-              <button
-                type="button"
-                className="btn btn-outline-secondary btn-sm"
-                onClick={() =>
-                  setViewMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
-                }
-              >
-                <i className="bi bi-chevron-left"></i>
-              </button>
-              <div className="student-attendance__month-picker" aria-live="polite">
+            </div>
+            <div className="student-attendance__filters">
+              <div className="student-attendance__filter">
+                <label className="form-label">From</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={dateFrom}
+                  onChange={(event) => setDateFrom(event.target.value)}
+                />
+              </div>
+              <div className="student-attendance__filter">
+                <label className="form-label">To</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={dateTo}
+                  onChange={(event) => setDateTo(event.target.value)}
+                />
+              </div>
+              <div className="student-attendance__filter">
+                <label className="form-label">Month</label>
                 <select
-                  className="student-attendance__month-select"
-                  value={viewMonth.getMonth()}
-                  onChange={(event) => {
-                    const nextMonth = Number(event.target.value)
-                    setViewMonth((prev) => new Date(prev.getFullYear(), nextMonth, 1))
-                  }}
-                  aria-label="Select month"
+                  className="form-select"
+                  value={filterMonth}
+                  onChange={(event) => setFilterMonth(event.target.value)}
                 >
+                  <option value="">All</option>
                   {monthOptions.map((month, index) => (
                     <option key={month} value={index}>
                       {month}
                     </option>
                   ))}
                 </select>
+              </div>
+              <div className="student-attendance__filter">
+                <label className="form-label">Year</label>
                 <select
-                  className="student-attendance__month-select"
-                  value={viewMonth.getFullYear()}
-                  onChange={(event) => {
-                    const nextYear = Number(event.target.value)
-                    setViewMonth((prev) => new Date(nextYear, prev.getMonth(), 1))
-                  }}
-                  aria-label="Select year"
+                  className="form-select"
+                  value={filterYear}
+                  onChange={(event) => setFilterYear(event.target.value)}
                 >
-                  {yearOptions.map((year) => (
+                  <option value="">All</option>
+                  {monthYearOptions.map((year) => (
                     <option key={year} value={year}>
                       {year}
                     </option>
                   ))}
                 </select>
               </div>
-              <button
-                type="button"
-                className="btn btn-outline-secondary btn-sm"
-                onClick={() =>
-                  setViewMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
-                }
+              <div className="student-attendance__filter">
+                <label className="form-label">Subject</label>
+                <select
+                  className="form-select"
+                  value={filterSubject}
+                  onChange={(event) => setFilterSubject(event.target.value)}
                 >
-                  <i className="bi bi-chevron-right"></i>
-                </button>
+                  <option value="">All</option>
+                  {subjectsList.map((subject) => (
+                    <option key={subject.subject_id} value={subject.subject_id}>
+                      {subject.subject_code ? `${subject.subject_code} - ` : ''}
+                      {subject.subject_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="student-attendance__filter">
+                <label className="form-label">Status</label>
+                <select
+                  className="form-select"
+                  value={filterStatus}
+                  onChange={(event) => setFilterStatus(event.target.value)}
+                >
+                  <option value="">All</option>
+                  <option value="PRESENT">Present</option>
+                  <option value="ABSENT">Absent</option>
+                </select>
               </div>
             </div>
 
@@ -326,36 +333,41 @@ export default function StudentAttendance() {
               <div className="student-attendance__empty">{error}</div>
             ) : loading ? (
               <div className="student-attendance__empty">Loading attendance...</div>
+            ) : records.length === 0 ? (
+              <div className="student-attendance__empty">No attendance records found.</div>
+            ) : filteredRecords.length === 0 ? (
+              <div className="student-attendance__empty">No records match the selected filters.</div>
             ) : (
-              <>
-                <div className="student-attendance__calendar-grid">
-                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((label) => (
-                    <div key={label} className="student-attendance__calendar-head">
-                      {label}
-                    </div>
-                  ))}
-                  {calendar.cells.map((cell) => (
-                    <div
-                      key={cell.key}
-                      className={`student-attendance__calendar-cell ${
-                        cell.type === 'day' ? `is-${cell.status || 'neutral'}` : 'is-empty'
-                      }`}
-                    >
-                      {cell.type === 'day' && (
-                        <span className="student-attendance__calendar-date">{cell.day}</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <div className="student-attendance__calendar-legend">
-                  <span className="student-attendance__legend-item">
-                    <span className="student-attendance__legend-dot is-present"></span> Present
-                  </span>
-                  <span className="student-attendance__legend-item">
-                    <span className="student-attendance__legend-dot is-absent"></span> Absent
-                  </span>
-                </div>
-              </>
+              <div className="table-responsive">
+                <table className="student-attendance__table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Subject</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredRecords.map((row) => {
+                      const subject = row.attendance_sessions?.subjects
+                      const subjectLabel = subject
+                        ? `${subject.subject_code ? `${subject.subject_code} - ` : ''}${subject.subject_name || ''}`.trim()
+                        : 'N/A'
+                      return (
+                        <tr key={row.id}>
+                          <td>{formatDate(row.attendance_sessions?.attendance_date)}</td>
+                          <td>{subjectLabel || 'N/A'}</td>
+                          <td>
+                            <span className={statusClass(row.status)}>
+                              {formatStatus(row.status)}
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
 
@@ -363,31 +375,31 @@ export default function StudentAttendance() {
             <div className="student-attendance__panel-header">
               <div>
                 <h4 className="mb-1">Attendance Summary</h4>
-                <p className="text-muted mb-0">Present and absent counts at a glance.</p>
+                <p className="text-muted mb-0">Present and absent counts for the selected filters.</p>
               </div>
             </div>
             <div className="student-attendance__donut-wrap">
               <div
                 className="student-attendance__donut"
                 style={{
-                  background: summary.total
-                    ? `conic-gradient(#22c55e ${summary.rate}%, #ef4444 0)`
+                  background: filteredSummary.total
+                    ? `conic-gradient(#22c55e ${filteredSummary.rate}%, #ef4444 0)`
                     : 'conic-gradient(#e2e8f0 0%, #e2e8f0 100%)'
                 }}
               >
                 <div className="student-attendance__donut-center">
-                  <div className="student-attendance__donut-value">{summary.rate}%</div>
+                  <div className="student-attendance__donut-value">{filteredSummary.rate}%</div>
                   <div className="student-attendance__donut-label">Attendance</div>
                 </div>
               </div>
               <div className="student-attendance__donut-legend">
                 <div>
                   <span className="student-attendance__legend-swatch student-attendance__legend-swatch--present"></span>
-                  Present: {summary.present}
+                  Present: {filteredSummary.present}
                 </div>
                 <div>
                   <span className="student-attendance__legend-swatch student-attendance__legend-swatch--absent"></span>
-                  Absent: {summary.absent}
+                  Absent: {filteredSummary.absent}
                 </div>
               </div>
             </div>
