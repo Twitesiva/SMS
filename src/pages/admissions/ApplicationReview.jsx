@@ -174,6 +174,22 @@ export default function ApplicationReview() {
         }
     }
 
+    const openImageInNewTab = (url) => {
+        if (!url) return
+
+        if (url.startsWith('http')) {
+            window.open(url, '_blank')
+        } else {
+            const newWindow = window.open();
+            if (newWindow) {
+                newWindow.document.write(
+                    `<html><body style="margin:0;display:flex;justify-content:center;align-items:center;background:#222;"><img src="${url}" style="max-width:100%;max-height:100vh;" /></body></html>`
+                );
+                newWindow.document.close();
+            }
+        }
+    }
+
     return (
         <AdminShell
             navGroups={navGroups}
@@ -344,23 +360,47 @@ export default function ApplicationReview() {
                                 <h6 className="text-muted text-uppercase small mb-3">Uploaded Documents</h6>
                                 <div className="d-flex gap-3 flex-wrap">
                                     {searchedApplication.documents.map(doc => (
-                                        <a
+                                        <div
                                             key={doc.id}
-                                            href={doc.document_url}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="card p-2 text-decoration-none text-dark bg-light"
-                                            style={{ minWidth: '150px' }}
+                                            className="card p-2 text-decoration-none text-dark bg-white border shadow-sm cursor-pointer"
+                                            style={{ width: '160px', height: '180px', cursor: 'pointer' }}
+                                            onClick={() => openImageInNewTab(doc.document_url)}
+                                            title="Click to view full image in new tab"
                                         >
-                                            <div className="small fw-bold">{doc.document_type}</div>
-                                            <div className="small text-muted"><i className="bi bi-paperclip me-1"></i>View File</div>
-                                        </a>
+                                            <div className="bg-light mb-2 d-flex align-items-center justify-content-center overflow-hidden border rounded" style={{ height: '120px' }}>
+                                                <img
+                                                    src={doc.document_url}
+                                                    alt={doc.document_type}
+                                                    className="w-100 h-100"
+                                                    style={{ objectFit: 'cover' }}
+                                                    onError={(e) => {
+                                                        e.target.style.display = 'none';
+                                                        e.target.parentNode.innerHTML = '<i class="bi bi-file-earmark-text fs-1 text-secondary"></i>';
+                                                    }}
+                                                />
+                                            </div>
+                                            <div className="small fw-bold text-truncate" title={doc.document_type}>{doc.document_type}</div>
+                                            <div className="small text-muted"><i className="bi bi-box-arrow-up-right me-1"></i> View Full</div>
+                                        </div>
                                     ))}
-                                    {searchedApplication.photo_url && (
-                                        <a href={searchedApplication.photo_url} target="_blank" rel="noreferrer" className="card p-2 text-decoration-none text-dark bg-light" style={{ minWidth: '150px' }}>
+                                    {searchedApplication.photo_url && !searchedApplication.documents.some(d => d.document_type === 'Photo') && (
+                                        <div
+                                            className="card p-2 text-decoration-none text-dark bg-white border shadow-sm cursor-pointer"
+                                            style={{ width: '160px', height: '180px', cursor: 'pointer' }}
+                                            onClick={() => openImageInNewTab(searchedApplication.photo_url)}
+                                            title="Click to view full image in new tab"
+                                        >
+                                            <div className="bg-light mb-2 d-flex align-items-center justify-content-center overflow-hidden border rounded" style={{ height: '120px' }}>
+                                                <img
+                                                    src={searchedApplication.photo_url}
+                                                    alt="Photo"
+                                                    className="w-100 h-100"
+                                                    style={{ objectFit: 'cover' }}
+                                                />
+                                            </div>
                                             <div className="small fw-bold">Photo</div>
-                                            <div className="small text-muted"><i className="bi bi-image me-1"></i>View</div>
-                                        </a>
+                                            <div className="small text-muted"><i className="bi bi-box-arrow-up-right me-1"></i> View Full</div>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -512,6 +552,8 @@ export default function ApplicationReview() {
                 confirmButtonClass="btn-warning text-dark"
                 isLoading={loading}
             />
+
+            {/* Image Viewer Modal removed in favor of direct tab opening */}
         </AdminShell>
     )
 }
