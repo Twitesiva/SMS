@@ -26,6 +26,7 @@ export default function StudentShell({ children }) {
   const navTo = useNavigate()
   const { student, signOut } = useStudentAuth()
   const [collapsed, setCollapsed] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
 
@@ -33,6 +34,11 @@ export default function StudentShell({ children }) {
     signOut()
     navTo('/student/login')
   }
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [pathname])
 
   useEffect(() => {
     const loadNotifications = async () => {
@@ -132,17 +138,36 @@ export default function StudentShell({ children }) {
   }, [pathname, notifications, student?.id])
 
   return (
-    <div className={`student-portal ${collapsed ? 'student-portal--collapsed' : ''}`}>
+    <div className={`student-portal ${collapsed ? 'student-portal--collapsed' : ''} ${mobileOpen ? 'student-portal--mobile-open' : ''}`}>
+      {/* Mobile Backdrop */}
+      <div 
+        className="student-portal__backdrop" 
+        onClick={() => setMobileOpen(false)}
+        aria-hidden="true"
+      ></div>
+
       <header className="student-header student-header--global">
         <div className="student-header__brand">
+          {/* Desktop Toggle */}
           <button
             type="button"
-            className="student-header__toggle"
+            className="student-header__toggle student-header__toggle--desktop"
             onClick={() => setCollapsed((prev) => !prev)}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             <i className={`bi ${collapsed ? 'bi-chevron-double-right' : 'bi-list'}`}></i>
           </button>
+          
+          {/* Mobile Toggle */}
+          <button
+            type="button"
+            className="student-header__toggle student-header__toggle--mobile"
+            onClick={() => setMobileOpen((prev) => !prev)}
+            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+          >
+            <i className={`bi ${mobileOpen ? 'bi-x-lg' : 'bi-list'}`}></i>
+          </button>
+
           <img src={crest} alt="Vijayam crest" className="student-header__logo" />
           <div className="student-header__portal">Student Portal</div>
         </div>
@@ -175,8 +200,20 @@ export default function StudentShell({ children }) {
           </nav>
 
           <div className="student-sidebar__footer">
-            <div className="student-sidebar__student-id">{student?.student_id || '—'}</div>
-            <div className="student-sidebar__student-name">{student?.full_name || 'Student'}</div>
+            <div className="student-sidebar__student-info">
+              <div className="student-sidebar__student-id">{student?.student_id || '—'}</div>
+              <div className="student-sidebar__student-name">{student?.full_name || 'Student'}</div>
+            </div>
+            
+            <button 
+              className="student-sidebar__logout-btn" 
+              type="button" 
+              onClick={handleLogout}
+            >
+              <i className="bi bi-box-arrow-right"></i>
+              <span>Logout</span>
+            </button>
+
             <div className="student-sidebar__datetime">
               {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
               {' '}

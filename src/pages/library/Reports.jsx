@@ -7,6 +7,10 @@ import { showToast } from '../../store/ui'
 
 export default function Reports() {
   const [monthlySummary, setMonthlySummary] = useState([])
+  const [selectedMonth, setSelectedMonth] = useState(null)
+  const [reportDetails, setReportDetails] = useState({ issued: [], returned: [], overdue: [], loading: false })
+  const [activeTab, setActiveTab] = useState('issued')
+
   const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), [])
   const monthLabels = useMemo(() => {
     const now = new Date()
@@ -21,6 +25,73 @@ export default function Reports() {
     }
     return labels
   }, [])
+
+  const handleMonthClick = async (month) => {
+    setSelectedMonth(month)
+    setReportDetails({ issued: [], returned: [], overdue: [], loading: true })
+    setActiveTab('issued')
+
+    try {
+      const [year, m] = month.key.split('-').map(Number)
+      const startDate = new Date(year, m - 1, 1).toISOString().slice(0, 10)
+      const endDate = new Date(year, m, 1).toISOString().slice(0, 10)
+
+      const selectQuery = `
+        id,
+        issued_at,
+        returned_at,
+        due_date,
+        status,
+        students (full_name, student_id),
+        library_book_copies (
+          book_id,
+          library_books (title)
+        )
+      `
+
+      const [issuedRes, returnedRes, overdueRes] = await Promise.all([
+        supabase
+          .from('library_loans')
+          .select(selectQuery)
+          .gte('issued_at', startDate)
+          .lt('issued_at', endDate)
+          .order('issued_at', { ascending: false }),
+        supabase
+          .from('library_loans')
+          .select(selectQuery)
+          .gte('returned_at', startDate)
+          .lt('returned_at', endDate)
+          .order('returned_at', { ascending: false }),
+        supabase
+          .from('library_loans')
+          .select(selectQuery)
+          .eq('status', 'ISSUED')
+          .gte('due_date', startDate)
+          .lt('due_date', endDate)
+          .order('due_date', { ascending: true })
+      ])
+
+      if (issuedRes.error) throw issuedRes.error
+      if (returnedRes.error) throw returnedRes.error
+      if (overdueRes.error) throw overdueRes.error
+
+      setReportDetails({
+        issued: issuedRes.data || [],
+        returned: returnedRes.data || [],
+        overdue: overdueRes.data || [],
+        loading: false
+      })
+    } catch (error) {
+      console.error('Failed to fetch month details', error)
+      showToast('Unable to load details.', { type: 'danger' })
+      setReportDetails((prev) => ({ ...prev, loading: false }))
+    }
+  }
+
+  const closeReportModal = () => {
+    setSelectedMonth(null)
+    setReportDetails({ issued: [], returned: [], overdue: [], loading: false })
+  }
 
   const downloadCsv = (filename, headers, rows) => {
     const escapeCell = (value) => {
@@ -314,7 +385,11 @@ export default function Reports() {
                   </tr>
                 ) : (
                   monthlySummary.map((row) => (
-                    <tr key={row.key}>
+                    <tr
+                      key={row.key}
+                      onClick={() => handleMonthClick(row)}
+                      style={{ cursor: 'pointer' }}
+                    >
                       <td>{row.label}</td>
                       <td>{row.issued}</td>
                       <td>{row.returned}</td>
@@ -327,6 +402,98 @@ export default function Reports() {
             </table>
           </div>
         </div>
+
+        {/* Details Modal */}
+        {selectedMonth && (
+          <div className="students-modal-overlay">
+            <div className="students-modal-dialog" style={{ maxWidth: '900px' }}>
+              <div className="students-modal-content">
+                <div className="students-modal-header">
+                  <div>
+                    <div className="students-modal-header-eyebrow">MONTHLY REPORT</div>
+                    <div className="students-modal-header-title">{selectedMonth.label}</div>
+                  </div>
+                  <button className="students-modal-close" onClick={closeReportModal}>
+                    <i className="bi bi-x-lg"></i>
+                  </button>
+                </div>
+                <div className="students-modal-body">
+                  {reportDetails.loading ? (
+                    <div className="text-center py-5 text-muted">Loading details...</div>
+                  ) : (
+                    <>
+                      <div className="d-flex gap-2 mb-3">
+                        <button
+                          className={`btn btn-sm ${activeTab === 'issued' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                          onClick={() => setActiveTab('issued')}
+                        >
+                          Issued ({reportDetails.issued.length})
+                        </button>
+                        <button
+                          className={`btn btn-sm ${activeTab === 'returned' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                          onClick={() => setActiveTab('returned')}
+                        >
+                          Returned ({reportDetails.returned.length})
+                        </button>
+                        <button
+                          className={`btn btn-sm ${activeTab === 'overdue' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                          onClick={() => setActiveTab('overdue')}
+                        >
+                          Overdue ({reportDetails.overdue.length})
+                        </button>
+                      </div>
+
+                      <div className="table-responsive bg-white rounded border">
+                        <table className="table table-hover mb-0">
+                          <thead className="table-light">
+                            <tr>
+                              <th>Date</th>
+                              <th>Student</th>
+                              <th>Book Title</th>
+                              <th>Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {reportDetails[activeTab].length === 0 ? (
+                              <tr>
+                                <td colSpan="4" className="text-center py-4 text-muted">
+                                  No records found for this category.
+                                </td>
+                              </tr>
+                            ) : (
+                              reportDetails[activeTab].map((item) => (
+                                <tr key={item.id}>
+                                  <td>
+                                    {activeTab === 'issued' && (item.issued_at || '-')}
+                                    {activeTab === 'returned' && (item.returned_at || '-')}
+                                    {activeTab === 'overdue' && (item.due_date || '-')}
+                                  </td>
+                                  <td>
+                                    <div className="fw-semibold">{item.students?.full_name || 'Unknown'}</div>
+                                    <div className="small text-muted">{item.students?.student_id || '-'}</div>
+                                  </td>
+                                  <td>{item.library_book_copies?.library_books?.title || 'Unknown Title'}</td>
+                                  <td>
+                                    <span className={`badge ${
+                                      item.status === 'ISSUED' ? 'bg-warning text-dark' :
+                                      item.status === 'RETURNED' ? 'bg-success' : 'bg-secondary'
+                                    }`}>
+                                      {item.status}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AdminShell>
   )
