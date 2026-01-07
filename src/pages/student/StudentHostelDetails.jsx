@@ -54,7 +54,7 @@ export default function StudentHostelDetails() {
 
   useEffect(() => {
     if (!student?.id) {
-      setError('Please sign in to view your hostel details.')
+      setError('Please sign in to view your hostel fees.')
       setPayments([])
       return
     }
@@ -119,7 +119,7 @@ export default function StudentHostelDetails() {
         setPayments(paymentRows || [])
       } catch (err) {
         console.error(err)
-        setError(err?.message || 'Unable to load hostel details right now.')
+        setError(err?.message || 'Unable to load hostel fees right now.')
         setPayments([])
       } finally {
         setLoading(false)
@@ -151,7 +151,7 @@ export default function StudentHostelDetails() {
     <StudentShell>
       <div className="students-section-shell">
         <div className="students-section-shell-header">
-          <h2 className="mb-2">Hostel details</h2>
+          <h2 className="mb-2">Hostel fees</h2>
           <p className="students-section-copy mb-0">
             Review hostel fee information and payment history.
           </p>
@@ -199,7 +199,7 @@ export default function StudentHostelDetails() {
             <div className="student-details__loading-header">
               <div className="student-loader__spinner" aria-hidden="true"></div>
               <div>
-                <div className="student-loader__title">Loading hostel details</div>
+                <div className="student-loader__title">Loading hostel fees</div>
                 <div className="student-loader__subtitle">Fetching hostel payments and fees.</div>
               </div>
             </div>
@@ -213,7 +213,7 @@ export default function StudentHostelDetails() {
                 </div>
               ))}
             </div>
-            <span className="sr-only">Loading hostel details...</span>
+            <span className="sr-only">Loading hostel fees...</span>
           </div>
         )}
 

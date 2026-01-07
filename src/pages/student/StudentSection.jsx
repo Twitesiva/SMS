@@ -8,7 +8,7 @@ const sectionLabels = {
   attendance: 'Attendance',
   'exam-result': 'Exam result',
   'time-table': 'Time table',
-  'hostel-details': 'Hostel details',
+  'hostel-details': 'Hostel fees',
   transport: 'Transport',
   'fee-payment': 'Fee payment',
 }

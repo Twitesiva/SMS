@@ -7138,7 +7138,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   background: linear-gradient(180deg, #f3f6fb 0%, #eef2f7 45%, #ffffff 100%);
   color: #1f2d3d;
   --student-header-height: 72px;
-  font-size: 0.95rem;
+  font-size: 1.08rem;
   line-height: 1.55;
   letter-spacing: 0.01em;
   font-family: "Space Grotesk", "Cabinet Grotesk", system-ui, -apple-system,
