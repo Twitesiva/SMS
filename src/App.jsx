@@ -28,6 +28,7 @@ import FeesCollection from "./pages/admin/FeesCollection.jsx";
 import ClassTimeTable from "./pages/admin/ClassTimeTable.jsx";
 import ClassTimeTableCreation from "./pages/admin/ClassTimeTableCreation.jsx";
 import LibraryLogin from "./pages/library/LibraryLogin.jsx";
+import LibraryShell from "./components/LibraryShell.jsx";
 import LibraryDashboard from "./pages/library/LibraryDashboard.jsx";
 import LibraryBooks from "./pages/library/Books.jsx";
 import LibraryAllBooks from "./pages/library/AllBooks.jsx";
@@ -222,13 +223,15 @@ export default function App() {
         <Route path="/student/login" element={<StudentLogin />} />
         <Route path="/staff/login" element={<StaffLogin />} />
         <Route path="/library/login" element={<LibraryLogin />} />
-        <Route path="/library" element={<LibraryDashboard />} />
-        <Route path="/library/books" element={<LibraryBooks />} />
-        <Route path="/library/books/all" element={<LibraryAllBooks />} />
-        <Route path="/library/inventory" element={<LibraryInventoryInsights />} />
-        <Route path="/library/circulation" element={<LibraryCirculation />} />
-        <Route path="/library/fines" element={<LibraryFines />} />
-        <Route path="/library/reports" element={<LibraryReports />} />
+        <Route path="/library" element={<LibraryShell />}>
+          <Route index element={<LibraryDashboard />} />
+          <Route path="books" element={<LibraryBooks />} />
+          <Route path="books/all" element={<LibraryAllBooks />} />
+          <Route path="inventory" element={<LibraryInventoryInsights />} />
+          <Route path="circulation" element={<LibraryCirculation />} />
+          <Route path="fines" element={<LibraryFines />} />
+          <Route path="reports" element={<LibraryReports />} />
+        </Route>
         <Route
           path="/staff/dashboard"
           element={

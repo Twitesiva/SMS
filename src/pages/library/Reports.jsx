@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import AdminShell from '../../components/AdminShell'
 import crestPrimary from '../../assets/media/images.png'
-import { libraryNavGroups } from './nav'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
 
@@ -297,204 +295,196 @@ export default function Reports() {
     loadReports()
   }, [monthLabels])
   return (
-    <AdminShell
-      navGroups={libraryNavGroups}
-      brandTitle="Library Management Console"
-      brandSubtitle="Vijayam"
-      footerTitle="Library Management Studio"
-      footerSubtitle="Crafted for Vijayam College"
-    >
-      <div className="desktop-container" style={{ overflowX: 'hidden' }}>
-        <section className="setup-hero mb-4 text-center">
-          <div className="setup-hero-copywrap mx-auto text-center" style={{ maxWidth: '640px' }}>
-            <div className="admin-applications__crest mx-auto" aria-hidden="true">
-              <img src={crestPrimary} alt="Vijayam crest" />
-            </div>
-            <h3 className="setup-hero-title mb-2">Library Reports</h3>
-            <p className="setup-hero-copy mb-3">Generate insight reports for inventory and circulation.</p>
-            <div className="setup-hero-chips d-flex flex-wrap gap-2 justify-content-center">
-              <span className="setup-hero-chip text-uppercase">INVENTORY</span>
-              <span className="setup-hero-chip text-uppercase">CIRCULATION</span>
-              <span className="setup-hero-chip text-uppercase">ANALYTICS</span>
-            </div>
+    <div className="desktop-container" style={{ overflowX: 'hidden' }}>
+      <section className="setup-hero mb-4 text-center">
+        <div className="setup-hero-copywrap mx-auto text-center" style={{ maxWidth: '640px' }}>
+          <div className="admin-applications__crest mx-auto" aria-hidden="true">
+            <img src={crestPrimary} alt="Vijayam crest" />
           </div>
-        </section>
-
-        <div className="row g-4 justify-content-center mx-0">
-          <div className="col-12 col-md-6 col-xl-3">
-            <div className="card card-soft p-4 h-100">
-              <h5 className="mb-2">Library Summary</h5>
-              <p className="text-muted small mb-3">Stock by category, location, and status.</p>
-              <button className="btn btn-outline-primary w-100" type="button" onClick={handleLibrarySummaryDownload}>
-                Download
-              </button>
-            </div>
-          </div>
-          <div className="col-12 col-md-6 col-xl-3">
-            <div className="card card-soft p-4 h-100">
-              <h5 className="mb-2">Circulation Report</h5>
-              <p className="text-muted small mb-3">Issued, returned, and renewals.</p>
-              <button className="btn btn-outline-primary w-100" type="button" onClick={handleCirculationDownload}>
-                Download
-              </button>
-            </div>
-          </div>
-          <div className="col-12 col-md-6 col-xl-3">
-            <div className="card card-soft p-4 h-100">
-              <h5 className="mb-2">Overdue Report</h5>
-              <p className="text-muted small mb-3">Pending returns and fine amounts.</p>
-              <button className="btn btn-outline-primary w-100" type="button" onClick={handleOverdueDownload}>
-                Download
-              </button>
-            </div>
-          </div>
-          <div className="col-12 col-md-6 col-xl-3">
-            <div className="card card-soft p-4 h-100">
-              <h5 className="mb-2">Top Borrowed</h5>
-              <p className="text-muted small mb-3">Most issued titles and trends.</p>
-              <button className="btn btn-outline-primary w-100" type="button" onClick={handleTopBorrowedDownload}>
-                Download
-              </button>
-            </div>
+          <h3 className="setup-hero-title mb-2">Library Reports</h3>
+          <p className="setup-hero-copy mb-3">Generate insight reports for inventory and circulation.</p>
+          <div className="setup-hero-chips d-flex flex-wrap gap-2 justify-content-center">
+            <span className="setup-hero-chip text-uppercase">INVENTORY</span>
+            <span className="setup-hero-chip text-uppercase">CIRCULATION</span>
+            <span className="setup-hero-chip text-uppercase">ANALYTICS</span>
           </div>
         </div>
+      </section>
 
-        <div className="card card-soft p-4 mt-4">
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <div>
-              <h5 className="mb-1">Monthly Summary</h5>
-              <p className="text-muted mb-0">Last 3 months overview.</p>
-            </div>
-            <button type="button" className="btn btn-outline-secondary btn-sm">Export</button>
+      <div className="row g-4 justify-content-center mx-0">
+        <div className="col-12 col-md-6 col-xl-3">
+          <div className="card card-soft p-4 h-100">
+            <h5 className="mb-2">Library Summary</h5>
+            <p className="text-muted small mb-3">Stock by category, location, and status.</p>
+            <button className="btn btn-outline-primary w-100" type="button" onClick={handleLibrarySummaryDownload}>
+              Download
+            </button>
           </div>
-          <div className="table-responsive">
-            <table className="table table-hover align-middle mb-0">
-              <thead className="table-light">
+        </div>
+        <div className="col-12 col-md-6 col-xl-3">
+          <div className="card card-soft p-4 h-100">
+            <h5 className="mb-2">Circulation Report</h5>
+            <p className="text-muted small mb-3">Issued, returned, and renewals.</p>
+            <button className="btn btn-outline-primary w-100" type="button" onClick={handleCirculationDownload}>
+              Download
+            </button>
+          </div>
+        </div>
+        <div className="col-12 col-md-6 col-xl-3">
+          <div className="card card-soft p-4 h-100">
+            <h5 className="mb-2">Overdue Report</h5>
+            <p className="text-muted small mb-3">Pending returns and fine amounts.</p>
+            <button className="btn btn-outline-primary w-100" type="button" onClick={handleOverdueDownload}>
+              Download
+            </button>
+          </div>
+        </div>
+        <div className="col-12 col-md-6 col-xl-3">
+          <div className="card card-soft p-4 h-100">
+            <h5 className="mb-2">Top Borrowed</h5>
+            <p className="text-muted small mb-3">Most issued titles and trends.</p>
+            <button className="btn btn-outline-primary w-100" type="button" onClick={handleTopBorrowedDownload}>
+              Download
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="card card-soft p-4 mt-4">
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h5 className="mb-1">Monthly Summary</h5>
+            <p className="text-muted mb-0">Last 3 months overview.</p>
+          </div>
+          <button type="button" className="btn btn-outline-secondary btn-sm">Export</button>
+        </div>
+        <div className="table-responsive">
+          <table className="table table-hover align-middle mb-0">
+            <thead className="table-light">
+              <tr>
+                <th>Month</th>
+                <th>Issued</th>
+                <th>Returned</th>
+                <th>Overdue</th>
+                <th className="text-end">Fines</th>
+              </tr>
+            </thead>
+            <tbody>
+              {monthlySummary.length === 0 ? (
                 <tr>
-                  <th>Month</th>
-                  <th>Issued</th>
-                  <th>Returned</th>
-                  <th>Overdue</th>
-                  <th className="text-end">Fines</th>
+                  <td colSpan="5" className="text-center text-muted py-4">No report data loaded.</td>
                 </tr>
-              </thead>
-              <tbody>
-                {monthlySummary.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" className="text-center text-muted py-4">No report data loaded.</td>
+              ) : (
+                monthlySummary.map((row) => (
+                  <tr
+                    key={row.key}
+                    onClick={() => handleMonthClick(row)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <td>{row.label}</td>
+                    <td>{row.issued}</td>
+                    <td>{row.returned}</td>
+                    <td>{row.overdue}</td>
+                    <td className="text-end">Rs. {row.fines}</td>
                   </tr>
-                ) : (
-                  monthlySummary.map((row) => (
-                    <tr
-                      key={row.key}
-                      onClick={() => handleMonthClick(row)}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <td>{row.label}</td>
-                      <td>{row.issued}</td>
-                      <td>{row.returned}</td>
-                      <td>{row.overdue}</td>
-                      <td className="text-end">Rs. {row.fines}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
+      </div>
 
-        {/* Details Modal */}
-        {selectedMonth && (
-          <div className="students-modal-overlay">
-            <div className="students-modal-dialog" style={{ maxWidth: '900px' }}>
-              <div className="students-modal-content">
-                <div className="students-modal-header">
-                  <div>
-                    <div className="students-modal-header-eyebrow">MONTHLY REPORT</div>
-                    <div className="students-modal-header-title">{selectedMonth.label}</div>
-                  </div>
-                  <button className="students-modal-close" onClick={closeReportModal}>
-                    <i className="bi bi-x-lg"></i>
-                  </button>
+      {/* Details Modal */}
+      {selectedMonth && (
+        <div className="students-modal-overlay">
+          <div className="students-modal-dialog" style={{ maxWidth: '900px' }}>
+            <div className="students-modal-content">
+              <div className="students-modal-header">
+                <div>
+                  <div className="students-modal-header-eyebrow">MONTHLY REPORT</div>
+                  <div className="students-modal-header-title">{selectedMonth.label}</div>
                 </div>
-                <div className="students-modal-body">
-                  {reportDetails.loading ? (
-                    <div className="text-center py-5 text-muted">Loading details...</div>
-                  ) : (
-                    <>
-                      <div className="d-flex gap-2 mb-3">
-                        <button
-                          className={`btn btn-sm ${activeTab === 'issued' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                          onClick={() => setActiveTab('issued')}
-                        >
-                          Issued ({reportDetails.issued.length})
-                        </button>
-                        <button
-                          className={`btn btn-sm ${activeTab === 'returned' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                          onClick={() => setActiveTab('returned')}
-                        >
-                          Returned ({reportDetails.returned.length})
-                        </button>
-                        <button
-                          className={`btn btn-sm ${activeTab === 'overdue' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                          onClick={() => setActiveTab('overdue')}
-                        >
-                          Overdue ({reportDetails.overdue.length})
-                        </button>
-                      </div>
+                <button className="students-modal-close" onClick={closeReportModal}>
+                  <i className="bi bi-x-lg"></i>
+                </button>
+              </div>
+              <div className="students-modal-body">
+                {reportDetails.loading ? (
+                  <div className="text-center py-5 text-muted">Loading details...</div>
+                ) : (
+                  <>
+                    <div className="d-flex gap-2 mb-3">
+                      <button
+                        className={`btn btn-sm ${activeTab === 'issued' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                        onClick={() => setActiveTab('issued')}
+                      >
+                        Issued ({reportDetails.issued.length})
+                      </button>
+                      <button
+                        className={`btn btn-sm ${activeTab === 'returned' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                        onClick={() => setActiveTab('returned')}
+                      >
+                        Returned ({reportDetails.returned.length})
+                      </button>
+                      <button
+                        className={`btn btn-sm ${activeTab === 'overdue' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                        onClick={() => setActiveTab('overdue')}
+                      >
+                        Overdue ({reportDetails.overdue.length})
+                      </button>
+                    </div>
 
-                      <div className="table-responsive bg-white rounded border">
-                        <table className="table table-hover mb-0">
-                          <thead className="table-light">
+                    <div className="table-responsive bg-white rounded border">
+                      <table className="table table-hover mb-0">
+                        <thead className="table-light">
+                          <tr>
+                            <th>Date</th>
+                            <th>Student</th>
+                            <th>Book Title</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {reportDetails[activeTab].length === 0 ? (
                             <tr>
-                              <th>Date</th>
-                              <th>Student</th>
-                              <th>Book Title</th>
-                              <th>Status</th>
+                              <td colSpan="4" className="text-center py-4 text-muted">
+                                No records found for this category.
+                              </td>
                             </tr>
-                          </thead>
-                          <tbody>
-                            {reportDetails[activeTab].length === 0 ? (
-                              <tr>
-                                <td colSpan="4" className="text-center py-4 text-muted">
-                                  No records found for this category.
+                          ) : (
+                            reportDetails[activeTab].map((item) => (
+                              <tr key={item.id}>
+                                <td>
+                                  {activeTab === 'issued' && (item.issued_at || '-')}
+                                  {activeTab === 'returned' && (item.returned_at || '-')}
+                                  {activeTab === 'overdue' && (item.due_date || '-')}
+                                </td>
+                                <td>
+                                  <div className="fw-semibold">{item.students?.full_name || 'Unknown'}</div>
+                                  <div className="small text-muted">{item.students?.student_id || '-'}</div>
+                                </td>
+                                <td>{item.library_book_copies?.library_books?.title || 'Unknown Title'}</td>
+                                <td>
+                                  <span className={`badge ${ 
+                                    item.status === 'ISSUED' ? 'bg-warning text-dark' :
+                                    item.status === 'RETURNED' ? 'bg-success' : 'bg-secondary'
+                                  }`}> 
+                                    {item.status}
+                                  </span>
                                 </td>
                               </tr>
-                            ) : (
-                              reportDetails[activeTab].map((item) => (
-                                <tr key={item.id}>
-                                  <td>
-                                    {activeTab === 'issued' && (item.issued_at || '-')}
-                                    {activeTab === 'returned' && (item.returned_at || '-')}
-                                    {activeTab === 'overdue' && (item.due_date || '-')}
-                                  </td>
-                                  <td>
-                                    <div className="fw-semibold">{item.students?.full_name || 'Unknown'}</div>
-                                    <div className="small text-muted">{item.students?.student_id || '-'}</div>
-                                  </td>
-                                  <td>{item.library_book_copies?.library_books?.title || 'Unknown Title'}</td>
-                                  <td>
-                                    <span className={`badge ${
-                                      item.status === 'ISSUED' ? 'bg-warning text-dark' :
-                                      item.status === 'RETURNED' ? 'bg-success' : 'bg-secondary'
-                                    }`}>
-                                      {item.status}
-                                    </span>
-                                  </td>
-                                </tr>
-                              ))
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    </>
-                  )}
-                </div>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
-        )}
-      </div>
-    </AdminShell>
+        </div>
+      )}
+    </div>
   )
 }
