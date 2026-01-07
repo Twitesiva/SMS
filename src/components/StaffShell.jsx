@@ -84,7 +84,7 @@ export default function StaffShell({ children }) {
     }
 
     return (
-        <div className={`student-portal ${collapsed ? 'student-portal--collapsed' : ''}`}>
+        <div className={`student-portal staff-portal ${collapsed ? 'student-portal--collapsed' : ''}`}>
             <header className="student-header student-header--global">
                 <div className="student-header__brand">
                     <button

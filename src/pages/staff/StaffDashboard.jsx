@@ -70,7 +70,7 @@ export default function StaffDashboard() {
 
     return (
         <StaffShell>
-            <div className="student-dashboard">
+            <div className="student-dashboard staff-dashboard">
 
                 {/* ===============================
                    PROFILE SECTION (UNCHANGED)

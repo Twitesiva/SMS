@@ -316,6 +316,7 @@ const goBackToAttendance = () => {
                       <label className="me-4 fw-bold">
                         <input
                           type="radio"
+                          className="staff-attendance__radio"
                           checked={attendance[s.id] === 'PRESENT'}
                           onChange={() =>
                             setAttendance({ ...attendance, [s.id]: 'PRESENT' })}
@@ -324,6 +325,7 @@ const goBackToAttendance = () => {
                       <label className="fw-bold">
                         <input
                           type="radio"
+                          className="staff-attendance__radio"
                           checked={attendance[s.id] === 'ABSENT'}
                           onChange={() =>
                             setAttendance({ ...attendance, [s.id]: 'ABSENT' })}
