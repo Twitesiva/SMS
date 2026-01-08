@@ -8,30 +8,6 @@ export default function StudentAttendance() {
   const [records, setRecords] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
-  const [filterMonth, setFilterMonth] = useState('')
-  const [filterYear, setFilterYear] = useState('')
-  const [filterSubject, setFilterSubject] = useState('')
-  const [filterStatus, setFilterStatus] = useState('')
-
-  const monthOptions = useMemo(
-    () => [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December'
-    ],
-    []
-  )
 
   useEffect(() => {
     const loadAttendance = async () => {
@@ -111,25 +87,46 @@ export default function StudentAttendance() {
     loadAttendance()
   }, [student?.id])
 
-  const summary = useMemo(() => {
-    const total = records.length
-    const present = records.filter((row) => row.status === 'PRESENT').length
-    const absent = records.filter((row) => row.status === 'ABSENT').length
-    const rate = total > 0 ? Math.round((present / total) * 100) : 0
-    return { total, present, absent, rate }
+  const todayIso = useMemo(() => new Date().toISOString().split('T')[0], [])
+
+  // Grouping by Date
+  const dateWiseRecords = useMemo(() => {
+    const map = new Map()
+    records.forEach((r) => {
+      const d = r.attendance_sessions?.attendance_date
+      if (!d) return
+      if (!map.has(d)) map.set(d, [])
+      map.get(d).push(r)
+    })
+    return Array.from(map.entries())
+      .map(([date, sessions]) => ({ date, sessions }))
+      .sort((a, b) => b.date.localeCompare(a.date))
   }, [records])
 
-  const formatStatus = (status) => {
-    if (status === 'PRESENT') return 'Present'
-    if (status === 'ABSENT') return 'Absent'
-    return status || 'Unknown'
-  }
+  const todayData = useMemo(() => {
+    const dayEntry = dateWiseRecords.find((d) => d.date === todayIso)
+    const sessions = dayEntry?.sessions || []
+    const present = sessions.filter((s) => s.status === 'PRESENT').length
+    const total = sessions.length
+    const rate = total > 0 ? Math.round((present / 5) * 100) : 0 // Assuming 5 is full day
 
-  const statusClass = (status) => {
-    if (status === 'PRESENT') return 'student-attendance-badge student-attendance-badge--present'
-    if (status === 'ABSENT') return 'student-attendance-badge student-attendance-badge--absent'
-    return 'student-attendance-badge'
-  }
+    let label = 'NO DATA'
+    let tone = 'secondary'
+    if (total > 0) {
+      if (present >= 5) { label = 'FULL PRESENT'; tone = 'success'; }
+      else if (present >= 3) { label = 'HALF DAY'; tone = 'warning'; }
+      else { label = 'ABSENT / PARTIAL'; tone = 'danger'; }
+    }
+
+    return { present, total, rate, label, tone, sessions }
+  }, [dateWiseRecords, todayIso])
+
+  const overallStats = useMemo(() => {
+    const totalCount = records.length
+    const presentCount = records.filter((r) => r.status === 'PRESENT').length
+    const rate = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0
+    return { totalCount, presentCount, rate }
+  }, [records])
 
   const formatDate = (value) => {
     if (!value) return 'N/A'
@@ -140,105 +137,54 @@ export default function StudentAttendance() {
     })
   }
 
-  const subjectsList = useMemo(() => {
-    const unique = new Map()
-    records.forEach((row) => {
-      const subject = row.attendance_sessions?.subjects
-      if (subject?.subject_id) {
-        unique.set(subject.subject_id, subject)
-      }
-    })
-    return Array.from(unique.values()).sort((a, b) =>
-      (a.subject_name || '').localeCompare(b.subject_name || '')
-    )
-  }, [records])
-
-  const monthYearOptions = useMemo(() => {
-    const years = new Set()
-    records.forEach((row) => {
-      const dateValue = row.attendance_sessions?.attendance_date
-      if (!dateValue) return
-      years.add(new Date(`${dateValue}T00:00:00`).getFullYear())
-    })
-    return Array.from(years).sort((a, b) => a - b)
-  }, [records])
-
-  const filteredRecords = useMemo(() => {
-    const fromValue = dateFrom ? new Date(`${dateFrom}T00:00:00`) : null
-    const toValue = dateTo ? new Date(`${dateTo}T23:59:59`) : null
-
-    return records.filter((row) => {
-      const dateValue = row.attendance_sessions?.attendance_date
-      const dateObj = dateValue ? new Date(`${dateValue}T00:00:00`) : null
-      const subjectId = row.attendance_sessions?.subjects?.subject_id
-
-      if (fromValue && (!dateObj || dateObj < fromValue)) return false
-      if (toValue && (!dateObj || dateObj > toValue)) return false
-      if (filterYear && (!dateObj || dateObj.getFullYear() !== Number(filterYear))) return false
-      if (filterMonth && (!dateObj || dateObj.getMonth() !== Number(filterMonth))) return false
-      if (filterSubject && String(subjectId) !== String(filterSubject)) return false
-      if (filterStatus && row.status !== filterStatus) return false
-
-      return true
-    })
-  }, [records, dateFrom, dateTo, filterYear, filterMonth, filterSubject, filterStatus])
-
-  const filteredSummary = useMemo(() => {
-    const total = filteredRecords.length
-    const present = filteredRecords.filter((row) => row.status === 'PRESENT').length
-    const absent = filteredRecords.filter((row) => row.status === 'ABSENT').length
-    const rate = total > 0 ? Math.round((present / total) * 100) : 0
-    return { total, present, absent, rate }
-  }, [filteredRecords])
-
   return (
     <StudentShell>
       <div className="student-details student-attendance">
         <div className="student-details__header">
-          <h2>Attendance Overview</h2>
-          <p>Track present and absent sessions with subject-wise history.</p>
+          <h2 className="fw-bold text-dark">Attendance Analysis</h2>
+          <p className="text-dark fw-semibold">Monitor your daily sessions and attendance status.</p>
         </div>
 
         <div className="student-attendance__stats">
           <div className="student-attendance__stat">
             <div className="student-attendance__stat-head">
               <span className="student-attendance__stat-icon">
-                <i className="bi bi-collection" aria-hidden="true"></i>
+                <i className="bi bi-calendar-check text-primary" aria-hidden="true"></i>
               </span>
-              <div className="student-attendance__stat-label">Total Sessions</div>
+              <div className="student-attendance__stat-label fw-bold text-dark">Today's Sessions</div>
             </div>
-            <div className="student-attendance__stat-value">{summary.total}</div>
-            <div className="student-attendance__stat-meta">Recorded entries</div>
+            <div className="student-attendance__stat-value text-dark">{todayData.total} / 5</div>
+            <div className="student-attendance__stat-meta text-dark">Recorded for today</div>
           </div>
           <div className="student-attendance__stat">
             <div className="student-attendance__stat-head">
-              <span className="student-attendance__stat-icon student-attendance__stat-icon--present">
-                <i className="bi bi-check2-circle" aria-hidden="true"></i>
+              <span className="student-attendance__stat-icon">
+                <i className="bi bi-person-check text-success" aria-hidden="true"></i>
               </span>
-              <div className="student-attendance__stat-label">Present</div>
+              <div className="student-attendance__stat-label fw-bold text-dark">Today's Present</div>
             </div>
-            <div className="student-attendance__stat-value">{summary.present}</div>
-            <div className="student-attendance__stat-meta">Attended classes</div>
+            <div className="student-attendance__stat-value text-dark">{todayData.present}</div>
+            <div className="student-attendance__stat-meta text-dark">{todayData.label}</div>
           </div>
           <div className="student-attendance__stat">
             <div className="student-attendance__stat-head">
-              <span className="student-attendance__stat-icon student-attendance__stat-icon--absent">
-                <i className="bi bi-x-circle" aria-hidden="true"></i>
+              <span className="student-attendance__stat-icon">
+                <i className="bi bi-graph-up text-info" aria-hidden="true"></i>
               </span>
-              <div className="student-attendance__stat-label">Absent</div>
+              <div className="student-attendance__stat-label fw-bold text-dark">Today's Rate</div>
             </div>
-            <div className="student-attendance__stat-value">{summary.absent}</div>
-            <div className="student-attendance__stat-meta">Missed sessions</div>
+            <div className="student-attendance__stat-value text-dark">{todayData.rate}%</div>
+            <div className="student-attendance__stat-meta text-dark">Daily percentage</div>
           </div>
           <div className="student-attendance__stat">
             <div className="student-attendance__stat-head">
-              <span className="student-attendance__stat-icon student-attendance__stat-icon--rate">
-                <i className="bi bi-graph-up" aria-hidden="true"></i>
+              <span className="student-attendance__stat-icon">
+                <i className="bi bi-globe text-primary" aria-hidden="true"></i>
               </span>
-              <div className="student-attendance__stat-label">Attendance Rate</div>
+              <div className="student-attendance__stat-label fw-bold text-dark">Overall Rate</div>
             </div>
-            <div className="student-attendance__stat-value">{summary.rate}%</div>
-            <div className="student-attendance__stat-meta">Overall percentage</div>
+            <div className="student-attendance__stat-value text-dark">{overallStats.rate}%</div>
+            <div className="student-attendance__stat-meta text-dark">Total attendance</div>
           </div>
         </div>
 
@@ -246,86 +192,8 @@ export default function StudentAttendance() {
           <div className="student-attendance__table-card">
             <div className="student-attendance__table-header">
               <div>
-                <h4 className="mb-1">Attendance Sessions</h4>
-                <p className="text-muted mb-0">Day and session-wise attendance history.</p>
-              </div>
-            </div>
-            <div className="student-attendance__filters">
-              <div className="student-attendance__filter">
-                <label className="form-label">From</label>
-                <input
-                  type="date"
-                  className="form-control"
-                  value={dateFrom}
-                  onChange={(event) => setDateFrom(event.target.value)}
-                />
-              </div>
-              <div className="student-attendance__filter">
-                <label className="form-label">To</label>
-                <input
-                  type="date"
-                  className="form-control"
-                  value={dateTo}
-                  onChange={(event) => setDateTo(event.target.value)}
-                />
-              </div>
-              <div className="student-attendance__filter">
-                <label className="form-label">Month</label>
-                <select
-                  className="form-select"
-                  value={filterMonth}
-                  onChange={(event) => setFilterMonth(event.target.value)}
-                >
-                  <option value="">All</option>
-                  {monthOptions.map((month, index) => (
-                    <option key={month} value={index}>
-                      {month}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="student-attendance__filter">
-                <label className="form-label">Year</label>
-                <select
-                  className="form-select"
-                  value={filterYear}
-                  onChange={(event) => setFilterYear(event.target.value)}
-                >
-                  <option value="">All</option>
-                  {monthYearOptions.map((year) => (
-                    <option key={year} value={year}>
-                      {year}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="student-attendance__filter">
-                <label className="form-label">Subject</label>
-                <select
-                  className="form-select"
-                  value={filterSubject}
-                  onChange={(event) => setFilterSubject(event.target.value)}
-                >
-                  <option value="">All</option>
-                  {subjectsList.map((subject) => (
-                    <option key={subject.subject_id} value={subject.subject_id}>
-                      {subject.subject_code ? `${subject.subject_code} - ` : ''}
-                      {subject.subject_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="student-attendance__filter">
-                <label className="form-label">Status</label>
-                <select
-                  className="form-select"
-                  value={filterStatus}
-                  onChange={(event) => setFilterStatus(event.target.value)}
-                >
-                  <option value="">All</option>
-                  <option value="PRESENT">Present</option>
-                  <option value="ABSENT">Absent</option>
-                </select>
+                <h4 className="fw-bold text-dark mb-1">Attendance History (Day-wise)</h4>
+                <p className="text-dark small mb-0">Analysis of grouped daily sessions.</p>
               </div>
             </div>
 
@@ -333,33 +201,38 @@ export default function StudentAttendance() {
               <div className="student-attendance__empty">{error}</div>
             ) : loading ? (
               <div className="student-attendance__empty">Loading attendance...</div>
-            ) : records.length === 0 ? (
+            ) : dateWiseRecords.length === 0 ? (
               <div className="student-attendance__empty">No attendance records found.</div>
-            ) : filteredRecords.length === 0 ? (
-              <div className="student-attendance__empty">No records match the selected filters.</div>
             ) : (
               <div className="table-responsive">
                 <table className="student-attendance__table">
                   <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Subject</th>
-                      <th>Status</th>
+                    <tr className="bg-light">
+                      <th className="text-dark fw-bold">Date</th>
+                      <th className="text-dark fw-bold">Present Sessions</th>
+                      <th className="text-dark fw-bold">Attendance Score</th>
+                      <th className="text-dark fw-bold">Day Status</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredRecords.map((row) => {
-                      const subject = row.attendance_sessions?.subjects
-                      const subjectLabel = subject
-                        ? `${subject.subject_code ? `${subject.subject_code} - ` : ''}${subject.subject_name || ''}`.trim()
-                        : 'N/A'
+                    {dateWiseRecords.map((day) => {
+                      const presentCount = day.sessions.filter(s => s.status === 'PRESENT').length
+                      const totalCount = day.sessions.length
+                      const score = Math.round((presentCount / 5) * 100)
+                      
+                      let statusText = 'ABSENT'
+                      let badgeClass = 'bg-danger'
+                      if (presentCount >= 5) { statusText = 'FULL PRESENT'; badgeClass = 'bg-success'; }
+                      else if (presentCount >= 3) { statusText = 'HALF DAY'; badgeClass = 'bg-warning text-dark'; }
+
                       return (
-                        <tr key={row.id}>
-                          <td>{formatDate(row.attendance_sessions?.attendance_date)}</td>
-                          <td>{subjectLabel || 'N/A'}</td>
-                          <td>
-                            <span className={statusClass(row.status)}>
-                              {formatStatus(row.status)}
+                        <tr key={day.date} className="border-bottom">
+                          <td className="fw-bold text-dark">{formatDate(day.date)}</td>
+                          <td className="text-center text-dark fw-bold">{presentCount} / 5</td>
+                          <td className="text-center text-dark fw-bold">{score}%</td>
+                          <td className="text-center">
+                            <span className={`badge ${badgeClass} fw-bold px-3 py-2`} style={{ minWidth: '120px' }}>
+                              {statusText}
                             </span>
                           </td>
                         </tr>
@@ -374,32 +247,36 @@ export default function StudentAttendance() {
           <div className="student-attendance__panel">
             <div className="student-attendance__panel-header">
               <div>
-                <h4 className="mb-1">Attendance Summary</h4>
-                <p className="text-muted mb-0">Present and absent counts for the selected filters.</p>
+                <h4 className="fw-bold text-dark mb-1">Today's Summary</h4>
+                <p className="text-dark small mb-0">Daily status breakdown ({formatDate(todayIso)})</p>
               </div>
             </div>
-            <div className="student-attendance__donut-wrap">
+            
+            <div className="student-attendance__donut-wrap mt-4">
               <div
                 className="student-attendance__donut"
                 style={{
-                  background: filteredSummary.total
-                    ? `conic-gradient(#22c55e ${filteredSummary.rate}%, #ef4444 0)`
+                  background: todayData.total
+                    ? `conic-gradient(#10b981 ${todayData.rate}%, #ef4444 0)`
                     : 'conic-gradient(#e2e8f0 0%, #e2e8f0 100%)'
                 }}
               >
                 <div className="student-attendance__donut-center">
-                  <div className="student-attendance__donut-value">{filteredSummary.rate}%</div>
-                  <div className="student-attendance__donut-label">Attendance</div>
+                  <div className="student-attendance__donut-value text-dark fw-bold">{todayData.rate}%</div>
+                  <div className="student-attendance__donut-label text-dark small fw-bold">Today</div>
                 </div>
               </div>
-              <div className="student-attendance__donut-legend">
-                <div>
-                  <span className="student-attendance__legend-swatch student-attendance__legend-swatch--present"></span>
-                  Present: {filteredSummary.present}
+              <div className="student-attendance__donut-legend mt-4 w-100">
+                <div className="d-flex justify-content-between mb-2 text-dark fw-bold">
+                  <span>Present:</span>
+                  <span>{todayData.present} Sessions</span>
                 </div>
-                <div>
-                  <span className="student-attendance__legend-swatch student-attendance__legend-swatch--absent"></span>
-                  Absent: {filteredSummary.absent}
+                <div className="d-flex justify-content-between mb-2 text-dark fw-bold">
+                  <span>Absent:</span>
+                  <span>{5 - todayData.present} Sessions</span>
+                </div>
+                <div className={`text-center mt-3 p-2 rounded fw-bold ${todayData.label === 'HALF DAY' ? 'bg-warning' : todayData.label === 'FULL PRESENT' ? 'bg-success text-white' : 'bg-danger text-white'}`}>
+                  {todayData.label}
                 </div>
               </div>
             </div>
