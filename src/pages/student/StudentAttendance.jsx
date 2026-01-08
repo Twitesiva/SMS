@@ -159,16 +159,6 @@ export default function StudentAttendance() {
           <div className="student-attendance__stat">
             <div className="student-attendance__stat-head">
               <span className="student-attendance__stat-icon">
-                <i className="bi bi-person-check text-success" aria-hidden="true"></i>
-              </span>
-              <div className="student-attendance__stat-label fw-bold text-dark">Today's Present</div>
-            </div>
-            <div className="student-attendance__stat-value text-dark">{todayData.present}</div>
-            <div className="student-attendance__stat-meta text-dark">{todayData.label}</div>
-          </div>
-          <div className="student-attendance__stat">
-            <div className="student-attendance__stat-head">
-              <span className="student-attendance__stat-icon">
                 <i className="bi bi-graph-up text-info" aria-hidden="true"></i>
               </span>
               <div className="student-attendance__stat-label fw-bold text-dark">Today's Rate</div>
@@ -209,16 +199,12 @@ export default function StudentAttendance() {
                   <thead>
                     <tr className="bg-light">
                       <th className="text-dark fw-bold">Date</th>
-                      <th className="text-dark fw-bold">Present Sessions</th>
-                      <th className="text-dark fw-bold">Attendance Score</th>
-                      <th className="text-dark fw-bold">Day Status</th>
+                      <th className="text-dark fw-bold text-center">Day Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {dateWiseRecords.map((day) => {
                       const presentCount = day.sessions.filter(s => s.status === 'PRESENT').length
-                      const totalCount = day.sessions.length
-                      const score = Math.round((presentCount / 5) * 100)
                       
                       let statusText = 'ABSENT'
                       let badgeClass = 'bg-danger'
@@ -228,8 +214,6 @@ export default function StudentAttendance() {
                       return (
                         <tr key={day.date} className="border-bottom">
                           <td className="fw-bold text-dark">{formatDate(day.date)}</td>
-                          <td className="text-center text-dark fw-bold">{presentCount} / 5</td>
-                          <td className="text-center text-dark fw-bold">{score}%</td>
                           <td className="text-center">
                             <span className={`badge ${badgeClass} fw-bold px-3 py-2`} style={{ minWidth: '120px' }}>
                               {statusText}
@@ -247,8 +231,8 @@ export default function StudentAttendance() {
           <div className="student-attendance__panel">
             <div className="student-attendance__panel-header">
               <div>
-                <h4 className="fw-bold text-dark mb-1">Today's Summary</h4>
-                <p className="text-dark small mb-0">Daily status breakdown ({formatDate(todayIso)})</p>
+                <h4 className="fw-bold text-dark mb-1">Overall Summary</h4>
+                <p className="text-dark small mb-0">Total attendance breakdown</p>
               </div>
             </div>
             
@@ -256,27 +240,31 @@ export default function StudentAttendance() {
               <div
                 className="student-attendance__donut"
                 style={{
-                  background: todayData.total
-                    ? `conic-gradient(#10b981 ${todayData.rate}%, #ef4444 0)`
+                  background: overallStats.totalCount
+                    ? `conic-gradient(#10b981 ${overallStats.rate}%, #ef4444 0)`
                     : 'conic-gradient(#e2e8f0 0%, #e2e8f0 100%)'
                 }}
               >
                 <div className="student-attendance__donut-center">
-                  <div className="student-attendance__donut-value text-dark fw-bold">{todayData.rate}%</div>
-                  <div className="student-attendance__donut-label text-dark small fw-bold">Today</div>
+                  <div className="student-attendance__donut-value text-dark fw-bold">{overallStats.rate}%</div>
+                  <div className="student-attendance__donut-label text-dark small fw-bold">Overall</div>
                 </div>
               </div>
-              <div className="student-attendance__donut-legend mt-4 w-100">
-                <div className="d-flex justify-content-between mb-2 text-dark fw-bold">
-                  <span>Present:</span>
-                  <span>{todayData.present} Sessions</span>
+            </div>
+
+            <div className="w-100 px-2 mt-4">
+              <div className="d-flex flex-column gap-3">
+                <div className="d-flex justify-content-between p-3 bg-white rounded shadow-sm border-start border-4 border-primary">
+                  <span className="text-dark fw-bold">Total Sessions</span>
+                  <span className="text-dark fw-bold fs-5">{overallStats.totalCount}</span>
                 </div>
-                <div className="d-flex justify-content-between mb-2 text-dark fw-bold">
-                  <span>Absent:</span>
-                  <span>{5 - todayData.present} Sessions</span>
+                <div className="d-flex justify-content-between p-3 bg-white rounded shadow-sm border-start border-4 border-success">
+                  <span className="text-dark fw-bold">Total Present</span>
+                  <span className="text-success fw-bold fs-5">{overallStats.presentCount}</span>
                 </div>
-                <div className={`text-center mt-3 p-2 rounded fw-bold ${todayData.label === 'HALF DAY' ? 'bg-warning' : todayData.label === 'FULL PRESENT' ? 'bg-success text-white' : 'bg-danger text-white'}`}>
-                  {todayData.label}
+                <div className="d-flex justify-content-between p-3 bg-white rounded shadow-sm border-start border-4 border-danger">
+                  <span className="text-dark fw-bold">Total Absent</span>
+                  <span className="text-danger fw-bold fs-5">{overallStats.totalCount - overallStats.presentCount}</span>
                 </div>
               </div>
             </div>
