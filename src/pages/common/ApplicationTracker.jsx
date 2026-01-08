@@ -193,7 +193,6 @@ export default function ApplicationTracker() {
                     <div>
                         <div className="public-apply-eyebrow">ADMISSIONS {application.admission_year}</div>
                         <h2 className="public-apply-title">Vijayam College of Arts & Science</h2>
-                        <div className="public-apply-subtitle">Additional Applicant Services</div>
                     </div>
                 </div>
                 <button onClick={handleLogout} className="btn btn-outline-light btn-sm ms-auto d-block d-md-inline-block mt-3 mt-md-0">
@@ -201,13 +200,21 @@ export default function ApplicationTracker() {
                 </button>
             </div>
 
-            <div className="container py-5">
+            <div className="container mt-3 mb-3">
+                <div className="card border-0 shadow-sm rounded-4 text-white" style={{ background: 'linear-gradient(135deg, #1f4fab, #2f7ed6, #61a4ff)' }}>
+                    <div className="card-body text-center p-3">
+                        <h3 className="fw-bold m-0 text-white">My Admission Status</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div className="container py-3">
                 <div className="row g-4">
                     {/* Status Card */}
                     <div className="col-lg-4">
                         <div className="card border-0 shadow-sm h-100">
                             <div className="card-body p-4">
-                                <h5 className="card-title fw-bold text-primary mb-4">Application Status</h5>
+                                <h5 className="card-title fw-bold text-dark mb-4">Application Tracker</h5>
 
                                 <div className="timeline-wrapper">
                                     {/* Step 1: Application Submitted */}

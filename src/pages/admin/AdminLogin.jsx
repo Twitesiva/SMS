@@ -35,7 +35,7 @@ export default function AdminLogin() {
     })
 
     setLoading(false)
-    nav('/admin-portal/profile-creation')
+    nav('/admin-portal/applications')
   }
 
   return (

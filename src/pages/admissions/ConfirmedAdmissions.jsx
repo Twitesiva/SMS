@@ -243,9 +243,6 @@ export default function ConfirmedAdmissions() {
                                         >
                                             Close View
                                         </button>
-                                        <button className="btn btn-primary px-4">
-                                            <i className="bi bi-printer me-2"></i> Print Admission Letter
-                                        </button>
                                     </div>
                                 </div>
                             </div>

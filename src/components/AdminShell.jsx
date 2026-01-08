@@ -14,7 +14,7 @@ const defaultNavGroups = [
   {
     title: "Student Portal",
     items: [
-      { to: "/admin/applications", label: "Exam Applications", icon: "bi-inboxes" },
+      { to: "/admin/applications", label: "Applications", icon: "bi-inboxes" },
       { to: "/admin/setup/years", label: "Create Academic Years", icon: "bi-calendar3" },
       { to: "/admin/setup/groups", label: "Create Groups & Courses", icon: "bi-diagram-3" },
       { to: "/admin/setup/subjects", label: "Create Subjects", icon: "bi-journal-text" },
@@ -91,6 +91,17 @@ export default function AdminShell({
         ...prev,
         [activeGroupIndex]: true,
       }));
+    } else {
+      // Handle static groups effectively
+      const staticGroupIndex = navGroups.findIndex(
+        (group) => group.static && group.items.some((item) => item.to === pathname)
+      );
+      if (staticGroupIndex !== -1) {
+        setExpandedGroups((prev) => ({
+          ...prev,
+          [staticGroupIndex]: true,
+        }));
+      }
     }
 
     // Log page view

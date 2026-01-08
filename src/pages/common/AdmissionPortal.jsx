@@ -118,7 +118,11 @@ export default function AdmissionPortal() {
                     </td>
                     <td className="admission-portal__col-duration">{getDuration(course)}</td>
                     <td className="admission-portal__col-register">
-                      <Link to="/apply" className="admission-portal__table-link">
+                      <Link
+                        to="/apply"
+                        state={{ selectedCourse: course }}
+                        className="admission-portal__table-link"
+                      >
                         Apply Now <i className="bi bi-box-arrow-up-right"></i>
                       </Link>
                     </td>

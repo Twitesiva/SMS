@@ -7,12 +7,12 @@ import 'react-toastify/dist/ReactToastify.css'
 
 const adminNavGroups = [
     {
-        title: 'Exam Applications',
+        title: 'Applications',
         static: true,
         items: [
             {
                 to: '/admin-portal/applications',
-                label: 'Exam Applications',
+                label: 'Applications',
                 icon: 'bi-inboxes'
             }
         ]
@@ -116,12 +116,35 @@ export default function Circulars() {
         target_audience: 'ALL',
         publish_date: '',
         expiry_date: '',
-        is_active: true
+        is_active: true,
+        group_id: '',
+        course_id: ''
     })
+    const [groups, setGroups] = useState([])
+    const [courses, setCourses] = useState([])
 
     useEffect(() => {
         fetchCirculars()
+        fetchDropdowns()
     }, [])
+
+    const fetchDropdowns = async () => {
+        try {
+            const { data: groupsData } = await supabase
+                .from('groups')
+                .select('*')
+                .order('group_name', { ascending: true })
+            setGroups(groupsData || [])
+
+            const { data: coursesData } = await supabase
+                .from('courses')
+                .select('*')
+                .order('course_name', { ascending: true })
+            setCourses(coursesData || [])
+        } catch (error) {
+            console.error('Error fetching dropdowns:', error)
+        }
+    }
 
     const fetchCirculars = async () => {
         try {
@@ -157,7 +180,9 @@ export default function Circulars() {
             target_audience: 'ALL',
             publish_date: new Date().toISOString().slice(0, 16), // current datetime-local
             expiry_date: '',
-            is_active: true
+            is_active: true,
+            group_id: '',
+            course_id: ''
         })
         setViewMode('list')
         setViewData(null)
@@ -171,7 +196,9 @@ export default function Circulars() {
             target_audience: 'ALL',
             publish_date: new Date().toISOString().slice(0, 16),
             expiry_date: '',
-            is_active: true
+            is_active: true,
+            group_id: '',
+            course_id: ''
         })
         setViewMode('create')
     }
@@ -184,7 +211,9 @@ export default function Circulars() {
             target_audience: circular.target_audience,
             publish_date: circular.publish_date ? new Date(circular.publish_date).toISOString().slice(0, 16) : '',
             expiry_date: circular.expiry_date ? new Date(circular.expiry_date).toISOString().slice(0, 16) : '',
-            is_active: circular.is_active
+            is_active: circular.is_active,
+            group_id: circular.group_id || '',
+            course_id: circular.course_id || ''
         })
         setViewMode('edit')
     }
@@ -234,7 +263,9 @@ export default function Circulars() {
                 publish_date: formData.publish_date || new Date().toISOString(),
                 expiry_date: formData.expiry_date || null,
                 is_active: formData.is_active,
-                created_by: userData.user.id
+                created_by: userData.user.id,
+                group_id: formData.group_id || null,
+                course_id: formData.course_id || null
             }
 
             if (viewMode === 'edit' && formData.id) {
@@ -335,7 +366,23 @@ export default function Circulars() {
                                                 {circulars.map((c) => (
                                                     <tr key={c.id}>
                                                         <td className="fw-bold">{c.title}</td>
-                                                        <td><span className="badge bg-light text-dark border">{c.target_audience}</span></td>
+                                                        <td>
+                                                            <div className="d-flex flex-column align-items-start gap-1">
+                                                                <span className="badge bg-light text-dark border">{c.target_audience}</span>
+                                                                {c.group_id && groups.length > 0 && (
+                                                                    <small className="text-muted" style={{ fontSize: '0.75rem' }}>
+                                                                        <i className="bi bi-diagram-3 me-1"></i>
+                                                                        {groups.find(g => g.group_id == c.group_id)?.group_name || 'Group'}
+                                                                    </small>
+                                                                )}
+                                                                {c.course_id && courses.length > 0 && (
+                                                                    <small className="text-muted" style={{ fontSize: '0.75rem' }}>
+                                                                        <i className="bi bi-journal-text me-1"></i>
+                                                                        {courses.find(cItem => cItem.course_id == c.course_id)?.course_name || 'Course'}
+                                                                    </small>
+                                                                )}
+                                                            </div>
+                                                        </td>
                                                         <td>{new Date(c.publish_date).toLocaleDateString()}</td>
                                                         <td>
                                                             {c.is_active ?
@@ -393,6 +440,16 @@ export default function Circulars() {
                                                     <span className="badge bg-light text-dark border">
                                                         Audience: {viewData.target_audience}
                                                     </span>
+                                                    {viewData.group_id && (
+                                                        <span className="badge bg-info bg-opacity-10 text-info border ms-1">
+                                                            Group: {groups.find(g => g.group_id === viewData.group_id)?.group_name || '...'}
+                                                        </span>
+                                                    )}
+                                                    {viewData.course_id && (
+                                                        <span className="badge bg-warning bg-opacity-10 text-warning border ms-1">
+                                                            Course: {courses.find(c => c.course_id === viewData.course_id)?.course_name || '...'}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
 
@@ -443,9 +500,44 @@ export default function Circulars() {
                                             value={formData.target_audience}
                                             onChange={handleInputChange}
                                         >
-                                            <option value="ALL">All</option>
-                                            <option value="STUDENTS">Students</option>
-                                            <option value="STAFF">Staff</option>
+                                            <option value="ALL">All Users</option>
+                                            <option value="STUDENTS">Students Only</option>
+                                            <option value="STAFF">Staff Only</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="col-md-6">
+                                        <label className="form-label">Specific Group (Optional)</label>
+                                        <select
+                                            className="form-select"
+                                            name="group_id"
+                                            value={formData.group_id}
+                                            onChange={handleInputChange}
+                                        >
+                                            <option value="">-- All Groups --</option>
+                                            {groups.map(g => (
+                                                <option key={g.group_id} value={g.group_id}>
+                                                    {g.group_name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="col-md-6">
+                                        <label className="form-label">Specific Course (Optional)</label>
+                                        <select
+                                            className="form-select"
+                                            name="course_id"
+                                            value={formData.course_id}
+                                            onChange={handleInputChange}
+                                        >
+                                            <option value="">-- All Courses --</option>
+                                            {courses
+                                                .filter(c => !formData.group_id || c.group_name === groups.find(g => g.group_id == formData.group_id)?.group_name)
+                                                .map(c => (
+                                                    <option key={c.course_id} value={c.course_id}>
+                                                        {c.course_name}
+                                                    </option>
+                                                ))}
                                         </select>
                                     </div>
                                     <div className="col-12">
@@ -481,19 +573,7 @@ export default function Circulars() {
                                             onChange={handleInputChange}
                                         />
                                     </div>
-                                    <div className="col-12">
-                                        <div className="form-check form-switch">
-                                            <input
-                                                className="form-check-input"
-                                                type="checkbox"
-                                                id="isActiveSwitch"
-                                                name="is_active"
-                                                checked={formData.is_active}
-                                                onChange={handleInputChange}
-                                            />
-                                            <label className="form-check-label" htmlFor="isActiveSwitch">Active Circular</label>
-                                        </div>
-                                    </div>
+
                                     <div className="col-12 d-flex justify-content-end gap-2 mt-4">
                                         <button type="button" className="btn btn-outline-secondary" onClick={resetForm}>Cancel</button>
                                         <button type="submit" className="btn btn-primary" disabled={loading}>

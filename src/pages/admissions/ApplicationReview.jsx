@@ -46,17 +46,21 @@ export default function ApplicationReview() {
     const [showConfirmModal, setShowConfirmModal] = useState(false)
     const [showVerifyModal, setShowVerifyModal] = useState(false)
 
+    // Filters
+    const [filterGroup, setFilterGroup] = useState('')
+    const [filterCourse, setFilterCourse] = useState('')
+
     useEffect(() => {
         const loadMetadata = async () => {
             const [gRes, cRes] = await Promise.all([
-                supabase.from('groups').select('group_id, group_name, group_code'),
-                supabase.from('courses').select('course_id, course_name, course_code')
+                supabase.from('groups').select('*'),
+                supabase.from('courses').select('*')
             ])
             const groupsMap = {}
-            if (gRes.data) gRes.data.forEach(g => { groupsMap[g.group_id] = g })
+            if (gRes.data) gRes.data.forEach(g => { groupsMap[g.group_id || g.id] = g })
 
             const coursesMap = {}
-            if (cRes.data) cRes.data.forEach(c => { coursesMap[c.course_id] = c })
+            if (cRes.data) cRes.data.forEach(c => { coursesMap[c.course_id || c.id] = c })
 
             setMeta({ groups: groupsMap, courses: coursesMap })
         }
@@ -203,7 +207,7 @@ export default function ApplicationReview() {
 
                 <div className="card card-soft p-4 mb-4">
                     <form onSubmit={handleSearch} className="row g-3 align-items-end">
-                        <div className="col-md-4">
+                        <div className="col-md-3">
                             <label className="form-label fw-bold">Search Application</label>
                             <input
                                 type="text"
@@ -213,22 +217,55 @@ export default function ApplicationReview() {
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
+                        <div className="col-md-3">
+                            <label className="form-label fw-bold">Filter by Group</label>
+                            <select className="form-select" value={filterGroup} onChange={e => {
+                                setFilterGroup(e.target.value)
+                                setFilterCourse('')
+                            }}>
+                                <option value="">All Groups</option>
+                                {Object.values(meta.groups).map(g => (
+                                    <option key={g.group_id || g.id} value={g.group_id || g.id}>{g.name || g.group_name || g.code || g.group_code}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="col-md-3">
+                            <label className="form-label fw-bold">Filter by Course</label>
+                            <select className="form-select" value={filterCourse} onChange={e => setFilterCourse(e.target.value)}>
+                                <option value="">All Courses</option>
+                                {Object.values(meta.courses)
+                                    .filter(c => {
+                                        if (!filterGroup) return true
+                                        // Resolve group name from selected ID
+                                        const selectedGroup = meta.groups[filterGroup]
+                                        // Match by group_name (schema-based) or group_id (legacy/future-proof)
+                                        if (selectedGroup && c.group_name === selectedGroup.group_name) return true
+                                        if (String(c.group_id || '') === String(filterGroup)) return true
+                                        return false
+                                    })
+                                    .map(c => (
+                                        <option key={c.course_id || c.id} value={c.course_id || c.id}>{c.name || c.course_name || c.code || c.course_code}</option>
+                                    ))}
+                            </select>
+                        </div>
                         <div className="col-md-2">
                             <button type="submit" className="btn btn-primary w-100" disabled={loading}>
                                 {loading ? 'Searching...' : 'Search'}
                             </button>
                         </div>
                         {searchedApplication && (
-                            <div className="col-md-2">
+                            <div className="col-md-1">
                                 <button
                                     type="button"
                                     className="btn btn-outline-secondary w-100"
                                     onClick={() => {
                                         setSearchedApplication(null);
                                         setSearchQuery('');
+                                        setFilterGroup('');
+                                        setFilterCourse('');
                                     }}
                                 >
-                                    Clear
+                                    <i className="bi bi-x-lg"></i>
                                 </button>
                             </div>
                         )}
@@ -279,11 +316,17 @@ export default function ApplicationReview() {
                                     </div>
                                     <div className="row mb-2">
                                         <div className="col-sm-5 text-muted">Group :</div>
-                                        <div className="col-sm-7 fw-semibold">{meta.groups[searchedApplication.group_id]?.group_name || searchedApplication.group_id || '-'}</div>
+                                        <div className="col-sm-7 fw-semibold">{(() => {
+                                            const g = meta.groups[searchedApplication.group_id]
+                                            return g ? (g.name || g.group_name || g.code || g.group_code) : (searchedApplication.group_id || '-')
+                                        })()}</div>
                                     </div>
                                     <div className="row mb-2">
                                         <div className="col-sm-5 text-muted">Course :</div>
-                                        <div className="col-sm-7 fw-semibold">{meta.courses[searchedApplication.course_id]?.course_name || searchedApplication.course_id || '-'}</div>
+                                        <div className="col-sm-7 fw-semibold">{(() => {
+                                            const c = meta.courses[searchedApplication.course_id]
+                                            return c ? (c.name || c.course_name || c.code || c.course_code) : (searchedApplication.course_id || '-')
+                                        })()}</div>
                                     </div>
                                 </div>
                             </div>
@@ -482,47 +525,94 @@ export default function ApplicationReview() {
                                             </td>
                                         </tr>
                                     ) : (
-                                        applications.map((app, index) => {
-                                            const adm = Array.isArray(app.admission) ? app.admission[0] : app.admission
-                                            const docStatus = adm?.document_verification_status || 'Pending'
-                                            const feeStatus = adm?.admission_fee_paid ? 'Paid' : 'Pending'
-                                            const admissionStatus = adm?.admission_status || 'Pending'
+                                        applications
+                                            .filter(app => {
+                                                // Group Filter
+                                                if (filterGroup) {
+                                                    const gId = String(app.group_id || '')
+                                                    const fId = String(filterGroup)
 
-                                            return (
-                                                <tr
-                                                    key={app.id}
-                                                    style={{ cursor: 'pointer' }}
-                                                    onClick={() => {
-                                                        setSearchQuery(app.application_no);
-                                                        handleSearch(null, app.application_no);
-                                                    }}
-                                                >
-                                                    <td>{index + 1}</td>
-                                                    <td className="fw-bold text-primary">{app.application_no}</td>
-                                                    <td>{app.full_name}</td>
-                                                    <td>{app.admission_year}</td>
-                                                    <td>{meta.groups[app.group_id]?.group_name || app.group_id || '-'}</td>
-                                                    <td>{meta.courses[app.course_id]?.course_name || meta.courses[app.course_id]?.course_code || app.course_id || '-'}</td>
-                                                    <td><span className="badge bg-secondary">{app.status}</span></td>
-                                                    <td>{new Date(app.created_at).toLocaleDateString()}</td>
-                                                    <td>
-                                                        <span className={`badge ${docStatus === 'VERIFIED' ? 'bg-success' : 'bg-warning text-dark'}`}>
-                                                            {docStatus}
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        <span className={`badge ${feeStatus === 'Paid' ? 'bg-success' : 'bg-danger'}`}>
-                                                            {feeStatus}
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        <span className={`badge ${admissionStatus === 'APPROVED' ? 'bg-success' : 'bg-secondary'}`}>
-                                                            {admissionStatus}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            )
-                                        })
+                                                    // Direct match
+                                                    let match = gId === fId
+
+                                                    // Metadata match (robustness against ID/Name storage)
+                                                    if (!match) {
+                                                        const sGroup = meta.groups[filterGroup]
+                                                        if (sGroup) {
+                                                            if (gId === String(sGroup.group_name || '') || gId === String(sGroup.group_code || '')) match = true
+                                                            if (app.group_name && app.group_name === sGroup.group_name) match = true
+                                                        }
+                                                    }
+
+                                                    if (!match) return false
+                                                }
+
+                                                // Course Filter
+                                                if (filterCourse) {
+                                                    const cId = String(app.course_id || '')
+                                                    const fId = String(filterCourse)
+
+                                                    let match = cId === fId
+
+                                                    if (!match) {
+                                                        const sCourse = meta.courses[filterCourse]
+                                                        if (sCourse) {
+                                                            if (cId === String(sCourse.course_name || '') || cId === String(sCourse.course_code || '')) match = true
+                                                            if (app.course_name && app.course_name === sCourse.course_name) match = true
+                                                        }
+                                                    }
+
+                                                    if (!match) return false
+                                                }
+                                                return true
+                                            })
+                                            .map((app, index) => {
+                                                const adm = Array.isArray(app.admission) ? app.admission[0] : app.admission
+                                                const docStatus = adm?.document_verification_status || 'Pending'
+                                                const feeStatus = adm?.admission_fee_paid ? 'Paid' : 'Pending'
+                                                const admissionStatus = adm?.admission_status || 'Pending'
+
+                                                return (
+                                                    <tr
+                                                        key={app.id}
+                                                        style={{ cursor: 'pointer' }}
+                                                        onClick={() => {
+                                                            setSearchQuery(app.application_no);
+                                                            handleSearch(null, app.application_no);
+                                                        }}
+                                                    >
+                                                        <td>{index + 1}</td>
+                                                        <td className="fw-bold text-primary">{app.application_no}</td>
+                                                        <td>{app.full_name}</td>
+                                                        <td>{app.admission_year}</td>
+                                                        <td>{(() => {
+                                                            const g = meta.groups[app.group_id]
+                                                            return g ? (g.name || g.group_name || g.code) : (app.group_id || '-')
+                                                        })()}</td>
+                                                        <td>{(() => {
+                                                            const c = meta.courses[app.course_id]
+                                                            return c ? (c.name || c.course_name || c.code) : (app.course_id || '-')
+                                                        })()}</td>
+                                                        <td><span className="badge bg-secondary">{app.status}</span></td>
+                                                        <td>{new Date(app.created_at).toLocaleDateString()}</td>
+                                                        <td>
+                                                            <span className={`badge ${docStatus === 'VERIFIED' ? 'bg-success' : 'bg-warning text-dark'}`}>
+                                                                {docStatus}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <span className={`badge ${feeStatus === 'Paid' ? 'bg-success' : 'bg-danger'}`}>
+                                                                {feeStatus}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <span className={`badge ${admissionStatus === 'APPROVED' ? 'bg-success' : 'bg-secondary'}`}>
+                                                                {admissionStatus}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                )
+                                            })
                                     )}
                                 </tbody>
                             </table>

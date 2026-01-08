@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { api } from '../../lib/mockApi'
 import { validateRequiredFields } from '../../lib/validation'
 import { showToast } from '../../store/ui'
@@ -7,6 +7,7 @@ import crestPrimary from '../../assets/media/images.png'
 import { supabase } from '../../../supabaseClient'
 
 export default function PublicApply() {
+  const location = useLocation()
   // dropdown option masters (can be moved to Setup later)
   const GENDERS = ['Male', 'Female', 'Other']
   const CASTES = ['General', 'OBC', 'SC', 'ST', 'Others']
@@ -25,7 +26,7 @@ export default function PublicApply() {
     date_of_birth: '',
     father_name: '',
     mother_name: '',
-    nationality: '',
+    nationality: 'Indian',
     state: '',
     religion: '',
     caste: '',
@@ -37,7 +38,9 @@ export default function PublicApply() {
     tenth_register_no: '',
     tenth_percentage: '',
     twelth_register_no: '',
-    twelth_percentage: ''
+    twelth_percentage: '',
+    is_hostel: null,
+    is_transport: null
   })
   const [photo, setPhoto] = useState(null)
   const [cert, setCert] = useState(null)
@@ -58,6 +61,33 @@ export default function PublicApply() {
           api.listGroups?.() || []
         ])
         setCourses(cs || []); setGroups(gs || [])
+
+        // Auto-select course/group if passed from previous page
+        if (location.state?.selectedCourse) {
+          const pre = location.state.selectedCourse
+          // Find the robust course object from the fresh list
+          const matchedCourse = (cs || []).find(c => c.id === pre.id)
+          if (matchedCourse) {
+            let gid = matchedCourse.group_id || ''
+            // If no direct group_id on course, try to find group by name/code
+            if (!gid) {
+              const gName = matchedCourse.group_name || pre.group_name
+              const gCode = matchedCourse.group_code || pre.group_code
+              const foundGroup = (gs || []).find(g =>
+                (g.name && g.name === gName) ||
+                (g.code && g.code === gCode) ||
+                (g.group_name && g.group_name === gName)
+              )
+              if (foundGroup) gid = foundGroup.id
+            }
+
+            setForm(prev => ({
+              ...prev,
+              course_id: matchedCourse.id,
+              group_id: gid || prev.group_id // set group if found, else keep empty (or existing)
+            }))
+          }
+        }
       } catch { setCourses([]); setGroups([]) }
     })()
   }, [])
@@ -73,7 +103,7 @@ export default function PublicApply() {
       date_of_birth: '',
       father_name: '',
       mother_name: '',
-      nationality: '',
+      nationality: 'Indian',
       state: '',
       religion: '',
       caste: '',
@@ -85,7 +115,9 @@ export default function PublicApply() {
       tenth_register_no: '',
       tenth_percentage: '',
       twelth_register_no: '',
-      twelth_percentage: ''
+      twelth_percentage: '',
+      is_hostel: null,
+      is_transport: null
     })
     setPhoto(null); setCert(null); setTenthMarksheet(null); setTwelthMarksheet(null)
     setFileInputKey((k) => k + 1)
@@ -137,7 +169,9 @@ export default function PublicApply() {
     }
   }
 
-  const submit = async (e) => {
+  const [showConfirm, setShowConfirm] = useState(false)
+
+  const handlePreSubmit = async (e) => {
     e.preventDefault(); setLoading(true)
     const requiredFields = {
       'Application No': form.application_no,
@@ -184,6 +218,15 @@ export default function PublicApply() {
       return
     }
 
+    // Validation passed, show confirmation popup
+    setShowConfirm(true)
+    setLoading(false)
+  }
+
+  const confirmSubmit = async () => {
+    setLoading(true)
+    setShowConfirm(false)
+
     try {
       // 1. Upload files
       const photoUrl = photo ? await uploadFile(photo, 'photos') : null
@@ -221,7 +264,9 @@ export default function PublicApply() {
             photo_url: photoUrl,
             cert_url: certUrl,
             status: 'SUBMITTED',
-            application_status: 'SUBMITTED'
+            application_status: 'SUBMITTED',
+            is_hostel: form.is_hostel,
+            is_transport: form.is_transport || false
           }
         ])
         .select()
@@ -355,7 +400,7 @@ export default function PublicApply() {
                 </div>
                 <span className="public-apply-form-badge">Application Form</span>
               </div>
-              <form onSubmit={submit} className="public-apply-form-body" noValidate>
+              <form onSubmit={handlePreSubmit} className="public-apply-form-body" noValidate>
                 <div className="public-apply-section public-apply-reveal" style={{ '--delay': '0.05s' }}>
                   <div className="public-apply-section-header">
                     <div className="public-apply-section-index">01</div>
@@ -401,7 +446,7 @@ export default function PublicApply() {
                             )
                           })
                           .map(c => (
-                            <option key={c.id} value={c.id}>{c.code ? `${c.code} - ` : ''}{c.name}</option>
+                            <option key={c.id} value={c.id}>{c.name}</option>
                           ))}
                       </select>
                     </div>
@@ -443,6 +488,143 @@ export default function PublicApply() {
                     <div className="col-md-4"><label className="form-label"><i className="bi bi-book"></i>Religion</label><select className={selectClass(form.religion)} value={form.religion} onChange={e => handle('religion', e.target.value)}><option value="">Select</option>{RELIGIONS.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
                     <div className="col-md-4"><label className="form-label"><i className="bi bi-people"></i>Caste</label><select className={selectClass(form.caste)} value={form.caste} onChange={e => handle('caste', e.target.value)}><option value="">Select</option>{CASTES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
                     <div className="col-12"><label className="form-label">Address</label><textarea className="form-control" rows="2" value={form.address} onChange={e => handle('address', e.target.value)} required></textarea></div>
+
+                    <style>{`
+                  .modern-radio-group {
+                    display: flex;
+                    gap: 1rem;
+                  }
+                  .modern-radio-option {
+                    position: relative;
+                    cursor: pointer;
+                    width: 100%;
+                    max-width: 160px;
+                  }
+                  .modern-radio-input {
+                    position: absolute;
+                    opacity: 0;
+                    width: 0;
+                    height: 0;
+                  }
+                  .modern-radio-card {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 0.5rem 1rem;
+                    background-color: #fff;
+                    border: 1px solid #e1e1e1;
+                    border-radius: 8px;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    color: #6c757d;
+                    font-weight: 500;
+                    font-size: 0.9rem;
+                    gap: 0.5rem;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+                  }
+                  .modern-radio-card i {
+                    font-size: 1.1rem;
+                    color: #adb5bd;
+                    transition: all 0.3s ease;
+                  }
+                  .modern-radio-option:hover .modern-radio-card {
+                    border-color: #b0b8c1;
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+                  }
+                  .modern-radio-input:checked + .modern-radio-card {
+                    background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+                    border-color: transparent;
+                    color: white;
+                    box-shadow: 0 8px 16px rgba(79, 70, 229, 0.25);
+                  }
+                  .modern-radio-input:checked + .modern-radio-card i {
+                    color: #fbbf24; /* Golden accent for icon */
+                  }
+                  .modern-radio-input:disabled + .modern-radio-card {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                    background-color: #f8f9fa;
+                    border-color: #e9ecef;
+                    transform: none;
+                    box-shadow: none;
+                  }
+                `}</style>
+                    <div className="col-12 mt-4">
+                      <div className="d-inline-block bg-primary text-white border border-primary px-3 py-1 rounded-pill small fw-bold mb-3 shadow-md">
+                        <i className="bi bi-house-door-fill me-2"></i>ACCOMMODATION DETAILS
+                      </div>
+                      <div className="row g-4">
+                        <div className="col-md-6">
+                          <label className="form-label mb-2 fw-bold text-dark">Student Type <span className="text-danger">*</span></label>
+                          <div className="modern-radio-group">
+                            <label className="modern-radio-option">
+                              <input
+                                className="modern-radio-input"
+                                type="radio"
+                                name="studentType"
+                                checked={form.is_hostel === true}
+                                onChange={() => handle('is_hostel', true)}
+                              />
+                              <div className="modern-radio-card">
+                                <i className="bi bi-building"></i>
+                                <span>Hostel</span>
+                              </div>
+                            </label>
+                            <label className="modern-radio-option">
+                              <input
+                                className="modern-radio-input"
+                                type="radio"
+                                name="studentType"
+                                checked={form.is_hostel === false}
+                                onChange={() => {
+                                  handle('is_hostel', false)
+                                  handle('is_transport', null)
+                                }}
+                              />
+                              <div className="modern-radio-card">
+                                <i className="bi bi-house"></i>
+                                <span>Day Scholar</span>
+                              </div>
+                            </label>
+                          </div>
+                        </div>
+
+                        <div className="col-md-6">
+                          <label className="form-label mb-2 fw-bold text-dark">College Transport (if Day Scholar)</label>
+                          <div className="modern-radio-group">
+                            <label className="modern-radio-option">
+                              <input
+                                className="modern-radio-input"
+                                type="radio"
+                                name="transport"
+                                disabled={form.is_hostel !== false}
+                                checked={form.is_hostel === false && form.is_transport === true}
+                                onChange={() => handle('is_transport', true)}
+                              />
+                              <div className="modern-radio-card">
+                                <i className="bi bi-bus-front"></i>
+                                <span>Yes, Required</span>
+                              </div>
+                            </label>
+                            <label className="modern-radio-option">
+                              <input
+                                className="modern-radio-input"
+                                type="radio"
+                                name="transport"
+                                disabled={form.is_hostel !== false}
+                                checked={form.is_hostel === false && form.is_transport === false}
+                                onChange={() => handle('is_transport', false)}
+                              />
+                              <div className="modern-radio-card">
+                                <i className="bi bi-x-circle"></i>
+                                <span>Not Required</span>
+                              </div>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                   </div>
                 </div>
 
@@ -505,14 +687,38 @@ export default function PublicApply() {
                 </div>
 
                 <div className="public-apply-actions">
-                  <button type="button" className="btn btn-outline-secondary" onClick={resetAll}>Clear</button>
-                  <button className="btn btn-brand" disabled={loading}>{loading ? 'Submitting...' : 'Submit'}</button>
+                  <button type="button" className="btn btn-outline-secondary px-5 rounded-pill" onClick={resetAll}>Clear</button>
+                  <button className="btn btn-brand px-5 rounded-pill shadow-sm" disabled={loading} onClick={handlePreSubmit}>{loading ? 'Submitting...' : 'Submit Application'}</button>
                 </div>
               </form>
             </div>
           </div>
         </div>
       </div>
+
+      {showConfirm && (
+        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content rounded-4 shadow-lg border-0">
+              <div className="modal-body p-5 text-center">
+                <div className="mb-4">
+                  <div className="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center" style={{ width: '80px', height: '80px' }}>
+                    <i className="bi bi-send-check-fill fs-1"></i>
+                  </div>
+                </div>
+                <h3 className="fw-bold mb-3">Confirm Submission</h3>
+                <p className="text-secondary mb-4">
+                  Are you sure you want to submit your application? Please review your details carefully before confirming.
+                </p>
+                <div className="d-flex justify-content-center gap-3">
+                  <button className="btn btn-outline-secondary rounded-pill px-4 py-2" onClick={() => setShowConfirm(false)}>Cancel</button>
+                  <button className="btn btn-primary rounded-pill px-4 py-2" onClick={confirmSubmit}>Confirm & Apply</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

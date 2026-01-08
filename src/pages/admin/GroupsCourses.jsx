@@ -9,12 +9,12 @@ import { validateRequiredFields } from '../../lib/validation'
 const adminNavGroups = [
 
   {
-    title: 'Exam Applications',
+    title: 'Applications',
     static: true,
     items: [
       {
         to: '/admin-portal/applications',
-        label: 'Exam Applications',
+        label: 'Applications',
         icon: 'bi-inboxes'
       }
     ]

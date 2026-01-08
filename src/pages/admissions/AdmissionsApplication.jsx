@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { api } from '../../lib/mockApi'
 import { supabase } from '../../../supabaseClient'
 import AdminShell from '../../components/AdminShell'
+import ConfirmationModal from '../../components/ConfirmationModal'
 import crestPrimary from '../../assets/media/images.png'
 import { validateRequiredFields } from '../../lib/validation'
 import { showToast } from '../../store/ui'
@@ -87,6 +88,7 @@ export default function AdmissionsApplication() {
     const [filteredGroups, setFilteredGroups] = useState([])
     const [filteredCourses, setFilteredCourses] = useState([])
     const [duplicateErrors, setDuplicateErrors] = useState({ student_id: false, ht_no: false })
+    const [showConfirmModal, setShowConfirmModal] = useState(false)
 
     const currentYear = new Date().getFullYear()
     const admissionYearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 3 + i)
@@ -371,8 +373,9 @@ export default function AdmissionsApplication() {
                 caste: app.caste,
                 // Default placeholders if missing
                 current_semester: 1,
-                is_hostel: false,
-                is_transport: false,
+                // Accommodation Details from Application
+                is_hostel: app.is_hostel === true || app.is_hostel === 'true',
+                is_transport: (app.is_hostel === true || app.is_hostel === 'true') ? false : (app.is_transport === true || app.is_transport === 'true'),
                 // Set Generated IDs
                 student_id: nextStudentId,
                 ht_no: nextHtNo
@@ -428,6 +431,16 @@ export default function AdmissionsApplication() {
             return
         }
 
+        if (form.aadhar_no && !isDigits(form.aadhar_no, 12)) {
+            showToast('Aadhar number must contain 12 digits.', { type: 'warning', title: 'Invalid Aadhar' })
+            return
+        }
+
+        setShowConfirmModal(true)
+    }
+
+    const confirmSubmit = async () => {
+        setShowConfirmModal(false)
         setLoading(true)
         try {
             const selectedCourse = courses.find((course) => String(course.id || course.course_id) === String(form.course_id))
@@ -820,6 +833,16 @@ export default function AdmissionsApplication() {
                     </div>
                 </div>
             </div>
+            <ConfirmationModal
+                isOpen={showConfirmModal}
+                onClose={() => setShowConfirmModal(false)}
+                onConfirm={confirmSubmit}
+                title="Confirm Application"
+                message={`Are you sure you want to submit the application for ${form.full_name}?`}
+                confirmText="Submit Application"
+                confirmButtonClass="btn-primary"
+                isLoading={loading}
+            />
         </AdminShell>
     )
 }
