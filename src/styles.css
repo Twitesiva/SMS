@@ -9265,8 +9265,9 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 0.95rem;
-  font-weight: 800;
-  color: #000000;
+  font-weight: 900; /* Maximum bold */
+  color: #000000; /* Solid Black */
+  text-transform: uppercase; /* All caps for better visibility */
   user-select: none;
   margin: 0 !important;
   min-width: 110px;
@@ -9292,21 +9293,21 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 
 /* Present Selection - Clear Green Theme with Black Text */
 .attendance-label--present:has(input:checked) {
-  background: #d1fae5; /* Light Green Background */
-  border-color: #10b981; /* Solid Green Border */
+  background: #d1fae5;
+  border-color: #10b981;
   color: #000000; /* Solid Black Bold Letters */
   box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
 }
 .attendance-label--present:has(input:checked)::before {
-  background: #10b981; /* Green Indicator */
+  background: #10b981;
   border-color: #10b981;
   box-shadow: inset 0 0 0 3px #ffffff;
 }
 
 /* Absent Selection - Clear Red Theme with Black Text */
 .attendance-label--absent:has(input:checked) {
-  background: #fee2e2; /* Light Red Background */
-  border-color: #ef4444; /* Solid Red Border */
+  background: #fee2e2;
+  border-color: #ef4444;
   color: #000000; /* Solid Black Bold Letters */
   box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
 }
@@ -9346,14 +9347,14 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 }
 
 .records-page .table th {
-  background: #eff6ff; /* Professional light blue */
+  background: #93c5fd; /* Solid sky blue header */
   color: #000000;
-  font-weight: 700;
+  font-weight: 800; /* Extra bold for stronger contrast */
   text-transform: uppercase;
   padding: 10px 14px;
   font-size: 0.95rem;
   white-space: nowrap;
-  border: 1px solid #bfdbfe; /* Blue-toned border */
+  border: 1px solid #60a5fa; /* Darker border to match */
   text-align: left;
   vertical-align: middle;
 }
