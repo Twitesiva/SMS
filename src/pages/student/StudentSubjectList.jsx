@@ -380,10 +380,12 @@ export default function StudentSubjectList() {
               <div className="student-detail-list">
                 <div className="student-detail-row">
                   <div className="student-detail-label">Total Subjects</div>
+                  <div className="student-detail-colon">:</div>
                   <div className="student-detail-value">{stats.totalSubjects}</div>
                 </div>
                 <div className="student-detail-row">
                   <div className="student-detail-label">Available Resources</div>
+                  <div className="student-detail-colon">:</div>
                   <div className="student-detail-value">{stats.availableResources}</div>
                 </div>
               </div>
@@ -464,7 +466,7 @@ export default function StudentSubjectList() {
                                     {materialSubjectSet.has(String(row.subjectName || '').toLowerCase()) ? (
                                       <button
                                         type="button"
-                                        className="student-subjects-accordion__link"
+                                        className="btn btn-sm btn-primary fw-bold"
                                         onClick={() =>
                                           handleOpenFile(
                                             materialUrlBySubject.get(
@@ -473,7 +475,7 @@ export default function StudentSubjectList() {
                                           )
                                         }
                                       >
-                                        Open materials
+                                        View
                                       </button>
                                     ) : (
                                       <span className="student-subjects-accordion__muted">No materials</span>

@@ -418,7 +418,25 @@ export default function LearningMaterials() {
         {/* ASSIGNED SUBJECTS LIST */}
         <div className="mb-4">
 
-          {loading && <div className="text-muted">Loading…</div>}
+          {loading && (
+            <div className="student-details__loading" role="status" aria-live="polite">
+              <div className="student-details__loading-header">
+                <div className="student-loader__spinner" aria-hidden="true"></div>
+                <div>
+                  <div className="student-loader__title">Loading learning materials</div>
+                  <div className="student-loader__subtitle">Preparing your subjects and resources.</div>
+                </div>
+              </div>
+              <div className="student-details__loading-grid" aria-hidden="true">
+                <div className="student-loader-card">
+                  <div className="student-loader-card__header student-loader__shimmer"></div>
+                  <div className="student-loader-card__line student-loader__shimmer"></div>
+                  <div className="student-loader-card__line student-loader__shimmer"></div>
+                </div>
+              </div>
+              <span className="sr-only">Loading materials...</span>
+            </div>
+          )}
           {error && <div className="text-danger">{error}</div>}
 
           {!loading && subjects.length > 0 && (

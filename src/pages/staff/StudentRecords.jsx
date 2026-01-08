@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import StaffShell from '../../components/StaffShell'
 import { supabase } from '../../../supabaseClient'
+import { trackPromise } from '../../store/ui'
 
 export default function StudentRecords() {
     /* ===============================
@@ -22,13 +23,18 @@ export default function StudentRecords() {
        DATA STATE
     ================================ */
     const [students, setStudents] = useState([])
+    const [loading, setLoading] = useState(false)
 
     /* ===============================
        INITIAL LOAD
     ================================ */
     useEffect(() => {
-        fetchAcademicYears()
-        fetchGroups()
+        const init = async () => {
+            setLoading(true)
+            await Promise.all([fetchAcademicYears(), fetchGroups()])
+            setLoading(false)
+        }
+        init()
     }, [])
 
     /* ===============================
@@ -52,15 +58,18 @@ export default function StudentRecords() {
     }
 
     const fetchCoursesByGroup = async (groupName) => {
+        setLoading(true)
         const { data } = await supabase
             .from('courses')
             .select('course_code, course_name')
             .eq('group_name', groupName)
 
         setCourses(data || [])
+        setLoading(false)
     }
 
     const fetchSemestersByCourse = async (courseCode) => {
+        setLoading(true)
         const { data } = await supabase
             .from('subjects')
             .select('semester_number')
@@ -68,13 +77,14 @@ export default function StudentRecords() {
 
         const unique = [...new Set((data || []).map(d => d.semester_number))]
         setSemesters(unique)
+        setLoading(false)
     }
 
     /* ===============================
        FETCH STUDENTS (FINAL)
     ================================ */
     useEffect(() => {
-        if (academicYear && group && courseCode && semester) {
+        if (academicYear || group || courseCode || semester) {
             fetchStudents()
         } else {
             setStudents([])
@@ -82,38 +92,58 @@ export default function StudentRecords() {
     }, [academicYear, group, courseCode, semester])
 
     const fetchStudents = async () => {
-        const courseNameLabel =
-            courses.find(c => c.course_code === courseCode)?.course_name
+        setLoading(true)
+        try {
+            let query = supabase
+                .from('students')
+                .select(`
+                    student_id,
+                    full_name,
+                    group_name,
+                    course_name,
+                    gender,
+                    date_of_birth,
+                    father_name,
+                    mother_name,
+                    nationality,
+                    state,
+                    aadhar_number,
+                    address,
+                    phone_number,
+                    religion,
+                    Parent_no,
+                    admission_year
+                `)
 
-        if (!courseNameLabel) return
+            if (academicYear) {
+                query = query.eq('academic_year', academicYear)
+            }
 
-        const { data, error } = await supabase
-            .from('students')
-            .select(`
-                student_id,
-                full_name,
-                group_name,
-                course_name,
-                gender,
-                date_of_birth,
-                father_name,
-                mother_name,
-                nationality,
-                state,
-                aadhar_number,
-                address,
-                phone_number,
-                religion,
-                Parent_no,
-                admission_year
-            `)
-            .eq('academic_year', academicYear)
-            .eq('group_name', group)
-            .eq('course_name', courseNameLabel)
-            .eq('current_semester', Number(semester))
+            if (group) {
+                query = query.eq('group_name', group)
+            }
 
+            if (courseCode) {
+                const courseNameLabel = courses.find(c => c.course_code === courseCode)?.course_name
+                if (courseNameLabel) {
+                    query = query.eq('course_name', courseNameLabel)
+                }
+            }
 
-        if (!error) setStudents(data || [])
+            if (semester) {
+                query = query.eq('current_semester', Number(semester))
+            }
+
+            const { data, error } = await query
+
+            if (!error) {
+                setStudents(data || [])
+            }
+        } catch (err) {
+            console.error('Error fetching students:', err)
+        } finally {
+            setLoading(false)
+        }
     }
     const filteredStudents = students.filter((s) =>
         s.student_id.toLowerCase().includes(searchId.toLowerCase())
@@ -122,18 +152,15 @@ export default function StudentRecords() {
 
     return (
         <StaffShell>
-            <div className="desktop-container">
+            <div className="desktop-container records-page">
                 <h3 className="fw-semibold mb-4">STUDENT RECORD</h3>
 
-                {/* ===============================
-                   FILTER BAR
-                ================================ */}
+                {/* FILTER CARD */}
                 <div className="card card-soft p-4 mb-4">
                     <div className="row g-3">
-
                         {/* Academic Year */}
                         <div className="col-md-3">
-                            <label className="form-label fw-semibold">
+                            <label className="form-label fw-bold text-dark">
                                 Academic Year <span className="text-danger">*</span>
                             </label>
                             <select
@@ -150,7 +177,7 @@ export default function StudentRecords() {
 
                         {/* Group */}
                         <div className="col-md-3">
-                            <label className="form-label fw-semibold">
+                            <label className="form-label fw-bold text-dark">
                                 Group <span className="text-danger">*</span>
                             </label>
                             <select
@@ -175,7 +202,7 @@ export default function StudentRecords() {
 
                         {/* Course */}
                         <div className="col-md-3">
-                            <label className="form-label fw-semibold">
+                            <label className="form-label fw-bold text-dark">
                                 Course <span className="text-danger">*</span>
                             </label>
                             <select
@@ -199,7 +226,7 @@ export default function StudentRecords() {
 
                         {/* Semester */}
                         <div className="col-md-3">
-                            <label className="form-label fw-semibold">
+                            <label className="form-label fw-bold text-dark">
                                 Semester <span className="text-danger">*</span>
                             </label>
                             <select
@@ -215,127 +242,112 @@ export default function StudentRecords() {
                                 ))}
                             </select>
                         </div>
-
                     </div>
                 </div>
 
-                {/* ===============================
-                   STUDENT TABLE
-                ================================ */}
-<style>{`
-  .student-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: #ffffff;
-  }
+                {/* DATA CARD */}
+                <div className="card card-soft p-4">
+                    {loading && (
+                        <div className="student-details__loading" role="status" aria-live="polite">
+                            <div className="student-details__loading-header">
+                                <div className="student-loader__spinner" aria-hidden="true"></div>
+                                <div>
+                                    <div className="student-loader__title">Loading student records</div>
+                                    <div className="student-loader__subtitle">Preparing detailed information grid.</div>
+                                </div>
+                            </div>
+                            <div className="student-details__loading-grid" aria-hidden="true">
+                                {Array.from({ length: 3 }).map((_, index) => (
+                                    <div className="student-loader-card" key={`loader-card-${index}`}>
+                                        <div className="student-loader-card__header student-loader__shimmer"></div>
+                                        <div className="student-loader-card__line student-loader__shimmer"></div>
+                                        <div className="student-loader-card__line student-loader__shimmer"></div>
+                                    </div>
+                                ))}
+                            </div>
+                            <span className="sr-only">Loading details...</span>
+                        </div>
+                    )}
 
-  .student-table th,
-  .student-table td {
-    border: 1px solid #d0d7e2;
-    padding: 10px 12px;
-    font-size: 0.85rem;
-    vertical-align: middle;
-    white-space: nowrap;
-  }
+                    {/* STUDENT TABLE */}
+                    {students.length > 0 && !loading && (
+                        <>
+                            <div className="search-container">
+                                <div className="input-group">
+                                    <span className="input-group-text bg-white border-end-0">
+                                        <i className="bi bi-search"></i>
+                                    </span>
+                                    <input
+                                        type="text"
+                                        className="form-control border-start-0"
+                                        placeholder="Search by Student ID..."
+                                        value={searchId}
+                                        onChange={(e) => setSearchId(e.target.value)}
+                                    />
+                                </div>
+                            </div>
 
-  .student-table thead th {
-    background: #f4f7fb;
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    color: #4a5568;
-  }
+                            <div className="table-responsive">
+                                <table className="table table-bordered mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th className="text-center">S.No</th>
+                                            <th className="text-center">Student ID</th>
+                                            <th>Full Name</th>
+                                            <th>Group</th>
+                                            <th>Course</th>
+                                            <th>Gender</th>
+                                            <th>DOB</th>
+                                            <th>Father</th>
+                                            <th>Mother</th>
+                                            <th>Nationality</th>
+                                            <th>State</th>
+                                            <th>Aadhar</th>
+                                            <th>Address</th>
+                                            <th>Phone</th>
+                                            <th>Religion</th>
+                                            <th>Parent No</th>
+                                            <th className="text-center">Admission Year</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredStudents
+                                            .slice()
+                                            .sort((a, b) => a.student_id.localeCompare(b.student_id))
+                                            .map((s, i) => (
+                                                <tr key={s.student_id}>
+                                                    <td className="text-center">{i + 1}</td>
+                                                    <td className="text-center">{s.student_id}</td>
+                                                    <td>{s.full_name}</td>
+                                                    <td>{s.group_name}</td>
+                                                    <td>{s.course_name}</td>
+                                                    <td>{s.gender}</td>
+                                                    <td>{s.date_of_birth}</td>
+                                                    <td>{s.father_name}</td>
+                                                    <td>{s.mother_name}</td>
+                                                    <td>{s.nationality}</td>
+                                                    <td>{s.state}</td>
+                                                    <td>{s.aadhar_number}</td>
+                                                    <td className="address-cell">{s.address}</td>
+                                                    <td>{s.phone_number}</td>
+                                                    <td>{s.religion}</td>
+                                                    <td>{s.Parent_no}</td>
+                                                    <td className="text-center">{s.admission_year}</td>
+                                                </tr>
+                                            ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </>
+                    )}
 
-  .student-table tbody tr:nth-child(even) {
-    background: #fafcff;
-  }
-
-  .student-table tbody tr:hover {
-    background: #eef4ff;
-  }
-`}</style>
-
-{students.length > 0 && (
-  <>
-<div className="d-flex justify-content-center mb-3">
-  <div
-    className="input-group"
-    style={{ maxWidth: '320px' }}
-  >
-    <span className="input-group-text bg-white">
-      <i className="bi bi-search"></i>
-    </span>
-
-    <input
-      type="text"
-      className="form-control"
-      placeholder="Search by Student ID"
-      value={searchId}
-      onChange={(e) => setSearchId(e.target.value)}
-    />
-  </div>
-</div>
-
-
-    <div className="card card-soft p-4">
-      <div className="table-responsive">
-        <table className="student-table">
-          <thead>
-            <tr>
-              <th>S.No</th>
-              <th>Student ID</th>
-              <th>Full Name</th>
-              <th>Group</th>
-              <th>Course</th>
-              <th>Gender</th>
-              <th>DOB</th>
-              <th>Father</th>
-              <th>Mother</th>
-              <th>Nationality</th>
-              <th>State</th>
-              <th>Aadhar</th>
-              <th>Address</th>
-              <th>Phone</th>
-              <th>Religion</th>
-              <th>Parent No</th>
-              <th>Admission Year</th>
-            </tr>
-          </thead>
-          <tbody>
-{filteredStudents
-  .slice() // ✅ avoid mutating state
-  .sort((a, b) => a.student_id.localeCompare(b.student_id))
-  .map((s, i) => (
-    <tr key={s.student_id}>
-      <td>{i + 1}</td>
-      <td>{s.student_id}</td>
-      <td>{s.full_name}</td>
-      <td>{s.group_name}</td>
-      <td>{s.course_name}</td>
-      <td>{s.gender}</td>
-      <td>{s.date_of_birth}</td>
-      <td>{s.father_name}</td>
-      <td>{s.mother_name}</td>
-      <td>{s.nationality}</td>
-      <td>{s.state}</td>
-      <td>{s.aadhar_number}</td>
-      <td>{s.address}</td>
-      <td>{s.phone_number}</td>
-      <td>{s.religion}</td>
-      <td>{s.Parent_no}</td>
-      <td>{s.admission_year}</td>
-    </tr>
-))}
-
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </>
-)}
-
-
-
+                    {!loading && !students.length && (
+                        <div className="text-center py-5 text-muted">
+                            <i className="bi bi-search fs-1 d-block mb-2 opacity-25"></i>
+                            Select filters to view student records
+                        </div>
+                    )}
+                </div>
             </div>
         </StaffShell>
     )

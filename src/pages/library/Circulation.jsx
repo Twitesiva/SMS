@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react'
-import AdminShell from '../../components/AdminShell'
 import crestPrimary from '../../assets/media/images.png'
-import { libraryNavGroups } from './nav'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
 
@@ -235,231 +233,223 @@ export default function Circulation() {
     }
   }
   return (
-    <AdminShell
-      navGroups={libraryNavGroups}
-      brandTitle="Library Management Console"
-      brandSubtitle="Vijayam"
-      footerTitle="Library Management Studio"
-      footerSubtitle="Crafted for Vijayam College"
-    >
-      <div className="desktop-container" style={{ overflowX: 'hidden' }}>
-        <section className="setup-hero mb-4 text-center">
-          <div className="setup-hero-copywrap mx-auto text-center" style={{ maxWidth: '640px' }}>
-            <div className="admin-applications__crest mx-auto" aria-hidden="true">
-              <img src={crestPrimary} alt="Vijayam crest" />
-            </div>
-            <h3 className="setup-hero-title mb-2">Book Outgoing</h3>
-            <p className="setup-hero-copy mb-3">Book issue &amp; return.</p>
-            <div className="setup-hero-chips d-flex flex-wrap gap-2 justify-content-center">
-              <span className="setup-hero-chip text-uppercase">ISSUE DESK</span>
-              <span className="setup-hero-chip text-uppercase">RETURNS</span>
-              <span className="setup-hero-chip text-uppercase">RENEWALS</span>
-            </div>
+    <div className="desktop-container" style={{ overflowX: 'hidden' }}>
+      <section className="setup-hero mb-4 text-center">
+        <div className="setup-hero-copywrap mx-auto text-center" style={{ maxWidth: '640px' }}>
+          <div className="admin-applications__crest mx-auto" aria-hidden="true">
+            <img src={crestPrimary} alt="Vijayam crest" />
           </div>
-        </section>
+          <h3 className="setup-hero-title mb-2">Book Outgoing</h3>
+          <p className="setup-hero-copy mb-3">Book issue &amp; return.</p>
+          <div className="setup-hero-chips d-flex flex-wrap gap-2 justify-content-center">
+            <span className="setup-hero-chip text-uppercase">ISSUE DESK</span>
+            <span className="setup-hero-chip text-uppercase">RETURNS</span>
+            <span className="setup-hero-chip text-uppercase">RENEWALS</span>
+          </div>
+        </div>
+      </section>
 
-        <div className="row g-4 justify-content-center mx-0">
-          <div className="col-12 col-lg-6">
-            <div className="card card-soft p-4 h-100">
-              <div className="d-flex justify-content-between align-items-center mb-3">
-                <div>
-                  <h4 className="mb-1">Issue Book</h4>
-                  <p className="text-muted mb-0">Issue desk for outgoing books.</p>
-                </div>
+      <div className="row g-4 justify-content-center mx-0">
+        <div className="col-12 col-lg-6">
+          <div className="card card-soft p-4 h-100">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <h4 className="mb-1">Issue Book</h4>
+                <p className="text-muted mb-0">Issue desk for outgoing books.</p>
+              </div>
+              <button type="button" className="btn btn-outline-secondary" onClick={resetForm}>
+                Reset
+              </button>
+            </div>
+            <form className="row g-3" onSubmit={handleSubmit}>
+              <div className="col-12">
+                <div className="text-uppercase text-muted small fw-semibold">Issue Book</div>
+              </div>
+              <div className="col-12">
+                <label className="form-label">Student ID</label>
+                <input
+                  className="form-control"
+                  type="text"
+                  placeholder="STU-1001"
+                  value={form.studentId}
+                  onChange={handleChange('studentId')}
+                />
+              </div>
+              <div className="col-12">
+                <label className="form-label">Book ID / ISBN</label>
+                <input
+                  className="form-control"
+                  type="text"
+                  placeholder="Enter Book ID or ISBN"
+                  value={form.bookRef}
+                  onChange={handleChange('bookRef')}
+                />
+              </div>
+              <div className="col-12">
+                <label className="form-label">Due Date</label>
+                <input
+                  className="form-control"
+                  type="date"
+                  value={form.dueDate}
+                  onChange={handleChange('dueDate')}
+                  readOnly
+                  disabled
+                />
+              </div>
+              <div className="col-12 d-flex justify-content-end gap-2">
                 <button type="button" className="btn btn-outline-secondary" onClick={resetForm}>
-                  Reset
+                  Clear
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={saving}>
+                  {saving ? 'Saving...' : 'Submit'}
                 </button>
               </div>
-              <form className="row g-3" onSubmit={handleSubmit}>
-                <div className="col-12">
-                  <div className="text-uppercase text-muted small fw-semibold">Issue Book</div>
-                </div>
-                <div className="col-12">
-                  <label className="form-label">Student ID</label>
-                  <input
-                    className="form-control"
-                    type="text"
-                    placeholder="STU-1001"
-                    value={form.studentId}
-                    onChange={handleChange('studentId')}
-                  />
-                </div>
-                <div className="col-12">
-                  <label className="form-label">Book ID / ISBN</label>
-                  <input
-                    className="form-control"
-                    type="text"
-                    placeholder="Enter Book ID or ISBN"
-                    value={form.bookRef}
-                    onChange={handleChange('bookRef')}
-                  />
-                </div>
-                <div className="col-12">
-                  <label className="form-label">Due Date</label>
-                  <input
-                    className="form-control"
-                    type="date"
-                    value={form.dueDate}
-                    onChange={handleChange('dueDate')}
-                    readOnly
-                    disabled
-                  />
-                </div>
-                <div className="col-12 d-flex justify-content-end gap-2">
-                  <button type="button" className="btn btn-outline-secondary" onClick={resetForm}>
-                    Clear
-                  </button>
-                  <button type="submit" className="btn btn-primary" disabled={saving}>
-                    {saving ? 'Saving...' : 'Submit'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-
-          <div className="col-12 col-lg-6">
-            <div className="card card-soft p-4 h-100">
-              <div className="d-flex justify-content-between align-items-center mb-3">
-                <div>
-                  <h4 className="mb-1">Return Books</h4>
-                  <p className="text-muted mb-0">Receive books back from members.</p>
-                </div>
-              </div>
-              <form className="row g-3" onSubmit={handleReturn}>
-                <div className="col-12">
-                  <label className="form-label">Student ID</label>
-                  <input
-                    className="form-control"
-                    type="text"
-                    placeholder="STU-1001"
-                    value={returnForm.studentId}
-                    onChange={(event) => {
-                      const value = event.target.value
-                      setReturnForm((prev) => ({ ...prev, studentId: value, loanId: '' }))
-                      setReturnLoans([])
-                    }}
-                    onBlur={async () => {
-                      if (!returnForm.studentId.trim()) return
-                      try {
-                        const { data: loanRows, error: loanError } = await supabase
-                          .from('library_loans')
-                          .select(
-                            'id, book_copy_id, due_date, students(full_name,student_id), library_book_copies(book_id, library_books(title))'
-                          )
-                          .eq('student_id', returnForm.studentId.trim())
-                          .eq('status', 'ISSUED')
-                          .order('issued_at', { ascending: false })
-
-                        if (loanError) throw loanError
-                        setReturnLoans(loanRows || [])
-                        if ((loanRows || []).length === 1) {
-                          setReturnForm((prev) => ({ ...prev, loanId: String(loanRows[0].id) }))
-                        }
-                      } catch (err) {
-                        console.error('Failed to load return loans', err)
-                        setReturnLoans([])
-                      }
-                    }}
-                  />
-                </div>
-                <div className="col-12">
-                  <label className="form-label">Issued Book</label>
-                  <select
-                    className="form-select"
-                    value={returnForm.loanId}
-                    onChange={handleReturnChange('loanId')}
-                    disabled={!returnLoans.length}
-                  >
-                    <option value="">
-                      {returnForm.studentId.trim()
-                        ? returnLoans.length
-                          ? 'Select a book'
-                          : 'No active loans found'
-                        : 'Enter student ID to load books'}
-                    </option>
-                    {returnLoans.map((loan) => {
-                      const bookTitle = loan.library_book_copies?.library_books?.title || 'Unknown'
-                      const dueDate = loan.due_date || '--'
-                      return (
-                        <option key={loan.id} value={loan.id}>
-                          {bookTitle} • Due {dueDate}
-                        </option>
-                      )
-                    })}
-                  </select>
-                </div>
-                <div className="col-12 d-flex justify-content-end gap-2">
-                  <button type="button" className="btn btn-outline-secondary" onClick={resetForm}>
-                    Clear
-                  </button>
-                  <button type="submit" className="btn btn-primary" disabled={returning}>
-                    {returning ? 'Processing...' : 'Receive Book'}
-                  </button>
-                </div>
-              </form>
-            </div>
+            </form>
           </div>
         </div>
 
-        <div className="row g-4 justify-content-center mx-0 mt-1">
-          <div className="col-12">
-            <div className="card card-soft p-4 h-100">
-              <div className="d-flex justify-content-between align-items-center mb-3">
-                <div>
-                  <h4 className="mb-1">Active Loans</h4>
-                  <p className="text-muted mb-0">Monitor currently issued books.</p>
-                </div>
-                <div className="d-flex gap-2">
-                  {activeLoans.length > 2 && (
-                    <button
-                      type="button"
-                      className="btn btn-outline-secondary btn-sm"
-                      onClick={() => setShowAllLoans((prev) => !prev)}
-                    >
-                      {showAllLoans ? 'Show less' : 'View more'}
-                    </button>
-                  )}
-                  <button type="button" className="btn btn-outline-secondary btn-sm">Export</button>
-                </div>
+        <div className="col-12 col-lg-6">
+          <div className="card card-soft p-4 h-100">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <h4 className="mb-1">Return Books</h4>
+                <p className="text-muted mb-0">Receive books back from members.</p>
               </div>
-              <div className="table-responsive">
-                <table className="table table-hover align-middle mb-0">
-                  <thead className="table-light">
-                    <tr>
-                      <th>Student</th>
-                      <th>Book</th>
-                      <th>Status</th>
-                      <th className="text-end">Due</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {activeLoans.length === 0 ? (
-                      <tr>
-                        <td colSpan="4" className="text-center text-muted py-4">No active loans loaded.</td>
-                      </tr>
-                    ) : (
-                      (showAllLoans ? activeLoans : activeLoans.slice(0, 2)).map((loan) => {
-                        const student = loan.students
-                        const book = loan.library_book_copies?.library_books
-                        return (
-                          <tr key={loan.id}>
-                            <td>{student?.full_name || 'Unknown'} ({student?.student_id || '--'})</td>
-                            <td>{book?.title || 'Unknown'}</td>
-                            <td>
-                              <span className="badge bg-success-subtle text-success">Issued</span>
-                            </td>
-                            <td className="text-end">{loan.due_date || '--'}</td>
-                          </tr>
+            </div>
+            <form className="row g-3" onSubmit={handleReturn}>
+              <div className="col-12">
+                <label className="form-label">Student ID</label>
+                <input
+                  className="form-control"
+                  type="text"
+                  placeholder="STU-1001"
+                  value={returnForm.studentId}
+                  onChange={(event) => {
+                    const value = event.target.value
+                    setReturnForm((prev) => ({ ...prev, studentId: value, loanId: '' }))
+                    setReturnLoans([])
+                  }}
+                  onBlur={async () => {
+                    if (!returnForm.studentId.trim()) return
+                    try {
+                      const { data: loanRows, error: loanError } = await supabase
+                        .from('library_loans')
+                        .select(
+                          'id, book_copy_id, due_date, students(full_name,student_id), library_book_copies(book_id, library_books(title))'
                         )
-                      })
-                    )}
-                  </tbody>
-                </table>
+                        .eq('student_id', returnForm.studentId.trim())
+                        .eq('status', 'ISSUED')
+                        .order('issued_at', { ascending: false })
+
+                      if (loanError) throw loanError
+                      setReturnLoans(loanRows || [])
+                      if ((loanRows || []).length === 1) {
+                        setReturnForm((prev) => ({ ...prev, loanId: String(loanRows[0].id) }))
+                      }
+                    } catch (err) {
+                      console.error('Failed to load return loans', err)
+                      setReturnLoans([])
+                    }
+                  }}
+                />
               </div>
+              <div className="col-12">
+                <label className="form-label">Issued Book</label>
+                <select
+                  className="form-select"
+                  value={returnForm.loanId}
+                  onChange={handleReturnChange('loanId')}
+                  disabled={!returnLoans.length}
+                >
+                  <option value="">
+                    {returnForm.studentId.trim()
+                      ? returnLoans.length
+                        ? 'Select a book'
+                        : 'No active loans found'
+                      : 'Enter student ID to load books'}
+                  </option>
+                  {returnLoans.map((loan) => {
+                    const bookTitle = loan.library_book_copies?.library_books?.title || 'Unknown'
+                    const dueDate = loan.due_date || '--'
+                    return (
+                      <option key={loan.id} value={loan.id}>
+                        {bookTitle} • Due {dueDate}
+                      </option>
+                    )
+                  })}
+                </select>
+              </div>
+              <div className="col-12 d-flex justify-content-end gap-2">
+                <button type="button" className="btn btn-outline-secondary" onClick={resetForm}>
+                  Clear
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={returning}>
+                  {returning ? 'Processing...' : 'Receive Book'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div className="row g-4 justify-content-center mx-0 mt-1">
+        <div className="col-12">
+          <div className="card card-soft p-4 h-100">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <h4 className="mb-1">Active Loans</h4>
+                <p className="text-muted mb-0">Monitor currently issued books.</p>
+              </div>
+              <div className="d-flex gap-2">
+                {activeLoans.length > 2 && (
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm"
+                    onClick={() => setShowAllLoans((prev) => !prev)}
+                  >
+                    {showAllLoans ? 'Show less' : 'View more'}
+                  </button>
+                )}
+                <button type="button" className="btn btn-outline-secondary btn-sm">Export</button>
+              </div>
+            </div>
+            <div className="table-responsive">
+              <table className="table table-hover align-middle mb-0">
+                <thead className="table-light">
+                  <tr>
+                    <th>Student</th>
+                    <th>Book</th>
+                    <th>Status</th>
+                    <th className="text-end">Due</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeLoans.length === 0 ? (
+                    <tr>
+                      <td colSpan="4" className="text-center text-muted py-4">No active loans loaded.</td>
+                    </tr>
+                  ) : (
+                    (showAllLoans ? activeLoans : activeLoans.slice(0, 2)).map((loan) => {
+                      const student = loan.students
+                      const book = loan.library_book_copies?.library_books
+                      return (
+                        <tr key={loan.id}>
+                          <td>{student?.full_name || 'Unknown'} ({student?.student_id || '--'})</td>
+                          <td>{book?.title || 'Unknown'}</td>
+                          <td>
+                            <span className="badge bg-success-subtle text-success">Issued</span>
+                          </td>
+                          <td className="text-end">{loan.due_date || '--'}</td>
+                        </tr>
+                      )
+                    })
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
       </div>
-    </AdminShell>
+    </div>
   )
 }

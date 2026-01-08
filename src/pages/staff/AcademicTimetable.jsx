@@ -31,6 +31,7 @@ const normalizeDay = (day) =>
 export default function StaffTimetable() {
   const { staff } = useStaffAuth()
   const [tableData, setTableData] = useState({})
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (staff?.staff_id) {
@@ -42,6 +43,7 @@ export default function StaffTimetable() {
      DATA LOADING
   ================================ */
   const loadTimetable = async () => {
+    setLoading(true)
     // 1️⃣ Resolve teacher numeric ID
     const { data: teacher } = await supabase
       .from('teachers')
@@ -49,7 +51,10 @@ export default function StaffTimetable() {
       .eq('staff_id', staff.staff_id)
       .single()
 
-    if (!teacher) return
+    if (!teacher) {
+      setLoading(false)
+      return
+    }
 
     // 2️⃣ Get teacher subject mappings (THIS IS SOURCE OF TRUTH)
     const { data: mappings } = await supabase
@@ -66,7 +71,10 @@ export default function StaffTimetable() {
       .eq('teacher_id', teacher.id)
       .eq('is_active', true)
 
-    if (!mappings?.length) return
+    if (!mappings?.length) {
+      setLoading(false)
+      return
+    }
 
     // Build subject map
     const subjectMap = {}
@@ -88,7 +96,10 @@ mappings.forEach(m => {
       .in('group_id', mappings.map(m => m.group_id))
       .in('semester', mappings.map(m => m.semester))
 
-    if (!timetables?.length) return
+    if (!timetables?.length) {
+      setLoading(false)
+      return
+    }
 
     const timetableIds = timetables.map(t => t.id)
 
@@ -99,7 +110,10 @@ mappings.forEach(m => {
       .in('timetable_id', timetableIds)
       .in('subject_id', Object.keys(subjectMap))
 
-    if (!slots?.length) return
+    if (!slots?.length) {
+      setLoading(false)
+      return
+    }
 
     // 5️⃣ Build table data
     const table = {}
@@ -117,6 +131,7 @@ mappings.forEach(m => {
     })
 
     setTableData(table)
+    setLoading(false)
   }
 
   /* ===============================
@@ -193,81 +208,104 @@ mappings.forEach(m => {
   </h2>
 </div>
 
-        <div className="card card-soft tt-wrapper">
-          <table className="tt-table">
-            <thead>
-              <tr>
-                <th>DAY</th>
-                {TIME_SLOTS.map(slot => (
-                  <th key={slot.key}>
-                    <span className="tt-head-title">{slot.label}</span>
-                    <span className="tt-head-time">{slot.time}</span>
-                  </th>
-                ))}
-              </tr>
-            </thead>
+        {loading && (
+          <div className="student-details__loading" role="status" aria-live="polite">
+            <div className="student-details__loading-header">
+              <div className="student-loader__spinner" aria-hidden="true"></div>
+              <div>
+                <div className="student-loader__title">Loading academic timetable</div>
+                <div className="student-loader__subtitle">Preparing your weekly schedule and periods.</div>
+              </div>
+            </div>
+            <div className="student-details__loading-grid" aria-hidden="true">
+              <div className="student-loader-card">
+                <div className="student-loader-card__header student-loader__shimmer"></div>
+                <div className="student-loader-card__line student-loader__shimmer"></div>
+                <div className="student-loader-card__line student-loader__shimmer"></div>
+                <div className="student-loader-card__line student-loader__shimmer"></div>
+              </div>
+            </div>
+            <span className="sr-only">Loading timetable...</span>
+          </div>
+        )}
 
-            <tbody>
-              {DAYS.map((day, i) => (
-                <tr key={day}>
-                  <th className="tt-day">{day}</th>
-
-                  {TIME_SLOTS.map(slot => {
-                    if (slot.type === 'break') {
-                      return (
-                        <td key={slot.key} className="tt-break">
-                          {BREAK_LETTERS[i]}
-                        </td>
-                      )
-                    }
-
-                    if (slot.type === 'lunch') {
-                      return (
-                        <td key={slot.key} className="tt-lunch">
-                          {LUNCH_LETTERS[i]}
-                        </td>
-                      )
-                    }
-
-                    return (
-<td key={slot.key} className="tt-period">
-  {tableData?.[day]?.[slot.period] ? (
-    <>
-      <div style={{ fontWeight: 700 }}>
-        {tableData[day][slot.period].subject}
-      </div>
-      <div
-        style={{
-          fontSize: '0.75rem',
-          fontWeight: 700,
-          color: '#374151'
-        }}
-      >
-        (
-        {tableData[day][slot.period].course} –{' '}
-        {tableData[day][slot.period].group} – Sem{' '}
-        {tableData[day][slot.period].semester}
-        )
-      </div>
-    </>
-  ) : (
-    <span style={{ color: '#111827', fontWeight: 800, fontSize: '1rem' }}>
-      –
-    </span>
-  )}
-</td>
-
-
-
-
-
-                    )
-                  })}
+        {!loading && (
+          <div className="card card-soft tt-wrapper">
+            <table className="tt-table">
+              <thead>
+                <tr>
+                  <th>DAY</th>
+                  {TIME_SLOTS.map(slot => (
+                    <th key={slot.key}>
+                      <span className="tt-head-title">{slot.label}</span>
+                      <span className="tt-head-time">{slot.time}</span>
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+
+              <tbody>
+                {DAYS.map((day, i) => (
+                  <tr key={day}>
+                    <th className="tt-day">{day}</th>
+
+                    {TIME_SLOTS.map(slot => {
+                      if (slot.type === 'break') {
+                        return (
+                          <td key={slot.key} className="tt-break">
+                            {BREAK_LETTERS[i]}
+                          </td>
+                        )
+                      }
+
+                      if (slot.type === 'lunch') {
+                        return (
+                          <td key={slot.key} className="tt-lunch">
+                            {LUNCH_LETTERS[i]}
+                          </td>
+                        )
+                      }
+
+                      return (
+  <td key={slot.key} className="tt-period">
+    {tableData?.[day]?.[slot.period] ? (
+      <>
+        <div style={{ fontWeight: 700 }}>
+          {tableData[day][slot.period].subject}
         </div>
+        <div
+          style={{
+            fontSize: '0.75rem',
+            fontWeight: 700,
+            color: '#374151'
+          }}
+        >
+          (
+          {tableData[day][slot.period].course} –{' '}
+          {tableData[day][slot.period].group} – Sem{' '}
+          {tableData[day][slot.period].semester}
+          )
+        </div>
+      </>
+    ) : (
+      <span style={{ color: '#111827', fontWeight: 800, fontSize: '1rem' }}>
+        –
+      </span>
+    )}
+  </td>
+
+
+
+
+
+                      )
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </StaffShell>
   )

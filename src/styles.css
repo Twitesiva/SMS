@@ -973,6 +973,60 @@ h6,
   margin-bottom: 1.5rem;
 }
 
+.students-section-shell-header h2 {
+  margin: 0 0 0.35rem;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  font-size: 1.5rem;
+}
+
+/* Enhanced headings for student and staff pages */
+.student-details h3,
+.staff-dashboard h3,
+.desktop-container h3 {
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 1rem;
+}
+
+.student-details h4,
+.staff-dashboard h4,
+.desktop-container h4 {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 0.8rem;
+}
+
+.student-details h5,
+.staff-dashboard h5,
+.desktop-container h5 {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+  margin-bottom: 0.6rem;
+}
+
+.student-details h6,
+.staff-dashboard h6,
+.desktop-container h6 {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.1px;
+  margin-bottom: 0.5rem;
+}
+
 .students-section-copy {
   color: #1c2a52;
   line-height: 1.4;
@@ -1033,9 +1087,11 @@ h6,
   }
 
   .student-timetable-title {
-    font-weight: 600;
+    font-weight: 700;
     color: #111827;
-    font-size: 1rem;
+    font-size: 1.2rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   .student-timetable-subtitle {
@@ -1341,15 +1397,15 @@ h6,
 }
 
 .student-payments-table thead th {
-  background: #f1f5f9;
-  color: #0f172a;
-  font-weight: 700;
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
+  background: #93c5fd;
+  color: #000000;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  padding: 0.85rem 1rem;
+  padding: 1rem;
   text-align: left;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 3px solid #2563eb;
 }
 
 .student-payments-table tbody td {
@@ -7344,17 +7400,46 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 }
 
 .staff-dashboard .student-card__header {
-  background: linear-gradient(180deg, #0f1f3d 0%, #14264b 60%, #1a325d 100%);
-  color: #f8fafc;
+  background: #93c5fd;
+  color: #000000;
+  font-weight: 800;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #2563eb;
+  padding: 0.85rem 1.1rem;
 }
 
-.staff-dashboard .student-profile__value {
-  color: #1f2d3d;
+.staff-dashboard .student-profile__row {
+  display: grid;
+  grid-template-columns: 180px auto 1fr;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e5e9f2;
+}
+
+.staff-dashboard .student-profile__row:last-child {
+  border-bottom: none;
+}
+
+.staff-dashboard .student-profile__label {
+  color: #000000;
+  font-weight: 600;
+  text-align: left;
+}
+
+.staff-dashboard .student-profile__colon {
+  color: #000000;
+  font-weight: 600;
+  text-align: center;
 }
 
 .staff-dashboard .student-card__body .table thead th {
-  background: rgba(15, 31, 61, 0.12);
-  color: #0f1f3d;
+  background: #93c5fd;
+  color: #000000;
+  font-weight: 800;
+  border-bottom: 2px solid #2563eb;
 }
 
 .student-header {
@@ -7416,22 +7501,22 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 }
 
 .student-header__portal {
-  font-weight: 700;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.2em;
-  font-size: 0.7rem;
-  color: rgba(226, 232, 240, 0.92);
-  padding-top: 0.2rem;
+  letter-spacing: 0.05em;
+  font-size: 1.2rem; /* Big font size as requested */
+  color: #ffffff;
+  line-height: 1;
 }
 
 .student-header__title {
   font-family: "Space Grotesk", "Cabinet Grotesk", sans-serif;
-  font-weight: 700;
-  color: #f8fafc;
-  letter-spacing: 0.08em;
+  font-weight: 800;
   text-transform: uppercase;
-  font-size: 0.95rem;
-  text-shadow: 0 6px 14px rgba(6, 12, 32, 0.45);
+  letter-spacing: 0.05em;
+  font-size: 1.5rem; /* Big font size as requested */
+  color: #ffffff;
+  margin: 0;
 }
 
 .student-header__subtitle {
@@ -7552,10 +7637,14 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 }
 
 .student-card__header {
-  background: linear-gradient(180deg, #0f1f3d 0%, #14264b 60%, #1a325d 100%);
-  color: #f8fafc;
+  background: #93c5fd;
+  color: #000000;
   padding: 0.85rem 1.1rem;
-  font-weight: 600;
+  font-weight: 800;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #2563eb;
 }
 
 .student-card__body {
@@ -7582,7 +7671,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 
 .student-profile__row {
   display: grid;
-  grid-template-columns: 180px 1fr;
+  grid-template-columns: 180px auto 1fr;
   gap: 1rem;
   padding: 0.75rem 0;
   border-bottom: 1px solid #e5e9f2;
@@ -7593,12 +7682,18 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 }
 
 .student-profile__label {
-  color: #64748b;
+  color: #000000;
   font-weight: 600;
 }
 
+.student-profile__colon {
+  color: #000000;
+  font-weight: 600;
+  text-align: center;
+}
+
 .student-profile__value {
-  color: #1a73e8;
+  color: #000000;
   font-weight: 600;
 }
 
@@ -7656,6 +7751,8 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   color: #0f172a;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  font-weight: 700;
+  font-size: 1.5rem;
 }
 
 .student-details__header p {
@@ -8178,7 +8275,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 
 .student-detail-row {
   display: grid;
-  grid-template-columns: 180px 1fr;
+  grid-template-columns: 180px auto 1fr;
   gap: 1rem;
   padding-bottom: 0.75rem;
   border-bottom: 1px solid #eef2f7;
@@ -8191,12 +8288,18 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 }
 
 .student-detail-label {
-  color: #64748b;
+  color: #000000;
   font-weight: 600;
 }
 
+.student-detail-colon {
+  color: #000000;
+  font-weight: 600;
+  text-align: center;
+}
+
 .student-detail-value {
-  color: #1a73e8;
+  color: #000000;
   font-weight: 600;
 }
 
@@ -8785,7 +8888,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 .student-subjects-accordion__trigger {
   width: 100%;
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.16) 0%, rgba(147, 197, 253, 0.2) 100%);
-  color: #1e293b;
+  color: #000000;
   border: none;
   padding: 0.85rem 1.2rem;
   display: flex;
@@ -8798,11 +8901,13 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   text-transform: uppercase;
   letter-spacing: 0.2em;
   font-size: 0.85rem;
+  font-weight: 700;
 }
 
 .student-subjects-accordion__meta {
   font-size: 0.9rem;
-  opacity: 0.7;
+  color: #000000;
+  font-weight: 600;
 }
 
 
@@ -8821,10 +8926,12 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   font-size: 0.78rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #64748b;
+  background: #93c5fd;
+  color: #000000;
+  font-weight: 800;
   border: none;
-  padding: 0.6rem 0.75rem;
-  background: transparent;
+  padding: 0.8rem 0.75rem;
+  border-bottom: 2px solid #2563eb;
 }
 
 .student-subjects-accordion__table tbody tr {
@@ -8837,29 +8944,34 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   border: none;
   padding: 0.75rem 0.8rem;
   font-size: 0.95rem;
-  color: #0f172a;
+  color: #000000;
 }
 
 .student-subjects-accordion__link {
   border: none;
-  background: linear-gradient(135deg, #2563eb, #60a5fa);
-  color: #ffffff;
-  padding: 0.35rem 0.9rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
+  background: transparent;
+  color: #000000;
+  padding: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
+  text-decoration: underline;
   cursor: pointer;
+  transition: color 0.2s ease;
 }
 
 .student-subjects-accordion__link:hover {
-  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.3);
+  color: #2563eb;
+  text-decoration: none;
+  transform: none;
+  box-shadow: none;
 }
 
 .student-subjects-accordion__muted {
   font-size: 0.78rem;
-  color: #64748b;
+  color: #000000;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
@@ -8988,6 +9100,671 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 .staff-attendance__radio:focus-visible {
   outline: 2px solid rgba(37, 99, 235, 0.5);
   outline-offset: 2px;
+}
+
+/* Student attendance table column widths */
+.desktop-container .table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.desktop-container .table th {
+  color: #000000;
+  font-weight: 700;
+}
+
+.desktop-container .table th:nth-child(1),
+.desktop-container .table td:nth-child(1) {
+  width: 60px; /* S.No */
+}
+
+.desktop-container .table th:nth-child(2),
+.desktop-container .table td:nth-child(2) {
+  width: 120px; /* Student ID */
+}
+
+.desktop-container .table th:nth-child(3),
+.desktop-container .table td:nth-child(3) {
+  width: 300px; /* Full Name */
+}
+
+.desktop-container .table th:nth-child(4),
+.desktop-container .table td:nth-child(4) {
+  width: auto; /* Attendance - takes remaining space */
+}
+
+/* Simple and clean student attendance design */
+/* ==========================================================================
+   PORTAL GLOBAL THEME (Blue Related)
+   ========================================================================== */
+.student-portal, .staff-portal {
+  background-color: #f0f7ff; /* Soft light blue background for the entire portal */
+}
+
+.student-body {
+  background-color: #f0f7ff;
+}
+
+.student-content {
+  background-color: #f0f7ff;
+}
+
+.desktop-container {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Unified Professional Blue-Themed Cards */
+.desktop-container .card.card-soft {
+  background: #ffffff;
+  border: 1px solid #bfdbfe; /* Blue-toned border */
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.05); /* Subtle blue shadow */
+}
+
+.desktop-container h3 {
+  color: #000000;
+  font-weight: 800;
+  font-size: 1.75rem;
+  margin-bottom: 2rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 4px solid #2563eb; /* Blue accent underline */
+  display: inline-block;
+  text-transform: uppercase;
+}
+
+/* Simple form controls */
+.desktop-container .form-select,
+.desktop-container .form-control {
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-weight: 400;
+  background: #ffffff;
+}
+
+.desktop-container .form-select:focus,
+.desktop-container .form-control:focus {
+  border-color: #3b82f6;
+  outline: none;
+  box-shadow: 0 0 0 1px #3b82f6;
+}
+
+/* Premium Attendance Table Design */
+/* ==========================================================================
+   STUDENT ATTENDANCE PAGE STYLES (.attendance-page)
+   ========================================================================== */
+.attendance-page .table {
+  background: #ffffff;
+  border: 1px solid #60a5fa;
+  border-radius: 8px;
+  border-collapse: collapse;
+  width: max-content; 
+  min-width: 1000px;
+  margin: 0 auto; 
+  table-layout: fixed;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.05);
+}
+
+.attendance-page .table th {
+  background: #93c5fd; /* Unified Sky Blue */
+  color: #000000;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 1.25rem;
+  font-size: 1.15rem;
+  text-align: center;
+  border-bottom: 3px solid #2563eb;
+  border-right: 1px solid #60a5fa;
+  vertical-align: middle;
+}
+
+.attendance-page .table th:last-child { border-right: none; }
+
+.attendance-page .table td {
+  padding: 1rem 1.5rem;
+  vertical-align: middle;
+  border-bottom: 1px solid #dbeafe;
+  border-right: 1px solid #dbeafe;
+  color: #000000;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.attendance-page .table td:last-child { border-right: none; }
+
+.attendance-page .table tbody tr:nth-child(even) {
+  background-color: #f0f9ff;
+}
+
+.attendance-page .table tbody tr:hover {
+  background-color: #dbeafe;
+}
+
+.attendance-page .table th:nth-child(1), .attendance-page .table td:nth-child(1) { width: 80px; text-align: center; }
+.attendance-page .table th:nth-child(2), .attendance-page .table td:nth-child(2) { width: 160px; text-align: center; }
+.attendance-page .table th:nth-child(3), .attendance-page .table td:nth-child(3) { width: 450px; text-align: center; }
+.attendance-page .table th:nth-child(4), .attendance-page .table td:nth-child(4) { width: 300px; text-align: center; }
+
+/* Attendance-specific components */
+.attendance-options-grid {
+  display: grid;
+  grid-template-columns: 130px 130px 160px;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+}
+
+.attendance-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid #dbeafe;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
+  font-weight: 900;
+  color: #000000;
+  text-transform: uppercase;
+  user-select: none;
+  margin: 0 !important;
+  min-width: 110px;
+  justify-content: center;
+}
+
+.attendance-label:hover {
+  background: #f1f5f9;
+  border-color: #bfdbfe;
+}
+
+/* Custom Radio Circle */
+.attendance-label::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border: 2px solid #bfdbfe;
+  border-radius: 50%;
+  margin-right: 8px;
+  background: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.attendance-label--present:has(input:checked) {
+  background: #d1fae5;
+  border-color: #10b981;
+  color: #000000;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
+}
+.attendance-label--present:has(input:checked)::before {
+  background: #10b981;
+  border-color: #10b981;
+  box-shadow: inset 0 0 0 3px #ffffff;
+}
+
+.attendance-label--absent:has(input:checked) {
+  background: #fee2e2;
+  border-color: #ef4444;
+  color: #000000;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
+}
+.attendance-label--absent:has(input:checked)::before {
+  background: #ef4444;
+  border-color: #ef4444;
+  box-shadow: inset 0 0 0 3px #ffffff;
+}
+
+.attendance-status-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #b45309;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+/* Professional Attendance Summary */
+.attendance-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.attendance-summary-item {
+  background: #ffffff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #bfdbfe;
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.1);
+  text-align: center;
+}
+
+.attendance-summary-item--total { border-top: 5px solid #2563eb; }
+.attendance-summary-item--present { border-top: 5px solid #10b981; }
+.attendance-summary-item--absent { border-top: 5px solid #ef4444; }
+
+.attendance-summary-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #000000;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.attendance-summary-value {
+  display: block;
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #000000;
+  line-height: 1;
+}
+
+.absentees-section {
+  background: #ffffff;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+}
+
+.absentees-title {
+  color: #000000;
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 1rem;
+  border-bottom: 2px solid #2563eb;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.25rem;
+  display: inline-block;
+}
+
+.absentees-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.absentee-item {
+  background: #f8fafc;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  color: #000000;
+  font-weight: 700;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.absentee-item::before {
+  content: '•';
+  color: #ef4444;
+  font-size: 1.5rem;
+  line-height: 0;
+}
+
+/* ==========================================================================
+   LEAVE MANAGEMENT PAGE STYLES (.leave-management-page)
+   ========================================================================== */
+.leave-management-page .table th {
+  background: #93c5fd !important;
+  color: #000000 !important;
+  font-weight: 800 !important;
+  text-transform: uppercase;
+  padding: 1rem !important;
+  font-size: 1rem !important;
+  border-bottom: 3px solid #2563eb !important;
+  border-right: 1px solid #60a5fa !important;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.leave-management-page .table th:last-child { border-right: none !important; }
+
+.leave-management-page .table td {
+  padding: 1rem !important;
+  vertical-align: middle !important;
+  color: #000000 !important;
+  font-weight: 700 !important;
+  border-bottom: 1px solid #dbeafe !important;
+}
+
+.leave-management-page .action-grid {
+  display: grid;
+  grid-template-columns: 110px 110px;
+  gap: 8px;
+  justify-content: center;
+}
+
+.action-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: #ffffff;
+  border: 1px solid #dbeafe;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 900;
+  color: #000000;
+  text-transform: uppercase;
+  transition: all 0.2s ease;
+}
+
+.action-label--approve:hover {
+  background: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
+}
+
+.action-label--reject:hover {
+  background: #ef4444;
+  color: #ffffff;
+  border-color: #ef4444;
+}
+
+/* Leave Management Table Column Widths */
+.leave-management-page .table th:nth-child(1), .leave-management-page .table td:nth-child(1) { width: auto; min-width: 200px; } /* Applicant */
+.leave-management-page .table th:nth-child(2), .leave-management-page .table td:nth-child(2) { width: 100px; text-align: center; } /* Role */
+.leave-management-page .table th:nth-child(3), .leave-management-page .table td:nth-child(3) { width: 150px; } /* Type */
+.leave-management-page .table th:nth-child(4), .leave-management-page .table td:nth-child(4) { width: 220px; } /* Dates */
+.leave-management-page .table th:nth-child(5), .leave-management-page .table td:nth-child(5) { width: 180px; text-align: center; } /* Status/Days */
+.leave-management-page .table th:nth-child(6), .leave-management-page .table td:nth-child(6) { width: auto; } /* Reason/Actioned */
+
+.leave-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 900; /* Solid Black Bold */
+  color: #000000;
+  text-transform: uppercase;
+  min-width: 120px;
+  letter-spacing: 0.025em;
+}
+
+.leave-status-badge--approved {
+  background: #d1fae5;
+  border: 1px solid #10b981;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
+}
+
+.leave-status-badge--rejected {
+  background: #fee2e2;
+  border: 1px solid #ef4444;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
+}
+
+/* ==========================================================================
+   STUDENT RECORDS PAGE STYLES (.records-page)
+   ========================================================================== */
+.records-page .table {
+  background: #ffffff;
+  border: 1px solid #60a5fa;
+  width: 100%;
+  min-width: 2000px;
+  font-size: 0.9rem;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.records-page .table th {
+  background: #93c5fd; /* Unified Sky Blue */
+  color: #000000;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 10px 14px;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  border: 1px solid #60a5fa;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.records-page .table td {
+  padding: 8px 14px;
+  color: #000000;
+  font-weight: 700;
+  border: 1px solid #dbeafe;
+  white-space: nowrap;
+  vertical-align: middle;
+  font-size: 0.9rem;
+}
+
+/* Header & Data Alignment Utilities */
+.records-page .text-center { text-align: center !important; }
+.records-page .text-left { text-align: left !important; }
+
+.records-page .table tbody tr:nth-child(even) {
+  background-color: #f0f9ff; /* Light blue alternating rows */
+}
+
+.records-page .table tbody tr:hover {
+  background-color: #dbeafe; /* Blue hover state */
+}
+
+/* Fixed Widths for critical columns to ensure perfect alignment */
+.records-page .table th:nth-child(1), .records-page .table td:nth-child(1) { width: 60px; text-align: center; } /* S.No */
+.records-page .table th:nth-child(2), .records-page .table td:nth-child(2) { width: 120px; text-align: center; } /* ID */
+.records-page .table th:nth-child(3), .records-page .table td:nth-child(3) { min-width: 220px; } /* Full Name */
+.records-page .table th:nth-child(4), .records-page .table td:nth-child(4) { min-width: 180px; } /* Group */
+.records-page .table th:nth-child(5), .records-page .table td:nth-child(5) { min-width: 100px; } /* Course */
+.records-page .table th:nth-child(6), .records-page .table td:nth-child(6) { width: 100px; text-align: center; } /* Gender */
+.records-page .table th:nth-child(7), .records-page .table td:nth-child(7) { width: 120px; } /* DOB */
+.records-page .table th:nth-child(10), .records-page .table td:nth-child(10) { width: 120px; text-align: center; } /* Nationality */
+.records-page .table th:nth-child(11), .records-page .table td:nth-child(11) { width: 80px; text-align: center; } /* State */
+.records-page .table th:nth-child(17), .records-page .table td:nth-child(17) { width: 140px; text-align: center; } /* Admission Year */
+
+.records-page .address-cell {
+  max-width: 450px;
+  min-width: 350px;
+  white-space: normal !important;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.records-page .search-container {
+  max-width: 450px;
+  margin: 0 auto 25px;
+}
+
+/* Card Summary Adjustments */
+.card-soft {
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Enhanced attendance section */
+.desktop-container .table td:nth-child(4) {
+  padding: 1rem;
+  min-width: 200px;
+}
+
+/* Simple buttons */
+.desktop-container .btn,
+.desktop-container button {
+  background: #3b82f6;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.desktop-container .btn:hover,
+.desktop-container button:hover {
+  background: #2563eb;
+}
+
+/* Simple radio buttons */
+.staff-attendance__radio {
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+}
+
+/* Simple labels */
+.desktop-container .table td label {
+  margin-right: 1rem;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+/* Simple badges */
+.desktop-container .badge {
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #000000 !important;
+  background: #f3f4f6;
+  border: 2px solid #d977a1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  vertical-align: middle;
+  line-height: 1.2;
+}
+
+/* Enhanced attendance radio button styling */
+.staff-attendance__radio {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-right: 4px;
+  border: 2px solid #d1d5db;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  vertical-align: middle;
+}
+
+.staff-attendance__radio:hover {
+  border-color: #2563eb;
+  transform: scale(1.1);
+}
+
+.staff-attendance__radio:checked {
+  border-color: #2563eb;
+  background: #2563eb;
+  box-shadow: inset 0 0 0 3px #ffffff;
+  transform: scale(1.05);
+}
+
+.staff-attendance__radio:checked::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 6px;
+  height: 6px;
+  background: #ffffff;
+  border-radius: 50%;
+}
+
+.staff-attendance__radio:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.5);
+  outline-offset: 2px;
+}
+
+/* Attendance label styling */
+.desktop-container .table td label {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  margin: 2px 4px;
+  border-radius: 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+  font-weight: 400;
+  vertical-align: middle;
+}
+
+.desktop-container .table td label:hover {
+  background: #eff6ff;
+  border-color: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1);
+}
+
+.desktop-container .table td label:has(input:checked) {
+  background: #eff6ff;
+  border-color: #2563eb;
+  color: #1e40af;
+  font-weight: 600;
+}
+
+/* Specific styling for Absent (Red) */
+.desktop-container .table td label.attendance-label--absent:has(input:checked) {
+  background: #fef2f2;
+  border-color: #ef4444;
+  color: #b91c1c;
+}
+
+.desktop-container .table td label.attendance-label--absent input:checked {
+  background: #ef4444;
+  border-color: #ef4444;
+}
+
+/* Ensure Present stays Blue if generic style changes */
+.desktop-container .table td label.attendance-label--present:has(input:checked) {
+  background: #eff6ff;
+  border-color: #2563eb;
+  color: #1e40af;
+}
+
+.desktop-container .table td label.attendance-label--present input:checked {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+/* Custom status label for Approved Leave */
+.attendance-status-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+  font-size: 0.875rem;
+  font-weight: 600;
+  vertical-align: middle;
+  line-height: 1.2;
 }
 
 .student-materials__title-row {
@@ -9410,8 +10187,9 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   font-size: clamp(1.6rem, 2.2vw, 1.9rem);
   letter-spacing: 0.04em;
   margin: 0 0 0.35rem;
-  color: #f8fafc;
+  color: #ffffff !important;
   text-transform: uppercase;
+  font-weight: 700;
 }
 
 .student-circulars__card-meta {
@@ -10685,7 +11463,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   }
   
   .student-profile__label {
-    color: #64748b;
+    color: #000000;
     font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -10727,7 +11505,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   
   .student-detail-label {
     font-size: 0.8rem;
-    color: #64748b;
+    color: #000000;
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }

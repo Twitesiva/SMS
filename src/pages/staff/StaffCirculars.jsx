@@ -70,7 +70,23 @@ export default function StaffCirculars() {
 
         <div className="student-circulars__list">
           {loading ? (
-            <div className="student-circulars__empty">Loading circulars...</div>
+            <div className="student-details__loading" role="status" aria-live="polite">
+              <div className="student-details__loading-header">
+                <div className="student-loader__spinner" aria-hidden="true"></div>
+                <div>
+                  <div className="student-loader__title">Loading circulars</div>
+                  <div className="student-loader__subtitle">Fetching official announcements.</div>
+                </div>
+              </div>
+              <div className="student-details__loading-grid" aria-hidden="true">
+                <div className="student-loader-card">
+                  <div className="student-loader-card__header student-loader__shimmer"></div>
+                  <div className="student-loader-card__line student-loader__shimmer"></div>
+                  <div className="student-loader-card__line student-loader__shimmer"></div>
+                </div>
+              </div>
+              <span className="sr-only">Loading circulars...</span>
+            </div>
           ) : error ? (
             <div className="student-circulars__empty">{error}</div>
           ) : formattedCirculars.length === 0 ? (

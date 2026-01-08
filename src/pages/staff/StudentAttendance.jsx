@@ -26,6 +26,7 @@ export default function StudentAttendance() {
   const [attendance, setAttendance] = useState({})
   const [leaveStudentIds, setLeaveStudentIds] = useState(new Set())
   const [loading, setLoading] = useState(false)
+  const [isAlreadySubmitted, setIsAlreadySubmitted] = useState(false)
 
   /* ===============================
      UI FLOW STATE (NEW)
@@ -56,14 +57,17 @@ export default function StudentAttendance() {
   }
 
   const fetchCoursesByGroup = async (groupName) => {
+    setLoading(true)
     const { data } = await supabase
       .from('courses')
       .select('course_code, course_name')
       .eq('group_name', groupName)
     setCourses(data || [])
+    setLoading(false)
   }
 
   const fetchSemestersByCourse = async (courseCode) => {
+    setLoading(true)
     const { data } = await supabase
       .from('subjects')
       .select('semester_number')
@@ -71,63 +75,136 @@ export default function StudentAttendance() {
 
     const unique = [...new Set((data || []).map(d => d.semester_number))]
     setSemesters(unique)
+    setLoading(false)
   }
 
   /* ===============================
      FETCH STUDENTS
   ================================ */
   useEffect(() => {
-    if (academicYear && group && courseCode && semester) {
+    if (academicYear || group || courseCode || semester) {
       fetchStudents()
     } else {
       setStudents([])
       setAttendance({})
+      setIsAlreadySubmitted(false)
     }
   }, [academicYear, group, courseCode, semester])
 
   const fetchStudents = async () => {
-    const courseName =
-      courses.find(c => c.course_code === courseCode)?.course_name
+    setLoading(true)
+    try {
+      let query = supabase
+        .from('students')
+        .select('id, student_id, full_name')
+        .order('student_id', { ascending: true })
 
-    if (!courseName) return
-
-    const { data } = await supabase
-      .from('students')
-      .select('id, student_id, full_name')
-      .eq('academic_year', academicYear)
-      .eq('group_name', group)
-      .eq('course_name', courseName)
-      .eq('current_semester', Number(semester))
-      .order('student_id', { ascending: true })
-
-    setStudents(data || [])
-
-    const studentIds = (data || []).map(s => s.id)
-    const todayIso = new Date().toISOString().split('T')[0]
-    let leaveSet = new Set()
-
-    if (studentIds.length > 0) {
-      const { data: leaveRows, error: leaveError } = await supabase
-        .from('leave_requests')
-        .select('applicant_id, from_date, to_date')
-        .eq('applicant_type', 'STUDENT')
-        .in('status', ['APPROVED', 'HOD_APPROVED', 'APPROVED_BY_HOD'])
-        .in('applicant_id', studentIds)
-        .lte('from_date', todayIso)
-        .gte('to_date', todayIso)
-
-      if (!leaveError) {
-        leaveSet = new Set((leaveRows || []).map(r => r.applicant_id))
+      if (academicYear) {
+        query = query.eq('academic_year', academicYear)
       }
+
+      if (group) {
+        query = query.eq('group_name', group)
+      }
+
+      if (courseCode) {
+        const courseName = courses.find(c => c.course_code === courseCode)?.course_name
+        if (courseName) {
+          query = query.eq('course_name', courseName)
+        }
+      }
+
+      if (semester) {
+        query = query.eq('current_semester', Number(semester))
+      }
+
+      const { data } = await query
+      setStudents(data || [])
+
+      const studentIds = (data || []).map(s => s.id)
+      const todayIso = new Date().toISOString().split('T')[0]
+      let leaveSet = new Set()
+
+      if (studentIds.length > 0) {
+        const { data: leaveRows, error: leaveError } = await supabase
+          .from('leave_requests')
+          .select('applicant_id, from_date, to_date')
+          .eq('applicant_type', 'STUDENT')
+          .in('status', ['APPROVED', 'HOD_APPROVED', 'APPROVED_BY_HOD'])
+          .in('applicant_id', studentIds)
+          .lte('from_date', todayIso)
+          .gte('to_date', todayIso)
+
+        if (!leaveError) {
+          leaveSet = new Set((leaveRows || []).map(r => r.applicant_id))
+        }
+      }
+
+      setLeaveStudentIds(leaveSet)
+
+      // --- CHECK IF ALREADY SUBMITTED FOR TODAY ---
+      let alreadySubmitted = false
+      if (academicYear && group && courseCode && semester && staff?.id) {
+        const { data: courseRow } = await supabase
+          .from('courses')
+          .select('course_id')
+          .eq('course_code', courseCode)
+          .maybeSingle()
+
+        if (courseRow) {
+          const { data: mapping } = await supabase
+            .from('teacher_subject_mapping')
+            .select('subject_id')
+            .eq('teacher_id', staff.id)
+            .eq('course_id', courseRow.course_id)
+            .eq('semester', Number(semester))
+            .eq('is_active', true)
+            .maybeSingle()
+
+          if (mapping) {
+            const { data: session } = await supabase
+              .from('attendance_sessions')
+              .select('id')
+              .eq('academic_year', academicYear)
+              .eq('semester', Number(semester))
+              .eq('subject_id', mapping.subject_id)
+              .eq('teacher_id', staff.id)
+              .eq('attendance_date', todayIso)
+              .maybeSingle()
+
+            if (session) {
+              alreadySubmitted = true
+              // Also load existing attendance values if we want to show them
+              const { data: existingRecords } = await supabase
+                .from('attendance_records')
+                .select('student_id, status')
+                .eq('attendance_session_id', session.id)
+              
+              if (existingRecords) {
+                const loadedAttendance = {}
+                existingRecords.forEach(r => {
+                  loadedAttendance[r.student_id] = r.status
+                })
+                setAttendance(loadedAttendance)
+              }
+            }
+          }
+        }
+      }
+      setIsAlreadySubmitted(alreadySubmitted)
+
+      if (!alreadySubmitted) {
+        const defaults = {}
+        ;(data || []).forEach(s => {
+          defaults[s.id] = leaveSet.has(s.id) ? 'ABSENT' : 'PRESENT'
+        })
+        setAttendance(defaults)
+      }
+    } catch (err) {
+      console.error('Error fetching students:', err)
+    } finally {
+      setLoading(false)
     }
-
-    setLeaveStudentIds(leaveSet)
-
-    const defaults = {}
-    ;(data || []).forEach(s => {
-      defaults[s.id] = leaveSet.has(s.id) ? 'ABSENT' : 'PRESENT'
-    })
-    setAttendance(defaults)
   }
 
   /* ===============================
@@ -178,31 +255,60 @@ export default function StudentAttendance() {
         throw new Error('No subject mapped for this course & semester')
       }
 
-      const { data: session, error: sessionError } = await supabase
+      const today = new Date().toISOString().split('T')[0]
+
+      // 1. Check if session already exists to avoid 409 Conflict
+      let { data: session, error: findError } = await supabase
         .from('attendance_sessions')
-        .insert({
-          academic_year: academicYear,
-          semester: Number(semester),
-          subject_id: mapping.subject_id,
-          teacher_id: staff.id,
-          attendance_date: new Date().toISOString().split('T')[0]
-        })
-        .select()
-        .single()
+        .select('id')
+        .eq('academic_year', academicYear)
+        .eq('semester', Number(semester))
+        .eq('subject_id', mapping.subject_id)
+        .eq('teacher_id', staff.id)
+        .eq('attendance_date', today)
+        .maybeSingle()
 
-      if (sessionError) throw sessionError
+      if (findError) throw findError
 
+      // 2. If not found, create it
+      if (!session) {
+        const { data: newSession, error: sessionError } = await supabase
+          .from('attendance_sessions')
+          .insert({
+            academic_year: academicYear,
+            semester: Number(semester),
+            subject_id: mapping.subject_id,
+            teacher_id: staff.id,
+            attendance_date: today
+          })
+          .select()
+          .single()
+
+        if (sessionError) throw sessionError
+        session = newSession
+      }
+
+      // 3. Upsert records (Update if exists, Insert if new)
       const records = students.map(s => ({
         attendance_session_id: session.id,
         student_id: s.id,
         status: attendance[s.id]
       }))
 
-      const { error } = await supabase
+      // First delete existing records for this session to ensure a clean state
+      // (Supabase upsert requires a unique constraint which might not be on student_id + session_id)
+      const { error: deleteError } = await supabase
+        .from('attendance_records')
+        .delete()
+        .eq('attendance_session_id', session.id)
+
+      if (deleteError) throw deleteError
+
+      const { error: insertError } = await supabase
         .from('attendance_records')
         .insert(records)
 
-      if (error) throw error
+      if (insertError) throw insertError
 
       setShowSummary(false)
       setShowSuccess(true)
@@ -225,14 +331,14 @@ const goBackToAttendance = () => {
 
   return (
     <StaffShell title="Student Attendance">
-      <div className="desktop-container">
+      <div className="desktop-container attendance-page">
         <h3 className="fw-semibold mb-4">STUDENT ATTENDANCE</h3>
 
-        {/* FILTER BAR */}
+        {/* FILTER CARD */}
         <div className="card card-soft p-4 mb-4">
           <div className="row g-3">
             <div className="col-md-3">
-              <label>Academic Year *</label>
+              <label className="small mb-1 fw-bold text-dark">Academic Year *</label>
               <select className="form-select" value={academicYear}
                 onChange={e => setAcademicYear(e.target.value)}>
                 <option value="">Select Academic Year</option>
@@ -243,7 +349,7 @@ const goBackToAttendance = () => {
             </div>
 
             <div className="col-md-3">
-              <label>Group *</label>
+              <label className="small mb-1 fw-bold text-dark">Group *</label>
               <select className="form-select" value={group}
                 onChange={e => {
                   setGroup(e.target.value)
@@ -262,7 +368,7 @@ const goBackToAttendance = () => {
             </div>
 
             <div className="col-md-3">
-              <label>Course *</label>
+              <label className="small mb-1 fw-bold text-dark">Course *</label>
               <select className="form-select" value={courseCode}
                 onChange={e => {
                   setCourseCode(e.target.value)
@@ -280,7 +386,7 @@ const goBackToAttendance = () => {
             </div>
 
             <div className="col-md-3">
-              <label>Semester *</label>
+              <label className="small mb-1 fw-bold text-dark">Semester *</label>
               <select className="form-select" value={semester}
                 onChange={e => setSemester(e.target.value)}>
                 <option value="">Select Semester</option>
@@ -292,103 +398,161 @@ const goBackToAttendance = () => {
           </div>
         </div>
 
-        {/* STUDENT TABLE */}
-        {students.length > 0 && !showSummary && !showSuccess && (
-          <div className="card card-soft p-4">
-            <table className="table table-bordered">
-              <thead>
-                <tr>
-                  <th>S.No</th>
-                  <th>Student ID</th>
-                  <th>Full Name</th>
-                  <th>Attendance</th>
-                </tr>
-              </thead>
-              <tbody>
-                {students.map((s, i) => {
-                  const onApprovedLeave = leaveStudentIds.has(s.id)
-                  return (
-                  <tr key={s.id}>
-                    <td>{i + 1}</td>
-                    <td>{s.student_id}</td>
-                    <td>{s.full_name}</td>
-                    <td>
-                      <label className="me-4 fw-bold">
-                        <input
-                          type="radio"
-                          className="staff-attendance__radio"
-                          checked={attendance[s.id] === 'PRESENT'}
-                          onChange={() =>
-                            setAttendance({ ...attendance, [s.id]: 'PRESENT' })}
-                        /> Present
-                      </label>
-                      <label className="fw-bold">
-                        <input
-                          type="radio"
-                          className="staff-attendance__radio"
-                          checked={attendance[s.id] === 'ABSENT'}
-                          onChange={() =>
-                            setAttendance({ ...attendance, [s.id]: 'ABSENT' })}
-                        /> Absent
-                      </label>
-                      {onApprovedLeave && (
-                        <span className="badge bg-warning-subtle text-warning ms-3">Approved Leave</span>
-                      )}
-                    </td>
-                  </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-
-            <div className="text-end mt-3">
-              <button className="btn btn-success" onClick={handleDone}>
-                Done
-              </button>
+        {/* DATA SECTION (No Card) */}
+        <div className="mt-4">
+          {loading && !showSummary && !showSuccess && (
+            <div className="student-details__loading" role="status" aria-live="polite">
+              <div className="student-details__loading-header">
+                <div className="student-loader__spinner" aria-hidden="true"></div>
+                <div>
+                  <div className="student-loader__title">Loading attendance data</div>
+                  <div className="student-loader__subtitle">Preparing student list and leave status.</div>
+                </div>
+              </div>
+              <div className="student-details__loading-grid" aria-hidden="true">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <div className="student-loader-card" key={`loader-card-${index}`}>
+                    <div className="student-loader-card__header student-loader__shimmer"></div>
+                    <div className="student-loader-card__line student-loader__shimmer"></div>
+                    <div className="student-loader-card__line student-loader__shimmer"></div>
+                  </div>
+                ))}
+              </div>
+              <span className="sr-only">Loading details...</span>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* STUDENT TABLE */}
+          {students.length > 0 && !showSummary && !showSuccess && !loading && (
+            <>
+              {isAlreadySubmitted && (
+                <div className="alert alert-info d-flex align-items-center mb-4 border-0 shadow-sm rounded-3">
+                  <i className="bi bi-check-circle-fill fs-4 me-3"></i>
+                  <div>
+                    <h6 className="mb-0 fw-bold">Attendance Already Recorded</h6>
+                    <small>The attendance for this class has already been submitted for today.</small>
+                  </div>
+                </div>
+              )}
+
+              <table className="table table-bordered">
+                <thead>
+                  <tr>
+                    <th>S.No</th>
+                    <th>Student ID</th>
+                    <th>Full Name</th>
+                    <th>Attendance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {students.map((s, i) => {
+                    const onApprovedLeave = leaveStudentIds.has(s.id)
+                    return (
+                      <tr key={s.id}>
+                        <td>{i + 1}</td>
+                        <td>{s.student_id}</td>
+                        <td>{s.full_name}</td>
+                        <td>
+                          <div className="attendance-options-grid">
+                            <label className={`attendance-label attendance-label--present ${isAlreadySubmitted ? 'opacity-75 cursor-not-allowed' : ''}`}>
+                              <input
+                                type="radio"
+                                checked={attendance[s.id] === 'PRESENT'}
+                                onChange={() =>
+                                  !isAlreadySubmitted && setAttendance({ ...attendance, [s.id]: 'PRESENT' })}
+                                disabled={isAlreadySubmitted}
+                              /> Present
+                            </label>
+                            <label className={`attendance-label attendance-label--absent ${isAlreadySubmitted ? 'opacity-75 cursor-not-allowed' : ''}`}>
+                              <input
+                                type="radio"
+                                checked={attendance[s.id] === 'ABSENT'}
+                                onChange={() =>
+                                  !isAlreadySubmitted && setAttendance({ ...attendance, [s.id]: 'ABSENT' })}
+                                disabled={isAlreadySubmitted}
+                              /> Absent
+                            </label>
+                            <div className="text-start">
+                              {onApprovedLeave && (
+                                <div className="attendance-status-label m-0">Approved Leave</div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+
+              <div className="text-end mt-3">
+                {academicYear && group && courseCode && semester && !isAlreadySubmitted && (
+                  <button className="btn btn-success px-5 fw-bold" onClick={handleDone}>
+                    DONE
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+
+          {!loading && !students.length && !showSummary && !showSuccess && (
+            <div className="text-center py-5 text-muted bg-white rounded-3 border">
+              <i className="bi bi-people fs-1 d-block mb-2 opacity-25"></i>
+              Please select all filters to load student list
+            </div>
+          )}
+        </div>
 
         {/* SUMMARY SCREEN */}
         {showSummary && (
-          <div className="card card-soft p-4 text-center">
-            <h4>Attendance Summary</h4>
-            <p>Total Strength: <b>{totalStrength}</b></p>
-            <p>Present: <b>{presentCount}</b></p>
-            <p>Absent: <b>{absentCount}</b></p>
+          <div className="card card-soft p-4">
+            <h4 className="fw-bold text-dark mb-4 text-center">Attendance Summary</h4>
+            
+            <div className="attendance-summary-grid">
+              <div className="attendance-summary-item attendance-summary-item--total">
+                <span className="attendance-summary-label">Total Strength</span>
+                <span className="attendance-summary-value">{totalStrength}</span>
+              </div>
+              <div className="attendance-summary-item attendance-summary-item--present">
+                <span className="attendance-summary-label">Present</span>
+                <span className="attendance-summary-value">{presentCount}</span>
+              </div>
+              <div className="attendance-summary-item attendance-summary-item--absent">
+                <span className="attendance-summary-label">Absent</span>
+                <span className="attendance-summary-value">{absentCount}</span>
+              </div>
+            </div>
 
             {absentees.length > 0 && (
-              <>
-                <h6>Absentees</h6>
-                <ul className="list-unstyled">
+              <div className="absentees-section">
+                <div className="absentees-title">Absentees List</div>
+                <ul className="absentees-list">
                   {absentees.map(s => (
-                    <li key={s.id}>
+                    <li key={s.id} className="absentee-item">
                       {s.student_id} - {s.full_name}
                     </li>
                   ))}
                 </ul>
-              </>
+              </div>
             )}
 
-<div className="d-flex justify-content-center gap-3 mt-3">
-  <button
-    className="btn btn-outline-secondary px-4"
-    onClick={goBackToAttendance}
-    disabled={loading}
-  >
-    ← Back
-  </button>
+            <div className="d-flex justify-content-center gap-3 mt-5">
+              <button
+                className="btn btn-outline-secondary px-5 py-2 fw-bold"
+                onClick={goBackToAttendance}
+                disabled={loading}
+              >
+                ← BACK
+              </button>
 
-  <button
-    className="btn btn-primary px-4"
-    onClick={submitAttendance}
-    disabled={loading}
-  >
-    {loading ? 'Submitting...' : 'Submit Attendance'}
-  </button>
-</div>
-
-
+              <button
+                className="btn btn-primary px-5 py-2 fw-bold"
+                onClick={submitAttendance}
+                disabled={loading}
+              >
+                {loading ? 'SUBMITTING...' : 'CONFIRM & SUBMIT'}
+              </button>
+            </div>
           </div>
         )}
 

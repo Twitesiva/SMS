@@ -347,8 +347,8 @@ export default function StudentFeePayment() {
                       <td>{payment.academic_fee?.academic_year || 'N/A'}</td>
                       <td>{payment.academic_fee?.year_of_study || 'N/A'}</td>
                       <td>{payment.fee_type || 'N/A'}</td>
-                      <td>{payment.payment_type || 'N/A'}</td>
-                      <td>{payment.payment_mode || 'N/A'}</td>
+                      <td>{payment.payment_type ? (payment.payment_type.toLowerCase() === 'full' ? 'Full' : payment.payment_type.toUpperCase()) : 'N/A'}</td>
+                      <td>{payment.payment_mode ? (payment.payment_mode.toLowerCase() === 'upi' ? 'UPI' : payment.payment_mode.charAt(0).toUpperCase() + payment.payment_mode.slice(1).toLowerCase()) : 'N/A'}</td>
                       <td>{formatCurrency(payment.amount_paid)}</td>
                       <td>
                         <span className={`student-payments-badge student-payments-badge--${status.tone}`}>

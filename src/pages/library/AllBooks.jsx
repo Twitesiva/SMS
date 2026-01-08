@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import AdminShell from '../../components/AdminShell'
 import crestPrimary from '../../assets/media/images.png'
-import { libraryNavGroups } from './nav'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
 import ConfirmationModal from '../../components/ConfirmationModal'
@@ -225,265 +223,257 @@ export default function AllBooks() {
   }
 
   return (
-    <AdminShell
-      navGroups={libraryNavGroups}
-      brandTitle="Library Management Console"
-      brandSubtitle="Vijayam"
-      footerTitle="Library Management Studio"
-      footerSubtitle="Crafted for Vijayam College"
-    >
-      <div className="desktop-container library-catalogue-page" style={{ overflowX: 'hidden' }}>
-        <section className="library-catalogue-hero">
-          <div className="library-catalogue-hero__content">
-            <div className="library-catalogue-hero__brand">
-              <div className="library-catalogue-hero__crest" aria-hidden="true">
-                <img src={crestPrimary} alt="Vijayam crest" />
-              </div>
-              <div>
-                <div className="library-catalogue-hero__eyebrow">Library Console</div>
-                <h2 className="library-catalogue-hero__title">All Books Catalogue</h2>
-                <p className="library-catalogue-hero__subtitle">
-                  Review every title, update metadata, and manage inventory status.
-                </p>
-              </div>
+    <div className="desktop-container library-catalogue-page" style={{ overflowX: 'hidden' }}>
+      <section className="library-catalogue-hero">
+        <div className="library-catalogue-hero__content">
+          <div className="library-catalogue-hero__brand">
+            <div className="library-catalogue-hero__crest" aria-hidden="true">
+              <img src={crestPrimary} alt="Vijayam crest" />
             </div>
-          </div>
-        </section>
-
-        <div className="library-catalogue-stats row g-3 mb-4">
-          <div className="col-12 col-md-4">
-            <div className="library-catalogue-stat">
-              <div className="library-catalogue-stat__label">Total Titles</div>
-              <div className="library-catalogue-stat__value">{stats.totalTitles}</div>
-              <div className="library-catalogue-stat__meta">All catalogued books</div>
-            </div>
-          </div>
-          <div className="col-12 col-md-4">
-            <div className="library-catalogue-stat">
-              <div className="library-catalogue-stat__label">Total Copies</div>
-              <div className="library-catalogue-stat__value">{stats.totalCopies}</div>
-              <div className="library-catalogue-stat__meta">Across all shelves</div>
-            </div>
-          </div>
-          <div className="col-12 col-md-4">
-            <div className="library-catalogue-stat">
-              <div className="library-catalogue-stat__label">Total Shelves</div>
-              <div className="library-catalogue-stat__value">{stats.totalShelves}</div>
-              <div className="library-catalogue-stat__meta">Distinct shelf codes</div>
+            <div>
+              <div className="library-catalogue-hero__eyebrow">Library Console</div>
+              <h2 className="library-catalogue-hero__title">All Books Catalogue</h2>
+              <p className="library-catalogue-hero__subtitle">
+                Review every title, update metadata, and manage inventory status.
+              </p>
             </div>
           </div>
         </div>
+      </section>
 
-        <div className="library-catalogue-toolbar">
-          <div>
-            <h4 className="mb-1">Catalogue Overview</h4>
-            <p className="text-muted mb-0">Search by title, author, ISBN, shelf code, or year.</p>
-          </div>
-          <div className="library-catalogue-toolbar__actions">
-            <div className="library-catalogue-search">
-              <span className="library-catalogue-search__icon">
-                <i className="bi bi-search" aria-hidden="true"></i>
-              </span>
-              <input
-                className="form-control"
-                type="search"
-                placeholder="Search books"
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-              />
-            </div>
-            
-            <div style={{ minWidth: '140px' }}>
-              <select 
-                className="form-select" 
-                value={searchTermYear} 
-                onChange={(e) => setSearchTermYear(e.target.value)}
-              >
-                <option value="">All Years</option>
-                {uniqueYears.map(year => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
-              </select>
-            </div>
-
-            <button className="btn btn-outline-secondary" type="button" onClick={() => { setSearchTerm(''); setSearchTermYear(''); loadBooks(); }}>
-              Reset
-            </button>
-          </div>
-          <div className="library-catalogue-toolbar__meta">
-            Showing {filteredBooks.length} of {books.length} titles
+      <div className="library-catalogue-stats row g-3 mb-4">
+        <div className="col-12 col-md-4">
+          <div className="library-catalogue-stat">
+            <div className="library-catalogue-stat__label">Total Titles</div>
+            <div className="library-catalogue-stat__value">{stats.totalTitles}</div>
+            <div className="library-catalogue-stat__meta">All catalogued books</div>
           </div>
         </div>
-
-        <div className="library-catalogue-table-card">
-          <div className="table-responsive">
-            <table className="table library-catalogue-table mb-0">
-              <thead>
-                <tr>
-                  <th>Title</th>
-                  <th>Author</th>
-                  <th>Year</th>
-                  <th>Copies</th>
-                  <th className="text-end">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan="5" className="text-center text-muted py-4">Loading books...</td>
-                  </tr>
-                ) : filteredBooks.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" className="text-center text-muted py-4">No books found.</td>
-                  </tr>
-                ) : (
-                  filteredBooks.map((book) => {
-                    const copies = copyCounts[String(book.id)] || 0
-                    return (
-                      <tr key={book.id}>
-                        <td>
-                          <div className="library-catalogue-title">{book.title || 'Untitled'}</div>
-                          <div className="library-catalogue-meta">
-                            {book.shelf_code ? `Shelf ${book.shelf_code}` : 'Shelf not set'}
-                          </div>
-                        </td>
-                        <td>{book.author || 'Unknown'}</td>
-                        <td>{book.published_year || '-'}</td>
-                        <td>
-                          <span className="library-catalogue-count">{copies}</span>
-                        </td>
-                        <td className="text-end">
-                          <div className="library-catalogue-actions">
-                            <button
-                              type="button"
-                              className="library-action-button library-action-button--edit"
-                              onClick={() => openEdit(book)}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              className="library-action-button library-action-button--delete"
-                              onClick={() => openDeleteModal(book)}
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })
-                )}
-              </tbody>
-            </table>
+        <div className="col-12 col-md-4">
+          <div className="library-catalogue-stat">
+            <div className="library-catalogue-stat__label">Total Copies</div>
+            <div className="library-catalogue-stat__value">{stats.totalCopies}</div>
+            <div className="library-catalogue-stat__meta">Across all shelves</div>
           </div>
         </div>
-
-        {editingBook && (
-          <div className="library-edit-modal modal d-block" tabIndex="-1">
-            <div className="modal-dialog modal-lg modal-dialog-centered">
-              <div className="modal-content">
-                <div className="modal-header border-0 pb-0">
-                  <h5 className="modal-title fw-bold">Edit Book</h5>
-                  <button type="button" className="btn-close" onClick={closeEdit} aria-label="Close" />
-                </div>
-                <div className="modal-body">
-                  <form className="row g-3" onSubmit={handleEditSubmit}>
-                    <div className="col-md-8">
-                      <label className="form-label">Title</label>
-                      <input
-                        className="form-control"
-                        type="text"
-                        value={editForm.title}
-                        onChange={handleEditChange('title')}
-                        required
-                      />
-                    </div>
-                    <div className="col-md-4">
-                      <label className="form-label">ISBN</label>
-                      <input
-                        className="form-control"
-                        type="text"
-                        value={editForm.isbn}
-                        onChange={handleEditChange('isbn')}
-                      />
-                    </div>
-                    <div className="col-md-6">
-                      <label className="form-label">Author</label>
-                      <input
-                        className="form-control"
-                        type="text"
-                        value={editForm.author}
-                        onChange={handleEditChange('author')}
-                      />
-                    </div>
-                    <div className="col-md-6">
-                      <label className="form-label">Language</label>
-                      <input
-                        className="form-control"
-                        type="text"
-                        value={editForm.language}
-                        onChange={handleEditChange('language')}
-                      />
-                    </div>
-                    <div className="col-md-4">
-                      <label className="form-label">Publisher</label>
-                      <input
-                        className="form-control"
-                        type="text"
-                        value={editForm.publisher}
-                        onChange={handleEditChange('publisher')}
-                      />
-                    </div>
-                    <div className="col-md-2">
-                      <label className="form-label">Year</label>
-                      <input
-                        className="form-control"
-                        type="number"
-                        value={editForm.published_year}
-                        onChange={handleEditChange('published_year')}
-                      />
-                    </div>
-                    <div className="col-md-3">
-                      <label className="form-label">Edition</label>
-                      <input
-                        className="form-control"
-                        type="text"
-                        value={editForm.edition}
-                        onChange={handleEditChange('edition')}
-                      />
-                    </div>
-                    <div className="col-md-3">
-                      <label className="form-label">Shelf</label>
-                      <input
-                        className="form-control"
-                        type="text"
-                        value={editForm.shelf_code}
-                        onChange={handleEditChange('shelf_code')}
-                      />
-                    </div>
-                    <div className="col-md-4">
-                      <label className="form-label">Status</label>
-                      <select className="form-select" value={editForm.status} onChange={handleEditChange('status')}>
-                        <option value="PUBLIC">Public</option>
-                        <option value="PRIVATE">Private</option>
-                      </select>
-                    </div>
-                    <div className="col-12 d-flex justify-content-end gap-2">
-                      <button type="button" className="btn btn-outline-secondary" onClick={closeEdit} disabled={saving}>
-                        Cancel
-                      </button>
-                      <button type="submit" className="btn btn-primary" disabled={saving}>
-                        {saving ? 'Saving...' : 'Save Changes'}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            </div>
+        <div className="col-12 col-md-4">
+          <div className="library-catalogue-stat">
+            <div className="library-catalogue-stat__label">Total Shelves</div>
+            <div className="library-catalogue-stat__value">{stats.totalShelves}</div>
+            <div className="library-catalogue-stat__meta">Distinct shelf codes</div>
           </div>
-        )}
+        </div>
       </div>
+
+      <div className="library-catalogue-toolbar">
+        <div>
+          <h4 className="mb-1">Catalogue Overview</h4>
+          <p className="text-muted mb-0">Search by title, author, ISBN, shelf code, or year.</p>
+        </div>
+        <div className="library-catalogue-toolbar__actions">
+          <div className="library-catalogue-search">
+            <span className="library-catalogue-search__icon">
+              <i className="bi bi-search" aria-hidden="true"></i>
+            </span>
+            <input
+              className="form-control"
+              type="search"
+              placeholder="Search books"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+            />
+          </div>
+          
+          <div style={{ minWidth: '140px' }}>
+            <select 
+              className="form-select" 
+              value={searchTermYear} 
+              onChange={(e) => setSearchTermYear(e.target.value)}
+            >
+              <option value="">All Years</option>
+              {uniqueYears.map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
+
+          <button className="btn btn-outline-secondary" type="button" onClick={() => { setSearchTerm(''); setSearchTermYear(''); loadBooks(); }}>
+            Reset
+          </button>
+        </div>
+        <div className="library-catalogue-toolbar__meta">
+          Showing {filteredBooks.length} of {books.length} titles
+        </div>
+      </div>
+
+      <div className="library-catalogue-table-card">
+        <div className="table-responsive">
+          <table className="table library-catalogue-table mb-0">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Author</th>
+                <th>Year</th>
+                <th>Copies</th>
+                <th className="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan="5" className="text-center text-muted py-4">Loading books...</td>
+                </tr>
+              ) : filteredBooks.length === 0 ? (
+                <tr>
+                  <td colSpan="5" className="text-center text-muted py-4">No books found.</td>
+                </tr>
+              ) : (
+                filteredBooks.map((book) => {
+                  const copies = copyCounts[String(book.id)] || 0
+                  return (
+                    <tr key={book.id}>
+                      <td>
+                        <div className="library-catalogue-title">{book.title || 'Untitled'}</div>
+                        <div className="library-catalogue-meta">
+                          {book.shelf_code ? `Shelf ${book.shelf_code}` : 'Shelf not set'}
+                        </div>
+                      </td>
+                      <td>{book.author || 'Unknown'}</td>
+                      <td>{book.published_year || '-'}</td>
+                      <td>
+                        <span className="library-catalogue-count">{copies}</span>
+                      </td>
+                      <td className="text-end">
+                        <div className="library-catalogue-actions">
+                          <button
+                            type="button"
+                            className="library-action-button library-action-button--edit"
+                            onClick={() => openEdit(book)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="library-action-button library-action-button--delete"
+                            onClick={() => openDeleteModal(book)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {editingBook && (
+        <div className="library-edit-modal modal d-block" tabIndex="-1">
+          <div className="modal-dialog modal-lg modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header border-0 pb-0">
+                <h5 className="modal-title fw-bold">Edit Book</h5>
+                <button type="button" className="btn-close" onClick={closeEdit} aria-label="Close" />
+              </div>
+              <div className="modal-body">
+                <form className="row g-3" onSubmit={handleEditSubmit}>
+                  <div className="col-md-8">
+                    <label className="form-label">Title</label>
+                    <input
+                      className="form-control"
+                      type="text"
+                      value={editForm.title}
+                      onChange={handleEditChange('title')}
+                      required
+                    />
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label">ISBN</label>
+                    <input
+                      className="form-control"
+                      type="text"
+                      value={editForm.isbn}
+                      onChange={handleEditChange('isbn')}
+                    />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label">Author</label>
+                    <input
+                      className="form-control"
+                      type="text"
+                      value={editForm.author}
+                      onChange={handleEditChange('author')}
+                    />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label">Language</label>
+                    <input
+                      className="form-control"
+                      type="text"
+                      value={editForm.language}
+                      onChange={handleEditChange('language')}
+                    />
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label">Publisher</label>
+                    <input
+                      className="form-control"
+                      type="text"
+                      value={editForm.publisher}
+                      onChange={handleEditChange('publisher')}
+                    />
+                  </div>
+                  <div className="col-md-2">
+                    <label className="form-label">Year</label>
+                    <input
+                      className="form-control"
+                      type="number"
+                      value={editForm.published_year}
+                      onChange={handleEditChange('published_year')}
+                    />
+                  </div>
+                  <div className="col-md-3">
+                    <label className="form-label">Edition</label>
+                    <input
+                      className="form-control"
+                      type="text"
+                      value={editForm.edition}
+                      onChange={handleEditChange('edition')}
+                    />
+                  </div>
+                  <div className="col-md-3">
+                    <label className="form-label">Shelf</label>
+                    <input
+                      className="form-control"
+                      type="text"
+                      value={editForm.shelf_code}
+                      onChange={handleEditChange('shelf_code')}
+                    />
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label">Status</label>
+                    <select className="form-select" value={editForm.status} onChange={handleEditChange('status')}>
+                      <option value="PUBLIC">Public</option>
+                      <option value="PRIVATE">Private</option>
+                    </select>
+                  </div>
+                  <div className="col-12 d-flex justify-content-end gap-2">
+                    <button type="button" className="btn btn-outline-secondary" onClick={closeEdit} disabled={saving}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="btn btn-primary" disabled={saving}>
+                      {saving ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ConfirmationModal
         isOpen={deleteModal.show}
@@ -494,6 +484,6 @@ export default function AllBooks() {
         confirmText={deleteModal.loading ? 'Deleting...' : 'Delete'}
         isLoading={deleteModal.loading}
       />
-    </AdminShell>
+    </div>
   )
 }

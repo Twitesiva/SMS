@@ -258,13 +258,13 @@ export default function LeaveManagement() {
 
   return (
     <StaffShell title="Leave & On-Duty Management">
-      <div className="container-fluid py-4">
+      <div className="container-fluid py-4 leave-management-page">
 
         {isHOD && (
-          <ul className="nav nav-tabs mb-4">
+          <ul className="nav nav-tabs mb-4 border-0 gap-2">
             <li className="nav-item">
               <button
-                className={`nav-link ${activeTab === 'approvals' ? 'active' : ''}`}
+                className={`nav-link rounded-3 fw-bold ${activeTab === 'approvals' ? 'active bg-primary text-white' : 'bg-white text-dark'}`}
                 onClick={() => setActiveTab('approvals')}
               >
                 Pending Approvals
@@ -273,7 +273,7 @@ export default function LeaveManagement() {
             </li>
             <li className="nav-item">
               <button
-                className={`nav-link ${activeTab === 'history' ? 'active' : ''}`}
+                className={`nav-link rounded-3 fw-bold ${activeTab === 'history' ? 'active bg-primary text-white' : 'bg-white text-dark'}`}
                 onClick={() => setActiveTab('history')}
               >
                 Approvals History
@@ -284,23 +284,40 @@ export default function LeaveManagement() {
 
         {/* APPROVALS TAB */}
         {isHOD && activeTab === 'approvals' && (
-          <div className="card border-0 shadow-sm">
-            <div className="card-body">
-              <h5 className="card-title mb-4">Pending Leave Requests</h5>
+          <div className="card card-soft p-0 overflow-hidden border-0 shadow-sm">
+            <div className="p-4">
+              <h5 className="fw-bold text-dark mb-4">Pending Leave Requests</h5>
               {loadingRequests ? (
-                <div className="text-center py-4">Loading...</div>
+                <div className="student-details__loading" role="status" aria-live="polite">
+                  <div className="student-details__loading-header">
+                    <div className="student-loader__spinner" aria-hidden="true"></div>
+                    <div>
+                      <div className="student-loader__title">Loading pending requests</div>
+                      <div className="student-loader__subtitle">Fetching leave and on-duty applications.</div>
+                    </div>
+                  </div>
+                  <div className="student-details__loading-grid" aria-hidden="true">
+                    {Array.from({ length: 2 }).map((_, index) => (
+                      <div className="student-loader-card" key={`loader-card-${index}`}>
+                        <div className="student-loader-card__header student-loader__shimmer"></div>
+                        <div className="student-loader-card__line student-loader__shimmer"></div>
+                        <div className="student-loader-card__line student-loader__shimmer"></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               ) : requests.length === 0 ? (
                 <div className="text-muted text-center py-4">No pending requests</div>
               ) : (
                 <>
                   {showStudentSection && (
-                    <div className="mb-4">
-                      <h6 className="fw-semibold mb-3">Student Leave Requests</h6>
+                    <div className="mb-5">
+                      <h6 className="fw-bold text-primary mb-3 text-uppercase small letter-spacing-1">Student Leave Requests</h6>
                       {studentRequests.length === 0 ? (
-                        <div className="text-muted">No pending student requests.</div>
+                        <div className="text-muted p-3 bg-light rounded">No pending student requests.</div>
                       ) : (
                         <div className="table-responsive">
-                          <table className="table align-middle">
+                          <table className="table table-bordered align-middle">
                             <thead>
                               <tr>
                                 <th>Applicant</th>
@@ -315,23 +332,21 @@ export default function LeaveManagement() {
                             <tbody>
                               {studentRequests.map((req) => (
                                 <tr key={req.id}>
-                                  <td>
-                                    <div className="fw-bold">{req.applicantName}</div>
-                                  </td>
-                                  <td>
+                                  <td className="fw-bold">{req.applicantName}</td>
+                                  <td className="text-center">
                                     <span className="badge bg-light text-dark border">{req.applicant_type}</span>
                                   </td>
                                   <td>{req.leave_type}</td>
                                   <td>
-                                    <div>From: {req.from_date}</div>
-                                    <div>To: {req.to_date}</div>
+                                    <div className="small">From: {req.from_date}</div>
+                                    <div className="small">To: {req.to_date}</div>
                                   </td>
-                                  <td>{req.total_days}</td>
-                                  <td style={{ maxWidth: '200px' }}>{req.reason}</td>
+                                  <td className="text-center">{req.total_days}</td>
+                                  <td style={{ maxWidth: '200px' }} className="small">{req.reason}</td>
                                   <td>
-                                    <div className="d-flex gap-2">
-                                      <button className="btn btn-sm btn-success" onClick={() => handleApproval(req.id, 'APPROVED')}>Approve</button>
-                                      <button className="btn btn-sm btn-danger" onClick={() => handleApproval(req.id, 'REJECTED')}>Reject</button>
+                                    <div className="action-grid">
+                                      <button className="action-label action-label--approve" onClick={() => handleApproval(req.id, 'APPROVED')}>Approve</button>
+                                      <button className="action-label action-label--reject" onClick={() => handleApproval(req.id, 'REJECTED')}>Reject</button>
                                     </div>
                                   </td>
                                 </tr>
@@ -344,12 +359,12 @@ export default function LeaveManagement() {
                   )}
                   {showStaffSection && (
                     <div>
-                      <h6 className="fw-semibold mb-3">Staff Leave Requests</h6>
+                      <h6 className="fw-bold text-primary mb-3 text-uppercase small letter-spacing-1">Staff Leave Requests</h6>
                       {staffRequests.length === 0 ? (
-                        <div className="text-muted">No pending staff requests.</div>
+                        <div className="text-muted p-3 bg-light rounded">No pending staff requests.</div>
                       ) : (
                         <div className="table-responsive">
-                          <table className="table align-middle">
+                          <table className="table table-bordered align-middle">
                             <thead>
                               <tr>
                                 <th>Applicant</th>
@@ -364,23 +379,21 @@ export default function LeaveManagement() {
                             <tbody>
                               {staffRequests.map((req) => (
                                 <tr key={req.id}>
-                                  <td>
-                                    <div className="fw-bold">{req.applicantName}</div>
-                                  </td>
-                                  <td>
+                                  <td className="fw-bold">{req.applicantName}</td>
+                                  <td className="text-center">
                                     <span className="badge bg-light text-dark border">{req.applicant_type}</span>
                                   </td>
                                   <td>{req.leave_type}</td>
                                   <td>
-                                    <div>From: {req.from_date}</div>
-                                    <div>To: {req.to_date}</div>
+                                    <div className="small">From: {req.from_date}</div>
+                                    <div className="small">To: {req.to_date}</div>
                                   </td>
-                                  <td>{req.total_days}</td>
-                                  <td style={{ maxWidth: '200px' }}>{req.reason}</td>
+                                  <td className="text-center">{req.total_days}</td>
+                                  <td style={{ maxWidth: '200px' }} className="small">{req.reason}</td>
                                   <td>
-                                    <div className="d-flex gap-2">
-                                      <button className="btn btn-sm btn-success" onClick={() => handleApproval(req.id, 'APPROVED')}>Approve</button>
-                                      <button className="btn btn-sm btn-danger" onClick={() => handleApproval(req.id, 'REJECTED')}>Reject</button>
+                                    <div className="action-grid">
+                                      <button className="action-label action-label--approve" onClick={() => handleApproval(req.id, 'APPROVED')}>Approve</button>
+                                      <button className="action-label action-label--reject" onClick={() => handleApproval(req.id, 'REJECTED')}>Reject</button>
                                     </div>
                                   </td>
                                 </tr>
@@ -399,23 +412,40 @@ export default function LeaveManagement() {
 
         {/* HISTORY TAB (HOD) */}
         {isHOD && activeTab === 'history' && (
-          <div className="card border-0 shadow-sm">
-            <div className="card-body">
-              <h5 className="card-title mb-4">Actioned Requests History</h5>
+          <div className="card card-soft p-0 overflow-hidden border-0 shadow-sm">
+            <div className="p-4">
+              <h5 className="fw-bold text-dark mb-4">Actioned Requests History</h5>
               {loadingActioned ? (
-                <div className="text-center py-4">Loading...</div>
+                <div className="student-details__loading" role="status" aria-live="polite">
+                  <div className="student-details__loading-header">
+                    <div className="student-loader__spinner" aria-hidden="true"></div>
+                    <div>
+                      <div className="student-loader__title">Loading actioned history</div>
+                      <div className="student-loader__subtitle">Fetching processed applications.</div>
+                    </div>
+                  </div>
+                  <div className="student-details__loading-grid" aria-hidden="true">
+                    {Array.from({ length: 2 }).map((_, index) => (
+                      <div className="student-loader-card" key={`loader-card-hist-${index}`}>
+                        <div className="student-loader-card__header student-loader__shimmer"></div>
+                        <div className="student-loader-card__line student-loader__shimmer"></div>
+                        <div className="student-loader-card__line student-loader__shimmer"></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               ) : actionedRequests.length === 0 ? (
                 <div className="text-muted text-center py-4">No history records found</div>
               ) : (
                 <>
                   {showStudentSection && (
-                    <div className="mb-4">
-                      <h6 className="fw-semibold mb-3">Student Leave History</h6>
+                    <div className="mb-5">
+                      <h6 className="fw-bold text-primary mb-3 text-uppercase small letter-spacing-1">Student Leave History</h6>
                       {studentActionedRequests.length === 0 ? (
-                        <div className="text-muted">No student history records found.</div>
+                        <div className="text-muted p-3 bg-light rounded">No student history records found.</div>
                       ) : (
                         <div className="table-responsive">
-                          <table className="table align-middle">
+                          <table className="table table-bordered align-middle">
                             <thead>
                               <tr>
                                 <th>Applicant</th>
@@ -430,11 +460,11 @@ export default function LeaveManagement() {
                               {studentActionedRequests.map((req) => (
                                 <tr key={req.id}>
                                   <td>
-                                    <div className="fw-semibold">{req.applicantName}</div>
+                                    <div className="fw-bold">{req.applicantName}</div>
                                     {req.applicantDetails && <div className="small text-muted">{req.applicantDetails}</div>}
                                   </td>
-                                  <td>
-                                    <span className="badge bg-secondary bg-opacity-10 text-secondary border">{req.applicant_type}</span>
+                                  <td className="text-center">
+                                    <span className="badge bg-light text-dark border">{req.applicant_type}</span>
                                   </td>
                                   <td>
                                     <div>{req.leave_type}</div>
@@ -444,15 +474,15 @@ export default function LeaveManagement() {
                                     <div className="small">{req.from_date} to {req.to_date}</div>
                                     <div className="small text-muted fst-italic">"{req.reason}"</div>
                                   </td>
-                                  <td>
+                                  <td className="text-center">
                                     {req.status === 'APPROVED' ? (
-                                      <span className="badge bg-success bg-opacity-10 text-success px-3 py-2">APPROVED</span>
+                                      <span className="leave-status-badge leave-status-badge--approved">APPROVED</span>
                                     ) : (
-                                      <span className="badge bg-danger bg-opacity-10 text-danger px-3 py-2">REJECTED</span>
+                                      <span className="leave-status-badge leave-status-badge--rejected">REJECTED</span>
                                     )}
-                                    {req.hod_remarks && <div className="small text-muted mt-1">Note: {req.hod_remarks}</div>}
+                                    {req.hod_remarks && <div className="small text-muted mt-1 fst-italic">Note: {req.hod_remarks}</div>}
                                   </td>
-                                  <td className="small text-muted">
+                                  <td className="small text-center">
                                     {req.actioned_at ? new Date(req.actioned_at).toLocaleDateString() : '-'}
                                   </td>
                                 </tr>
@@ -465,12 +495,12 @@ export default function LeaveManagement() {
                   )}
                   {showStaffSection && (
                     <div>
-                      <h6 className="fw-semibold mb-3">Staff Leave History</h6>
+                      <h6 className="fw-bold text-primary mb-3 text-uppercase small letter-spacing-1">Staff Leave History</h6>
                       {staffActionedRequests.length === 0 ? (
-                        <div className="text-muted">No staff history records found.</div>
+                        <div className="text-muted p-3 bg-light rounded">No staff history records found.</div>
                       ) : (
                         <div className="table-responsive">
-                          <table className="table align-middle">
+                          <table className="table table-bordered align-middle">
                             <thead>
                               <tr>
                                 <th>Applicant</th>
@@ -485,11 +515,11 @@ export default function LeaveManagement() {
                               {staffActionedRequests.map((req) => (
                                 <tr key={req.id}>
                                   <td>
-                                    <div className="fw-semibold">{req.applicantName}</div>
+                                    <div className="fw-bold">{req.applicantName}</div>
                                     {req.applicantDetails && <div className="small text-muted">{req.applicantDetails}</div>}
                                   </td>
-                                  <td>
-                                    <span className="badge bg-secondary bg-opacity-10 text-secondary border">{req.applicant_type}</span>
+                                  <td className="text-center">
+                                    <span className="badge bg-light text-dark border">{req.applicant_type}</span>
                                   </td>
                                   <td>
                                     <div>{req.leave_type}</div>
@@ -499,15 +529,15 @@ export default function LeaveManagement() {
                                     <div className="small">{req.from_date} to {req.to_date}</div>
                                     <div className="small text-muted fst-italic">"{req.reason}"</div>
                                   </td>
-                                  <td>
+                                  <td className="text-center">
                                     {req.status === 'APPROVED' ? (
-                                      <span className="badge bg-success bg-opacity-10 text-success px-3 py-2">APPROVED</span>
+                                      <span className="leave-status-badge leave-status-badge--approved">APPROVED</span>
                                     ) : (
-                                      <span className="badge bg-danger bg-opacity-10 text-danger px-3 py-2">REJECTED</span>
+                                      <span className="leave-status-badge leave-status-badge--rejected">REJECTED</span>
                                     )}
-                                    {req.hod_remarks && <div className="small text-muted mt-1">Note: {req.hod_remarks}</div>}
+                                    {req.hod_remarks && <div className="small text-muted mt-1 fst-italic">Note: {req.hod_remarks}</div>}
                                   </td>
-                                  <td className="small text-muted">
+                                  <td className="small text-center">
                                     {req.actioned_at ? new Date(req.actioned_at).toLocaleDateString() : '-'}
                                   </td>
                                 </tr>
@@ -528,139 +558,160 @@ export default function LeaveManagement() {
         {(activeTab === 'apply' || !isHOD) && (
           <div className="row">
             <div className="col-lg-7">
-              <div
-                className="card card-soft p-4 rounded-4 shadow-sm h-100"
-              >
-                <h3 className="mb-2">Request Category</h3>
-                <p className="text-muted mb-4">
-                  Apply for leave or on-duty based on your requirement.
-                </p>
-
-                {/* CATEGORY */}
-                <div className="mb-4">
-                  <label className="me-4 form-check-label">
-                    <input
-                      type="radio"
-                      className="form-check-input me-2"
-                      checked={requestCategory === 'leave'}
-                      onChange={() => {
-                        setRequestCategory('leave')
-                        setOdType('')
-                      }}
-                    />
-                    Leave
-                  </label>
-
-                  <label className="form-check-label">
-                    <input
-                      type="radio"
-                      className="form-check-input me-2"
-                      checked={requestCategory === 'od'}
-                      onChange={() => {
-                        setRequestCategory('od')
-                        setLeaveType('')
-                      }}
-                    />
-                    On-Duty
-                  </label>
-                </div>
-
-                {/* LEAVE TYPE */}
-                {requestCategory === 'leave' && (
-                  <div className="mb-4">
-                    <label className="form-label fw-semibold">Leave Type</label>
-                    <select
-                      className="form-select"
-                      value={leaveType}
-                      onChange={(e) => handleLeaveChange(e.target.value)}
-                    >
-                      <option value="">Select Leave Type</option>
-
-                      <option value="__REGULAR__">
-                        ▶ REGULAR LEAVE
-                      </option>
-                      <option value="casual">Casual Leave</option>
-                      <option value="earned">Earned Leave</option>
-                      <option value="medical">Medical Leave</option>
-
-                      <option value="__SPECIAL__">
-                        ▶ SPECIAL LEAVE
-                      </option>
-                      <option value="maternity">Maternity / Paternity Leave</option>
-                      <option value="childcare">Child Care Leave</option>
-                      <option value="compensatory">Compensatory Off</option>
-
-                      <option value="__ACADEMIC__">
-                        ▶ ACADEMIC / OFFICIAL
-                      </option>
-                      <option value="study">Study Leave</option>
-                      <option value="sabbatical">Sabbatical Leave</option>
-                      <option value="quarantine">Quarantine / Special Medical</option>
-                    </select>
-                  </div>
-                )}
-
-                {/* OD TYPE */}
-                {requestCategory === 'od' && (
-                  <div className="mb-4">
-                    <label className="form-label fw-semibold">On-Duty Type</label>
-                    <select
-                      className="form-select"
-                      value={odType}
-                      onChange={(e) => setOdType(e.target.value)}
-                    >
-                      <option value="">Select On-Duty Type</option>
-                      <option value="exam">Exam Duty</option>
-                      <option value="workshop">Workshop / FDP</option>
-                      <option value="conference">Conference / Seminar</option>
-                      <option value="college">Official College Work</option>
-                      <option value="external">External Academic Assignment</option>
-                    </select>
-                  </div>
-                )}
-
-                {/* DATES */}
-                <div className="row mb-4">
-                  <div className="col-md-6">
-                    <label className="form-label fw-semibold">From Date</label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      value={fromDate}
-                      onChange={(e) => setFromDate(e.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label fw-semibold">To Date</label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      value={toDate}
-                      onChange={(e) => setToDate(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                {/* REASON */}
-                <div className="mb-4">
-                  <label className="form-label fw-semibold">Reason</label>
-                  <textarea
-                    className="form-control"
-                    rows="4"
-                    placeholder="Provide a brief justification for your request"
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                  />
-                </div>
-
-                <div className="text-center mt-4 mb-3">
-                  <p style={{ fontWeight: '600', marginBottom: '20px' }} className="text-muted small">
-                    Upon submission, this request will be forwarded to the Head of Department (HOD) for approval.
+              <div className="card border-0 shadow-sm rounded-3 overflow-hidden h-100" style={{ backgroundColor: '#ffffff' }}>
+                <div className="p-3 border-bottom" style={{ backgroundColor: '#f8fafc' }}>
+                  <h5 className="fw-bold text-dark mb-1">Request Category</h5>
+                  <p className="text-muted small mb-0">
+                    Apply for leave or on-duty based on your requirement.
                   </p>
+                </div>
 
-                  <button className="btn btn-primary" onClick={handleSubmit} disabled={loading}>
-                    {loading ? 'Submitting...' : 'Submit for HOD Approval'}
-                  </button>
+                <div className="p-3">
+                  {/* CATEGORY */}
+                  <div className="mb-4 p-2 rounded-2" style={{ backgroundColor: '#f1f5f9' }}>
+                    <div className="d-flex gap-4">
+                      <label className="form-check-label fw-bold text-dark d-flex align-items-center cursor-pointer">
+                        <input
+                          type="radio"
+                          className="staff-attendance__radio me-2"
+                          checked={requestCategory === 'leave'}
+                          onChange={() => {
+                            setRequestCategory('leave')
+                            setOdType('')
+                          }}
+                        />
+                        Leave
+                      </label>
+
+                      <label className="form-check-label fw-bold text-dark d-flex align-items-center cursor-pointer">
+                        <input
+                          type="radio"
+                          className="staff-attendance__radio me-2"
+                          checked={requestCategory === 'od'}
+                          onChange={() => {
+                            setRequestCategory('od')
+                            setLeaveType('')
+                          }}
+                        />
+                        On-Duty
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="row g-3">
+                    {/* LEAVE TYPE */}
+                    {requestCategory === 'leave' && (
+                      <div className="col-12">
+                        <label className="form-label fw-bold text-dark small">Leave Type *</label>
+                        <select
+                          className="form-select form-select-sm"
+                          value={leaveType}
+                          onChange={(e) => handleLeaveChange(e.target.value)}
+                        >
+                          <option value="">Select Leave Type</option>
+                          <option value="__REGULAR__" disabled>▶ REGULAR LEAVE</option>
+                          <option value="casual">Casual Leave</option>
+                          <option value="earned">Earned Leave</option>
+                          <option value="medical">Medical Leave</option>
+                          <option value="__SPECIAL__" disabled>▶ SPECIAL LEAVE</option>
+                          <option value="maternity">Maternity / Paternity Leave</option>
+                          <option value="childcare">Child Care Leave</option>
+                          <option value="compensatory">Compensatory Off</option>
+                          <option value="__ACADEMIC__" disabled>▶ ACADEMIC / OFFICIAL</option>
+                          <option value="study">Study Leave</option>
+                          <option value="sabbatical">Sabbatical Leave</option>
+                          <option value="quarantine">Quarantine / Special Medical</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {/* OD TYPE */}
+                    {requestCategory === 'od' && (
+                      <div className="col-12">
+                        <label className="form-label fw-bold text-dark small">On-Duty Type *</label>
+                        <select
+                          className="form-select form-select-sm"
+                          value={odType}
+                          onChange={(e) => setOdType(e.target.value)}
+                        >
+                          <option value="">Select On-Duty Type</option>
+                          <option value="exam">Exam Duty</option>
+                          <option value="workshop">Workshop / FDP</option>
+                          <option value="conference">Conference / Seminar</option>
+                          <option value="college">Official College Work</option>
+                          <option value="external">External Academic Assignment</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {/* DATES */}
+                    <div className="col-md-6">
+                      <div className="p-2 rounded-2" style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                        <label className="form-label fw-bold text-dark small mb-1">From Date *</label>
+                        <input
+                          type="date"
+                          className="form-control form-control-sm"
+                          value={fromDate}
+                          onChange={(e) => setFromDate(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="col-md-6">
+                      <div className="p-2 rounded-2" style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                        <label className="form-label fw-bold text-dark small mb-1">To Date *</label>
+                        <input
+                          type="date"
+                          className="form-control form-control-sm"
+                          value={toDate}
+                          onChange={(e) => setToDate(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    {/* REASON */}
+                    <div className="col-12">
+                      <label className="form-label fw-bold text-dark small">Reason *</label>
+                      <textarea
+                        className="form-control form-control-sm"
+                        rows="3"
+                        placeholder="Provide a brief justification"
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                                    <div className="mt-4 pt-3 border-top text-center">
+
+                                      <div className="d-flex align-items-start gap-2 mb-3 p-2 rounded-2 text-start" style={{ backgroundColor: '#eff6ff' }}>
+
+                                        <i className="bi bi-info-circle text-primary mt-1"></i>
+
+                                        <p className="text-muted small mb-0" style={{ lineHeight: '1.4' }}>
+
+                                          Upon submission, this request will be forwarded to the Head of Department (HOD) for approval.
+
+                                        </p>
+
+                                      </div>
+
+                  
+
+                                      <button 
+
+                                        className="btn btn-primary px-5 py-2 fw-bold" 
+
+                                        onClick={handleSubmit} 
+
+                                        disabled={loading}
+
+                                      >
+
+                                        {loading ? 'Submitting...' : 'SUBMIT FOR HOD APPROVAL'}
+
+                                      </button>
+
+                                    </div>
                 </div>
               </div>
             </div>
