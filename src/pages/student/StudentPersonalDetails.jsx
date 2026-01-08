@@ -133,6 +133,7 @@ export default function StudentPersonalDetails() {
                   {sections.general.map((row) => (
                     <div className="student-detail-row" key={row.label}>
                       <div className="student-detail-label">{row.label}</div>
+                      <div className="student-detail-colon">:</div>
                       <div className="student-detail-value">
                         {normalizeValue(row.value)}
                         {row.status && <span className="student-detail-status">[{row.status}]</span>}
@@ -150,6 +151,7 @@ export default function StudentPersonalDetails() {
                   {sections.personal.map((row) => (
                     <div className="student-detail-row" key={row.label}>
                       <div className="student-detail-label">{row.label}</div>
+                      <div className="student-detail-colon">:</div>
                       <div className="student-detail-value">{normalizeValue(row.value)}</div>
                     </div>
                   ))}
@@ -164,6 +166,7 @@ export default function StudentPersonalDetails() {
                   {sections.parent.map((row) => (
                     <div className="student-detail-row" key={row.label}>
                       <div className="student-detail-label">{row.label}</div>
+                      <div className="student-detail-colon">:</div>
                       <div className="student-detail-value">{normalizeValue(row.value)}</div>
                     </div>
                   ))}
@@ -178,6 +181,7 @@ export default function StudentPersonalDetails() {
                   {sections.address.map((row) => (
                     <div className="student-detail-row" key={row.label}>
                       <div className="student-detail-label">{row.label}</div>
+                      <div className="student-detail-colon">:</div>
                       <div className="student-detail-value">{normalizeValue(row.value)}</div>
                     </div>
                   ))}

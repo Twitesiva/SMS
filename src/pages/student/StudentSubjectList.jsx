@@ -380,10 +380,12 @@ export default function StudentSubjectList() {
               <div className="student-detail-list">
                 <div className="student-detail-row">
                   <div className="student-detail-label">Total Subjects</div>
+                  <div className="student-detail-colon">:</div>
                   <div className="student-detail-value">{stats.totalSubjects}</div>
                 </div>
                 <div className="student-detail-row">
                   <div className="student-detail-label">Available Resources</div>
+                  <div className="student-detail-colon">:</div>
                   <div className="student-detail-value">{stats.availableResources}</div>
                 </div>
               </div>

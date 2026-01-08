@@ -7666,7 +7666,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 
 .student-profile__row {
   display: grid;
-  grid-template-columns: 180px 1fr;
+  grid-template-columns: 180px auto 1fr;
   gap: 1rem;
   padding: 0.75rem 0;
   border-bottom: 1px solid #e5e9f2;
@@ -7677,8 +7677,14 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 }
 
 .student-profile__label {
-  color: #64748b;
+  color: #000000;
   font-weight: 600;
+}
+
+.student-profile__colon {
+  color: #000000;
+  font-weight: 600;
+  text-align: center;
 }
 
 .student-profile__value {
@@ -8264,7 +8270,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 
 .student-detail-row {
   display: grid;
-  grid-template-columns: 180px 1fr;
+  grid-template-columns: 180px auto 1fr;
   gap: 1rem;
   padding-bottom: 0.75rem;
   border-bottom: 1px solid #eef2f7;
@@ -8277,8 +8283,14 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 }
 
 .student-detail-label {
-  color: #64748b;
+  color: #000000;
   font-weight: 600;
+}
+
+.student-detail-colon {
+  color: #000000;
+  font-weight: 600;
+  text-align: center;
 }
 
 .student-detail-value {
@@ -8871,7 +8883,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 .student-subjects-accordion__trigger {
   width: 100%;
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.16) 0%, rgba(147, 197, 253, 0.2) 100%);
-  color: #1e293b;
+  color: #000000;
   border: none;
   padding: 0.85rem 1.2rem;
   display: flex;
@@ -8884,11 +8896,13 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   text-transform: uppercase;
   letter-spacing: 0.2em;
   font-size: 0.85rem;
+  font-weight: 700;
 }
 
 .student-subjects-accordion__meta {
   font-size: 0.9rem;
-  opacity: 0.7;
+  color: #000000;
+  font-weight: 600;
 }
 
 
@@ -8907,7 +8921,8 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   font-size: 0.78rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #64748b;
+  color: #000000;
+  font-weight: 700;
   border: none;
   padding: 0.6rem 0.75rem;
   background: transparent;
@@ -8923,29 +8938,34 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   border: none;
   padding: 0.75rem 0.8rem;
   font-size: 0.95rem;
-  color: #0f172a;
+  color: #000000;
 }
 
 .student-subjects-accordion__link {
   border: none;
-  background: linear-gradient(135deg, #2563eb, #60a5fa);
-  color: #ffffff;
-  padding: 0.35rem 0.9rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
+  background: transparent;
+  color: #000000;
+  padding: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
+  text-decoration: underline;
   cursor: pointer;
+  transition: color 0.2s ease;
 }
 
 .student-subjects-accordion__link:hover {
-  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.3);
+  color: #2563eb;
+  text-decoration: none;
+  transform: none;
+  box-shadow: none;
 }
 
 .student-subjects-accordion__muted {
   font-size: 0.78rem;
-  color: #64748b;
+  color: #000000;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
@@ -11082,7 +11102,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   }
   
   .student-profile__label {
-    color: #64748b;
+    color: #000000;
     font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -11124,7 +11144,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   
   .student-detail-label {
     font-size: 0.8rem;
-    color: #64748b;
+    color: #000000;
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
