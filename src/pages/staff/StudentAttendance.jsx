@@ -26,6 +26,7 @@ export default function StudentAttendance() {
   const [attendance, setAttendance] = useState({})
   const [leaveStudentIds, setLeaveStudentIds] = useState(new Set())
   const [loading, setLoading] = useState(false)
+  const [isAlreadySubmitted, setIsAlreadySubmitted] = useState(false)
 
   /* ===============================
      UI FLOW STATE (NEW)
@@ -86,6 +87,7 @@ export default function StudentAttendance() {
     } else {
       setStudents([])
       setAttendance({})
+      setIsAlreadySubmitted(false)
     }
   }, [academicYear, group, courseCode, semester])
 
@@ -140,11 +142,64 @@ export default function StudentAttendance() {
 
       setLeaveStudentIds(leaveSet)
 
-      const defaults = {}
-      ;(data || []).forEach(s => {
-        defaults[s.id] = leaveSet.has(s.id) ? 'ABSENT' : 'PRESENT'
-      })
-      setAttendance(defaults)
+      // --- CHECK IF ALREADY SUBMITTED FOR TODAY ---
+      let alreadySubmitted = false
+      if (academicYear && group && courseCode && semester && staff?.id) {
+        const { data: courseRow } = await supabase
+          .from('courses')
+          .select('course_id')
+          .eq('course_code', courseCode)
+          .maybeSingle()
+
+        if (courseRow) {
+          const { data: mapping } = await supabase
+            .from('teacher_subject_mapping')
+            .select('subject_id')
+            .eq('teacher_id', staff.id)
+            .eq('course_id', courseRow.course_id)
+            .eq('semester', Number(semester))
+            .eq('is_active', true)
+            .maybeSingle()
+
+          if (mapping) {
+            const { data: session } = await supabase
+              .from('attendance_sessions')
+              .select('id')
+              .eq('academic_year', academicYear)
+              .eq('semester', Number(semester))
+              .eq('subject_id', mapping.subject_id)
+              .eq('teacher_id', staff.id)
+              .eq('attendance_date', todayIso)
+              .maybeSingle()
+
+            if (session) {
+              alreadySubmitted = true
+              // Also load existing attendance values if we want to show them
+              const { data: existingRecords } = await supabase
+                .from('attendance_records')
+                .select('student_id, status')
+                .eq('attendance_session_id', session.id)
+              
+              if (existingRecords) {
+                const loadedAttendance = {}
+                existingRecords.forEach(r => {
+                  loadedAttendance[r.student_id] = r.status
+                })
+                setAttendance(loadedAttendance)
+              }
+            }
+          }
+        }
+      }
+      setIsAlreadySubmitted(alreadySubmitted)
+
+      if (!alreadySubmitted) {
+        const defaults = {}
+        ;(data || []).forEach(s => {
+          defaults[s.id] = leaveSet.has(s.id) ? 'ABSENT' : 'PRESENT'
+        })
+        setAttendance(defaults)
+      }
     } catch (err) {
       console.error('Error fetching students:', err)
     } finally {
@@ -200,31 +255,60 @@ export default function StudentAttendance() {
         throw new Error('No subject mapped for this course & semester')
       }
 
-      const { data: session, error: sessionError } = await supabase
+      const today = new Date().toISOString().split('T')[0]
+
+      // 1. Check if session already exists to avoid 409 Conflict
+      let { data: session, error: findError } = await supabase
         .from('attendance_sessions')
-        .insert({
-          academic_year: academicYear,
-          semester: Number(semester),
-          subject_id: mapping.subject_id,
-          teacher_id: staff.id,
-          attendance_date: new Date().toISOString().split('T')[0]
-        })
-        .select()
-        .single()
+        .select('id')
+        .eq('academic_year', academicYear)
+        .eq('semester', Number(semester))
+        .eq('subject_id', mapping.subject_id)
+        .eq('teacher_id', staff.id)
+        .eq('attendance_date', today)
+        .maybeSingle()
 
-      if (sessionError) throw sessionError
+      if (findError) throw findError
 
+      // 2. If not found, create it
+      if (!session) {
+        const { data: newSession, error: sessionError } = await supabase
+          .from('attendance_sessions')
+          .insert({
+            academic_year: academicYear,
+            semester: Number(semester),
+            subject_id: mapping.subject_id,
+            teacher_id: staff.id,
+            attendance_date: today
+          })
+          .select()
+          .single()
+
+        if (sessionError) throw sessionError
+        session = newSession
+      }
+
+      // 3. Upsert records (Update if exists, Insert if new)
       const records = students.map(s => ({
         attendance_session_id: session.id,
         student_id: s.id,
         status: attendance[s.id]
       }))
 
-      const { error } = await supabase
+      // First delete existing records for this session to ensure a clean state
+      // (Supabase upsert requires a unique constraint which might not be on student_id + session_id)
+      const { error: deleteError } = await supabase
+        .from('attendance_records')
+        .delete()
+        .eq('attendance_session_id', session.id)
+
+      if (deleteError) throw deleteError
+
+      const { error: insertError } = await supabase
         .from('attendance_records')
         .insert(records)
 
-      if (error) throw error
+      if (insertError) throw insertError
 
       setShowSummary(false)
       setShowSuccess(true)
@@ -341,6 +425,16 @@ const goBackToAttendance = () => {
           {/* STUDENT TABLE */}
           {students.length > 0 && !showSummary && !showSuccess && !loading && (
             <>
+              {isAlreadySubmitted && (
+                <div className="alert alert-info d-flex align-items-center mb-4 border-0 shadow-sm rounded-3">
+                  <i className="bi bi-check-circle-fill fs-4 me-3"></i>
+                  <div>
+                    <h6 className="mb-0 fw-bold">Attendance Already Recorded</h6>
+                    <small>The attendance for this class has already been submitted for today.</small>
+                  </div>
+                </div>
+              )}
+
               <table className="table table-bordered">
                 <thead>
                   <tr>
@@ -354,44 +448,49 @@ const goBackToAttendance = () => {
                   {students.map((s, i) => {
                     const onApprovedLeave = leaveStudentIds.has(s.id)
                     return (
-                    <tr key={s.id}>
-                      <td>{i + 1}</td>
-                      <td>{s.student_id}</td>
-                      <td>{s.full_name}</td>
-                                                              <td>
-                                                                <div className="attendance-options-grid">
-                                                                  <label className="attendance-label attendance-label--present">
-                                                                    <input
-                                                                      type="radio"
-                                                                      checked={attendance[s.id] === 'PRESENT'}
-                                                                      onChange={() =>
-                                                                        setAttendance({ ...attendance, [s.id]: 'PRESENT' })}
-                                                                    /> Present
-                                                                  </label>
-                                                                  <label className="attendance-label attendance-label--absent">
-                                                                    <input
-                                                                      type="radio"
-                                                                      checked={attendance[s.id] === 'ABSENT'}
-                                                                      onChange={() =>
-                                                                        setAttendance({ ...attendance, [s.id]: 'ABSENT' })}
-                                                                    /> Absent
-                                                                  </label>
-                                                                  <div className="text-start">
-                                                                    {onApprovedLeave && (
-                                                                      <div className="attendance-status-label m-0">Approved Leave</div>
-                                                                    )}
-                                                                  </div>
-                                                                </div>
-                                                              </td>                    </tr>
+                      <tr key={s.id}>
+                        <td>{i + 1}</td>
+                        <td>{s.student_id}</td>
+                        <td>{s.full_name}</td>
+                        <td>
+                          <div className="attendance-options-grid">
+                            <label className={`attendance-label attendance-label--present ${isAlreadySubmitted ? 'opacity-75 cursor-not-allowed' : ''}`}>
+                              <input
+                                type="radio"
+                                checked={attendance[s.id] === 'PRESENT'}
+                                onChange={() =>
+                                  !isAlreadySubmitted && setAttendance({ ...attendance, [s.id]: 'PRESENT' })}
+                                disabled={isAlreadySubmitted}
+                              /> Present
+                            </label>
+                            <label className={`attendance-label attendance-label--absent ${isAlreadySubmitted ? 'opacity-75 cursor-not-allowed' : ''}`}>
+                              <input
+                                type="radio"
+                                checked={attendance[s.id] === 'ABSENT'}
+                                onChange={() =>
+                                  !isAlreadySubmitted && setAttendance({ ...attendance, [s.id]: 'ABSENT' })}
+                                disabled={isAlreadySubmitted}
+                              /> Absent
+                            </label>
+                            <div className="text-start">
+                              {onApprovedLeave && (
+                                <div className="attendance-status-label m-0">Approved Leave</div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
                     )
                   })}
                 </tbody>
               </table>
 
               <div className="text-end mt-3">
-                <button className="btn btn-success px-5 fw-bold" onClick={handleDone}>
-                  DONE
-                </button>
+                {academicYear && group && courseCode && semester && !isAlreadySubmitted && (
+                  <button className="btn btn-success px-5 fw-bold" onClick={handleDone}>
+                    DONE
+                  </button>
+                )}
               </div>
             </>
           )}
@@ -406,44 +505,54 @@ const goBackToAttendance = () => {
 
         {/* SUMMARY SCREEN */}
         {showSummary && (
-          <div className="card card-soft p-4 text-center">
-            <h4>Attendance Summary</h4>
-            <p>Total Strength: <b>{totalStrength}</b></p>
-            <p>Present: <b>{presentCount}</b></p>
-            <p>Absent: <b>{absentCount}</b></p>
+          <div className="card card-soft p-4">
+            <h4 className="fw-bold text-dark mb-4 text-center">Attendance Summary</h4>
+            
+            <div className="attendance-summary-grid">
+              <div className="attendance-summary-item attendance-summary-item--total">
+                <span className="attendance-summary-label">Total Strength</span>
+                <span className="attendance-summary-value">{totalStrength}</span>
+              </div>
+              <div className="attendance-summary-item attendance-summary-item--present">
+                <span className="attendance-summary-label">Present</span>
+                <span className="attendance-summary-value">{presentCount}</span>
+              </div>
+              <div className="attendance-summary-item attendance-summary-item--absent">
+                <span className="attendance-summary-label">Absent</span>
+                <span className="attendance-summary-value">{absentCount}</span>
+              </div>
+            </div>
 
             {absentees.length > 0 && (
-              <>
-                <h6>Absentees</h6>
-                <ul className="list-unstyled">
+              <div className="absentees-section">
+                <div className="absentees-title">Absentees List</div>
+                <ul className="absentees-list">
                   {absentees.map(s => (
-                    <li key={s.id}>
+                    <li key={s.id} className="absentee-item">
                       {s.student_id} - {s.full_name}
                     </li>
                   ))}
                 </ul>
-              </>
+              </div>
             )}
 
-<div className="d-flex justify-content-center gap-3 mt-3">
-  <button
-    className="btn btn-outline-secondary px-4"
-    onClick={goBackToAttendance}
-    disabled={loading}
-  >
-    ← Back
-  </button>
+            <div className="d-flex justify-content-center gap-3 mt-5">
+              <button
+                className="btn btn-outline-secondary px-5 py-2 fw-bold"
+                onClick={goBackToAttendance}
+                disabled={loading}
+              >
+                ← BACK
+              </button>
 
-  <button
-    className="btn btn-primary px-4"
-    onClick={submitAttendance}
-    disabled={loading}
-  >
-    {loading ? 'Submitting...' : 'Submit Attendance'}
-  </button>
-</div>
-
-
+              <button
+                className="btn btn-primary px-5 py-2 fw-bold"
+                onClick={submitAttendance}
+                disabled={loading}
+              >
+                {loading ? 'SUBMITTING...' : 'CONFIRM & SUBMIT'}
+              </button>
+            </div>
           </div>
         )}
 
