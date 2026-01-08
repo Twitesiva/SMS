@@ -351,61 +351,16 @@ export default function StudentAttendance() {
                 <div className="small fw-bold text-dark"><span className="d-inline-block rounded-circle me-1" style={{width:10, height:10, background:'#ef4444'}}></span> Absent</div>
               </div>
             </div>
-
-            {/* TABLE */}
-            <div className="student-attendance__table-card">
-              <div className="student-attendance__table-header">
-                <h4 className="fw-bold text-dark mb-1">Attendance History (Day-wise)</h4>
-                <p className="text-dark small mb-0">Analysis of grouped daily sessions.</p>
-              </div>
-              <div className="table-responsive">
-                <table className="student-attendance__table">
-                  <thead>
-                    <tr className="bg-light">
-                      <th className="text-dark fw-bold">Date</th>
-                      <th className="text-dark fw-bold text-center">Day Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dateWiseRecords.map((day) => (
-                      <tr key={day.date} className="border-bottom">
-                        <td className="fw-bold text-dark">{formatDateFull(day.date)}</td>
-                        <td className="text-center">
-                          <span className={`badge ${day.statusText === 'FULL PRESENT' ? 'bg-success' : day.statusText === 'HALF DAY' ? 'bg-warning text-dark' : 'bg-danger'} fw-bold px-3 py-2`} style={{ minWidth: '120px' }}>
-                            {day.statusText}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
           </div>
 
           {/* OVERALL PANEL */}
           <div className="student-attendance__panel">
-            <h4 className="fw-bold text-dark mb-4">Overall Summary</h4>
+            <h4 className="fw-bold text-dark mb-4">Overall Attendance Percentage</h4>
             <div className="student-attendance__donut-wrap">
               <div className="student-attendance__donut" style={{ background: overallStats.days ? `conic-gradient(#10b981 ${overallStats.rate}%, #ef4444 0)` : '#e2e8f0' }}>
                 <div className="student-attendance__donut-center">
                   <div className="student-attendance__donut-value text-dark fw-bold">{overallStats.rate}%</div>
-                  <div className="student-attendance__donut-label text-dark small fw-bold">Score</div>
                 </div>
-              </div>
-            </div>
-            <div className="w-100 mt-4 d-flex flex-column gap-3">
-              <div className="d-flex justify-content-between p-3 bg-white rounded shadow-sm border-start border-4 border-primary">
-                <span className="text-dark fw-bold">Analyzed Days</span>
-                <span className="text-dark fw-bold fs-5">{overallStats.days}</span>
-              </div>
-              <div className="d-flex justify-content-between p-3 bg-white rounded shadow-sm border-start border-4 border-success">
-                <span className="text-dark fw-bold">Full Present</span>
-                <span className="text-success fw-bold fs-5">{overallStats.presentDays}</span>
-              </div>
-              <div className="d-flex justify-content-between p-3 bg-white rounded shadow-sm border-start border-4 border-warning">
-                <span className="text-dark fw-bold">Half Days</span>
-                <span className="text-warning fw-bold fs-5">{overallStats.halfDays}</span>
               </div>
             </div>
           </div>
