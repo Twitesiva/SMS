@@ -466,7 +466,7 @@ export default function StudentSubjectList() {
                                     {materialSubjectSet.has(String(row.subjectName || '').toLowerCase()) ? (
                                       <button
                                         type="button"
-                                        className="student-subjects-accordion__link"
+                                        className="btn btn-sm btn-primary fw-bold"
                                         onClick={() =>
                                           handleOpenFile(
                                             materialUrlBySubject.get(
@@ -475,7 +475,7 @@ export default function StudentSubjectList() {
                                           )
                                         }
                                       >
-                                        Open materials
+                                        View
                                       </button>
                                     ) : (
                                       <span className="student-subjects-accordion__muted">No materials</span>

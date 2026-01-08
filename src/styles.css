@@ -7497,22 +7497,22 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 }
 
 .student-header__portal {
-  font-weight: 700;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.2em;
-  font-size: 0.7rem;
-  color: rgba(226, 232, 240, 0.92);
-  padding-top: 0.2rem;
+  letter-spacing: 0.05em;
+  font-size: 1.2rem; /* Big font size as requested */
+  color: #ffffff;
+  line-height: 1;
 }
 
 .student-header__title {
   font-family: "Space Grotesk", "Cabinet Grotesk", sans-serif;
-  font-weight: 700;
-  color: #f8fafc;
-  letter-spacing: 0.08em;
+  font-weight: 800;
   text-transform: uppercase;
-  font-size: 0.95rem;
-  text-shadow: 0 6px 14px rgba(6, 12, 32, 0.45);
+  letter-spacing: 0.05em;
+  font-size: 1.5rem; /* Big font size as requested */
+  color: #ffffff;
+  margin: 0;
 }
 
 .student-header__subtitle {
