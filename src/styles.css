@@ -9267,7 +9267,10 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   background: #ffffff;
   border: 1px solid #cbd5e1;
   width: 100%;
+  min-width: 2200px; /* Increased to fit all 17 columns comfortably */
   font-size: 0.9rem;
+  border-collapse: collapse;
+  table-layout: auto; /* Allow columns to fit content while maintaining min-width */
 }
 
 .records-page .table th {
@@ -9276,9 +9279,11 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   font-weight: 700;
   text-transform: uppercase;
   padding: 12px 15px;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   white-space: nowrap;
   border: 1px solid #334155;
+  text-align: left;
+  vertical-align: middle;
 }
 
 .records-page .table td {
@@ -9287,26 +9292,45 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   font-weight: 600;
   border: 1px solid #e2e8f0;
   white-space: nowrap;
+  vertical-align: middle;
 }
 
+/* Header & Data Alignment Utilities */
+.records-page .text-center { text-align: center !important; }
+.records-page .text-left { text-align: left !important; }
+
 .records-page .table tbody tr:nth-child(even) {
-  background-color: #f1f5f9;
+  background-color: #f8fafc;
 }
 
 .records-page .table tbody tr:hover {
-  background-color: #e2e8f0;
+  background-color: #f1f5f9;
 }
 
+/* Fixed Widths for critical columns to ensure perfect alignment */
+.records-page .table th:nth-child(1), .records-page .table td:nth-child(1) { width: 60px; text-align: center; } /* S.No */
+.records-page .table th:nth-child(2), .records-page .table td:nth-child(2) { width: 120px; text-align: center; } /* ID */
+.records-page .table th:nth-child(3), .records-page .table td:nth-child(3) { min-width: 220px; } /* Full Name */
+.records-page .table th:nth-child(4), .records-page .table td:nth-child(4) { min-width: 180px; } /* Group */
+.records-page .table th:nth-child(5), .records-page .table td:nth-child(5) { min-width: 100px; } /* Course */
+.records-page .table th:nth-child(6), .records-page .table td:nth-child(6) { width: 100px; text-align: center; } /* Gender */
+.records-page .table th:nth-child(7), .records-page .table td:nth-child(7) { width: 120px; } /* DOB */
+.records-page .table th:nth-child(10), .records-page .table td:nth-child(10) { width: 120px; text-align: center; } /* Nationality */
+.records-page .table th:nth-child(11), .records-page .table td:nth-child(11) { width: 80px; text-align: center; } /* State */
+.records-page .table th:nth-child(17), .records-page .table td:nth-child(17) { width: 140px; text-align: center; } /* Admission Year */
+
 .records-page .address-cell {
-  max-width: 300px;
+  max-width: 450px;
+  min-width: 350px;
   white-space: normal !important;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   line-height: 1.4;
+  text-align: left;
 }
 
 .records-page .search-container {
-  max-width: 400px;
-  margin: 0 auto 20px;
+  max-width: 450px;
+  margin: 0 auto 25px;
 }
 
 /* Card Summary Adjustments */
