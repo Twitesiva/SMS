@@ -343,27 +343,27 @@ const goBackToAttendance = () => {
                     <td>{s.student_id}</td>
                     <td>{s.full_name}</td>
                     <td>
-                      <div className="d-flex align-items-center gap-2">
-                        <label className="attendance-label attendance-label--present fw-bold m-0">
-                          <input
-                            type="radio"
-                            className="staff-attendance__radio"
-                            checked={attendance[s.id] === 'PRESENT'}
-                            onChange={() =>
-                              setAttendance({ ...attendance, [s.id]: 'PRESENT' })}
-                          /> Present
-                        </label>
-                        <label className="attendance-label attendance-label--absent fw-bold m-0">
-                          <input
-                            type="radio"
-                            className="staff-attendance__radio"
-                            checked={attendance[s.id] === 'ABSENT'}
-                            onChange={() =>
-                              setAttendance({ ...attendance, [s.id]: 'ABSENT' })}
-                          /> Absent
-                        </label>
+                      <div className="d-flex align-items-center justify-content-center flex-nowrap">
+                        <div className="attendance-toggle-group">
+                          <label className="attendance-label attendance-label--present">
+                            <input
+                              type="radio"
+                              checked={attendance[s.id] === 'PRESENT'}
+                              onChange={() =>
+                                setAttendance({ ...attendance, [s.id]: 'PRESENT' })}
+                            /> Present
+                          </label>
+                          <label className="attendance-label attendance-label--absent">
+                            <input
+                              type="radio"
+                              checked={attendance[s.id] === 'ABSENT'}
+                              onChange={() =>
+                                setAttendance({ ...attendance, [s.id]: 'ABSENT' })}
+                            /> Absent
+                          </label>
+                        </div>
                         {onApprovedLeave && (
-                          <span className="attendance-status-label fw-bold m-0">Approved Leave</span>
+                          <span className="attendance-status-label">Approved Leave</span>
                         )}
                       </div>
                     </td>
