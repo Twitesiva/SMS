@@ -7408,8 +7408,29 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   letter-spacing: 0.5px;
 }
 
-.staff-dashboard .student-profile__value {
-  color: #1f2d3d;
+.staff-dashboard .student-profile__row {
+  display: grid;
+  grid-template-columns: 180px auto 1fr;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e5e9f2;
+}
+
+.staff-dashboard .student-profile__row:last-child {
+  border-bottom: none;
+}
+
+.staff-dashboard .student-profile__label {
+  color: #000000;
+  font-weight: 600;
+  text-align: left;
+}
+
+.staff-dashboard .student-profile__colon {
+  color: #000000;
+  font-weight: 600;
+  text-align: center;
 }
 
 .staff-dashboard .student-card__body .table thead th {
@@ -9053,6 +9074,43 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 .staff-attendance__radio:focus-visible {
   outline: 2px solid rgba(37, 99, 235, 0.5);
   outline-offset: 2px;
+}
+
+/* Student attendance table column widths */
+.desktop-container .table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.desktop-container .table th {
+  color: #000000;
+  font-weight: 700;
+}
+
+.desktop-container .table th:nth-child(1),
+.desktop-container .table td:nth-child(1) {
+  width: 60px; /* S.No */
+}
+
+.desktop-container .table th:nth-child(2),
+.desktop-container .table td:nth-child(2) {
+  width: 120px; /* Student ID */
+}
+
+.desktop-container .table th:nth-child(3),
+.desktop-container .table td:nth-child(3) {
+  width: 300px; /* Full Name */
+}
+
+.desktop-container .table th:nth-child(4),
+.desktop-container .table td:nth-child(4) {
+  width: auto; /* Attendance - takes remaining space */
+}
+
+/* Student attendance form labels */
+.desktop-container label {
+  color: #000000;
+  font-weight: 600;
 }
 
 .student-materials__title-row {

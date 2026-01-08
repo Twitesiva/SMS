@@ -83,6 +83,7 @@ export default function StaffDashboard() {
                                 {rows.map((row) => (
                                     <div key={row.label} className="student-profile__row">
                                         <div className="student-profile__label">{row.label}</div>
+                                        <div className="student-profile__colon">:</div>
                                         <div className="student-profile__value">{row.value}</div>
                                     </div>
                                 ))}
