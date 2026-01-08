@@ -136,44 +136,49 @@ export default function StudentLeaveRequest() {
                 <div className="row g-4">
                     {/* Request Form */}
                     <div className="col-lg-7">
-                        <div className="card border-0 shadow-sm rounded-4 h-100">
-                            <div className="card-body p-4 p-md-5">
-                                <h4 className="fw-bold mb-3">Request Category</h4>
-                                <p className="text-muted mb-4">Apply for leave or on-duty based on your requirement.</p>
+                        <div className="card border-0 shadow-sm rounded-3 overflow-hidden h-100" style={{ backgroundColor: '#ffffff' }}>
+                            <div className="p-3 border-bottom" style={{ backgroundColor: '#f8fafc' }}>
+                                <h5 className="fw-bold text-dark mb-1">Request Category</h5>
+                                <p className="text-muted small mb-0">Apply for leave or on-duty based on your requirement.</p>
+                            </div>
 
+                            <div className="p-3">
                                 <form onSubmit={handleSubmit}>
-                                    <div className="mb-4">
-                                        <div className="form-check form-check-inline">
-                                            <input
-                                                className="form-check-input"
-                                                type="radio"
-                                                name="requestType"
-                                                id="typeLeave"
-                                                value="Leave"
-                                                checked={form.requestType === 'Leave'}
-                                                onChange={handleChange}
-                                            />
-                                            <label className="form-check-label fw-semibold" htmlFor="typeLeave">Leave</label>
-                                        </div>
-                                        <div className="form-check form-check-inline">
-                                            <input
-                                                className="form-check-input"
-                                                type="radio"
-                                                name="requestType"
-                                                id="typeOD"
-                                                value="On-Duty"
-                                                checked={form.requestType === 'On-Duty'}
-                                                onChange={handleChange}
-                                            />
-                                            <label className="form-check-label fw-semibold" htmlFor="typeOD">On-Duty</label>
+                                    {/* CATEGORY */}
+                                    <div className="mb-4 p-2 rounded-2" style={{ backgroundColor: '#f1f5f9' }}>
+                                        <div className="d-flex gap-4">
+                                            <div className="form-check form-check-inline m-0">
+                                                <input
+                                                    className="staff-attendance__radio me-2"
+                                                    type="radio"
+                                                    name="requestType"
+                                                    id="typeLeave"
+                                                    value="Leave"
+                                                    checked={form.requestType === 'Leave'}
+                                                    onChange={handleChange}
+                                                />
+                                                <label className="form-check-label fw-bold text-dark cursor-pointer" htmlFor="typeLeave">Leave</label>
+                                            </div>
+                                            <div className="form-check form-check-inline m-0">
+                                                <input
+                                                    className="staff-attendance__radio me-2"
+                                                    type="radio"
+                                                    name="requestType"
+                                                    id="typeOD"
+                                                    value="On-Duty"
+                                                    checked={form.requestType === 'On-Duty'}
+                                                    onChange={handleChange}
+                                                />
+                                                <label className="form-check-label fw-bold text-dark cursor-pointer" htmlFor="typeOD">On-Duty</label>
+                                            </div>
                                         </div>
                                     </div>
 
                                     {form.requestType === 'Leave' && (
-                                        <div className="mb-4">
-                                            <label className="form-label fw-semibold">Leave Type</label>
+                                        <div className="mb-3">
+                                            <label className="form-label fw-bold text-dark small">Leave Type *</label>
                                             <select
-                                                className="form-select text-muted"
+                                                className="form-select form-select-sm"
                                                 name="leaveType"
                                                 value={form.leaveType}
                                                 onChange={handleChange}
@@ -186,45 +191,55 @@ export default function StudentLeaveRequest() {
                                         </div>
                                     )}
 
-                                    <div className="row g-3 mb-4">
+                                    <div className="row g-3 mb-3">
                                         <div className="col-md-6">
-                                            <label className="form-label fw-semibold">From Date</label>
-                                            <input
-                                                type="date"
-                                                className="form-control text-muted"
-                                                name="startDate"
-                                                value={form.startDate}
-                                                onChange={handleChange}
-                                            />
+                                            <div className="p-2 rounded-2" style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                                                <label className="form-label fw-bold text-dark small mb-1">From Date *</label>
+                                                <input
+                                                    type="date"
+                                                    className="form-control form-control-sm"
+                                                    name="startDate"
+                                                    value={form.startDate}
+                                                    onChange={handleChange}
+                                                />
+                                            </div>
                                         </div>
                                         <div className="col-md-6">
-                                            <label className="form-label fw-semibold">To Date</label>
-                                            <input
-                                                type="date"
-                                                className="form-control text-muted"
-                                                name="endDate"
-                                                value={form.endDate}
-                                                onChange={handleChange}
-                                            />
+                                            <div className="p-2 rounded-2" style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                                                <label className="form-label fw-bold text-dark small mb-1">To Date *</label>
+                                                <input
+                                                    type="date"
+                                                    className="form-control form-control-sm"
+                                                    name="endDate"
+                                                    value={form.endDate}
+                                                    onChange={handleChange}
+                                                />
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div className="mb-4">
-                                        <label className="form-label fw-semibold">Reason</label>
+                                    <div className="mb-3">
+                                        <label className="form-label fw-bold text-dark small">Reason *</label>
                                         <textarea
-                                            className="form-control text-muted"
-                                            rows="4"
+                                            className="form-control form-control-sm"
+                                            rows="3"
                                             name="reason"
-                                            placeholder="Provide a brief justification for your request"
+                                            placeholder="Provide a brief justification"
                                             value={form.reason}
                                             onChange={handleChange}
                                         ></textarea>
                                     </div>
 
-                                    <div className="text-center mt-5">
-                                        <p className="text-muted small mb-3">Upon submission, this request will be forwarded to the Head of Department (HOD) for approval.</p>
-                                        <button type="submit" className="btn btn-primary px-5 py-2 fw-semibold" disabled={loading}>
-                                            {loading ? 'Submitting...' : 'Submit for HOD Approval'}
+                                    <div className="mt-4 pt-3 border-top text-center">
+                                        <div className="d-flex align-items-start gap-2 mb-3 p-2 rounded-2 text-start" style={{ backgroundColor: '#eff6ff' }}>
+                                            <i className="bi bi-info-circle text-primary mt-1"></i>
+                                            <p className="text-muted small mb-0" style={{ lineHeight: '1.4' }}>
+                                                Upon submission, this request will be forwarded to the Head of Department (HOD) for approval.
+                                            </p>
+                                        </div>
+
+                                        <button type="submit" className="btn btn-primary px-5 py-2 fw-bold" disabled={loading}>
+                                            {loading ? 'Submitting...' : 'SUBMIT FOR HOD APPROVAL'}
                                         </button>
                                     </div>
                                 </form>
