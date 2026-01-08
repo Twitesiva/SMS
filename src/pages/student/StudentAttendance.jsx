@@ -175,42 +175,32 @@ export default function StudentAttendance() {
           <div className="student-attendance__stat">
             <div className="student-attendance__stat-head">
               <span className="student-attendance__stat-icon">
-                <i className="bi bi-calendar3 text-primary" aria-hidden="true"></i>
+                <i className="bi bi-calendar-check text-primary" aria-hidden="true"></i>
               </span>
-              <div className="student-attendance__stat-label fw-bold text-dark">Total Days</div>
+              <div className="student-attendance__stat-label fw-bold text-dark">Today's Sessions</div>
             </div>
-            <div className="student-attendance__stat-value text-dark">{overallStats.days}</div>
-            <div className="student-attendance__stat-meta text-dark">Filtered period</div>
+            <div className="student-attendance__stat-value text-dark">{todayData.total} / 5</div>
+            <div className="student-attendance__stat-meta text-dark">Recorded for today</div>
           </div>
           <div className="student-attendance__stat">
             <div className="student-attendance__stat-head">
               <span className="student-attendance__stat-icon">
-                <i className="bi bi-check-circle text-success" aria-hidden="true"></i>
+                <i className="bi bi-graph-up text-success" aria-hidden="true"></i>
               </span>
-              <div className="student-attendance__stat-label fw-bold text-dark">Full Present</div>
+              <div className="student-attendance__stat-label fw-bold text-dark">Today's Rate</div>
             </div>
-            <div className="student-attendance__stat-value text-dark">{overallStats.presentDays}</div>
-            <div className="student-attendance__stat-meta text-dark">Complete attendance</div>
+            <div className="student-attendance__stat-value text-dark">{todayData.rate}%</div>
+            <div className="student-attendance__stat-meta text-dark">{todayData.label}</div>
           </div>
           <div className="student-attendance__stat">
             <div className="student-attendance__stat-head">
               <span className="student-attendance__stat-icon">
-                <i className="bi bi-clock-history text-warning" aria-hidden="true"></i>
+                <i className="bi bi-globe text-info" aria-hidden="true"></i>
               </span>
-              <div className="student-attendance__stat-label fw-bold text-dark">Half Days</div>
-            </div>
-            <div className="student-attendance__stat-value text-dark">{overallStats.halfDays}</div>
-            <div className="student-attendance__stat-meta text-dark">Partial attendance</div>
-          </div>
-          <div className="student-attendance__stat">
-            <div className="student-attendance__stat-head">
-              <span className="student-attendance__stat-icon">
-                <i className="bi bi-graph-up text-info" aria-hidden="true"></i>
-              </span>
-              <div className="student-attendance__stat-label fw-bold text-dark">Attendance Score</div>
+              <div className="student-attendance__stat-label fw-bold text-dark">Overall Attendance Rate</div>
             </div>
             <div className="student-attendance__stat-value text-dark">{overallStats.rate}%</div>
-            <div className="student-attendance__stat-meta text-dark">Weighted average</div>
+            <div className="student-attendance__stat-meta text-dark">Total weighted score</div>
           </div>
         </div>
 
