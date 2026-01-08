@@ -973,6 +973,60 @@ h6,
   margin-bottom: 1.5rem;
 }
 
+.students-section-shell-header h2 {
+  margin: 0 0 0.35rem;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  font-size: 1.5rem;
+}
+
+/* Enhanced headings for student and staff pages */
+.student-details h3,
+.staff-dashboard h3,
+.desktop-container h3 {
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 1rem;
+}
+
+.student-details h4,
+.staff-dashboard h4,
+.desktop-container h4 {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 0.8rem;
+}
+
+.student-details h5,
+.staff-dashboard h5,
+.desktop-container h5 {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+  margin-bottom: 0.6rem;
+}
+
+.student-details h6,
+.staff-dashboard h6,
+.desktop-container h6 {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.1px;
+  margin-bottom: 0.5rem;
+}
+
 .students-section-copy {
   color: #1c2a52;
   line-height: 1.4;
@@ -1033,9 +1087,11 @@ h6,
   }
 
   .student-timetable-title {
-    font-weight: 600;
+    font-weight: 700;
     color: #111827;
-    font-size: 1rem;
+    font-size: 1.2rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   .student-timetable-subtitle {
@@ -7346,6 +7402,10 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 .staff-dashboard .student-card__header {
   background: linear-gradient(180deg, #0f1f3d 0%, #14264b 60%, #1a325d 100%);
   color: #f8fafc;
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .staff-dashboard .student-profile__value {
@@ -7555,7 +7615,10 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   background: linear-gradient(180deg, #0f1f3d 0%, #14264b 60%, #1a325d 100%);
   color: #f8fafc;
   padding: 0.85rem 1.1rem;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .student-card__body {
@@ -7656,6 +7719,8 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   color: #0f172a;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  font-weight: 700;
+  font-size: 1.5rem;
 }
 
 .student-details__header p {
@@ -8196,7 +8261,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 }
 
 .student-detail-value {
-  color: #1a73e8;
+  color: #000000;
   font-weight: 600;
 }
 
@@ -9410,8 +9475,9 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
   font-size: clamp(1.6rem, 2.2vw, 1.9rem);
   letter-spacing: 0.04em;
   margin: 0 0 0.35rem;
-  color: #f8fafc;
+  color: #ffffff !important;
   text-transform: uppercase;
+  font-weight: 700;
 }
 
 .student-circulars__card-meta {
