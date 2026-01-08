@@ -258,13 +258,13 @@ export default function LeaveManagement() {
 
   return (
     <StaffShell title="Leave & On-Duty Management">
-      <div className="container-fluid py-4">
+      <div className="container-fluid py-4 leave-management-page">
 
         {isHOD && (
-          <ul className="nav nav-tabs mb-4">
+          <ul className="nav nav-tabs mb-4 border-0 gap-2">
             <li className="nav-item">
               <button
-                className={`nav-link ${activeTab === 'approvals' ? 'active' : ''}`}
+                className={`nav-link rounded-3 fw-bold ${activeTab === 'approvals' ? 'active bg-primary text-white' : 'bg-white text-dark'}`}
                 onClick={() => setActiveTab('approvals')}
               >
                 Pending Approvals
@@ -273,7 +273,7 @@ export default function LeaveManagement() {
             </li>
             <li className="nav-item">
               <button
-                className={`nav-link ${activeTab === 'history' ? 'active' : ''}`}
+                className={`nav-link rounded-3 fw-bold ${activeTab === 'history' ? 'active bg-primary text-white' : 'bg-white text-dark'}`}
                 onClick={() => setActiveTab('history')}
               >
                 Approvals History
@@ -284,9 +284,9 @@ export default function LeaveManagement() {
 
         {/* APPROVALS TAB */}
         {isHOD && activeTab === 'approvals' && (
-          <div className="card border-0 shadow-sm">
-            <div className="card-body">
-              <h5 className="card-title mb-4">Pending Leave Requests</h5>
+          <div className="card card-soft p-0 overflow-hidden border-0 shadow-sm">
+            <div className="p-4">
+              <h5 className="fw-bold text-dark mb-4">Pending Leave Requests</h5>
               {loadingRequests ? (
                 <div className="student-details__loading" role="status" aria-live="polite">
                   <div className="student-details__loading-header">
@@ -311,13 +311,13 @@ export default function LeaveManagement() {
               ) : (
                 <>
                   {showStudentSection && (
-                    <div className="mb-4">
-                      <h6 className="fw-semibold mb-3">Student Leave Requests</h6>
+                    <div className="mb-5">
+                      <h6 className="fw-bold text-primary mb-3 text-uppercase small letter-spacing-1">Student Leave Requests</h6>
                       {studentRequests.length === 0 ? (
-                        <div className="text-muted">No pending student requests.</div>
+                        <div className="text-muted p-3 bg-light rounded">No pending student requests.</div>
                       ) : (
                         <div className="table-responsive">
-                          <table className="table align-middle">
+                          <table className="table table-bordered align-middle">
                             <thead>
                               <tr>
                                 <th>Applicant</th>
@@ -332,23 +332,21 @@ export default function LeaveManagement() {
                             <tbody>
                               {studentRequests.map((req) => (
                                 <tr key={req.id}>
-                                  <td>
-                                    <div className="fw-bold">{req.applicantName}</div>
-                                  </td>
-                                  <td>
+                                  <td className="fw-bold">{req.applicantName}</td>
+                                  <td className="text-center">
                                     <span className="badge bg-light text-dark border">{req.applicant_type}</span>
                                   </td>
                                   <td>{req.leave_type}</td>
                                   <td>
-                                    <div>From: {req.from_date}</div>
-                                    <div>To: {req.to_date}</div>
+                                    <div className="small">From: {req.from_date}</div>
+                                    <div className="small">To: {req.to_date}</div>
                                   </td>
-                                  <td>{req.total_days}</td>
-                                  <td style={{ maxWidth: '200px' }}>{req.reason}</td>
+                                  <td className="text-center">{req.total_days}</td>
+                                  <td style={{ maxWidth: '200px' }} className="small">{req.reason}</td>
                                   <td>
-                                    <div className="d-flex gap-2">
-                                      <button className="btn btn-sm btn-success" onClick={() => handleApproval(req.id, 'APPROVED')}>Approve</button>
-                                      <button className="btn btn-sm btn-danger" onClick={() => handleApproval(req.id, 'REJECTED')}>Reject</button>
+                                    <div className="action-grid">
+                                      <button className="action-label action-label--approve" onClick={() => handleApproval(req.id, 'APPROVED')}>Approve</button>
+                                      <button className="action-label action-label--reject" onClick={() => handleApproval(req.id, 'REJECTED')}>Reject</button>
                                     </div>
                                   </td>
                                 </tr>
@@ -361,12 +359,12 @@ export default function LeaveManagement() {
                   )}
                   {showStaffSection && (
                     <div>
-                      <h6 className="fw-semibold mb-3">Staff Leave Requests</h6>
+                      <h6 className="fw-bold text-primary mb-3 text-uppercase small letter-spacing-1">Staff Leave Requests</h6>
                       {staffRequests.length === 0 ? (
-                        <div className="text-muted">No pending staff requests.</div>
+                        <div className="text-muted p-3 bg-light rounded">No pending staff requests.</div>
                       ) : (
                         <div className="table-responsive">
-                          <table className="table align-middle">
+                          <table className="table table-bordered align-middle">
                             <thead>
                               <tr>
                                 <th>Applicant</th>
@@ -381,23 +379,21 @@ export default function LeaveManagement() {
                             <tbody>
                               {staffRequests.map((req) => (
                                 <tr key={req.id}>
-                                  <td>
-                                    <div className="fw-bold">{req.applicantName}</div>
-                                  </td>
-                                  <td>
+                                  <td className="fw-bold">{req.applicantName}</td>
+                                  <td className="text-center">
                                     <span className="badge bg-light text-dark border">{req.applicant_type}</span>
                                   </td>
                                   <td>{req.leave_type}</td>
                                   <td>
-                                    <div>From: {req.from_date}</div>
-                                    <div>To: {req.to_date}</div>
+                                    <div className="small">From: {req.from_date}</div>
+                                    <div className="small">To: {req.to_date}</div>
                                   </td>
-                                  <td>{req.total_days}</td>
-                                  <td style={{ maxWidth: '200px' }}>{req.reason}</td>
+                                  <td className="text-center">{req.total_days}</td>
+                                  <td style={{ maxWidth: '200px' }} className="small">{req.reason}</td>
                                   <td>
-                                    <div className="d-flex gap-2">
-                                      <button className="btn btn-sm btn-success" onClick={() => handleApproval(req.id, 'APPROVED')}>Approve</button>
-                                      <button className="btn btn-sm btn-danger" onClick={() => handleApproval(req.id, 'REJECTED')}>Reject</button>
+                                    <div className="action-grid">
+                                      <button className="action-label action-label--approve" onClick={() => handleApproval(req.id, 'APPROVED')}>Approve</button>
+                                      <button className="action-label action-label--reject" onClick={() => handleApproval(req.id, 'REJECTED')}>Reject</button>
                                     </div>
                                   </td>
                                 </tr>
@@ -416,9 +412,9 @@ export default function LeaveManagement() {
 
         {/* HISTORY TAB (HOD) */}
         {isHOD && activeTab === 'history' && (
-          <div className="card border-0 shadow-sm">
-            <div className="card-body">
-              <h5 className="card-title mb-4">Actioned Requests History</h5>
+          <div className="card card-soft p-0 overflow-hidden border-0 shadow-sm">
+            <div className="p-4">
+              <h5 className="fw-bold text-dark mb-4">Actioned Requests History</h5>
               {loadingActioned ? (
                 <div className="student-details__loading" role="status" aria-live="polite">
                   <div className="student-details__loading-header">
@@ -443,13 +439,13 @@ export default function LeaveManagement() {
               ) : (
                 <>
                   {showStudentSection && (
-                    <div className="mb-4">
-                      <h6 className="fw-semibold mb-3">Student Leave History</h6>
+                    <div className="mb-5">
+                      <h6 className="fw-bold text-primary mb-3 text-uppercase small letter-spacing-1">Student Leave History</h6>
                       {studentActionedRequests.length === 0 ? (
-                        <div className="text-muted">No student history records found.</div>
+                        <div className="text-muted p-3 bg-light rounded">No student history records found.</div>
                       ) : (
                         <div className="table-responsive">
-                          <table className="table align-middle">
+                          <table className="table table-bordered align-middle">
                             <thead>
                               <tr>
                                 <th>Applicant</th>
@@ -464,11 +460,11 @@ export default function LeaveManagement() {
                               {studentActionedRequests.map((req) => (
                                 <tr key={req.id}>
                                   <td>
-                                    <div className="fw-semibold">{req.applicantName}</div>
+                                    <div className="fw-bold">{req.applicantName}</div>
                                     {req.applicantDetails && <div className="small text-muted">{req.applicantDetails}</div>}
                                   </td>
-                                  <td>
-                                    <span className="badge bg-secondary bg-opacity-10 text-secondary border">{req.applicant_type}</span>
+                                  <td className="text-center">
+                                    <span className="badge bg-light text-dark border">{req.applicant_type}</span>
                                   </td>
                                   <td>
                                     <div>{req.leave_type}</div>
@@ -478,15 +474,15 @@ export default function LeaveManagement() {
                                     <div className="small">{req.from_date} to {req.to_date}</div>
                                     <div className="small text-muted fst-italic">"{req.reason}"</div>
                                   </td>
-                                  <td>
+                                  <td className="text-center">
                                     {req.status === 'APPROVED' ? (
-                                      <span className="badge bg-success bg-opacity-10 text-success px-3 py-2">APPROVED</span>
+                                      <span className="leave-status-badge leave-status-badge--approved">APPROVED</span>
                                     ) : (
-                                      <span className="badge bg-danger bg-opacity-10 text-danger px-3 py-2">REJECTED</span>
+                                      <span className="leave-status-badge leave-status-badge--rejected">REJECTED</span>
                                     )}
-                                    {req.hod_remarks && <div className="small text-muted mt-1">Note: {req.hod_remarks}</div>}
+                                    {req.hod_remarks && <div className="small text-muted mt-1 fst-italic">Note: {req.hod_remarks}</div>}
                                   </td>
-                                  <td className="small text-muted">
+                                  <td className="small text-center">
                                     {req.actioned_at ? new Date(req.actioned_at).toLocaleDateString() : '-'}
                                   </td>
                                 </tr>
@@ -499,12 +495,12 @@ export default function LeaveManagement() {
                   )}
                   {showStaffSection && (
                     <div>
-                      <h6 className="fw-semibold mb-3">Staff Leave History</h6>
+                      <h6 className="fw-bold text-primary mb-3 text-uppercase small letter-spacing-1">Staff Leave History</h6>
                       {staffActionedRequests.length === 0 ? (
-                        <div className="text-muted">No staff history records found.</div>
+                        <div className="text-muted p-3 bg-light rounded">No staff history records found.</div>
                       ) : (
                         <div className="table-responsive">
-                          <table className="table align-middle">
+                          <table className="table table-bordered align-middle">
                             <thead>
                               <tr>
                                 <th>Applicant</th>
@@ -519,11 +515,11 @@ export default function LeaveManagement() {
                               {staffActionedRequests.map((req) => (
                                 <tr key={req.id}>
                                   <td>
-                                    <div className="fw-semibold">{req.applicantName}</div>
+                                    <div className="fw-bold">{req.applicantName}</div>
                                     {req.applicantDetails && <div className="small text-muted">{req.applicantDetails}</div>}
                                   </td>
-                                  <td>
-                                    <span className="badge bg-secondary bg-opacity-10 text-secondary border">{req.applicant_type}</span>
+                                  <td className="text-center">
+                                    <span className="badge bg-light text-dark border">{req.applicant_type}</span>
                                   </td>
                                   <td>
                                     <div>{req.leave_type}</div>
@@ -533,15 +529,15 @@ export default function LeaveManagement() {
                                     <div className="small">{req.from_date} to {req.to_date}</div>
                                     <div className="small text-muted fst-italic">"{req.reason}"</div>
                                   </td>
-                                  <td>
+                                  <td className="text-center">
                                     {req.status === 'APPROVED' ? (
-                                      <span className="badge bg-success bg-opacity-10 text-success px-3 py-2">APPROVED</span>
+                                      <span className="leave-status-badge leave-status-badge--approved">APPROVED</span>
                                     ) : (
-                                      <span className="badge bg-danger bg-opacity-10 text-danger px-3 py-2">REJECTED</span>
+                                      <span className="leave-status-badge leave-status-badge--rejected">REJECTED</span>
                                     )}
-                                    {req.hod_remarks && <div className="small text-muted mt-1">Note: {req.hod_remarks}</div>}
+                                    {req.hod_remarks && <div className="small text-muted mt-1 fst-italic">Note: {req.hod_remarks}</div>}
                                   </td>
-                                  <td className="small text-muted">
+                                  <td className="small text-center">
                                     {req.actioned_at ? new Date(req.actioned_at).toLocaleDateString() : '-'}
                                   </td>
                                 </tr>

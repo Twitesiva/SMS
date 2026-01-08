@@ -9337,6 +9337,101 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 }
 
 /* ==========================================================================
+   LEAVE MANAGEMENT PAGE STYLES (.leave-management-page)
+   ========================================================================== */
+.leave-management-page .table th {
+  background: #93c5fd !important;
+  color: #000000 !important;
+  font-weight: 800 !important;
+  text-transform: uppercase;
+  padding: 1rem !important;
+  font-size: 1rem !important;
+  border-bottom: 3px solid #2563eb !important;
+  border-right: 1px solid #60a5fa !important;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.leave-management-page .table th:last-child { border-right: none !important; }
+
+.leave-management-page .table td {
+  padding: 1rem !important;
+  vertical-align: middle !important;
+  color: #000000 !important;
+  font-weight: 700 !important;
+  border-bottom: 1px solid #dbeafe !important;
+}
+
+.leave-management-page .action-grid {
+  display: grid;
+  grid-template-columns: 110px 110px;
+  gap: 8px;
+  justify-content: center;
+}
+
+.action-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: #ffffff;
+  border: 1px solid #dbeafe;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 900;
+  color: #000000;
+  text-transform: uppercase;
+  transition: all 0.2s ease;
+}
+
+.action-label--approve:hover {
+  background: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
+}
+
+.action-label--reject:hover {
+  background: #ef4444;
+  color: #ffffff;
+  border-color: #ef4444;
+}
+
+/* Leave Management Table Column Widths */
+.leave-management-page .table th:nth-child(1), .leave-management-page .table td:nth-child(1) { width: auto; min-width: 200px; } /* Applicant */
+.leave-management-page .table th:nth-child(2), .leave-management-page .table td:nth-child(2) { width: 100px; text-align: center; } /* Role */
+.leave-management-page .table th:nth-child(3), .leave-management-page .table td:nth-child(3) { width: 150px; } /* Type */
+.leave-management-page .table th:nth-child(4), .leave-management-page .table td:nth-child(4) { width: 220px; } /* Dates */
+.leave-management-page .table th:nth-child(5), .leave-management-page .table td:nth-child(5) { width: 180px; text-align: center; } /* Status/Days */
+.leave-management-page .table th:nth-child(6), .leave-management-page .table td:nth-child(6) { width: auto; } /* Reason/Actioned */
+
+.leave-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 900; /* Solid Black Bold */
+  color: #000000;
+  text-transform: uppercase;
+  min-width: 120px;
+  letter-spacing: 0.025em;
+}
+
+.leave-status-badge--approved {
+  background: #d1fae5;
+  border: 1px solid #10b981;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
+}
+
+.leave-status-badge--rejected {
+  background: #fee2e2;
+  border: 1px solid #ef4444;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
+}
+
+/* ==========================================================================
    STUDENT RECORDS PAGE STYLES (.records-page)
    ========================================================================== */
 .records-page .table {
