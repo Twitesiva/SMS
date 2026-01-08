@@ -2,6 +2,29 @@ import { useEffect, useMemo, useState } from 'react'
 import StudentShell from '../../components/StudentShell'
 import { supabase } from '../../../supabaseClient'
 import { useStudentAuth } from '../../store/studentAuth'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  PointElement,
+  LineElement
+} from 'chart.js'
+import { Bar } from 'react-chartjs-2'
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+)
 
 export default function StudentAttendance() {
   const { student } = useStudentAuth()
@@ -101,7 +124,6 @@ export default function StudentAttendance() {
       const d = r.attendance_sessions?.attendance_date
       if (!d) return
       
-      // Apply Date Filters
       if (startDate && d < startDate) return
       if (endDate && d > endDate) return
 
@@ -109,7 +131,7 @@ export default function StudentAttendance() {
       map.get(d).push(r)
     })
 
-    const result = Array.from(map.entries())
+    return Array.from(map.entries())
       .map(([date, sessions]) => {
         const presentCount = sessions.filter(s => s.status === 'PRESENT').length
         let statusText = 'ABSENT'
@@ -118,11 +140,8 @@ export default function StudentAttendance() {
         
         return { date, sessions, presentCount, statusText }
       })
-      // Apply Status Filter
       .filter(day => !statusFilter || day.statusText === statusFilter)
       .sort((a, b) => b.date.localeCompare(a.date))
-
-    return result
   }, [records, startDate, endDate, statusFilter])
 
   const todayData = useMemo(() => {
@@ -130,7 +149,7 @@ export default function StudentAttendance() {
     const sessions = dayEntry?.sessions || []
     const present = sessions.filter((s) => s.status === 'PRESENT').length
     const total = sessions.length
-    const rate = total > 0 ? Math.round((present / 5) * 100) : 0 
+    const rate = total > 0 ? (present / 5 * 100).toFixed(1) : "0.0" 
 
     let label = 'NO DATA'
     if (total > 0) {
@@ -148,18 +167,86 @@ export default function StudentAttendance() {
     const halfDays = dateWiseRecords.filter(d => d.statusText === 'HALF DAY').length
     
     const totalScore = presentDays + (halfDays * 0.5)
-    const rate = days > 0 ? Math.round((totalScore / days) * 100) : 0
+    const rate = days > 0 ? (totalScore / days * 100).toFixed(1) : "0.0"
     
-    return { days, presentDays, halfDays, rate }
+    return { days, presentDays, halfDays, rate, totalScore }
   }, [dateWiseRecords])
 
-  const formatDate = (value) => {
+  const formatDateFull = (value) => {
     if (!value) return 'N/A'
     return new Date(`${value}T00:00:00`).toLocaleDateString('en-GB', {
       day: '2-digit',
       month: 'short',
       year: 'numeric'
     })
+  }
+
+  // Month-wise Chart Data
+  const chartData = useMemo(() => {
+    const monthMap = new Map()
+    const sortedDays = [...dateWiseRecords].sort((a, b) => a.date.localeCompare(b.date))
+    
+    sortedDays.forEach(day => {
+      const dateObj = new Date(`${day.date}T00:00:00`)
+      const monthKey = dateObj.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
+      
+      if (!monthMap.has(monthKey)) {
+        monthMap.set(monthKey, { present: 0, half: 0, absent: 0 })
+      }
+      
+      const stats = monthMap.get(monthKey)
+      if (day.statusText === 'FULL PRESENT') stats.present++
+      else if (day.statusText === 'HALF DAY') stats.half++
+      else stats.absent++
+    })
+
+    const labels = Array.from(monthMap.keys())
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'Full Present',
+          data: labels.map(l => monthMap.get(l).present),
+          backgroundColor: '#10b981',
+          borderRadius: 4
+        },
+        {
+          label: 'Half Day',
+          data: labels.map(l => monthMap.get(l).half),
+          backgroundColor: '#f59e0b',
+          borderRadius: 4
+        },
+        {
+          label: 'Absent',
+          data: labels.map(l => monthMap.get(l).absent),
+          backgroundColor: '#ef4444',
+          borderRadius: 4
+        }
+      ]
+    }
+  }, [dateWiseRecords])
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: { font: { weight: 'bold' }, color: '#000000' }
+      }
+    },
+    scales: {
+      y: {
+        stacked: true,
+        beginAtZero: true,
+        ticks: { stepSize: 1, font: { weight: 'bold' }, color: '#000000' },
+        title: { display: true, text: 'DAYS', font: { weight: 'bold' }, color: '#000000' }
+      },
+      x: {
+        stacked: true,
+        ticks: { font: { weight: 'bold' }, color: '#000000' }
+      }
+    }
   }
 
   return (
@@ -180,17 +267,17 @@ export default function StudentAttendance() {
               <div className="student-attendance__stat-label fw-bold text-dark">Today's Sessions</div>
             </div>
             <div className="student-attendance__stat-value text-dark">{todayData.total} / 5</div>
-            <div className="student-attendance__stat-meta text-dark">Recorded for today</div>
+            <div className="student-attendance__stat-meta text-dark">{todayData.label || 'NO DATA'}</div>
           </div>
           <div className="student-attendance__stat">
             <div className="student-attendance__stat-head">
               <span className="student-attendance__stat-icon">
-                <i className="bi bi-graph-up text-success" aria-hidden="true"></i>
+                <i className="bi bi-calendar-check text-success" aria-hidden="true"></i>
               </span>
-              <div className="student-attendance__stat-label fw-bold text-dark">Today's Rate</div>
+              <div className="student-attendance__stat-label fw-bold text-dark">Overall Present Days</div>
             </div>
-            <div className="student-attendance__stat-value text-dark">{todayData.rate}%</div>
-            <div className="student-attendance__stat-meta text-dark">{todayData.label}</div>
+            <div className="student-attendance__stat-value text-dark">{overallStats.totalScore} Days</div>
+            <div className="student-attendance__stat-meta text-dark">Present + Half Days</div>
           </div>
           <div className="student-attendance__stat">
             <div className="student-attendance__stat-head">
@@ -200,7 +287,7 @@ export default function StudentAttendance() {
               <div className="student-attendance__stat-label fw-bold text-dark">Overall Attendance Rate</div>
             </div>
             <div className="student-attendance__stat-value text-dark">{overallStats.rate}%</div>
-            <div className="student-attendance__stat-meta text-dark">Total weighted score</div>
+            <div className="student-attendance__stat-meta text-dark">Calculated from total days</div>
           </div>
         </div>
 
@@ -209,29 +296,15 @@ export default function StudentAttendance() {
           <div className="row g-3">
             <div className="col-md-4">
               <label className="small fw-bold text-dark mb-1">From Date</label>
-              <input 
-                type="date" 
-                className="form-control form-control-sm" 
-                value={startDate}
-                onChange={e => setStartDate(e.target.value)}
-              />
+              <input type="date" className="form-control form-control-sm" value={startDate} onChange={e => setStartDate(e.target.value)} />
             </div>
             <div className="col-md-4">
               <label className="small fw-bold text-dark mb-1">To Date</label>
-              <input 
-                type="date" 
-                className="form-control form-control-sm" 
-                value={endDate}
-                onChange={e => setEndDate(e.target.value)}
-              />
+              <input type="date" className="form-control form-control-sm" value={endDate} onChange={e => setEndDate(e.target.value)} />
             </div>
             <div className="col-md-4">
               <label className="small fw-bold text-dark mb-1">Status Filter</label>
-              <select 
-                className="form-select form-select-sm"
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-              >
+              <select className="form-select form-select-sm" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
                 <option value="">All Statuses</option>
                 <option value="FULL PRESENT">Full Present</option>
                 <option value="HALF DAY">Half Day</option>
@@ -242,21 +315,21 @@ export default function StudentAttendance() {
         </div>
 
         <div className="student-attendance__main">
-          <div className="student-attendance__table-card">
-            <div className="student-attendance__table-header">
-              <div>
-                <h4 className="fw-bold text-dark mb-1">Attendance History (Day-wise)</h4>
-                <p className="text-dark small mb-0">Analysis of grouped daily sessions.</p>
+          <div className="d-flex flex-column gap-4 w-100">
+            {/* GRAPH */}
+            <div className="card card-soft p-4 shadow-sm">
+              <h4 className="fw-bold text-dark mb-4 text-uppercase small">Monthly Attendance Trends</h4>
+              <div style={{ height: '350px' }}>
+                <Bar data={chartData} options={chartOptions} />
               </div>
             </div>
 
-            {error ? (
-              <div className="student-attendance__empty">{error}</div>
-            ) : loading ? (
-              <div className="student-attendance__empty">Loading attendance...</div>
-            ) : dateWiseRecords.length === 0 ? (
-              <div className="student-attendance__empty">No records found for the selected filters.</div>
-            ) : (
+            {/* TABLE */}
+            <div className="student-attendance__table-card">
+              <div className="student-attendance__table-header">
+                <h4 className="fw-bold text-dark mb-1">Attendance History (Day-wise)</h4>
+                <p className="text-dark small mb-0">Analysis of grouped daily sessions.</p>
+              </div>
               <div className="table-responsive">
                 <table className="student-attendance__table">
                   <thead>
@@ -266,71 +339,49 @@ export default function StudentAttendance() {
                     </tr>
                   </thead>
                   <tbody>
-                    {dateWiseRecords.map((day) => {
-                      let badgeClass = 'bg-danger'
-                      if (day.statusText === 'FULL PRESENT') badgeClass = 'bg-success'
-                      else if (day.statusText === 'HALF DAY') badgeClass = 'bg-warning text-dark'
-
-                      return (
-                        <tr key={day.date} className="border-bottom">
-                          <td className="fw-bold text-dark">{formatDate(day.date)}</td>
-                          <td className="text-center">
-                            <span className={`badge ${badgeClass} fw-bold px-3 py-2`} style={{ minWidth: '120px' }}>
-                              {day.statusText}
-                            </span>
-                          </td>
-                        </tr>
-                      )
-                    })}
+                    {dateWiseRecords.map((day) => (
+                      <tr key={day.date} className="border-bottom">
+                        <td className="fw-bold text-dark">{formatDateFull(day.date)}</td>
+                        <td className="text-center">
+                          <span className={`badge ${day.statusText === 'FULL PRESENT' ? 'bg-success' : day.statusText === 'HALF DAY' ? 'bg-warning text-dark' : 'bg-danger'} fw-bold px-3 py-2`} style={{ minWidth: '120px' }}>
+                            {day.statusText}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
-            )}
+            </div>
           </div>
 
+          {/* OVERALL PANEL */}
           <div className="student-attendance__panel">
-            <div className="student-attendance__panel-header">
-              <div>
-                <h4 className="fw-bold text-dark mb-1">Overall Summary</h4>
-                <p className="text-dark small mb-0">Filtered status breakdown</p>
-              </div>
-            </div>
-            
-            <div className="student-attendance__donut-wrap mt-4">
-              <div
-                className="student-attendance__donut"
-                style={{
-                  background: overallStats.days
-                    ? `conic-gradient(#10b981 ${overallStats.rate}%, #ef4444 0)`
-                    : 'conic-gradient(#e2e8f0 0%, #e2e8f0 100%)'
-                }}
-              >
+            <h4 className="fw-bold text-dark mb-4">Overall Summary</h4>
+            <div className="student-attendance__donut-wrap">
+              <div className="student-attendance__donut" style={{ background: overallStats.days ? `conic-gradient(#10b981 ${overallStats.rate}%, #ef4444 0)` : '#e2e8f0' }}>
                 <div className="student-attendance__donut-center">
                   <div className="student-attendance__donut-value text-dark fw-bold">{overallStats.rate}%</div>
                   <div className="student-attendance__donut-label text-dark small fw-bold">Score</div>
                 </div>
               </div>
             </div>
-
-            <div className="w-100 px-2 mt-4">
-              <div className="d-flex flex-column gap-3">
-                <div className="d-flex justify-content-between p-3 bg-white rounded shadow-sm border-start border-4 border-primary">
-                  <span className="text-dark fw-bold">Analyzed Days</span>
-                  <span className="text-dark fw-bold fs-5">{overallStats.days}</span>
-                </div>
-                <div className="d-flex justify-content-between p-3 bg-white rounded shadow-sm border-start border-4 border-success">
-                  <span className="text-dark fw-bold">Full Present</span>
-                  <span className="text-success fw-bold fs-5">{overallStats.presentDays}</span>
-                </div>
-                <div className="d-flex justify-content-between p-3 bg-white rounded shadow-sm border-start border-4 border-warning">
-                  <span className="text-dark fw-bold">Half Days</span>
-                  <span className="text-warning fw-bold fs-5">{overallStats.halfDays}</span>
-                </div>
+            <div className="w-100 mt-4 d-flex flex-column gap-3">
+              <div className="d-flex justify-content-between p-3 bg-white rounded shadow-sm border-start border-4 border-primary">
+                <span className="text-dark fw-bold">Analyzed Days</span>
+                <span className="text-dark fw-bold fs-5">{overallStats.days}</span>
+              </div>
+              <div className="d-flex justify-content-between p-3 bg-white rounded shadow-sm border-start border-4 border-success">
+                <span className="text-dark fw-bold">Full Present</span>
+                <span className="text-success fw-bold fs-5">{overallStats.presentDays}</span>
+              </div>
+              <div className="d-flex justify-content-between p-3 bg-white rounded shadow-sm border-start border-4 border-warning">
+                <span className="text-dark fw-bold">Half Days</span>
+                <span className="text-warning fw-bold fs-5">{overallStats.halfDays}</span>
               </div>
             </div>
           </div>
         </div>
-
       </div>
     </StudentShell>
   )
