@@ -358,30 +358,31 @@ const goBackToAttendance = () => {
                       <td>{i + 1}</td>
                       <td>{s.student_id}</td>
                       <td>{s.full_name}</td>
-                      <td>
-                        <div className="attendance-vertical-stack">
-                          <label className="attendance-label attendance-label--present">
-                            <input
-                              type="radio"
-                              checked={attendance[s.id] === 'PRESENT'}
-                              onChange={() =>
-                                setAttendance({ ...attendance, [s.id]: 'PRESENT' })}
-                            /> Present
-                          </label>
-                          <label className="attendance-label attendance-label--absent">
-                            <input
-                              type="radio"
-                              checked={attendance[s.id] === 'ABSENT'}
-                              onChange={() =>
-                                setAttendance({ ...attendance, [s.id]: 'ABSENT' })}
-                            /> Absent
-                          </label>
-                          {onApprovedLeave && (
-                            <div className="attendance-status-label">Approved Leave</div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
+                                                              <td>
+                                                                <div className="attendance-options-grid">
+                                                                  <label className="attendance-label attendance-label--present">
+                                                                    <input
+                                                                      type="radio"
+                                                                      checked={attendance[s.id] === 'PRESENT'}
+                                                                      onChange={() =>
+                                                                        setAttendance({ ...attendance, [s.id]: 'PRESENT' })}
+                                                                    /> Present
+                                                                  </label>
+                                                                  <label className="attendance-label attendance-label--absent">
+                                                                    <input
+                                                                      type="radio"
+                                                                      checked={attendance[s.id] === 'ABSENT'}
+                                                                      onChange={() =>
+                                                                        setAttendance({ ...attendance, [s.id]: 'ABSENT' })}
+                                                                    /> Absent
+                                                                  </label>
+                                                                  <div className="text-start">
+                                                                    {onApprovedLeave && (
+                                                                      <div className="attendance-status-label m-0">Approved Leave</div>
+                                                                    )}
+                                                                  </div>
+                                                                </div>
+                                                              </td>                    </tr>
                     )
                   })}
                 </tbody>
