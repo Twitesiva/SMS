@@ -231,10 +231,10 @@ const goBackToAttendance = () => {
 
   return (
     <StaffShell title="Student Attendance">
-      <div className="desktop-container">
+      <div className="desktop-container attendance-page">
         <h3 className="fw-semibold mb-4">STUDENT ATTENDANCE</h3>
 
-        {/* FILTER BAR */}
+        {/* FILTER CARD */}
         <div className="card card-soft p-4 mb-4">
           <div className="row g-3">
             <div className="col-md-3">
@@ -298,53 +298,52 @@ const goBackToAttendance = () => {
           </div>
         </div>
 
-        {loading && !showSummary && !showSuccess && (
-          <div className="student-details__loading" role="status" aria-live="polite">
-            <div className="student-details__loading-header">
-              <div className="student-loader__spinner" aria-hidden="true"></div>
-              <div>
-                <div className="student-loader__title">Loading attendance data</div>
-                <div className="student-loader__subtitle">Preparing student list and leave status.</div>
-              </div>
-            </div>
-            <div className="student-details__loading-grid" aria-hidden="true">
-              {Array.from({ length: 3 }).map((_, index) => (
-                <div className="student-loader-card" key={`loader-card-${index}`}>
-                  <div className="student-loader-card__header student-loader__shimmer"></div>
-                  <div className="student-loader-card__line student-loader__shimmer"></div>
-                  <div className="student-loader-card__line student-loader__shimmer"></div>
-                  <div className="student-loader-card__line student-loader__shimmer"></div>
-                  <div className="student-loader-card__line student-loader__shimmer"></div>
+        {/* DATA CARD */}
+        <div className="card card-soft p-4">
+          {loading && !showSummary && !showSuccess && (
+            <div className="student-details__loading" role="status" aria-live="polite">
+              <div className="student-details__loading-header">
+                <div className="student-loader__spinner" aria-hidden="true"></div>
+                <div>
+                  <div className="student-loader__title">Loading attendance data</div>
+                  <div className="student-loader__subtitle">Preparing student list and leave status.</div>
                 </div>
-              ))}
+              </div>
+              <div className="student-details__loading-grid" aria-hidden="true">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <div className="student-loader-card" key={`loader-card-${index}`}>
+                    <div className="student-loader-card__header student-loader__shimmer"></div>
+                    <div className="student-loader-card__line student-loader__shimmer"></div>
+                    <div className="student-loader-card__line student-loader__shimmer"></div>
+                  </div>
+                ))}
+              </div>
+              <span className="sr-only">Loading details...</span>
             </div>
-            <span className="sr-only">Loading details...</span>
-          </div>
-        )}
+          )}
 
-        {/* STUDENT TABLE */}
-        {students.length > 0 && !showSummary && !showSuccess && !loading && (
-          <div className="card card-soft p-4">
-            <table className="table table-bordered">
-              <thead>
-                <tr>
-                  <th>S.No</th>
-                  <th>Student ID</th>
-                  <th>Full Name</th>
-                  <th>Attendance</th>
-                </tr>
-              </thead>
-              <tbody>
-                {students.map((s, i) => {
-                  const onApprovedLeave = leaveStudentIds.has(s.id)
-                  return (
-                  <tr key={s.id}>
-                    <td>{i + 1}</td>
-                    <td>{s.student_id}</td>
-                    <td>{s.full_name}</td>
-                    <td>
-                      <div className="d-flex align-items-center justify-content-center flex-nowrap">
-                        <div className="attendance-toggle-group">
+          {/* STUDENT TABLE */}
+          {students.length > 0 && !showSummary && !showSuccess && !loading && (
+            <>
+              <table className="table table-bordered">
+                <thead>
+                  <tr>
+                    <th>S.No</th>
+                    <th>Student ID</th>
+                    <th>Full Name</th>
+                    <th>Attendance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {students.map((s, i) => {
+                    const onApprovedLeave = leaveStudentIds.has(s.id)
+                    return (
+                    <tr key={s.id}>
+                      <td>{i + 1}</td>
+                      <td>{s.student_id}</td>
+                      <td>{s.full_name}</td>
+                      <td>
+                        <div className="attendance-vertical-stack">
                           <label className="attendance-label attendance-label--present">
                             <input
                               type="radio"
@@ -361,25 +360,32 @@ const goBackToAttendance = () => {
                                 setAttendance({ ...attendance, [s.id]: 'ABSENT' })}
                             /> Absent
                           </label>
+                          {onApprovedLeave && (
+                            <div className="attendance-status-label">Approved Leave</div>
+                          )}
                         </div>
-                        {onApprovedLeave && (
-                          <span className="attendance-status-label">Approved Leave</span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                      </td>
+                    </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
 
-            <div className="text-end mt-3">
-              <button className="btn btn-success" onClick={handleDone}>
-                Done
-              </button>
+              <div className="text-end mt-3">
+                <button className="btn btn-success px-5 fw-bold" onClick={handleDone}>
+                  DONE
+                </button>
+              </div>
+            </>
+          )}
+
+          {!loading && !students.length && !showSummary && !showSuccess && (
+            <div className="text-center py-5 text-muted">
+              <i className="bi bi-people fs-1 d-block mb-2 opacity-25"></i>
+              Please select all filters to load student list
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* SUMMARY SCREEN */}
         {showSummary && (
