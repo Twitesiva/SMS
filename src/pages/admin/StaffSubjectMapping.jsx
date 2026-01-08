@@ -106,6 +106,17 @@ const adminNavGroups = [
             }
         ]
     },
+    {
+        title: 'Payment Reports',
+        static: true,
+        items: [
+            {
+                to: '/admin-portal/payment-reports',
+                label: 'Payment Reports',
+                icon: 'bi-file-earmark-bar-graph'
+            }
+        ]
+    },
 
 ]
 

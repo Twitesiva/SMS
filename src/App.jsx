@@ -25,6 +25,7 @@ import AcademicYears from "./pages/admin/AcademicYears.jsx";
 import GroupsCourses from "./pages/admin/GroupsCourses.jsx";
 import Subjects from "./pages/admin/Subjects.jsx";
 import FeesCollection from "./pages/admin/FeesCollection.jsx";
+import PaymentReports from "./pages/admin/PaymentReports.jsx";
 import ClassTimeTable from "./pages/admin/ClassTimeTable.jsx";
 import ClassTimeTableCreation from "./pages/admin/ClassTimeTableCreation.jsx";
 import LibraryLogin from "./pages/library/LibraryLogin.jsx";
@@ -148,6 +149,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
               <FeesCollection />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/admin-portal/payment-reports"
+          element={
+            <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
+              <PaymentReports />
             </GuardedRoute>
           }
         />
