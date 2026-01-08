@@ -181,73 +181,96 @@ export default function StudentAttendance() {
     })
   }
 
-  // Month-wise Chart Data
-  const chartData = useMemo(() => {
-    const monthMap = new Map()
-    const sortedDays = [...dateWiseRecords].sort((a, b) => a.date.localeCompare(b.date))
+  // Daily Chart Logic for Current Month
+  const dailyChartData = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
     
-    sortedDays.forEach(day => {
-      const dateObj = new Date(`${day.date}T00:00:00`)
-      const monthKey = dateObj.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
-      
-      if (!monthMap.has(monthKey)) {
-        monthMap.set(monthKey, { present: 0, half: 0, absent: 0 })
-      }
-      
-      const stats = monthMap.get(monthKey)
-      if (day.statusText === 'FULL PRESENT') stats.present++
-      else if (day.statusText === 'HALF DAY') stats.half++
-      else stats.absent++
-    })
+    const labels = [];
+    const dataPoints = [];
+    const colors = [];
 
-    const labels = Array.from(monthMap.keys())
+    for (let i = 1; i <= daysInMonth; i++) {
+      labels.push(i);
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+      const record = dateWiseRecords.find(r => r.date === dateStr);
+      
+      if (record) {
+        if (record.statusText === 'FULL PRESENT') {
+          dataPoints.push(3); // Top level
+          colors.push('#10b981');
+        } else if (record.statusText === 'HALF DAY') {
+          dataPoints.push(2); // Middle level
+          colors.push('#f59e0b');
+        } else {
+          dataPoints.push(1); // Bottom visible level
+          colors.push('#ef4444');
+        }
+      } else {
+        dataPoints.push(null); 
+        colors.push('#e2e8f0');
+      }
+    }
+
     return {
       labels,
       datasets: [
         {
-          label: 'Full Present',
-          data: labels.map(l => monthMap.get(l).present),
-          backgroundColor: '#10b981',
-          borderRadius: 4
-        },
-        {
-          label: 'Half Day',
-          data: labels.map(l => monthMap.get(l).half),
-          backgroundColor: '#f59e0b',
-          borderRadius: 4
-        },
-        {
-          label: 'Absent',
-          data: labels.map(l => monthMap.get(l).absent),
-          backgroundColor: '#ef4444',
-          borderRadius: 4
+          label: 'Daily Status',
+          data: dataPoints,
+          backgroundColor: colors,
+          borderRadius: 4,
+          barThickness: 15
         }
       ]
-    }
-  }, [dateWiseRecords])
+    };
+  }, [dateWiseRecords]);
 
-  const chartOptions = {
+  const dailyChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: {
-        position: 'bottom',
-        labels: { font: { weight: 'bold' }, color: '#000000' }
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          title: (items) => `Day ${items[0].label}`,
+          label: (context) => {
+            const val = context.raw;
+            if (val === 3) return 'Status: FULL PRESENT';
+            if (val === 2) return 'Status: HALF DAY';
+            if (val === 1) return 'Status: ABSENT';
+            return 'No Record';
+          }
+        }
       }
     },
     scales: {
       y: {
-        stacked: true,
-        beginAtZero: true,
-        ticks: { stepSize: 1, font: { weight: 'bold' }, color: '#000000' },
-        title: { display: true, text: 'DAYS', font: { weight: 'bold' }, color: '#000000' }
+        min: 0,
+        max: 3,
+        ticks: {
+          stepSize: 1,
+          callback: function(value) {
+            if (value === 3) return 'PRESENT';
+            if (value === 2) return 'HALFDAY';
+            if (value === 1) return 'ABSENT';
+            return '';
+          },
+          font: { weight: 'bold', size: 10 },
+          color: '#000000'
+        },
+        title: { display: true, text: 'STATUS', font: { weight: 'bold', size: 10 }, color: '#000000' },
+        grid: { color: '#e2e8f0' }
       },
       x: {
-        stacked: true,
-        ticks: { font: { weight: 'bold' }, color: '#000000' }
+        ticks: { font: { weight: 'bold', size: 10 }, color: '#000000' },
+        title: { display: true, text: 'DAY OF MONTH', font: { weight: 'bold', size: 10 }, color: '#000000' },
+        grid: { display: false }
       }
     }
-  }
+  };
 
   return (
     <StudentShell>
@@ -318,9 +341,14 @@ export default function StudentAttendance() {
           <div className="d-flex flex-column gap-4 w-100">
             {/* GRAPH */}
             <div className="card card-soft p-4 shadow-sm">
-              <h4 className="fw-bold text-dark mb-4 text-uppercase small">Monthly Attendance Trends</h4>
+              <h4 className="fw-bold text-dark mb-4 text-uppercase small">Current Month: {new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</h4>
               <div style={{ height: '350px' }}>
-                <Bar data={chartData} options={chartOptions} />
+                <Bar data={dailyChartData} options={dailyChartOptions} />
+              </div>
+              <div className="mt-3 d-flex justify-content-center gap-4">
+                <div className="small fw-bold text-dark"><span className="d-inline-block rounded-circle me-1" style={{width:10, height:10, background:'#10b981'}}></span> Full Present</div>
+                <div className="small fw-bold text-dark"><span className="d-inline-block rounded-circle me-1" style={{width:10, height:10, background:'#f59e0b'}}></span> Half Day</div>
+                <div className="small fw-bold text-dark"><span className="d-inline-block rounded-circle me-1" style={{width:10, height:10, background:'#ef4444'}}></span> Absent</div>
               </div>
             </div>
 
