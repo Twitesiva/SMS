@@ -56,14 +56,17 @@ export default function StudentAttendance() {
   }
 
   const fetchCoursesByGroup = async (groupName) => {
+    setLoading(true)
     const { data } = await supabase
       .from('courses')
       .select('course_code, course_name')
       .eq('group_name', groupName)
     setCourses(data || [])
+    setLoading(false)
   }
 
   const fetchSemestersByCourse = async (courseCode) => {
+    setLoading(true)
     const { data } = await supabase
       .from('subjects')
       .select('semester_number')
@@ -71,6 +74,7 @@ export default function StudentAttendance() {
 
     const unique = [...new Set((data || []).map(d => d.semester_number))]
     setSemesters(unique)
+    setLoading(false)
   }
 
   /* ===============================
@@ -91,6 +95,7 @@ export default function StudentAttendance() {
 
     if (!courseName) return
 
+    setLoading(true)
     const { data } = await supabase
       .from('students')
       .select('id, student_id, full_name')
@@ -128,6 +133,7 @@ export default function StudentAttendance() {
       defaults[s.id] = leaveSet.has(s.id) ? 'ABSENT' : 'PRESENT'
     })
     setAttendance(defaults)
+    setLoading(false)
   }
 
   /* ===============================
@@ -292,8 +298,32 @@ const goBackToAttendance = () => {
           </div>
         </div>
 
+        {loading && !showSummary && !showSuccess && (
+          <div className="student-details__loading" role="status" aria-live="polite">
+            <div className="student-details__loading-header">
+              <div className="student-loader__spinner" aria-hidden="true"></div>
+              <div>
+                <div className="student-loader__title">Loading attendance data</div>
+                <div className="student-loader__subtitle">Preparing student list and leave status.</div>
+              </div>
+            </div>
+            <div className="student-details__loading-grid" aria-hidden="true">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <div className="student-loader-card" key={`loader-card-${index}`}>
+                  <div className="student-loader-card__header student-loader__shimmer"></div>
+                  <div className="student-loader-card__line student-loader__shimmer"></div>
+                  <div className="student-loader-card__line student-loader__shimmer"></div>
+                  <div className="student-loader-card__line student-loader__shimmer"></div>
+                  <div className="student-loader-card__line student-loader__shimmer"></div>
+                </div>
+              ))}
+            </div>
+            <span className="sr-only">Loading details...</span>
+          </div>
+        )}
+
         {/* STUDENT TABLE */}
-        {students.length > 0 && !showSummary && !showSuccess && (
+        {students.length > 0 && !showSummary && !showSuccess && !loading && (
           <div className="card card-soft p-4">
             <table className="table table-bordered">
               <thead>

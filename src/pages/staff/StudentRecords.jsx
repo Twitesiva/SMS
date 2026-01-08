@@ -22,13 +22,18 @@ export default function StudentRecords() {
        DATA STATE
     ================================ */
     const [students, setStudents] = useState([])
+    const [loading, setLoading] = useState(false)
 
     /* ===============================
        INITIAL LOAD
     ================================ */
     useEffect(() => {
-        fetchAcademicYears()
-        fetchGroups()
+        const init = async () => {
+            setLoading(true)
+            await Promise.all([fetchAcademicYears(), fetchGroups()])
+            setLoading(false)
+        }
+        init()
     }, [])
 
     /* ===============================
@@ -52,15 +57,18 @@ export default function StudentRecords() {
     }
 
     const fetchCoursesByGroup = async (groupName) => {
+        setLoading(true)
         const { data } = await supabase
             .from('courses')
             .select('course_code, course_name')
             .eq('group_name', groupName)
 
         setCourses(data || [])
+        setLoading(false)
     }
 
     const fetchSemestersByCourse = async (courseCode) => {
+        setLoading(true)
         const { data } = await supabase
             .from('subjects')
             .select('semester_number')
@@ -68,6 +76,7 @@ export default function StudentRecords() {
 
         const unique = [...new Set((data || []).map(d => d.semester_number))]
         setSemesters(unique)
+        setLoading(false)
     }
 
     /* ===============================
@@ -87,6 +96,7 @@ export default function StudentRecords() {
 
         if (!courseNameLabel) return
 
+        setLoading(true)
         const { data, error } = await supabase
             .from('students')
             .select(`
@@ -114,6 +124,7 @@ export default function StudentRecords() {
 
 
         if (!error) setStudents(data || [])
+        setLoading(false)
     }
     const filteredStudents = students.filter((s) =>
         s.student_id.toLowerCase().includes(searchId.toLowerCase())
@@ -219,6 +230,30 @@ export default function StudentRecords() {
                     </div>
                 </div>
 
+                {loading && (
+                    <div className="student-details__loading" role="status" aria-live="polite">
+                        <div className="student-details__loading-header">
+                            <div className="student-loader__spinner" aria-hidden="true"></div>
+                            <div>
+                                <div className="student-loader__title">Loading student records</div>
+                                <div className="student-loader__subtitle">Preparing detailed information grid.</div>
+                            </div>
+                        </div>
+                        <div className="student-details__loading-grid" aria-hidden="true">
+                            {Array.from({ length: 3 }).map((_, index) => (
+                                <div className="student-loader-card" key={`loader-card-${index}`}>
+                                    <div className="student-loader-card__header student-loader__shimmer"></div>
+                                    <div className="student-loader-card__line student-loader__shimmer"></div>
+                                    <div className="student-loader-card__line student-loader__shimmer"></div>
+                                    <div className="student-loader-card__line student-loader__shimmer"></div>
+                                    <div className="student-loader-card__line student-loader__shimmer"></div>
+                                </div>
+                            ))}
+                        </div>
+                        <span className="sr-only">Loading details...</span>
+                    </div>
+                )}
+
                 {/* ===============================
                    STUDENT TABLE
                 ================================ */}
@@ -255,7 +290,7 @@ export default function StudentRecords() {
   }
 `}</style>
 
-{students.length > 0 && (
+{students.length > 0 && !loading && (
   <>
 <div className="d-flex justify-content-center mb-3">
   <div

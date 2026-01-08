@@ -288,7 +288,24 @@ export default function LeaveManagement() {
             <div className="card-body">
               <h5 className="card-title mb-4">Pending Leave Requests</h5>
               {loadingRequests ? (
-                <div className="text-center py-4">Loading...</div>
+                <div className="student-details__loading" role="status" aria-live="polite">
+                  <div className="student-details__loading-header">
+                    <div className="student-loader__spinner" aria-hidden="true"></div>
+                    <div>
+                      <div className="student-loader__title">Loading pending requests</div>
+                      <div className="student-loader__subtitle">Fetching leave and on-duty applications.</div>
+                    </div>
+                  </div>
+                  <div className="student-details__loading-grid" aria-hidden="true">
+                    {Array.from({ length: 2 }).map((_, index) => (
+                      <div className="student-loader-card" key={`loader-card-${index}`}>
+                        <div className="student-loader-card__header student-loader__shimmer"></div>
+                        <div className="student-loader-card__line student-loader__shimmer"></div>
+                        <div className="student-loader-card__line student-loader__shimmer"></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               ) : requests.length === 0 ? (
                 <div className="text-muted text-center py-4">No pending requests</div>
               ) : (
@@ -403,7 +420,24 @@ export default function LeaveManagement() {
             <div className="card-body">
               <h5 className="card-title mb-4">Actioned Requests History</h5>
               {loadingActioned ? (
-                <div className="text-center py-4">Loading...</div>
+                <div className="student-details__loading" role="status" aria-live="polite">
+                  <div className="student-details__loading-header">
+                    <div className="student-loader__spinner" aria-hidden="true"></div>
+                    <div>
+                      <div className="student-loader__title">Loading actioned history</div>
+                      <div className="student-loader__subtitle">Fetching processed applications.</div>
+                    </div>
+                  </div>
+                  <div className="student-details__loading-grid" aria-hidden="true">
+                    {Array.from({ length: 2 }).map((_, index) => (
+                      <div className="student-loader-card" key={`loader-card-hist-${index}`}>
+                        <div className="student-loader-card__header student-loader__shimmer"></div>
+                        <div className="student-loader-card__line student-loader__shimmer"></div>
+                        <div className="student-loader-card__line student-loader__shimmer"></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               ) : actionedRequests.length === 0 ? (
                 <div className="text-muted text-center py-4">No history records found</div>
               ) : (
