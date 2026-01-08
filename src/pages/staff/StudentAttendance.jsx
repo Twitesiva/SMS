@@ -313,27 +313,29 @@ const goBackToAttendance = () => {
                     <td>{s.student_id}</td>
                     <td>{s.full_name}</td>
                     <td>
-                      <label className="me-4 fw-bold">
-                        <input
-                          type="radio"
-                          className="staff-attendance__radio"
-                          checked={attendance[s.id] === 'PRESENT'}
-                          onChange={() =>
-                            setAttendance({ ...attendance, [s.id]: 'PRESENT' })}
-                        /> Present
-                      </label>
-                      <label className="fw-bold">
-                        <input
-                          type="radio"
-                          className="staff-attendance__radio"
-                          checked={attendance[s.id] === 'ABSENT'}
-                          onChange={() =>
-                            setAttendance({ ...attendance, [s.id]: 'ABSENT' })}
-                        /> Absent
-                      </label>
-                      {onApprovedLeave && (
-                        <span className="badge bg-warning-subtle text-warning ms-3">Approved Leave</span>
-                      )}
+                      <div className="d-flex align-items-center gap-2">
+                        <label className="attendance-label attendance-label--present fw-bold m-0">
+                          <input
+                            type="radio"
+                            className="staff-attendance__radio"
+                            checked={attendance[s.id] === 'PRESENT'}
+                            onChange={() =>
+                              setAttendance({ ...attendance, [s.id]: 'PRESENT' })}
+                          /> Present
+                        </label>
+                        <label className="attendance-label attendance-label--absent fw-bold m-0">
+                          <input
+                            type="radio"
+                            className="staff-attendance__radio"
+                            checked={attendance[s.id] === 'ABSENT'}
+                            onChange={() =>
+                              setAttendance({ ...attendance, [s.id]: 'ABSENT' })}
+                          /> Absent
+                        </label>
+                        {onApprovedLeave && (
+                          <span className="attendance-status-label fw-bold m-0">Approved Leave</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                   )
