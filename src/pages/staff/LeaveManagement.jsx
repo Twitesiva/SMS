@@ -528,139 +528,145 @@ export default function LeaveManagement() {
         {(activeTab === 'apply' || !isHOD) && (
           <div className="row">
             <div className="col-lg-7">
-              <div
-                className="card card-soft p-4 rounded-4 shadow-sm h-100"
-              >
-                <h3 className="mb-2">Request Category</h3>
-                <p className="text-muted mb-4">
-                  Apply for leave or on-duty based on your requirement.
-                </p>
-
-                {/* CATEGORY */}
-                <div className="mb-4">
-                  <label className="me-4 form-check-label fw-bold text-dark">
-                    <input
-                      type="radio"
-                      className="staff-attendance__radio me-2"
-                      checked={requestCategory === 'leave'}
-                      onChange={() => {
-                        setRequestCategory('leave')
-                        setOdType('')
-                      }}
-                    />
-                    Leave
-                  </label>
-
-                  <label className="form-check-label fw-bold text-dark">
-                    <input
-                      type="radio"
-                      className="staff-attendance__radio me-2"
-                      checked={requestCategory === 'od'}
-                      onChange={() => {
-                        setRequestCategory('od')
-                        setLeaveType('')
-                      }}
-                    />
-                    On-Duty
-                  </label>
-                </div>
-
-                {/* LEAVE TYPE */}
-                {requestCategory === 'leave' && (
-                  <div className="mb-4">
-                    <label className="form-label fw-semibold">Leave Type</label>
-                    <select
-                      className="form-select"
-                      value={leaveType}
-                      onChange={(e) => handleLeaveChange(e.target.value)}
-                    >
-                      <option value="">Select Leave Type</option>
-
-                      <option value="__REGULAR__">
-                        ▶ REGULAR LEAVE
-                      </option>
-                      <option value="casual">Casual Leave</option>
-                      <option value="earned">Earned Leave</option>
-                      <option value="medical">Medical Leave</option>
-
-                      <option value="__SPECIAL__">
-                        ▶ SPECIAL LEAVE
-                      </option>
-                      <option value="maternity">Maternity / Paternity Leave</option>
-                      <option value="childcare">Child Care Leave</option>
-                      <option value="compensatory">Compensatory Off</option>
-
-                      <option value="__ACADEMIC__">
-                        ▶ ACADEMIC / OFFICIAL
-                      </option>
-                      <option value="study">Study Leave</option>
-                      <option value="sabbatical">Sabbatical Leave</option>
-                      <option value="quarantine">Quarantine / Special Medical</option>
-                    </select>
-                  </div>
-                )}
-
-                {/* OD TYPE */}
-                {requestCategory === 'od' && (
-                  <div className="mb-4">
-                    <label className="form-label fw-semibold">On-Duty Type</label>
-                    <select
-                      className="form-select"
-                      value={odType}
-                      onChange={(e) => setOdType(e.target.value)}
-                    >
-                      <option value="">Select On-Duty Type</option>
-                      <option value="exam">Exam Duty</option>
-                      <option value="workshop">Workshop / FDP</option>
-                      <option value="conference">Conference / Seminar</option>
-                      <option value="college">Official College Work</option>
-                      <option value="external">External Academic Assignment</option>
-                    </select>
-                  </div>
-                )}
-
-                {/* DATES */}
-                <div className="row mb-4">
-                  <div className="col-md-6">
-                    <label className="form-label fw-semibold">From Date</label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      value={fromDate}
-                      onChange={(e) => setFromDate(e.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label fw-semibold">To Date</label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      value={toDate}
-                      onChange={(e) => setToDate(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                {/* REASON */}
-                <div className="mb-4">
-                  <label className="form-label fw-semibold">Reason</label>
-                  <textarea
-                    className="form-control"
-                    rows="4"
-                    placeholder="Provide a brief justification for your request"
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                  />
-                </div>
-
-                <div className="text-center mt-4 mb-3">
-                  <p style={{ fontWeight: '600', marginBottom: '20px' }} className="text-muted small">
-                    Upon submission, this request will be forwarded to the Head of Department (HOD) for approval.
+              <div className="card border-0 shadow-sm rounded-3 overflow-hidden h-100" style={{ backgroundColor: '#ffffff' }}>
+                <div className="p-3 border-bottom" style={{ backgroundColor: '#f8fafc' }}>
+                  <h5 className="fw-bold text-dark mb-1">Request Category</h5>
+                  <p className="text-muted small mb-0">
+                    Apply for leave or on-duty based on your requirement.
                   </p>
+                </div>
 
-                  <button className="btn btn-primary" onClick={handleSubmit} disabled={loading}>
-                    {loading ? 'Submitting...' : 'Submit for HOD Approval'}
-                  </button>
+                <div className="p-3">
+                  {/* CATEGORY */}
+                  <div className="mb-4 p-2 rounded-2" style={{ backgroundColor: '#f1f5f9' }}>
+                    <div className="d-flex gap-4">
+                      <label className="form-check-label fw-bold text-dark d-flex align-items-center cursor-pointer">
+                        <input
+                          type="radio"
+                          className="staff-attendance__radio me-2"
+                          checked={requestCategory === 'leave'}
+                          onChange={() => {
+                            setRequestCategory('leave')
+                            setOdType('')
+                          }}
+                        />
+                        Leave
+                      </label>
+
+                      <label className="form-check-label fw-bold text-dark d-flex align-items-center cursor-pointer">
+                        <input
+                          type="radio"
+                          className="staff-attendance__radio me-2"
+                          checked={requestCategory === 'od'}
+                          onChange={() => {
+                            setRequestCategory('od')
+                            setLeaveType('')
+                          }}
+                        />
+                        On-Duty
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="row g-3">
+                    {/* LEAVE TYPE */}
+                    {requestCategory === 'leave' && (
+                      <div className="col-12">
+                        <label className="form-label fw-bold text-dark small">Leave Type *</label>
+                        <select
+                          className="form-select form-select-sm"
+                          value={leaveType}
+                          onChange={(e) => handleLeaveChange(e.target.value)}
+                        >
+                          <option value="">Select Leave Type</option>
+                          <option value="__REGULAR__" disabled>▶ REGULAR LEAVE</option>
+                          <option value="casual">Casual Leave</option>
+                          <option value="earned">Earned Leave</option>
+                          <option value="medical">Medical Leave</option>
+                          <option value="__SPECIAL__" disabled>▶ SPECIAL LEAVE</option>
+                          <option value="maternity">Maternity / Paternity Leave</option>
+                          <option value="childcare">Child Care Leave</option>
+                          <option value="compensatory">Compensatory Off</option>
+                          <option value="__ACADEMIC__" disabled>▶ ACADEMIC / OFFICIAL</option>
+                          <option value="study">Study Leave</option>
+                          <option value="sabbatical">Sabbatical Leave</option>
+                          <option value="quarantine">Quarantine / Special Medical</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {/* OD TYPE */}
+                    {requestCategory === 'od' && (
+                      <div className="col-12">
+                        <label className="form-label fw-bold text-dark small">On-Duty Type *</label>
+                        <select
+                          className="form-select form-select-sm"
+                          value={odType}
+                          onChange={(e) => setOdType(e.target.value)}
+                        >
+                          <option value="">Select On-Duty Type</option>
+                          <option value="exam">Exam Duty</option>
+                          <option value="workshop">Workshop / FDP</option>
+                          <option value="conference">Conference / Seminar</option>
+                          <option value="college">Official College Work</option>
+                          <option value="external">External Academic Assignment</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {/* DATES */}
+                    <div className="col-md-6">
+                      <div className="p-2 rounded-2" style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                        <label className="form-label fw-bold text-dark small mb-1">From Date *</label>
+                        <input
+                          type="date"
+                          className="form-control form-control-sm"
+                          value={fromDate}
+                          onChange={(e) => setFromDate(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="col-md-6">
+                      <div className="p-2 rounded-2" style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                        <label className="form-label fw-bold text-dark small mb-1">To Date *</label>
+                        <input
+                          type="date"
+                          className="form-control form-control-sm"
+                          value={toDate}
+                          onChange={(e) => setToDate(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    {/* REASON */}
+                    <div className="col-12">
+                      <label className="form-label fw-bold text-dark small">Reason *</label>
+                      <textarea
+                        className="form-control form-control-sm"
+                        rows="3"
+                        placeholder="Provide a brief justification"
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-top">
+                    <div className="d-flex align-items-start gap-2 mb-3 p-2 rounded-2" style={{ backgroundColor: '#eff6ff' }}>
+                      <i className="bi bi-info-circle text-primary mt-1"></i>
+                      <p className="text-muted small mb-0" style={{ lineHeight: '1.4' }}>
+                        Upon submission, this request will be forwarded to the Head of Department (HOD) for approval.
+                      </p>
+                    </div>
+
+                    <button 
+                      className="btn btn-primary w-100 fw-bold py-2" 
+                      onClick={handleSubmit} 
+                      disabled={loading}
+                    >
+                      {loading ? 'Submitting...' : 'SUBMIT FOR HOD APPROVAL'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
