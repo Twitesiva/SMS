@@ -7598,7 +7598,7 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after {
 }
 
 .student-profile__value {
-  color: #1a73e8;
+  color: #000000;
   font-weight: 600;
 }
 
