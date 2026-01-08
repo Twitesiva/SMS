@@ -232,7 +232,7 @@ const goBackToAttendance = () => {
         <div className="card card-soft p-4 mb-4">
           <div className="row g-3">
             <div className="col-md-3">
-              <label>Academic Year *</label>
+              <label className="small mb-1 fw-bold text-dark">Academic Year *</label>
               <select className="form-select" value={academicYear}
                 onChange={e => setAcademicYear(e.target.value)}>
                 <option value="">Select Academic Year</option>
@@ -243,7 +243,7 @@ const goBackToAttendance = () => {
             </div>
 
             <div className="col-md-3">
-              <label>Group *</label>
+              <label className="small mb-1 fw-bold text-dark">Group *</label>
               <select className="form-select" value={group}
                 onChange={e => {
                   setGroup(e.target.value)
@@ -262,7 +262,7 @@ const goBackToAttendance = () => {
             </div>
 
             <div className="col-md-3">
-              <label>Course *</label>
+              <label className="small mb-1 fw-bold text-dark">Course *</label>
               <select className="form-select" value={courseCode}
                 onChange={e => {
                   setCourseCode(e.target.value)
@@ -280,7 +280,7 @@ const goBackToAttendance = () => {
             </div>
 
             <div className="col-md-3">
-              <label>Semester *</label>
+              <label className="small mb-1 fw-bold text-dark">Semester *</label>
               <select className="form-select" value={semester}
                 onChange={e => setSemester(e.target.value)}>
                 <option value="">Select Semester</option>
