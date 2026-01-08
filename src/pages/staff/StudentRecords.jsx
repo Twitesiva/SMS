@@ -84,7 +84,7 @@ export default function StudentRecords() {
        FETCH STUDENTS (FINAL)
     ================================ */
     useEffect(() => {
-        if (academicYear && group && courseCode && semester) {
+        if (academicYear || group || courseCode || semester) {
             fetchStudents()
         } else {
             setStudents([])
@@ -92,40 +92,58 @@ export default function StudentRecords() {
     }, [academicYear, group, courseCode, semester])
 
     const fetchStudents = async () => {
-        const courseNameLabel =
-            courses.find(c => c.course_code === courseCode)?.course_name
-
-        if (!courseNameLabel) return
-
         setLoading(true)
-        const { data, error } = await supabase
-            .from('students')
-            .select(`
-                student_id,
-                full_name,
-                group_name,
-                course_name,
-                gender,
-                date_of_birth,
-                father_name,
-                mother_name,
-                nationality,
-                state,
-                aadhar_number,
-                address,
-                phone_number,
-                religion,
-                Parent_no,
-                admission_year
-            `)
-            .eq('academic_year', academicYear)
-            .eq('group_name', group)
-            .eq('course_name', courseNameLabel)
-            .eq('current_semester', Number(semester))
+        try {
+            let query = supabase
+                .from('students')
+                .select(`
+                    student_id,
+                    full_name,
+                    group_name,
+                    course_name,
+                    gender,
+                    date_of_birth,
+                    father_name,
+                    mother_name,
+                    nationality,
+                    state,
+                    aadhar_number,
+                    address,
+                    phone_number,
+                    religion,
+                    Parent_no,
+                    admission_year
+                `)
 
+            if (academicYear) {
+                query = query.eq('academic_year', academicYear)
+            }
 
-        if (!error) setStudents(data || [])
-        setLoading(false)
+            if (group) {
+                query = query.eq('group_name', group)
+            }
+
+            if (courseCode) {
+                const courseNameLabel = courses.find(c => c.course_code === courseCode)?.course_name
+                if (courseNameLabel) {
+                    query = query.eq('course_name', courseNameLabel)
+                }
+            }
+
+            if (semester) {
+                query = query.eq('current_semester', Number(semester))
+            }
+
+            const { data, error } = await query
+
+            if (!error) {
+                setStudents(data || [])
+            }
+        } catch (err) {
+            console.error('Error fetching students:', err)
+        } finally {
+            setLoading(false)
+        }
     }
     const filteredStudents = students.filter((s) =>
         s.student_id.toLowerCase().includes(searchId.toLowerCase())

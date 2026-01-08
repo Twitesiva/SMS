@@ -81,7 +81,7 @@ export default function StudentAttendance() {
      FETCH STUDENTS
   ================================ */
   useEffect(() => {
-    if (academicYear && group && courseCode && semester) {
+    if (academicYear || group || courseCode || semester) {
       fetchStudents()
     } else {
       setStudents([])
@@ -90,50 +90,66 @@ export default function StudentAttendance() {
   }, [academicYear, group, courseCode, semester])
 
   const fetchStudents = async () => {
-    const courseName =
-      courses.find(c => c.course_code === courseCode)?.course_name
-
-    if (!courseName) return
-
     setLoading(true)
-    const { data } = await supabase
-      .from('students')
-      .select('id, student_id, full_name')
-      .eq('academic_year', academicYear)
-      .eq('group_name', group)
-      .eq('course_name', courseName)
-      .eq('current_semester', Number(semester))
-      .order('student_id', { ascending: true })
+    try {
+      let query = supabase
+        .from('students')
+        .select('id, student_id, full_name')
+        .order('student_id', { ascending: true })
 
-    setStudents(data || [])
-
-    const studentIds = (data || []).map(s => s.id)
-    const todayIso = new Date().toISOString().split('T')[0]
-    let leaveSet = new Set()
-
-    if (studentIds.length > 0) {
-      const { data: leaveRows, error: leaveError } = await supabase
-        .from('leave_requests')
-        .select('applicant_id, from_date, to_date')
-        .eq('applicant_type', 'STUDENT')
-        .in('status', ['APPROVED', 'HOD_APPROVED', 'APPROVED_BY_HOD'])
-        .in('applicant_id', studentIds)
-        .lte('from_date', todayIso)
-        .gte('to_date', todayIso)
-
-      if (!leaveError) {
-        leaveSet = new Set((leaveRows || []).map(r => r.applicant_id))
+      if (academicYear) {
+        query = query.eq('academic_year', academicYear)
       }
+
+      if (group) {
+        query = query.eq('group_name', group)
+      }
+
+      if (courseCode) {
+        const courseName = courses.find(c => c.course_code === courseCode)?.course_name
+        if (courseName) {
+          query = query.eq('course_name', courseName)
+        }
+      }
+
+      if (semester) {
+        query = query.eq('current_semester', Number(semester))
+      }
+
+      const { data } = await query
+      setStudents(data || [])
+
+      const studentIds = (data || []).map(s => s.id)
+      const todayIso = new Date().toISOString().split('T')[0]
+      let leaveSet = new Set()
+
+      if (studentIds.length > 0) {
+        const { data: leaveRows, error: leaveError } = await supabase
+          .from('leave_requests')
+          .select('applicant_id, from_date, to_date')
+          .eq('applicant_type', 'STUDENT')
+          .in('status', ['APPROVED', 'HOD_APPROVED', 'APPROVED_BY_HOD'])
+          .in('applicant_id', studentIds)
+          .lte('from_date', todayIso)
+          .gte('to_date', todayIso)
+
+        if (!leaveError) {
+          leaveSet = new Set((leaveRows || []).map(r => r.applicant_id))
+        }
+      }
+
+      setLeaveStudentIds(leaveSet)
+
+      const defaults = {}
+      ;(data || []).forEach(s => {
+        defaults[s.id] = leaveSet.has(s.id) ? 'ABSENT' : 'PRESENT'
+      })
+      setAttendance(defaults)
+    } catch (err) {
+      console.error('Error fetching students:', err)
+    } finally {
+      setLoading(false)
     }
-
-    setLeaveStudentIds(leaveSet)
-
-    const defaults = {}
-    ;(data || []).forEach(s => {
-      defaults[s.id] = leaveSet.has(s.id) ? 'ABSENT' : 'PRESENT'
-    })
-    setAttendance(defaults)
-    setLoading(false)
   }
 
   /* ===============================
@@ -371,12 +387,13 @@ const goBackToAttendance = () => {
                 </tbody>
               </table>
 
-              <div className="text-end mt-3">
-                <button className="btn btn-success px-5 fw-bold" onClick={handleDone}>
-                  DONE
-                </button>
-              </div>
-            </>
+                            <div className="text-end mt-3">
+                              {academicYear && group && courseCode && semester && (
+                                <button className="btn btn-success px-5 fw-bold" onClick={handleDone}>
+                                  DONE
+                                </button>
+                              )}
+                            </div>            </>
           )}
 
           {!loading && !students.length && !showSummary && !showSuccess && (
