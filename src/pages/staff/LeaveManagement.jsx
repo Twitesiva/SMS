@@ -538,10 +538,10 @@ export default function LeaveManagement() {
 
                 {/* CATEGORY */}
                 <div className="mb-4">
-                  <label className="me-4 form-check-label">
+                  <label className="me-4 form-check-label fw-bold text-dark">
                     <input
                       type="radio"
-                      className="form-check-input me-2"
+                      className="staff-attendance__radio me-2"
                       checked={requestCategory === 'leave'}
                       onChange={() => {
                         setRequestCategory('leave')
@@ -551,10 +551,10 @@ export default function LeaveManagement() {
                     Leave
                   </label>
 
-                  <label className="form-check-label">
+                  <label className="form-check-label fw-bold text-dark">
                     <input
                       type="radio"
-                      className="form-check-input me-2"
+                      className="staff-attendance__radio me-2"
                       checked={requestCategory === 'od'}
                       onChange={() => {
                         setRequestCategory('od')
