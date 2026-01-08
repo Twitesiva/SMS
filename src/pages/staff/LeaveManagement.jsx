@@ -685,22 +685,37 @@ export default function LeaveManagement() {
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-3 border-top">
-                    <div className="d-flex align-items-start gap-2 mb-3 p-2 rounded-2" style={{ backgroundColor: '#eff6ff' }}>
-                      <i className="bi bi-info-circle text-primary mt-1"></i>
-                      <p className="text-muted small mb-0" style={{ lineHeight: '1.4' }}>
-                        Upon submission, this request will be forwarded to the Head of Department (HOD) for approval.
-                      </p>
-                    </div>
+                                    <div className="mt-4 pt-3 border-top text-center">
 
-                    <button 
-                      className="btn btn-primary w-100 fw-bold py-2" 
-                      onClick={handleSubmit} 
-                      disabled={loading}
-                    >
-                      {loading ? 'Submitting...' : 'SUBMIT FOR HOD APPROVAL'}
-                    </button>
-                  </div>
+                                      <div className="d-flex align-items-start gap-2 mb-3 p-2 rounded-2 text-start" style={{ backgroundColor: '#eff6ff' }}>
+
+                                        <i className="bi bi-info-circle text-primary mt-1"></i>
+
+                                        <p className="text-muted small mb-0" style={{ lineHeight: '1.4' }}>
+
+                                          Upon submission, this request will be forwarded to the Head of Department (HOD) for approval.
+
+                                        </p>
+
+                                      </div>
+
+                  
+
+                                      <button 
+
+                                        className="btn btn-primary px-5 py-2 fw-bold" 
+
+                                        onClick={handleSubmit} 
+
+                                        disabled={loading}
+
+                                      >
+
+                                        {loading ? 'Submitting...' : 'SUBMIT FOR HOD APPROVAL'}
+
+                                      </button>
+
+                                    </div>
                 </div>
               </div>
             </div>
