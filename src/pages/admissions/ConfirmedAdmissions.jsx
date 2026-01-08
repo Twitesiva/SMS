@@ -275,12 +275,7 @@ export default function ConfirmedAdmissions() {
                                                 <td>{index + 1}</td>
                                                 <td className="fw-bold font-monospace text-primary">{getStudentIdDisplay(app)}</td>
                                                 <td className="fw-bold">{app.application_no}</td>
-                                                <td>
-                                                    <div className="d-flex align-items-center">
-                                                        {app.photo_url && <img src={app.photo_url} alt="" className="rounded-circle me-2" style={{ width: '30px', height: '30px', objectFit: 'cover' }} />}
-                                                        {app.full_name}
-                                                    </div>
-                                                </td>
+                                                <td>{app.full_name}</td>
                                                 <td>{meta.courses[app.course_id]?.course_name || '-'}</td>
                                                 <td>{meta.groups[app.group_id]?.group_name || '-'}</td>
                                                 <td>{app.admission?.confirmed_at || (Array.isArray(app.admission) && app.admission[0]?.confirmed_at) ? new Date(app.admission.confirmed_at || app.admission[0].confirmed_at).toLocaleDateString() : '-'}</td>

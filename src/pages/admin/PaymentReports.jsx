@@ -402,26 +402,30 @@ export default function PaymentReports() {
             footerTitle="Admin Management Studio"
             footerSubtitle="Crafted for Vijayam College"
         >
-            <div className="desktop-container" style={{ overflowX: 'hidden' }}>
+            <div className="container-fluid p-4">
 
                 {/* Header */}
-                <div className="d-flex justify-content-between align-items-center mb-4">
+                <div className="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
                     <div>
-                        <h3 className="fw-bold mb-1" style={{ letterSpacing: '-0.5px' }}>EXAM MANAGEMENT SYSTEM</h3>
-                    </div>
-                    <div className="text-secondary small">
-                        Admin / Reports
+                        <h4 className="fw-bold text-dark mb-1">Payment Reports</h4>
+                        <div className="text-muted small">Generate and view student fee payment status reports</div>
                     </div>
                 </div>
 
-                {/* Filters Card */}
-                <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: '12px' }}>
-                    <div className="card-body p-4">
+                {/* Filters Bar */}
+                <div className="card shadow-sm border-0 mb-4">
+                    <div className="card-header bg-white py-3 border-bottom">
+                        <div className="d-flex align-items-center gap-2">
+                            <i className="bi bi-funnel text-primary"></i>
+                            <h6 className="mb-0 fw-bold text-dark">Report Filters</h6>
+                        </div>
+                    </div>
+                    <div className="card-body p-3">
                         <div className="row g-3">
                             <div className="col-md-3">
-                                <label className="form-label fw-semibold text-muted small text-uppercase">Academic Year</label>
+                                <label className="form-label small fw-bold text-secondary text-uppercase mb-1">Academic Year</label>
                                 <select
-                                    className="form-select border-light bg-light fw-medium"
+                                    className="form-select form-select-sm"
                                     value={selectedYear}
                                     onChange={(e) => setSelectedYear(e.target.value)}
                                 >
@@ -430,9 +434,9 @@ export default function PaymentReports() {
                                 </select>
                             </div>
                             <div className="col-md-3">
-                                <label className="form-label fw-semibold text-muted small text-uppercase">Group</label>
+                                <label className="form-label small fw-bold text-secondary text-uppercase mb-1">Group</label>
                                 <select
-                                    className="form-select border-light bg-light fw-medium"
+                                    className="form-select form-select-sm"
                                     value={selectedGroup}
                                     onChange={(e) => { setSelectedGroup(e.target.value); setSelectedCourse(''); }}
                                 >
@@ -441,9 +445,9 @@ export default function PaymentReports() {
                                 </select>
                             </div>
                             <div className="col-md-2">
-                                <label className="form-label fw-semibold text-muted small text-uppercase">Course</label>
+                                <label className="form-label small fw-bold text-secondary text-uppercase mb-1">Course</label>
                                 <select
-                                    className="form-select border-light bg-light fw-medium"
+                                    className="form-select form-select-sm"
                                     value={selectedCourse}
                                     onChange={(e) => setSelectedCourse(e.target.value)}
                                     disabled={!selectedGroup}
@@ -453,9 +457,9 @@ export default function PaymentReports() {
                                 </select>
                             </div>
                             <div className="col-md-2">
-                                <label className="form-label fw-semibold text-muted small text-uppercase">Semester</label>
+                                <label className="form-label small fw-bold text-secondary text-uppercase mb-1">Semester</label>
                                 <select
-                                    className="form-select border-light bg-light fw-medium"
+                                    className="form-select form-select-sm"
                                     value={selectedSemester}
                                     onChange={(e) => setSelectedSemester(e.target.value)}
                                 >
@@ -464,9 +468,9 @@ export default function PaymentReports() {
                                 </select>
                             </div>
                             <div className="col-md-2">
-                                <label className="form-label fw-semibold text-muted small text-uppercase">Payment Status</label>
+                                <label className="form-label small fw-bold text-secondary text-uppercase mb-1">Status</label>
                                 <select
-                                    className="form-select border-light bg-light fw-medium"
+                                    className="form-select form-select-sm"
                                     value={selectedPaymentStatus}
                                     onChange={(e) => setSelectedPaymentStatus(e.target.value)}
                                 >
@@ -483,149 +487,136 @@ export default function PaymentReports() {
                 {/* Charts Row */}
                 {chartData && (
                     <div className="row g-4 mb-4">
-                        {/* Group Chart */}
                         <div className="col-md-3">
-                            <div className="card h-100 border-0 shadow-sm p-3" style={{ borderRadius: '12px' }}>
-                                <h6 className="fw-bold text-muted mb-3 font-monospace">Group</h6>
-                                <div style={{ position: 'relative', height: '180px', width: '100%' }}>
-                                    <Bar
-                                        data={chartData.groupChart}
-                                        options={{
-                                            responsive: true,
-                                            maintainAspectRatio: false,
-                                            plugins: { legend: { display: false } },
-                                            scales: { x: { display: false }, y: { display: true } }
-                                        }}
-                                    />
+                            <div className="card shadow-sm border-0 h-100">
+                                <div className="card-header bg-white py-2 border-bottom">
+                                    <div className="small fw-bold text-uppercase text-secondary text-center">Group Distribution</div>
                                 </div>
-                                <div className="text-center mt-2 small text-muted">{filteredStudents[0]?.group_name || 'Computer Science'}</div>
+                                <div className="card-body p-2 d-flex flex-column align-items-center justify-content-center">
+                                    <div style={{ height: '160px', width: '100%' }}>
+                                        <Bar
+                                            data={chartData.groupChart}
+                                            options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: true } } }}
+                                        />
+                                    </div>
+                                    <div className="mt-2 small fw-bold text-muted">{filteredStudents[0]?.group_name || '-'}</div>
+                                </div>
                             </div>
                         </div>
-
-                        {/* Course Chart */}
                         <div className="col-md-3">
-                            <div className="card h-100 border-0 shadow-sm p-3" style={{ borderRadius: '12px' }}>
-                                <h6 className="fw-bold text-muted mb-3 font-monospace">Course</h6>
-                                <div style={{ position: 'relative', height: '180px', width: '100%' }}>
-                                    <Bar
-                                        data={chartData.courseChart}
-                                        options={{
-                                            responsive: true,
-                                            maintainAspectRatio: false,
-                                            plugins: { legend: { display: false } },
-                                            scales: { x: { display: false }, y: { display: true } }
-                                        }}
-                                    />
+                            <div className="card shadow-sm border-0 h-100">
+                                <div className="card-header bg-white py-2 border-bottom">
+                                    <div className="small fw-bold text-uppercase text-secondary text-center">Course Distribution</div>
                                 </div>
-                                <div className="text-center mt-2 small text-muted">{filteredStudents[0]?.course_name || 'BSC'}</div>
+                                <div className="card-body p-2 d-flex flex-column align-items-center justify-content-center">
+                                    <div style={{ height: '160px', width: '100%' }}>
+                                        <Bar
+                                            data={chartData.courseChart}
+                                            options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: true } } }}
+                                        />
+                                    </div>
+                                    <div className="mt-2 small fw-bold text-muted">{filteredStudents[0]?.course_name || '-'}</div>
+                                </div>
                             </div>
                         </div>
-
-                        {/* Semester Chart */}
                         <div className="col-md-3">
-                            <div className="card h-100 border-0 shadow-sm p-3" style={{ borderRadius: '12px' }}>
-                                <h6 className="fw-bold text-muted mb-3 font-monospace">Semester</h6>
-                                <div className="d-flex justify-content-center align-items-center" style={{ height: '180px' }}>
+                            <div className="card shadow-sm border-0 h-100">
+                                <div className="card-header bg-white py-2 border-bottom">
+                                    <div className="small fw-bold text-uppercase text-secondary text-center">Semester</div>
+                                </div>
+                                <div className="card-body p-2 d-flex align-items-center justify-content-center">
                                     <div style={{ width: '140px', height: '140px' }}>
                                         <Pie
                                             data={chartData.semesterChart}
-                                            options={{
-                                                responsive: true,
-                                                maintainAspectRatio: false,
-                                                plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } } }
-                                            }}
+                                            options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }}
                                         />
                                     </div>
                                 </div>
                             </div>
                         </div>
-
-                        {/* Payment Status Chart */}
                         <div className="col-md-3">
-                            <div className="card h-100 border-0 shadow-sm p-3" style={{ borderRadius: '12px' }}>
-                                <h6 className="fw-bold text-muted mb-3 font-monospace">Payment Status</h6>
-                                <div className="d-flex justify-content-center align-items-center" style={{ height: '180px' }}>
+                            <div className="card shadow-sm border-0 h-100">
+                                <div className="card-header bg-white py-2 border-bottom">
+                                    <div className="small fw-bold text-uppercase text-secondary text-center">Payment Status</div>
+                                </div>
+                                <div className="card-body p-2 d-flex align-items-center justify-content-center">
                                     <div style={{ width: '140px', height: '140px' }}>
                                         <Pie
                                             data={chartData.paymentChart}
-                                            options={{
-                                                responsive: true,
-                                                maintainAspectRatio: false,
-                                                plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } } }
-                                            }}
+                                            options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }}
                                         />
                                     </div>
+                                    {/* Minimal Legend if needed or keep default tooltip */}
                                 </div>
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* Student Table */}
-                <div className="card border-0 shadow-sm" style={{ borderRadius: '12px', overflow: 'hidden' }}>
-                    <div className="card-header bg-primary text-white p-3 border-0">
-                        <div className="d-flex justify-content-between align-items-center">
-                            <h5 className="mb-0 fw-bold" style={{ letterSpacing: '0.5px' }}>STUDENTS</h5>
-                            <span className="badge bg-white text-primary rounded-pill px-3">{filteredStudents.length} students listed</span>
+                {/* Table Card */}
+                <div className="card shadow-sm border-0">
+                    <div className="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                        <div className="d-flex align-items-center gap-2">
+                            <i className="bi bi-table text-primary"></i>
+                            <h6 className="mb-0 fw-bold text-dark">Student Detail Report</h6>
                         </div>
-                        <div className="small opacity-75 mt-1">Detailed list of students matching the current filters.</div>
+                        <span className="badge bg-light text-dark border">Total: {filteredStudents.length}</span>
                     </div>
-                    <div className="table-responsive">
-                        <table className="table table-hover mb-0 align-middle">
-                            <thead className="bg-light text-uppercase small fw-bold text-secondary">
-                                <tr style={{ letterSpacing: '0.5px' }}>
-                                    <th className="py-3 px-4 border-0">Student ID</th>
-                                    <th className="py-3 px-4 border-0">Name</th>
-                                    <th className="py-3 px-4 border-0">Hall Ticket</th>
-                                    <th className="py-3 px-4 border-0">Group</th>
-                                    <th className="py-3 px-4 border-0">Course</th>
-                                    <th className="py-3 px-4 border-0">Academic Year</th>
-                                    <th className="py-3 px-4 border-0">Semester</th>
-                                    <th className="py-3 px-4 border-0 text-center">Payment Status</th>
-                                    <th className="py-3 px-4 border-0 text-center">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {isLoading ? (
+                    <div className="card-body p-0">
+                        <div className="table-responsive">
+                            <table className="table table-striped table-hover mb-0 align-middle user-select-none">
+                                <thead className="bg-light">
                                     <tr>
-                                        <td colSpan="9" className="text-center py-5 text-muted">Loading data...</td>
+                                        <th className="py-3 px-3 text-uppercase small fw-bold text-secondary border-bottom">Student ID</th>
+                                        <th className="py-3 px-3 text-uppercase small fw-bold text-secondary border-bottom">Name</th>
+                                        <th className="py-3 px-3 text-uppercase small fw-bold text-secondary border-bottom">Hall Ticket</th>
+                                        <th className="py-3 px-3 text-uppercase small fw-bold text-secondary border-bottom">Group</th>
+                                        <th className="py-3 px-3 text-uppercase small fw-bold text-secondary border-bottom">Course</th>
+                                        <th className="py-3 px-3 text-uppercase small fw-bold text-secondary border-bottom">Year</th>
+                                        <th className="py-3 px-3 text-uppercase small fw-bold text-secondary border-bottom">Sem</th>
+                                        <th className="py-3 px-3 text-uppercase small fw-bold text-secondary border-bottom text-center">Payment</th>
+                                        <th className="py-3 px-3 text-uppercase small fw-bold text-secondary border-bottom text-center">Status</th>
                                     </tr>
-                                ) : filteredStudents.length > 0 ? (
-                                    filteredStudents.map((student, idx) => (
-                                        <tr key={student.id} className={idx % 2 === 0 ? '' : 'bg-light bg-opacity-10'}>
-                                            <td className="px-4 fw-medium text-dark">{student.student_id}</td>
-                                            <td className="px-4 fw-semibold text-primary">{student.full_name}</td>
-                                            <td className="px-4 font-monospace small">{student.hall_ticket_no}</td>
-                                            <td className="px-4 text-muted">{student.group_name}</td>
-                                            <td className="px-4 text-muted">{student.course_name}</td>
-                                            <td className="px-4 text-muted">{student.academic_year}</td>
-                                            <td className="px-4 text-muted">Semester {student.current_semester}</td>
-                                            <td className="px-4 text-center">
-                                                <span className={`badge rounded-pill px-3 py-2 
-                                            ${student.paymentStatus === 'Paid' ? 'bg-success' :
-                                                        student.paymentStatus === 'Partial' ? 'bg-warning text-dark' : 'bg-danger'}
-                                        `}>
-                                                    {student.paymentStatus}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 text-center">
-                                                <span className={`badge rounded-pill px-3 py-2 ${student.status === 'ACTIVE' ? 'bg-success bg-opacity-75' : 'bg-secondary'}`}>
-                                                    {student.status}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan="9" className="text-center py-5 text-muted">No records found. Please adjust filters.</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {isLoading ? (
+                                        <tr><td colSpan="9" className="text-center py-5 text-muted">Loading data...</td></tr>
+                                    ) : filteredStudents.length > 0 ? (
+                                        filteredStudents.map((student) => (
+                                            <tr key={student.id}>
+                                                <td className="px-3 fw-bold font-monospace text-primary small">{student.student_id}</td>
+                                                <td className="px-3 fw-bold text-dark">{student.full_name}</td>
+                                                <td className="px-3 font-monospace small">{student.hall_ticket_no}</td>
+                                                <td className="px-3 small">{student.group_name}</td>
+                                                <td className="px-3 small">{student.course_name}</td>
+                                                <td className="px-3 small">{student.academic_year}</td>
+                                                <td className="px-3 small">Sem {student.current_semester}</td>
+                                                <td className="px-3 text-center">
+                                                    <span className={`badge border rounded-pill px-3 fw-normal
+                                                        ${student.paymentStatus === 'Paid' ? 'bg-success-subtle text-success border-success' :
+                                                            student.paymentStatus === 'Partial' ? 'bg-warning-subtle text-warning-emphasis border-warning' :
+                                                                'bg-danger-subtle text-danger border-danger'}`}
+                                                    >
+                                                        {student.paymentStatus}
+                                                    </span>
+                                                </td>
+                                                <td className="px-3 text-center">
+                                                    <span className={`badge border rounded-pill px-3 fw-normal ${student.status === 'ACTIVE' ? 'bg-light text-dark border-secondary' : 'bg-secondary text-white'}`}>
+                                                        {student.status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr><td colSpan="9" className="text-center py-5 text-muted">No records found. Adjust filters to view data.</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                     {filteredStudents.length > 0 && !isLoading && (
-                        <div className="card-footer bg-white border-0 py-3 text-center">
-                            <button className="btn btn-sm btn-outline-secondary" onClick={() => window.print()}>
+                        <div className="card-footer bg-white text-end py-3 border-top">
+                            <button className="btn btn-sm btn-dark" onClick={() => window.print()}>
                                 <i className="bi bi-printer me-2"></i> Print Report
                             </button>
                         </div>
