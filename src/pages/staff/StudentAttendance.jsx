@@ -314,8 +314,8 @@ const goBackToAttendance = () => {
           </div>
         </div>
 
-        {/* DATA CARD */}
-        <div className="card card-soft p-4">
+        {/* DATA SECTION (No Card) */}
+        <div className="mt-4">
           {loading && !showSummary && !showSuccess && (
             <div className="student-details__loading" role="status" aria-live="polite">
               <div className="student-details__loading-header">
@@ -387,17 +387,16 @@ const goBackToAttendance = () => {
                 </tbody>
               </table>
 
-                            <div className="text-end mt-3">
-                              {academicYear && group && courseCode && semester && (
-                                <button className="btn btn-success px-5 fw-bold" onClick={handleDone}>
-                                  DONE
-                                </button>
-                              )}
-                            </div>            </>
+              <div className="text-end mt-3">
+                <button className="btn btn-success px-5 fw-bold" onClick={handleDone}>
+                  DONE
+                </button>
+              </div>
+            </>
           )}
 
           {!loading && !students.length && !showSummary && !showSuccess && (
-            <div className="text-center py-5 text-muted">
+            <div className="text-center py-5 text-muted bg-white rounded-3 border">
               <i className="bi bi-people fs-1 d-block mb-2 opacity-25"></i>
               Please select all filters to load student list
             </div>
