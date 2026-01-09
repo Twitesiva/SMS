@@ -261,6 +261,92 @@
   box-shadow: 0 18px 30px rgba(15, 23, 42, 0.08);
 }
 
+.students-section-shell {
+  border-radius: 30px;
+  padding: 1.75rem;
+  background: linear-gradient(145deg, rgba(251, 252, 255, 0.98), rgba(226, 235, 255, 0.93));
+  border: 1px solid rgba(76, 117, 242, 0.25);
+  box-shadow: 0 35px 55px rgba(15, 23, 42, 0.15);
+}
+
+.students-section-shell-header {
+  padding: 1rem 1.2rem;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.14), rgba(96, 165, 250, 0.14));
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  box-shadow: 0 18px 30px rgba(15, 23, 42, 0.08);
+  margin-bottom: 1.5rem;
+}
+
+.students-section-shell-header h2 {
+  margin: 0 0 0.35rem;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  font-size: 1.5rem;
+}
+
+.students-section-copy {
+  color: #1c2a52;
+  line-height: 1.4;
+}
+
+.students-section-form .form-control,
+.students-section-form .form-select {
+  border-color: rgba(76, 117, 242, 0.35);
+  background-color: #ffffff;
+}
+
+.students-section-actions .students-button {
+  min-width: 150px;
+}
+
+.students-section-badge {
+  border-radius: 999px;
+  padding: 0.45rem 1rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+
+.students-section-badge-category {
+  background: rgba(76, 117, 242, 0.18);
+  color: #1f2a4c;
+  border: 1px solid rgba(76, 117, 242, 0.3);
+}
+
+.students-section-badge-course {
+  background: rgba(37, 81, 150, 0.12);
+  color: #1f2a4c;
+  border: 1px solid rgba(37, 81, 150, 0.25);
+}
+
+.students-section-badge-group {
+  background: rgba(14, 116, 144, 0.12);
+  color: #0f2f3a;
+  border: 1px solid rgba(14, 116, 144, 0.25);
+}
+
+.students-section-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.students-section-card {
+  border-radius: 22px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(233, 240, 255, 0.95));
+  border: 1px solid rgba(76, 117, 242, 0.2);
+  box-shadow: 0 18px 35px rgba(15, 23, 42, 0.12);
+}
+
+.students-section-card .card-body {
+  background: transparent;
+  padding: 1rem;
+}
+
 .student-details__header h2 {
   margin: 0 0 0.35rem;
   color: #0f172a;
@@ -1437,11 +1523,146 @@
 }
 
 /* Student Attendance */
+.student-timetable-card {
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 24px 50px rgba(15, 23, 42, 0.1);
+  overflow: hidden;
+}
+
+.student-timetable-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.2rem 1.4rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(96, 165, 250, 0.12));
+}
+
+.student-timetable-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.student-timetable-subtitle {
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.student-timetable-sheet {
+  padding: 1.4rem;
+  background: #f8fafc;
+}
+
+.student-timetable-sheet-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.student-timetable-sheet-subtitle {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  color: #64748b;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.student-timetable-scroll {
+  overflow-x: auto;
+  margin-top: 1rem;
+}
+
+.student-timetable-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 900px;
+  background: #ffffff;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.student-timetable-table thead th {
+  padding: 0.85rem 0.75rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: #93c5fd;
+  color: #000000;
+  border-bottom: 3px solid #2563eb;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.student-timetable-head-title {
+  display: block;
+  font-weight: 800;
+}
+
+.student-timetable-head-time {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.student-timetable-table tbody th,
+.student-timetable-table tbody td {
+  padding: 0.85rem 0.75rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  text-align: center;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.student-timetable-day {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.8rem;
+  background: rgba(226, 232, 240, 0.6);
+}
+
+.student-timetable-period {
+  background: #ffffff;
+}
+
+.student-timetable-break {
+  background: rgba(14, 116, 144, 0.12);
+  color: #0f2f3a;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+}
+
+.student-timetable-lunch {
+  background: rgba(245, 158, 11, 0.15);
+  color: #92400e;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+}
+
 .student-attendance {
   display: grid;
   gap: 1.5rem;
   font-family: "Manrope", "Space Grotesk", "Cabinet Grotesk", system-ui, -apple-system,
     "Segoe UI", sans-serif;
+}
+
+.student-attendance__main {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
 }
 
 .student-attendance__hero {
@@ -1645,6 +1866,12 @@
     grid-template-columns: 1fr;
     justify-items: center;
     text-align: center;
+  }
+}
+
+@media (max-width: 992px) {
+  .student-attendance__main {
+    grid-template-columns: 1fr;
   }
 }
 
