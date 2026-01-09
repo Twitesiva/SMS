@@ -308,7 +308,7 @@ export default function StudentAttendance() {
               <span className="student-attendance__stat-icon">
                 <i className="bi bi-globe text-info" aria-hidden="true"></i>
               </span>
-              <div className="student-attendance__stat-label fw-bold text-dark">Overall Attendance Rate</div>
+            <div className="student-attendance__stat-label fw-bold text-dark">Attendance Percentage</div>
             </div>
             <div className="student-attendance__stat-value text-dark">{overallStats.rate}%</div>
             <div className="student-attendance__stat-meta text-dark">Calculated from total days</div>
@@ -356,7 +356,7 @@ export default function StudentAttendance() {
 
           {/* OVERALL PANEL */}
           <div className="student-attendance__panel">
-            <h4 className="fw-bold text-dark mb-4">Overall Attendance Percentage</h4>
+            <h4 className="fw-bold text-dark mb-4">Attendance Percentage</h4>
             <div className="student-attendance__donut-wrap">
               <div className="student-attendance__donut" style={{ background: overallStats.days ? `conic-gradient(#10b981 ${overallStats.rate}%, #ef4444 0)` : '#e2e8f0' }}>
                 <div className="student-attendance__donut-center">

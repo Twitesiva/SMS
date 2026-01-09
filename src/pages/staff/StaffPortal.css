@@ -62,7 +62,7 @@
   padding: 8px 16px;
   border-radius: 8px;
   background: #ffffff;
-  border: 1px solid #dbeafe;
+  border: 1px solid #d1d5db;
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 0.95rem;
@@ -73,18 +73,25 @@
   margin: 0 !important;
   min-width: 110px;
   justify-content: center;
+  position: relative;
+}
+
+.attendance-label input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .attendance-label:hover {
-  background: #f1f5f9;
-  border-color: #bfdbfe;
+  background: #f8fafc;
+  border-color: #9ca3af;
 }
 
 .attendance-label::before {
   content: '';
   width: 16px;
   height: 16px;
-  border: 2px solid #bfdbfe;
+  border: 2px solid #9ca3af;
   border-radius: 50%;
   margin-right: 8px;
   background: #ffffff;
