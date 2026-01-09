@@ -39,7 +39,7 @@ export default function ParentLogin() {
             }
 
             setParent(data)
-            nav('/parent/dashboard')
+            nav('/parent/student-details')
         } catch (err) {
             console.error(err)
             setError(err?.message || 'Unable to sign in right now')

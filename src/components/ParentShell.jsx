@@ -4,11 +4,10 @@ import { useParentAuth } from '../store/parentAuth'
 import crest from '../assets/media/images.png'
 
 const navItems = [
-    { to: '/parent/dashboard', label: 'Dashboard', icon: 'bi-speedometer2' },
     { to: '/parent/student-details', label: 'Student Details', icon: 'bi-person-badge' },
     { to: '/parent/attendance', label: 'Attendance', icon: 'bi-calendar-check' },
-    { to: '/parent/results', label: 'Exam Results', icon: 'bi-file-earmark-bar-graph' },
-    { to: '/parent/timetable', label: 'Timetable', icon: 'bi-clock-history' },
+    { to: '/parent/marks', label: 'Marks', icon: 'bi-file-earmark-bar-graph' },
+    { to: '/parent/notifications', label: 'Notifications', icon: 'bi-bell' },
 ]
 
 export default function ParentShell({ children }) {
@@ -61,16 +60,6 @@ export default function ParentShell({ children }) {
                             </Link>
                         ))}
                     </nav>
-
-                    <div className="student-sidebar__footer">
-                        <div className="student-sidebar__student-id">{parent?.student_id || '—'}</div>
-                        <div className="student-sidebar__student-name">{parent?.full_name || 'Student'}</div>
-                        <div className="student-sidebar__datetime">
-                            {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                            {' '}
-                            {new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                    </div>
                 </aside>
 
                 <div className="student-main">

@@ -57,7 +57,10 @@ import StaffCirculars from "./pages/staff/StaffCirculars.jsx";
 
 import StudentSection from "./pages/student/StudentSection.jsx";
 import ParentLogin from "./pages/parent/ParentLogin.jsx";
-import ParentDashboard from "./pages/parent/ParentDashboard.jsx";
+import ParentStudentDetails from "./pages/parent/ParentStudentDetails.jsx";
+import ParentAttendance from "./pages/parent/ParentAttendance.jsx";
+import ParentMarks from "./pages/parent/ParentMarks.jsx";
+import ParentNotifications from "./pages/parent/ParentNotifications.jsx";
 
 
 import StudentPersonalDetails from "./pages/student/StudentPersonalDetails.jsx";
@@ -339,10 +342,42 @@ export default function App() {
           }
         />
         <Route
-          path="/parent/dashboard"
+          path="/parent/student-details"
           element={
             <GuardedRoute isAuthed={isParentAuthed} redirectTo="/parent/login">
-              <ParentDashboard />
+              <ParentStudentDetails />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/parent/attendance"
+          element={
+            <GuardedRoute isAuthed={isParentAuthed} redirectTo="/parent/login">
+              <ParentAttendance />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/parent/marks"
+          element={
+            <GuardedRoute isAuthed={isParentAuthed} redirectTo="/parent/login">
+              <ParentMarks />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/parent/notifications"
+          element={
+            <GuardedRoute isAuthed={isParentAuthed} redirectTo="/parent/login">
+              <ParentNotifications />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/parent/results"
+          element={
+            <GuardedRoute isAuthed={isParentAuthed} redirectTo="/parent/login">
+              <ParentMarks />
             </GuardedRoute>
           }
         />
@@ -350,7 +385,7 @@ export default function App() {
           path="/parent/*"
           element={
             <GuardedRoute isAuthed={isParentAuthed} redirectTo="/parent/login">
-              <ParentDashboard />
+              <ParentStudentDetails />
             </GuardedRoute>
           }
         />

@@ -482,6 +482,26 @@
   gap: 0.85rem;
 }
 
+.parent-notification-item {
+  display: grid;
+  gap: 0.35rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.parent-notification-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.parent-notification-text {
+  margin: 0;
+  color: #000000;
+  font-weight: 800;
+  line-height: 1.7;
+  font-size: 1.05rem;
+}
+
 .student-detail-row {
   display: grid;
   grid-template-columns: 180px auto 1fr;
