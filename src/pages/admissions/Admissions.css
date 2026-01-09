@@ -6,3 +6,34 @@
   line-height: 1.55;
   letter-spacing: 0.01em;
 }
+
+.admissions-page .table thead th {
+  background: #93c5fd;
+  color: #000000;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.78rem;
+  border-bottom: 2px solid #2563eb;
+}
+
+.admissions-page .text-muted {
+  color: #000000 !important;
+}
+
+.admissions-page,
+.admissions-page .table tbody td,
+.admissions-page .table tbody th {
+  color: #000000;
+  font-weight: 700;
+}
+
+
+.admin-shell--admissions .setup-hero {
+  background: linear-gradient(135deg, #10284f 0%, #1d4b82 55%, #2c6bb3 100%);
+  border-radius: 22px;
+  color: #ffffff;
+}
+
+.admin-shell--admissions .setup-hero::before {
+  opacity: 0.35;
+}

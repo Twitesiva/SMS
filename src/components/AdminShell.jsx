@@ -74,6 +74,7 @@ export default function AdminShell({
   brandSubtitle = "Arts & Science·Chittoor",
   footerTitle = "Exam Management Studio",
   footerSubtitle = "Crafted for Vijayam College",
+  className = "",
 }) {
   const { pathname } = useLocation();
   const navTo = useNavigate();
@@ -187,7 +188,7 @@ export default function AdminShell({
 
   return (
     <div
-      className="admin-shell d-grid"
+      className={`admin-shell d-grid ${className}`.trim()}
       style={{ gridTemplateColumns: collapsed ? "92px 1fr" : "280px 1fr" }}
     >
       <aside

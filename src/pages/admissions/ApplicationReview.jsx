@@ -202,6 +202,7 @@ export default function ApplicationReview() {
             brandSubtitle="Application Review"
             footerTitle="Admission Management"
             footerSubtitle="Administrator Access"
+            className="admin-shell--admissions"
         >
             <div className="admissions-page">
             <div className="container-fluid p-0">

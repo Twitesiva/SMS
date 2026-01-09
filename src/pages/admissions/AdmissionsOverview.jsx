@@ -153,6 +153,7 @@ export default function AdmissionsOverview() {
       brandSubtitle="Vijayam College"
       footerTitle="Admission Management"
       footerSubtitle="Administrator Access"
+      className="admin-shell--admissions"
     >
       <div className="admissions-page">
 

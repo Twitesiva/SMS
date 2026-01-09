@@ -535,7 +535,7 @@ export default function AdmissionsApplication() {
     }
 
     return (
-        <AdminShell navGroups={navGroups}>
+        <AdminShell navGroups={navGroups} className="admin-shell--admissions">
             <div className="admissions-page">
             <div className="desktop-container" style={{ overflowX: 'hidden' }}>
                 <section className="setup-hero mb-4 text-center">
