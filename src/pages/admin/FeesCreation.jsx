@@ -772,7 +772,7 @@ export default function FeesCreation() {
             footerTitle="Admin Management Studio"
             footerSubtitle="Crafted for Vijayam College"
         >
-            <div className="desktop-container" style={{ overflowX: 'hidden' }}>
+            <div className="desktop-container fees-creation-page" style={{ overflowX: 'hidden' }}>
                 <section className="setup-hero mb-4 text-center">
                     <div className="setup-hero-copywrap mx-auto text-center" style={{ maxWidth: '640px' }}>
                         <div className="admin-applications__crest mx-auto" aria-hidden="true">
