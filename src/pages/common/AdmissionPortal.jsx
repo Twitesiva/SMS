@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../../lib/mockApi'
 import crestPrimary from '../../assets/media/images.png'
+import './AdmissionPortal.css'
 
 export default function AdmissionPortal() {
   const admissionYear = new Date().getFullYear()

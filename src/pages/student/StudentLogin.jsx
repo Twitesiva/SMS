@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../../../supabaseClient'
 import { useStudentAuth } from '../../store/studentAuth'
 import crest from '../../assets/media/images.png'
+import '../common/Auth.css'
 
 export default function StudentLogin() {
   const nav = useNavigate()

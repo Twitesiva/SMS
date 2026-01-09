@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useStaffAuth } from '../store/staffAuth'
 import crest from '../assets/media/images.png'
+import './StudentShell.css'
 
 export default function StaffShell({ children }) {
     const location = useLocation()

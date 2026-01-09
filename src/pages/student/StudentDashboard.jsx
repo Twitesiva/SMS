@@ -2,6 +2,7 @@ import StudentShell from '../../components/StudentShell'
 import { useStudentAuth } from '../../store/studentAuth'
 import { useState, useEffect } from 'react'
 import { supabase } from '../../../supabaseClient'
+import './Student.css'
 
 const buildProfileRows = (student, enriched) => [
   { label: 'Student Name', value: student?.full_name },

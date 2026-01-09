@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useStudentAuth } from '../store/studentAuth'
 import crest from '../assets/media/images.png'
 import { supabase } from '../../supabaseClient'
+import './StudentShell.css'
 
 const navItems = [
   { to: '/student/dashboard', label: 'My Profile', icon: 'bi-speedometer2' },

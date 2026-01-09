@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import StaffShell from '../../components/StaffShell'
 import { supabase } from '../../../supabaseClient'
-import { trackPromise } from '../../store/ui'
+import './StaffPortal.css'
 
 export default function StudentRecords() {
     /* ===============================

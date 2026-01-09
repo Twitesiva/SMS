@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import StaffShell from '../../components/StaffShell'
 import { useStaffAuth } from '../../store/staffAuth'
 import { supabase } from '../../../supabaseClient'
+import '../student/Student.css'
 
 const buildProfileRows = (staff) => [
     { label: 'Staff Name', value: staff?.full_name },

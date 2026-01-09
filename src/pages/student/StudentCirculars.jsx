@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import StudentShell from '../../components/StudentShell'
 import { supabase } from '../../../supabaseClient'
+import './Student.css'
 
 const audienceLabels = {
   ALL: 'All Students',

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import StaffShell from '../../components/StaffShell'
 import { supabase } from '../../../supabaseClient'
 import { useStaffAuth } from '../../store/staffAuth'
+import './StaffPortal.css'
+import '../student/Student.css'
 
 /* ===============================
    CONSTANTS

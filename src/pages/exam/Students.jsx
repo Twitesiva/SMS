@@ -6,6 +6,7 @@ import { trackPromise, showToast } from "../../store/ui";
 import { toast } from "react-toastify";
 import { validateRequiredFields } from "../../lib/validation";
 import { api } from "../../lib/mockApi";
+import "../admin/Setup.css";
 
 export default function Students() {
   const [students, setStudents] = useState([]);

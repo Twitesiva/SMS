@@ -5,6 +5,7 @@ import crest from '../../assets/media/images.png'
 import StudentShell from '../../components/StudentShell'
 import { useStudentAuth } from '../../store/studentAuth'
 import { supabase } from '../../../supabaseClient'
+import './Student.css'
 
 export default function StudentCertificate() {
   const { student } = useStudentAuth()

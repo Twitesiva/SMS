@@ -5,6 +5,7 @@ import AdminShell from '../../components/AdminShell'
 import crestPrimary from '../../assets/media/images.png'
 import { validateRequiredFields } from '../../lib/validation'
 import { showToast } from '../../store/ui'
+import '../admin/Setup.css'
 
 export default function AdminApplications() {
   const GENDERS = ['Male', 'Female', 'Other']

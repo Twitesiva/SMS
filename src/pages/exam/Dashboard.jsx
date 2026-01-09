@@ -15,6 +15,7 @@ import {
 import { Doughnut, Bar } from "react-chartjs-2";
 import AdminShell from "../../components/AdminShell";
 import { supabase } from "../../../supabaseClient";
+import "./Dashboard.css";
 
 ChartJS.register(
   CategoryScale,

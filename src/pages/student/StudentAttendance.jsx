@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import StudentShell from '../../components/StudentShell'
 import { supabase } from '../../../supabaseClient'
 import { useStudentAuth } from '../../store/studentAuth'
+import './Student.css'
 import {
   Chart as ChartJS,
   CategoryScale,

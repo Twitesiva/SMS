@@ -4,6 +4,8 @@ import { useStaffAuth } from '../../store/staffAuth'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
 import { useLocation } from 'react-router-dom'
+import './StaffPortal.css'
+import '../student/Student.css'
 
 export default function LeaveManagement() {
   const { staff } = useStaffAuth()

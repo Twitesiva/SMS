@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../../supabaseClient'
 import StudentShell from '../../components/StudentShell'
 import { useStudentAuth } from '../../store/studentAuth'
+import './Student.css'
 
-const formatDate = (value) => {
-  if (!value) return '-'
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return value
+const formatDate = (dateString) => {
+  if (!dateString) return '-'
+  const parsed = new Date(dateString)
+  if (Number.isNaN(parsed.getTime())) return dateString
   return parsed
     .toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
     .replace(/ /g, '-')

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../../supabaseClient'
 import StudentShell from '../../components/StudentShell'
 import { useStudentAuth } from '../../store/studentAuth'
+import './Student.css'
 
 const formatDateTime = (value) => {
   if (!value) return 'N/A'

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../store/auth'
 import crestAccent from '../../assets/media/images.png'
+import '../common/Auth.css'
 
 const ADMIN_EMAIL = 'admin@vijayam.in'
 const ADMIN_PASSWORD = 'admin123'

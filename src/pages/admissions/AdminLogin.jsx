@@ -3,6 +3,8 @@ import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { supabase } from '../../../supabaseClient'
 import { useAuth } from '../../store/auth'
 import crestAccent from '../../assets/media/images.png'
+import '../common/Auth.css'
+import '../common/AdmissionPortal.css'
 
 export default function AdminLogin() {
 

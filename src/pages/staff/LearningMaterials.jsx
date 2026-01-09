@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom'
 import StaffShell from '../../components/StaffShell'
 import { supabase } from '../../../supabaseClient'
 import { useStaffAuth } from '../../store/staffAuth'
-import { toast, ToastContainer } from 'react-toastify'
-import 'react-toastify/dist/ReactToastify.css'
+import { showToast } from '../../store/ui'
+import './StaffPortal.css'
+import '../student/Student.css'
 
 export default function LearningMaterials() {
   const { staff } = useStaffAuth()
@@ -172,7 +173,7 @@ export default function LearningMaterials() {
   const handleGlobalFileChange = (e) => {
     const file = e.target.files[0]
     if (file && file.type !== 'application/pdf') {
-      toast.error('Only PDF files are allowed')
+      showToast('Only PDF files are allowed', { type: 'danger' })
       e.target.value = null // Reset input
       return
     }
@@ -181,17 +182,17 @@ export default function LearningMaterials() {
 
   const handleGlobalUpload = async () => {
     if (!uploadSubjectId) {
-      toast.error('Please select a subject')
+      showToast('Please select a subject', { type: 'warning' })
       return
     }
     if (!uploadFile) {
-      toast.error('Please select a PDF file')
+      showToast('Please select a PDF file', { type: 'warning' })
       return
     }
 
     const subject = subjects.find(s => String(s.subject_id) === String(uploadSubjectId))
     if (!subject) {
-      toast.error('Invalid subject selected')
+      showToast('Invalid subject selected', { type: 'danger' })
       return
     }
 
@@ -224,7 +225,7 @@ export default function LearningMaterials() {
       } catch (storageErr) {
         console.warn('Storage upload failed, falling back to Base64:', storageErr)
         fileUrl = await fileToDataUrl(uploadFile)
-        toast.info('Storage unconfigured. Saving file directly to database.')
+        showToast('Storage unconfigured. Saving file directly to database.', { type: 'info' })
       }
 
       if (!fileUrl) throw new Error('Failed to process file.')
@@ -247,7 +248,7 @@ export default function LearningMaterials() {
 
       if (insertError) throw insertError
 
-      toast.success(`Material uploaded successfully!`)
+      showToast(`Material uploaded successfully!`, { type: 'success' })
 
       // Update local state to show new file immediately
       setUploadedMaterials(prev => {
@@ -268,7 +269,7 @@ export default function LearningMaterials() {
 
     } catch (err) {
       console.error(err)
-      toast.error(err.message || 'Upload failed')
+      showToast(err.message || 'Upload failed', { type: 'danger' })
     } finally {
       setIsGlobalUploading(false)
     }
@@ -292,7 +293,7 @@ export default function LearningMaterials() {
 
       if (error) throw error
 
-      toast.success('Material deleted')
+      showToast('Material deleted', { type: 'success' })
       setUploadedMaterials(prev => ({
         ...prev,
         [subjectId]: prev[subjectId].filter(m => m.id !== materialId)
@@ -303,7 +304,7 @@ export default function LearningMaterials() {
 
     } catch (err) {
       console.error(err)
-      toast.error('Failed to delete material')
+      showToast('Failed to delete material', { type: 'danger' })
       setDeleteModal(prev => ({ ...prev, isDeleting: false }))
     }
   }
@@ -312,7 +313,7 @@ export default function LearningMaterials() {
 
   const handleViewFile = (url) => {
     if (!url) {
-      toast.error('Invalid file URL')
+      showToast('Invalid file URL', { type: 'danger' })
       return
     }
 
@@ -337,7 +338,7 @@ export default function LearningMaterials() {
                 `
         )
       } else {
-        toast.error('Please allow popups to view this file')
+        showToast('Please allow popups to view this file', { type: 'warning' })
       }
     } else {
       // Normal URL
@@ -513,7 +514,6 @@ export default function LearningMaterials() {
         </div>
 
       </div>
-      <ToastContainer position="top-right" autoClose={3000} />
 
       {/* DELETE CONFIRMATION MODAL */}
       {deleteModal.show && (

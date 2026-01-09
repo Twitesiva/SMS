@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import crestPrimary from '../../assets/media/images.png'
 import { supabase } from '../../../supabaseClient'
+import './Library.css'
 
 export default function LibraryDashboard() {
   const [stats, setStats] = useState({

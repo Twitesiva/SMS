@@ -4,7 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App.jsx'
 import 'bootstrap/dist/css/bootstrap.min.css'
 import 'bootstrap-icons/font/bootstrap-icons.css'
-import './styles.css'
+import './styles/global.css'
 
 // Apply the company theme across the whole app (use softer blue)
 document.body.classList.remove('theme-red')

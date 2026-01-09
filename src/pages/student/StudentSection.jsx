@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import StudentShell from '../../components/StudentShell'
+import './Student.css'
 
 const sectionLabels = {
   'personal-details': 'Personal details',

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import crestPrimary from '../../assets/media/images.png'
 import crestAccent from '../../assets/media/EMS2.jpg'
 import heroTexture from '../../assets/media/EMS.jpg'
+import './Home.css'
 
 const statHighlights = [
   { value: '38+', label: 'UG & PG programmes' },

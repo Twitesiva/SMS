@@ -6,6 +6,7 @@ import AdminShell from '../../components/AdminShell'
 import crestPrimary from '../../assets/media/images.png'
 import { validateRequiredFields } from '../../lib/validation'
 import { showToast } from '../../store/ui'
+import './Setup.css'
 
 const adminNavGroups = [
 

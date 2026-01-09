@@ -4,6 +4,7 @@ import jsPDF from 'jspdf'
 import { supabase } from '../../../supabaseClient'
 import StudentShell from '../../components/StudentShell'
 import { useStudentAuth } from '../../store/studentAuth'
+import './Student.css'
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 const BREAK_LETTERS = ['B', 'R', 'E', 'A', 'K']

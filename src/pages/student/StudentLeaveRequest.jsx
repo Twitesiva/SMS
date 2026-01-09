@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import StudentShell from '../../components/StudentShell'
 import { useStudentAuth } from '../../store/studentAuth'
+import './Student.css'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
 
