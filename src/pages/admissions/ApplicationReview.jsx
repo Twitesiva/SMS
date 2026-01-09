@@ -5,6 +5,7 @@ import ConfirmationModal from '../../components/ConfirmationModal'
 import { supabase } from '../../../supabaseClient'
 
 import { showToast } from '../../store/ui'
+import './Admissions.css'
 
 const navGroups = [
     {
@@ -202,6 +203,7 @@ export default function ApplicationReview() {
             footerTitle="Admission Management"
             footerSubtitle="Administrator Access"
         >
+            <div className="admissions-page">
             <div className="container-fluid p-0">
                 <h4 className="mb-4">Application Review</h4>
 
@@ -644,6 +646,7 @@ export default function ApplicationReview() {
             />
 
             {/* Image Viewer Modal removed in favor of direct tab opening */}
+            </div>
         </AdminShell>
     )
 }

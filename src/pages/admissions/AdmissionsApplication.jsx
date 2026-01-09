@@ -7,6 +7,7 @@ import ConfirmationModal from '../../components/ConfirmationModal'
 import crestPrimary from '../../assets/media/images.png'
 import { validateRequiredFields } from '../../lib/validation'
 import { showToast } from '../../store/ui'
+import './Admissions.css'
 
 const navGroups = [
     {
@@ -535,6 +536,7 @@ export default function AdmissionsApplication() {
 
     return (
         <AdminShell navGroups={navGroups}>
+            <div className="admissions-page">
             <div className="desktop-container" style={{ overflowX: 'hidden' }}>
                 <section className="setup-hero mb-4 text-center">
                     <div className="setup-hero-copywrap mx-auto text-center" style={{ maxWidth: '640px' }}>
@@ -843,6 +845,7 @@ export default function AdmissionsApplication() {
                 confirmButtonClass="btn-primary"
                 isLoading={loading}
             />
+            </div>
         </AdminShell>
     )
 }

@@ -3,6 +3,7 @@ import { supabase } from '../../../supabaseClient'
 import { api } from '../../lib/mockApi'
 import crestPrimary from '../../assets/media/images.png'
 import AdminShell from '../../components/AdminShell'
+import './Admissions.css'
 
 const formatDate = (value) => {
   if (!value) return '-'
@@ -153,6 +154,7 @@ export default function AdmissionsOverview() {
       footerTitle="Admission Management"
       footerSubtitle="Administrator Access"
     >
+      <div className="admissions-page">
 
       <section className="setup-hero mb-4 text-center">
         <div className="setup-hero-copywrap mx-auto text-center" style={{ maxWidth: '640px' }}>
@@ -299,6 +301,7 @@ export default function AdmissionsOverview() {
             </table>
           </div>
         )}
+      </div>
       </div>
     </AdminShell>
   )

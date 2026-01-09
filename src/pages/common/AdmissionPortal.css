@@ -5,6 +5,12 @@
   --admission-border: #e6c8cf;
   background: linear-gradient(180deg, #f4f6ff 0%, #eef2ff 45%, #ffffff 100%);
   color: #2f1d0d;
+  font-family: "Space Grotesk", "Cabinet Grotesk", system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
+    "Helvetica Neue", Arial, sans-serif;
+  font-size: 1.08rem;
+  line-height: 1.55;
+  letter-spacing: 0.01em;
   display: flex;
   flex-direction: column;
   gap: 2.5rem;
