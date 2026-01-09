@@ -1,18 +1,22 @@
 import AdminShell from "../../components/AdminShell";
 import ConfirmationModal from '../../components/ConfirmationModal.jsx';
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../../lib/mockApi";
 import { supabase } from "../../../supabaseClient";
 import { validateRequiredFields } from "../../lib/validation";
 import { showToast } from "../../store/ui";
 import { useAuth } from "../../store/auth";
 import { logActivity } from "../../lib/logger";
+import "../admin/Setup.css";
+import crestPrimary from "../../assets/media/images.png";
 
 export default function FeesGeneration() {
   const { user } = useAuth();
   const [years, setYears] = useState([]);
   const [groups, setGroups] = useState([]);
   const [courses, setCourses] = useState([]);
+  const [students, setStudents] = useState([]);
 
   const [filteredYears, setFilteredYears] = useState([]);
   const [filteredGroups, setFilteredGroups] = useState([]);
@@ -123,6 +127,37 @@ export default function FeesGeneration() {
   ];
 
   const categoryFilterValue = normalizeCategory(form.category);
+  const heroTagline = "Manage programme structures and duration.";
+  const setupHeroStats = [
+    {
+      key: "years",
+      label: "Academic Years",
+      value: years.length || 0,
+      meta: "records",
+      route: "/admin/setup/years",
+    },
+    {
+      key: "groups",
+      label: "Groups",
+      value: groups.length || 0,
+      meta: "active",
+      route: "/admin/setup/groups",
+    },
+    {
+      key: "courses",
+      label: "Courses",
+      value: courses.length || 0,
+      meta: "active",
+      route: "/admin/setup/groups",
+    },
+    {
+      key: "students",
+      label: "Students",
+      value: students.length || 0,
+      meta: "records",
+      route: "/admin/students",
+    },
+  ];
 
   // ---------------- LOAD MASTER DATA ----------------
   useEffect(() => {
@@ -141,6 +176,14 @@ export default function FeesGeneration() {
       setFilteredCourses(cs || []);
     };
     load();
+  }, []);
+
+  useEffect(() => {
+    const loadStudents = async () => {
+      const list = await api.listStudents?.();
+      setStudents(list || []);
+    };
+    loadStudents();
   }, []);
 
   useEffect(() => {
@@ -1208,6 +1251,38 @@ export default function FeesGeneration() {
 
   return (
     <AdminShell>
+      <section className="setup-hero mb-4">
+        <div className="setup-hero-grid">
+          <div className="setup-hero-copywrap">
+            <div className="setup-hero-crest">
+              <img src={crestPrimary} alt="Vijayam crest" />
+            </div>
+
+            <h3 className="setup-hero-title mb-2">Vijayam Arts & Science College</h3>
+
+            <p className="setup-hero-copy mb-3">{heroTagline}</p>
+
+            <div className="setup-hero-chips d-flex flex-wrap gap-2">
+              <span className="setup-hero-chip">SMART EXAMINATION PLATFORM</span>
+            </div>
+
+            <p className="setup-hero-eyebrow text-uppercase mt-3">
+              Administration Setup Console
+            </p>
+          </div>
+
+          <div className="setup-stat-grid">
+            {setupHeroStats.map((stat) => (
+              <Link key={stat.key} to={stat.route} className="setup-stat-card">
+                <div className="setup-stat-label">{stat.label}</div>
+                <div className="setup-stat-value">{stat.value}</div>
+                <div className="setup-stat-meta">{stat.meta}</div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <div className="students-hero mb-4">
         <div className="px-3 pt-3">
           <p className="students-hero-eyebrow text-uppercase mb-1">Departments</p>

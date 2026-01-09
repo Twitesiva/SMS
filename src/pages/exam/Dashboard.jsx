@@ -16,6 +16,8 @@ import { Doughnut, Bar } from "react-chartjs-2";
 import AdminShell from "../../components/AdminShell";
 import { supabase } from "../../../supabaseClient";
 import "./Dashboard.css";
+import "../admin/Setup.css";
+import crestPrimary from "../../assets/media/images.png";
 
 ChartJS.register(
   CategoryScale,
@@ -243,6 +245,7 @@ export default function Dashboard() {
   const [students, setStudents] = useState([]);
   const [courses, setCourses] = useState([]);
   const [groups, setGroups] = useState([]);
+  const [academicYears, setAcademicYears] = useState([]);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -271,6 +274,7 @@ export default function Dashboard() {
         .select("id, course_name, group_name, hall_ticket_no"),
       supabase.from("courses").select("course_id, course_code, course_name"),
       supabase.from("groups").select("group_id, group_code, group_name"),
+      supabase.from("academic_year").select("id, academic_year"),
       supabase.from("results").select("student_id, result_status, exam_id, marks_obtained, max_marks"),
       supabase
         .from("activity_logs")
@@ -290,6 +294,7 @@ export default function Dashboard() {
           studentsResult,
           coursesResult,
           groupsResult,
+          academicYearsResult,
           resultsResult,
           activitiesResult,
         ]) => {
@@ -299,6 +304,7 @@ export default function Dashboard() {
             registrationsResult.error,
             subjectsResult.error,
             marksResult.error,
+            academicYearsResult.error,
             resultsResult.error,
             activitiesResult.error,
           ].filter(Boolean);
@@ -314,6 +320,7 @@ export default function Dashboard() {
           setStudents(studentsResult.data || []);
           setCourses(coursesResult.data || []);
           setGroups(groupsResult.data || []);
+          setAcademicYears(academicYearsResult.data || []);
           setResults(resultsResult.data || []);
 
           const logs = activitiesResult.data || [];
@@ -464,6 +471,42 @@ export default function Dashboard() {
     }),
     [students.length, courses.length, groups.length]
   );
+
+  const heroStats = useMemo(
+    () => [
+      {
+        key: "years",
+        label: "Academic Years",
+        value: academicYears.length || 0,
+        meta: "records",
+        route: "/admin/setup/years",
+      },
+      {
+        key: "groups",
+        label: "Groups",
+        value: groups.length || 0,
+        meta: "active",
+        route: "/admin/setup/groups",
+      },
+      {
+        key: "courses",
+        label: "Courses",
+        value: courses.length || 0,
+        meta: "active",
+        route: "/admin/setup/groups",
+      },
+      {
+        key: "students",
+        label: "Students",
+        value: students.length || 0,
+        meta: "records",
+        route: "/admin/students",
+      },
+    ],
+    [academicYears.length, groups.length, courses.length, students.length]
+  );
+
+  const heroTagline = "Manage programme structures and duration.";
 
   const courseLabels = useMemo(() => {
     const lookup = {};
@@ -748,6 +791,38 @@ export default function Dashboard() {
   return (
     <AdminShell>
       <div className="dashboard-page">
+        <section className="setup-hero">
+          <div className="setup-hero-grid">
+            <div className="setup-hero-copywrap">
+              <div className="setup-hero-crest">
+                <img src={crestPrimary} alt="Vijayam crest" />
+              </div>
+
+              <h3 className="setup-hero-title mb-2">Vijayam Arts & Science College</h3>
+
+              <p className="setup-hero-copy mb-3">{heroTagline}</p>
+
+              <div className="setup-hero-chips d-flex flex-wrap gap-2">
+                <span className="setup-hero-chip">SMART EXAMINATION PLATFORM</span>
+              </div>
+
+              <p className="setup-hero-eyebrow text-uppercase mt-3">
+                Administration Setup Console
+              </p>
+            </div>
+
+            <div className="setup-stat-grid">
+              {heroStats.map((stat) => (
+                <Link key={stat.key} to={stat.route} className="setup-stat-card">
+                  <div className="setup-stat-label">{stat.label}</div>
+                  <div className="setup-stat-value">{stat.value}</div>
+                  <div className="setup-stat-meta">{stat.meta}</div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <div className="dashboard-cards">
           {metrics.map((metric) => (
             <Link

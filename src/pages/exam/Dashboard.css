@@ -474,6 +474,39 @@
   margin-bottom: 0.75rem;
 }
 
+.dashboard-chart-card .table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+}
+
+.dashboard-chart-card .table thead th {
+  background: rgba(148, 163, 184, 0.18);
+  color: #0f172a;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+  padding: 0.85rem 0.9rem;
+}
+
+.dashboard-chart-card .table tbody td {
+  padding: 0.85rem 0.9rem;
+  color: #0f172a;
+  vertical-align: middle;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.dashboard-chart-card .table-hover tbody tr:hover {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.dashboard-chart-card .badge {
+  letter-spacing: 0.08em;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
 .dashboard-deadline-card {
   grid-column: 1 / -1;
   background: #ffffff;

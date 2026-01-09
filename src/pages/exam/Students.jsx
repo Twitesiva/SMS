@@ -1,12 +1,14 @@
 import AdminShell from "../../components/AdminShell";
 import ConfirmationModal from '../../components/ConfirmationModal.jsx';
 import { useEffect, useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "../../../supabaseClient";
 import { trackPromise, showToast } from "../../store/ui";
 import { toast } from "react-toastify";
 import { validateRequiredFields } from "../../lib/validation";
 import { api } from "../../lib/mockApi";
 import "../admin/Setup.css";
+import crestPrimary from "../../assets/media/images.png";
 
 export default function Students() {
   const [students, setStudents] = useState([]);
@@ -1243,7 +1245,40 @@ export default function Students() {
       }, 0),
     [filteredStudents, paymentStatuses]
   );
-  const heroStats = [
+  const setupHeroStats = [
+    {
+      key: "years",
+      label: "Academic Years",
+      value: years.length || 0,
+      meta: "records",
+      route: "/admin/setup/years",
+    },
+    {
+      key: "groups",
+      label: "Groups",
+      value: groups.length || 0,
+      meta: "active",
+      route: "/admin/setup/groups",
+    },
+    {
+      key: "courses",
+      label: "Courses",
+      value: courses.length || 0,
+      meta: "active",
+      route: "/admin/setup/groups",
+    },
+    {
+      key: "students",
+      label: "Students",
+      value: students.length || 0,
+      meta: "records",
+      route: "/admin/students",
+    },
+  ];
+
+  const heroTagline = "Manage programme structures and duration.";
+
+  const studentHeroStats = [
     {
       label: "Matching students",
       value: matchingStudentsCount,
@@ -1269,6 +1304,38 @@ export default function Students() {
   return (
     <AdminShell>
       <div className="students-page-shell">
+        <section className="setup-hero mb-4">
+          <div className="setup-hero-grid">
+            <div className="setup-hero-copywrap">
+              <div className="setup-hero-crest">
+                <img src={crestPrimary} alt="Vijayam crest" />
+              </div>
+
+              <h3 className="setup-hero-title mb-2">Vijayam Arts & Science College</h3>
+
+              <p className="setup-hero-copy mb-3">{heroTagline}</p>
+
+              <div className="setup-hero-chips d-flex flex-wrap gap-2">
+                <span className="setup-hero-chip">SMART EXAMINATION PLATFORM</span>
+              </div>
+
+              <p className="setup-hero-eyebrow text-uppercase mt-3">
+                Administration Setup Console
+              </p>
+            </div>
+
+            <div className="setup-stat-grid">
+              {setupHeroStats.map((stat) => (
+                <Link key={stat.key} to={stat.route} className="setup-stat-card">
+                  <div className="setup-stat-label">{stat.label}</div>
+                  <div className="setup-stat-value">{stat.value}</div>
+                  <div className="setup-stat-meta">{stat.meta}</div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <div className="students-hero mb-4">
           <div className="px-3 pt-3">
             <p className="students-hero-eyebrow text-uppercase mb-1">Students</p>
@@ -1278,7 +1345,7 @@ export default function Students() {
             </p>
           </div>
           <div className="students-stats-grid row g-3 px-3 pb-3">
-            {heroStats.map((stat) => (
+            {studentHeroStats.map((stat) => (
               <div className="col-6 col-md-3" key={stat.label}>
                 <div className="students-hero-card h-100 p-3">
                   <div className="students-hero-stat-label small mb-1 text-white">
