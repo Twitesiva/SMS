@@ -166,7 +166,6 @@ export default function ParentMarks() {
                       <div key={`${row.exam_id || 'exam'}-${index}`} className="student-detail-row">
                         <div className="student-detail-label">
                           {row.subject?.subject_name || 'Unknown Subject'}
-                          {row.subject?.subject_code ? ` (${row.subject.subject_code})` : ''}
                         </div>
                         <div className="student-detail-colon">:</div>
                         <div className="student-detail-value">
