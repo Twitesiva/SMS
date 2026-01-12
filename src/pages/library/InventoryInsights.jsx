@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import crestPrimary from '../../assets/media/images.png'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
@@ -15,7 +15,74 @@ export default function InventoryInsights() {
   const [issuedLoans, setIssuedLoans] = useState([])
   const [loading, setLoading] = useState(false)
 
+  const [selectedBook, setSelectedBook] = useState(null)
+  const [bookDetails, setBookDetails] = useState({ copies: [], loans: [] })
+  const [loadingDetails, setLoadingDetails] = useState(false)
+
+  const activeLoansRef = useRef(null)
+  const issuesRef = useRef(null)
+
   const todayString = useMemo(() => new Date().toISOString().slice(0, 10), [])
+
+  const handleBookClick = async (book) => {
+    setSelectedBook(book)
+    setLoadingDetails(true)
+    try {
+      // Fetch all copies for this book
+      const { data: copies, error: copiesError } = await supabase
+        .from('library_book_copies')
+        .select('*')
+        .eq('book_id', book.id)
+        .order('id')
+
+      if (copiesError) throw copiesError
+
+      // Fetch active loans for this book
+      // We join library_book_copies to filter by book_id
+      const { data: loans, error: loansError } = await supabase
+        .from('library_loans')
+        .select(`
+          id,
+          status,
+          due_date,
+          issued_at,
+          students (full_name, student_id),
+          library_book_copies!inner (id, book_id)
+        `)
+        .eq('status', 'ISSUED')
+        .eq('library_book_copies.book_id', book.id)
+        .order('issued_at', { ascending: false })
+
+      if (loansError) throw loansError
+
+      // Fetch loans for missing/damaged copies
+      const { data: issueLoans, error: issueLoansError } = await supabase
+        .from('library_loans')
+        .select(`
+          id,
+          status,
+          issued_at,
+          students (full_name, student_id),
+          library_book_copies!inner (id)
+        `)
+        .in('status', ['MISSING', 'DAMAGED'])
+        .eq('library_book_copies.book_id', book.id)
+        .order('issued_at', { ascending: false })
+
+      if (issueLoansError) throw issueLoansError
+
+      setBookDetails({
+        copies: copies || [],
+        loans: loans || [],
+        issueLoans: issueLoans || []
+      })
+    } catch (err) {
+      console.error('Error fetching book details:', err)
+      showToast('Failed to load book details.', { type: 'error' })
+    } finally {
+      setLoadingDetails(false)
+    }
+  }
 
   useEffect(() => {
     const loadInsights = async () => {
@@ -195,7 +262,7 @@ export default function InventoryInsights() {
               </span>
             </div>
             <div className="table-responsive">
-              <table className="table library-insights-table mb-0">
+              <table className="table library-insights-table table-hover mb-0">
                 <thead>
                   <tr>
                     <th>Title</th>
@@ -217,7 +284,11 @@ export default function InventoryInsights() {
                     </tr>
                   ) : (
                     balanceRows.slice(0, 10).map((row) => (
-                      <tr key={row.id}>
+                      <tr 
+                        key={row.id} 
+                        onClick={() => handleBookClick(row)} 
+                        style={{ cursor: 'pointer' }}
+                      >
                         <td>
                           <div className="library-insights-title">{row.title}</div>
                         </td>
@@ -270,6 +341,153 @@ export default function InventoryInsights() {
           </div>
         </div>
       </div>
+
+      {selectedBook && (
+        <>
+          <div className="modal-backdrop fade show"></div>
+          <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
+            <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <div>
+                    <h5 className="modal-title fw-bold">{selectedBook.title}</h5>
+                    <div className="text-muted small">Shelf: {selectedBook.shelf}</div>
+                  </div>
+                  <button type="button" className="btn-close" onClick={() => setSelectedBook(null)}></button>
+                </div>
+                <div className="modal-body">
+                  {loadingDetails ? (
+                    <div className="text-center py-4">
+                      <div className="spinner-border text-primary" role="status"></div>
+                      <p className="mt-2 text-muted">Loading details...</p>
+                    </div>
+                  ) : (
+                    <div className="d-flex flex-column gap-4">
+                      {/* Stats Row */}
+                      <div className="row g-3">
+                        <div className="col-6 col-sm-3">
+                          <div className="p-3 border rounded bg-light text-center">
+                            <div className="small text-muted text-uppercase fw-bold">Total</div>
+                            <div className="fs-4 fw-bold">{selectedBook.total}</div>
+                          </div>
+                        </div>
+                        <div className="col-6 col-sm-3">
+                          <div 
+                            className="p-3 border rounded bg-light text-center" 
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => activeLoansRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                          >
+                            <div className="small text-muted text-uppercase fw-bold">Issued</div>
+                            <div className="fs-4 fw-bold text-primary">{selectedBook.issued}</div>
+                          </div>
+                        </div>
+                        <div className="col-6 col-sm-3">
+                          <div 
+                            className="p-3 border rounded bg-light text-center" 
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => issuesRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                          >
+                            <div className="small text-muted text-uppercase fw-bold">Damaged</div>
+                            <div className="fs-4 fw-bold text-danger">{selectedBook.damaged}</div>
+                          </div>
+                        </div>
+                        <div className="col-6 col-sm-3">
+                          <div className="p-3 border rounded bg-light text-center">
+                            <div className="small text-muted text-uppercase fw-bold">Balance</div>
+                            <div className="fs-4 fw-bold text-success">{selectedBook.available}</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Active Loans */}
+                      <div ref={activeLoansRef}>
+                        <h6 className="fw-bold mb-3 border-bottom pb-2">Active Loans</h6>
+                        {bookDetails.loans.length > 0 ? (
+                          <div className="table-responsive">
+                            <table className="table table-sm table-hover align-middle">
+                              <thead className="table-light">
+                                <tr>
+                                  <th>Student</th>
+                                  <th>Loan Date</th>
+                                  <th>Due Date</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {bookDetails.loans.map(loan => (
+                                  <tr key={loan.id}>
+                                    <td>
+                                      <div className="fw-semibold">{loan.students?.full_name || 'Unknown'}</div>
+                                      <div className="small text-muted">{loan.students?.student_id}</div>
+                                    </td>
+                                    <td>{loan.issued_at?.slice(0, 10)}</td>
+                                    <td className={loan.due_date < todayString ? 'text-danger fw-bold' : ''}>
+                                      {loan.due_date}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <p className="text-muted fst-italic mb-0">No active loans for this title.</p>
+                        )}
+                      </div>
+
+                      {/* Copies with Issues */}
+                      <div ref={issuesRef}>
+                        <h6 className="fw-bold mb-3 border-bottom pb-2">Copies with Issues</h6>
+                        {bookDetails.copies.filter(c => ['MISSING', 'DAMAGED'].includes((c.availability || '').toUpperCase())).length > 0 ? (
+                          <div className="table-responsive">
+                            <table className="table table-sm table-hover align-middle">
+                              <thead className="table-light">
+                                <tr>
+                                  <th>Copy ID</th>
+                                  <th>Status</th>
+                                  <th>Student ID</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {bookDetails.copies
+                                  .filter(c => ['MISSING', 'DAMAGED'].includes((c.availability || '').toUpperCase()))
+                                  .map(copy => {
+                                    const issueLoan = bookDetails.issueLoans?.find(l => l.library_book_copies?.id === copy.id)
+                                    return (
+                                      <tr key={copy.id}>
+                                        <td className="font-monospace">{copy.id}</td>
+                                        <td>
+                                          <span className={`badge ${copy.availability === 'MISSING' ? 'bg-danger' : 'bg-warning text-dark'}`}>
+                                            {copy.availability}
+                                          </span>
+                                        </td>
+                                        <td className="small text-muted">
+                                          {issueLoan ? (
+                                            <>
+                                              <div>{issueLoan.students?.full_name}</div>
+                                              <div>{issueLoan.students?.student_id}</div>
+                                            </>
+                                          ) : '-'}
+                                        </td>
+                                      </tr>
+                                    )
+                                  })}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <p className="text-muted fst-italic mb-0">No damaged or missing copies reported.</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={() => setSelectedBook(null)}>Close</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
     </div>
   )
