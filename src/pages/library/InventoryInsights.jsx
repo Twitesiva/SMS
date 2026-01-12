@@ -16,6 +16,7 @@ export default function InventoryInsights() {
   const [loading, setLoading] = useState(false)
 
   const [selectedBook, setSelectedBook] = useState(null)
+  const [modalTab, setModalTab] = useState('all') // 'all', 'issued', 'damaged'
   const [bookDetails, setBookDetails] = useState({ copies: [], loans: [] })
   const [loadingDetails, setLoadingDetails] = useState(false)
 
@@ -24,8 +25,9 @@ export default function InventoryInsights() {
 
   const todayString = useMemo(() => new Date().toISOString().slice(0, 10), [])
 
-  const handleBookClick = async (book) => {
+  const handleBookClick = async (book, tab = 'all') => {
     setSelectedBook(book)
+    setModalTab(tab)
     setLoadingDetails(true)
     try {
       // Fetch all copies for this book
@@ -91,7 +93,7 @@ export default function InventoryInsights() {
         const [booksRes, copiesRes, issuedRes] = await Promise.all([
           supabase
             .from('library_books')
-            .select('id, title, published_year, shelf_code, status')
+            .select('id, title, author, published_year, shelf_code, status')
             .order('created_at', { ascending: false }),
           supabase.from('library_book_copies').select('id, book_id, availability'),
           supabase
@@ -141,6 +143,7 @@ export default function InventoryInsights() {
           return {
             id: book.id,
             title: book.title || 'Untitled',
+            author: book.author || 'Unknown Author',
             shelf: book.shelf_code || '--',
             total,
             issued: issuedCount,
@@ -286,17 +289,16 @@ export default function InventoryInsights() {
                     balanceRows.slice(0, 10).map((row) => (
                       <tr 
                         key={row.id} 
-                        onClick={() => handleBookClick(row)} 
                         style={{ cursor: 'pointer' }}
                       >
-                        <td>
+                        <td onClick={() => handleBookClick(row, 'all')}>
                           <div className="library-insights-title">{row.title}</div>
                         </td>
-                        <td>{row.shelf}</td>
-                        <td>{row.total}</td>
-                        <td>{row.issued}</td>
-                        <td>{row.damaged}</td>
-                        <td className="text-end">
+                        <td onClick={() => handleBookClick(row, 'all')}>{row.shelf}</td>
+                        <td onClick={() => handleBookClick(row, 'all')}>{row.total}</td>
+                        <td onClick={() => handleBookClick(row, 'issued')} className="text-primary fw-bold">{row.issued}</td>
+                        <td onClick={() => handleBookClick(row, 'damaged')} className="text-danger fw-bold">{row.damaged}</td>
+                        <td className="text-end" onClick={() => handleBookClick(row, 'all')}>
                           <span className="library-insights-badge">{row.available}</span>
                         </td>
                       </tr>
@@ -348,12 +350,44 @@ export default function InventoryInsights() {
           <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
             <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
               <div className="modal-content">
-                <div className="modal-header">
-                  <div>
-                    <h5 className="modal-title fw-bold">{selectedBook.title}</h5>
-                    <div className="text-muted small">Shelf: {selectedBook.shelf}</div>
+                <div className="modal-header d-flex flex-column align-items-center border-bottom-0 pt-4 pb-0 position-relative">
+                  <div className="text-center w-100">
+                    {/* Book Title Section */}
+                    <div className="mb-4 px-4">
+                      <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.7rem', letterSpacing: '0.15em' }}>
+                        Book Title
+                      </div>
+                      <h4 className="fw-bold text-dark mb-0" style={{ fontSize: '1.5rem' }}>
+                        {selectedBook.title}
+                      </h4>
+                    </div>
+                    
+                    {/* Info Bar */}
+                    <div className="row g-0 border-top border-bottom py-3 bg-light w-100">
+                      <div className="col-6 border-end px-2">
+                        <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.65rem', letterSpacing: '0.12em' }}>
+                          Author
+                        </div>
+                        <div className="fw-semibold text-primary" style={{ fontSize: '1.05rem' }}>
+                          {selectedBook.author}
+                        </div>
+                      </div>
+                      <div className="col-6 px-2">
+                        <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.65rem', letterSpacing: '0.12em' }}>
+                          Shelf Reference
+                        </div>
+                        <div className="fw-semibold text-dark" style={{ fontSize: '1.05rem' }}>
+                          {selectedBook.shelf}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <button type="button" className="btn-close" onClick={() => setSelectedBook(null)}></button>
+                  <button 
+                    type="button" 
+                    className="btn-close position-absolute" 
+                    style={{ right: '1.25rem', top: '1.25rem' }} 
+                    onClick={() => setSelectedBook(null)}
+                  ></button>
                 </div>
                 <div className="modal-body">
                   {loadingDetails ? (
@@ -366,29 +400,33 @@ export default function InventoryInsights() {
                       {/* Stats Row */}
                       <div className="row g-3">
                         <div className="col-6 col-sm-3">
-                          <div className="p-3 border rounded bg-light text-center">
-                            <div className="small text-muted text-uppercase fw-bold">Total</div>
+                          <div 
+                            className={`p-3 border rounded text-center ${modalTab === 'all' ? 'bg-primary text-white' : 'bg-light'}`}
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => setModalTab('all')}
+                          >
+                            <div className={`small text-uppercase fw-bold ${modalTab === 'all' ? 'text-white-50' : 'text-muted'}`}>Total</div>
                             <div className="fs-4 fw-bold">{selectedBook.total}</div>
                           </div>
                         </div>
                         <div className="col-6 col-sm-3">
                           <div 
-                            className="p-3 border rounded bg-light text-center" 
+                            className={`p-3 border rounded text-center ${modalTab === 'issued' ? 'bg-primary text-white' : 'bg-light'}`}
                             style={{ cursor: 'pointer' }}
-                            onClick={() => activeLoansRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                            onClick={() => setModalTab('issued')}
                           >
-                            <div className="small text-muted text-uppercase fw-bold">Issued</div>
-                            <div className="fs-4 fw-bold text-primary">{selectedBook.issued}</div>
+                            <div className={`small text-uppercase fw-bold ${modalTab === 'issued' ? 'text-white-50' : 'text-muted'}`}>Issued</div>
+                            <div className={`fs-4 fw-bold ${modalTab === 'issued' ? 'text-white' : 'text-primary'}`}>{selectedBook.issued}</div>
                           </div>
                         </div>
                         <div className="col-6 col-sm-3">
                           <div 
-                            className="p-3 border rounded bg-light text-center" 
+                            className={`p-3 border rounded text-center ${modalTab === 'damaged' ? 'bg-primary text-white' : 'bg-light'}`}
                             style={{ cursor: 'pointer' }}
-                            onClick={() => issuesRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                            onClick={() => setModalTab('damaged')}
                           >
-                            <div className="small text-muted text-uppercase fw-bold">Damaged</div>
-                            <div className="fs-4 fw-bold text-danger">{selectedBook.damaged}</div>
+                            <div className={`small text-uppercase fw-bold ${modalTab === 'damaged' ? 'text-white-50' : 'text-muted'}`}>Damaged</div>
+                            <div className={`fs-4 fw-bold ${modalTab === 'damaged' ? 'text-white' : 'text-danger'}`}>{selectedBook.damaged}</div>
                           </div>
                         </div>
                         <div className="col-6 col-sm-3">
@@ -399,84 +437,87 @@ export default function InventoryInsights() {
                         </div>
                       </div>
 
-                      {/* Active Loans */}
-                      <div ref={activeLoansRef}>
-                        <h6 className="fw-bold mb-3 border-bottom pb-2">Active Loans</h6>
-                        {bookDetails.loans.length > 0 ? (
-                          <div className="table-responsive">
-                            <table className="table table-sm table-hover align-middle">
-                              <thead className="table-light">
-                                <tr>
-                                  <th>Student</th>
-                                  <th>Loan Date</th>
-                                  <th>Due Date</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {bookDetails.loans.map(loan => (
-                                  <tr key={loan.id}>
-                                    <td>
-                                      <div className="fw-semibold">{loan.students?.full_name || 'Unknown'}</div>
-                                      <div className="small text-muted">{loan.students?.student_id}</div>
-                                    </td>
-                                    <td>{loan.issued_at?.slice(0, 10)}</td>
-                                    <td className={loan.due_date < todayString ? 'text-danger fw-bold' : ''}>
-                                      {loan.due_date}
-                                    </td>
+                      {/* Filtered Sections */}
+                      {(modalTab === 'all' || modalTab === 'issued') && (
+                        <div>
+                          <h6 className="fw-bold mb-3 border-bottom pb-2">Active Loans</h6>
+                          {bookDetails.loans.length > 0 ? (
+                            <div className="table-responsive">
+                              <table className="table table-sm table-hover align-middle">
+                                <thead className="table-light">
+                                  <tr>
+                                    <th>Student</th>
+                                    <th>Loan Date</th>
+                                    <th>Due Date</th>
                                   </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        ) : (
-                          <p className="text-muted fst-italic mb-0">No active loans for this title.</p>
-                        )}
-                      </div>
+                                </thead>
+                                <tbody>
+                                  {bookDetails.loans.map(loan => (
+                                    <tr key={loan.id}>
+                                      <td>
+                                        <div className="fw-semibold">{loan.students?.full_name || 'Unknown'}</div>
+                                        <div className="small text-muted">{loan.students?.student_id}</div>
+                                      </td>
+                                      <td>{loan.issued_at?.slice(0, 10)}</td>
+                                      <td className={loan.due_date < todayString ? 'text-danger fw-bold' : ''}>
+                                        {loan.due_date}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <p className="text-muted fst-italic mb-0">No active loans for this title.</p>
+                          )}
+                        </div>
+                      )}
 
-                      {/* Copies with Issues */}
-                      <div ref={issuesRef}>
-                        <h6 className="fw-bold mb-3 border-bottom pb-2">Copies with Issues</h6>
-                        {bookDetails.copies.filter(c => ['MISSING', 'DAMAGED'].includes((c.availability || '').toUpperCase())).length > 0 ? (
-                          <div className="table-responsive">
-                            <table className="table table-sm table-hover align-middle">
-                              <thead className="table-light">
-                                <tr>
-                                  <th>Copy ID</th>
-                                  <th>Status</th>
-                                  <th>Student ID</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {bookDetails.copies
-                                  .filter(c => ['MISSING', 'DAMAGED'].includes((c.availability || '').toUpperCase()))
-                                  .map(copy => {
-                                    const issueLoan = bookDetails.issueLoans?.find(l => l.library_book_copies?.id === copy.id)
-                                    return (
-                                      <tr key={copy.id}>
-                                        <td className="font-monospace">{copy.id}</td>
-                                        <td>
-                                          <span className={`badge ${copy.availability === 'MISSING' ? 'bg-danger' : 'bg-warning text-dark'}`}>
-                                            {copy.availability}
-                                          </span>
-                                        </td>
-                                        <td className="small text-muted">
-                                          {issueLoan ? (
-                                            <>
-                                              <div>{issueLoan.students?.full_name}</div>
-                                              <div>{issueLoan.students?.student_id}</div>
-                                            </>
-                                          ) : '-'}
-                                        </td>
-                                      </tr>
-                                    )
-                                  })}
-                              </tbody>
-                            </table>
-                          </div>
-                        ) : (
-                          <p className="text-muted fst-italic mb-0">No damaged or missing copies reported.</p>
-                        )}
-                      </div>
+                      {(modalTab === 'all' || modalTab === 'damaged') && (
+                        <div>
+                          <h6 className="fw-bold mb-3 border-bottom pb-2">Copies with Issues</h6>
+                          {bookDetails.copies.filter(c => ['MISSING', 'DAMAGED'].includes((c.availability || '').toUpperCase())).length > 0 ? (
+                            <div className="table-responsive">
+                              <table className="table table-sm table-hover align-middle">
+                                <thead className="table-light">
+                                  <tr>
+                                    <th>Copy ID</th>
+                                    <th>Status</th>
+                                    <th>Student ID</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {bookDetails.copies
+                                    .filter(c => ['MISSING', 'DAMAGED'].includes((c.availability || '').toUpperCase()))
+                                    .map(copy => {
+                                      const issueLoan = bookDetails.issueLoans?.find(l => l.library_book_copies?.id === copy.id)
+                                      return (
+                                        <tr key={copy.id}>
+                                          <td className="font-monospace">{copy.id}</td>
+                                          <td>
+                                            <span className={`badge ${copy.availability === 'MISSING' ? 'bg-danger' : 'bg-warning text-dark'}`}>
+                                              {copy.availability}
+                                            </span>
+                                          </td>
+                                          <td className="small text-muted">
+                                            {issueLoan ? (
+                                              <>
+                                                <div>{issueLoan.students?.full_name}</div>
+                                                <div>{issueLoan.students?.student_id}</div>
+                                              </>
+                                            ) : '-'}
+                                          </td>
+                                        </tr>
+                                      )
+                                    })}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <p className="text-muted fst-italic mb-0">No damaged or missing copies reported.</p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
