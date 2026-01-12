@@ -37,6 +37,7 @@ import LibraryInventoryInsights from "./pages/library/InventoryInsights.jsx";
 import LibraryCirculation from "./pages/library/Circulation.jsx";
 import LibraryFines from "./pages/library/Fines.jsx";
 import LibraryReports from "./pages/library/Reports.jsx";
+import LibraryHistory from "./pages/library/History.jsx";
 
 import StaffSubjectMapping from "./pages/admin/StaffSubjectMapping.jsx";
 
@@ -244,6 +245,7 @@ export default function App() {
           <Route path="circulation" element={<LibraryCirculation />} />
           <Route path="fines" element={<LibraryFines />} />
           <Route path="reports" element={<LibraryReports />} />
+          <Route path="history" element={<LibraryHistory />} />
         </Route>
         <Route
           path="/staff/dashboard"

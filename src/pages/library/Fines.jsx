@@ -24,6 +24,7 @@ export default function Fines() {
     studentId: '',
     loanId: '',
     condition: 'MISSING',
+    reason: '',
     amount: '500'
   })
   const [missingLoans, setMissingLoans] = useState([])
@@ -159,8 +160,7 @@ export default function Fines() {
         .from('library_fines')
         .update({
           status: 'PAID',
-          paid_at: new Date().toISOString(),
-          payment_mode: fineForm.paymentMode
+          paid_at: new Date().toISOString()
         })
         .eq('id', fineForm.fineId)
 
@@ -256,17 +256,49 @@ export default function Fines() {
         if (copyError) throw copyError
       }
 
+      // Try inserting with 'reason' field if schema allows
+      const payload = { 
+        loan_id: loanId, 
+        amount, 
+        student_id: missingForm.studentId.trim(), 
+        status: 'PENDING'
+      }
+      if (missingForm.reason) payload.reason = missingForm.reason
+
       const { error: fineError } = await supabase
         .from('library_fines')
-        .insert([{ loan_id: loanId, amount, student_id: missingForm.studentId.trim(), status: 'PENDING' }])
+        .insert([payload])
+      
       if (fineError) throw fineError
 
       showToast('Recorded as missing/damaged and fine created.', { type: 'success' })
-      setMissingForm({ studentId: '', loanId: '', condition: 'MISSING', amount: '500' })
+      setMissingForm({ studentId: '', loanId: '', condition: 'MISSING', reason: '', amount: '500' })
       setMissingLoans([])
       loadFines()
     } catch (err) {
       console.error('Failed to mark missing/damaged', err)
+      // Fallback: If 'reason' column fails, try inserting without it
+      if (err.message?.includes('reason')) {
+         try {
+            const payload = { 
+              loan_id: Number(missingForm.loanId), 
+              amount: Number(missingForm.amount || 0), 
+              student_id: missingForm.studentId.trim(), 
+              status: 'PENDING'
+            }
+            const { error: retryError } = await supabase.from('library_fines').insert([payload])
+            if (retryError) throw retryError
+            
+            showToast('Recorded without reason (schema limitation).', { type: 'warning' })
+            setMissingForm({ studentId: '', loanId: '', condition: 'MISSING', reason: '', amount: '500' })
+            setMissingLoans([])
+            loadFines()
+            setSavingMissing(false)
+            return
+         } catch (retryErr) {
+            console.error('Retry failed', retryErr)
+         }
+      }
       showToast('Unable to update missing/damaged book right now.', { type: 'danger' })
     } finally {
       setSavingMissing(false)
@@ -517,6 +549,16 @@ export default function Fines() {
                   ))}
                 </select>
               </div>
+              <div className="col-md-4">
+                <label className="form-label">Reason</label>
+                <input
+                  className="form-control"
+                  type="text"
+                  placeholder="Details"
+                  value={missingForm.reason || ''}
+                  onChange={handleMissingChange('reason')}
+                />
+              </div>
               <div className="col-md-2">
                 <label className="form-label">Condition</label>
                 <select className="form-select" value={missingForm.condition} onChange={handleMissingChange('condition')}>
@@ -539,7 +581,7 @@ export default function Fines() {
                   type="button"
                   className="btn btn-outline-secondary"
                   onClick={() => {
-                    setMissingForm({ studentId: '', loanId: '', condition: 'MISSING', amount: '500' })
+                    setMissingForm({ studentId: '', loanId: '', condition: 'MISSING', reason: '', amount: '500' })
                     setMissingLoans([])
                   }}
                 >

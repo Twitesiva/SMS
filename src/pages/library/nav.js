@@ -26,7 +26,7 @@ export const libraryNavGroups = [
     ]
   },
   {
-    title: 'Book Outgoing',
+    title: 'Book Activity',
     items: [
       {
         to: '/library/circulation',
@@ -52,6 +52,11 @@ export const libraryNavGroups = [
         to: '/library/reports',
         label: 'Reports',
         icon: 'bi-graph-up'
+      },
+      {
+        to: '/library/history',
+        label: 'For No Dues and History',
+        icon: 'bi-clock-history'
       }
     ]
   }
