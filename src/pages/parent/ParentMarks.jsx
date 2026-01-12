@@ -98,9 +98,16 @@ export default function ParentMarks() {
     return [studentRecord.course_name, studentRecord.group_name, studentRecord.academic_year].filter(Boolean)
   }, [studentRecord])
 
+  const latestExamRows = useMemo(() => {
+    if (!marksRows.length) return []
+    const latestExamId = marksRows[0]?.exam_id
+    if (!latestExamId) return [marksRows[0]]
+    return marksRows.filter((row) => row.exam_id === latestExamId)
+  }, [marksRows])
+
   return (
     <ParentShell>
-      <div className="students-section-shell">
+      <div className="students-section-shell mb-3">
         <div className="students-section-shell-header">
           <h2 className="mb-2">Marks</h2>
           <p className="students-section-copy mb-3">
@@ -116,7 +123,9 @@ export default function ParentMarks() {
             </div>
           )}
         </div>
+      </div>
 
+      <div className="students-section-shell">
         {loading && (
           <div className="student-details__loading" role="status" aria-live="polite">
             <div className="student-details__loading-header">
@@ -135,44 +144,73 @@ export default function ParentMarks() {
         )}
 
         {!loading && !error && studentRecord && (
-          <div className="student-dashboard__grid">
-            <div className="student-card">
-              <div className="student-card__header">Latest Exam Summary</div>
-              <div className="student-card__body">
-                <div className="student-detail-row">
-                  <div className="student-detail-label">Exam</div>
-                  <div className="student-detail-colon">:</div>
-                  <div className="student-detail-value">{summary.latestExam}</div>
+          <div className="parent-marks__layout">
+            <div className="parent-marks__statement">
+              <div className="parent-marks__hero">
+                <div>
+                  <div className="parent-marks__eyebrow">Exam Statement</div>
+                  <div className="parent-marks__title">{summary.latestExam}</div>
+                  <div className="parent-marks__meta">
+                    {[studentRecord.course_name, studentRecord.group_name, studentRecord.academic_year]
+                      .filter(Boolean)
+                      .join(' • ')}
+                  </div>
                 </div>
-                <div className="student-detail-row">
-                  <div className="student-detail-label">Percentage</div>
-                  <div className="student-detail-colon">:</div>
-                  <div className="student-detail-value">{summary.percentage}%</div>
-                </div>
-                <div className="student-detail-row">
-                  <div className="student-detail-label">Status</div>
-                  <div className="student-detail-colon">:</div>
-                  <div className="student-detail-value">{summary.status}</div>
+                <div className="parent-marks__status">
+                  <span className="parent-marks__status-badge">{summary.status}</span>
+                  <div className="parent-marks__score">
+                    <span>Percentage</span>
+                    <strong>{summary.percentage}%</strong>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="student-card">
-              <div className="student-card__header">Recent Results</div>
-              <div className="student-card__body">
-                {marksRows.length ? (
-                  <div className="student-detail-list">
-                    {marksRows.slice(0, 6).map((row, index) => (
-                      <div key={`${row.exam_id || 'exam'}-${index}`} className="student-detail-row">
-                        <div className="student-detail-label">
-                          {row.subject?.subject_name || 'Unknown Subject'}
-                        </div>
-                        <div className="student-detail-colon">:</div>
-                        <div className="student-detail-value">
-                          {Number(row.marks_obtained || 0)} / {Number(row.max_marks || 0)}
-                        </div>
-                      </div>
-                    ))}
+              <div className="parent-marks__card">
+                <div className="parent-marks__card-head">
+                  <div>
+                    <div className="parent-marks__card-title">Subject-wise Scores</div>
+                    <div className="parent-marks__card-sub">Exam: {summary.latestExam}</div>
+                  </div>
+                  <div className="parent-marks__card-badge">Latest Release</div>
+                </div>
+
+                {latestExamRows.length ? (
+                  <div className="parent-marks__table-wrapper">
+                    <table className="parent-marks__table">
+                      <thead>
+                        <tr>
+                          <th>Subject</th>
+                          <th>Marks Obtained</th>
+                          <th>Max Marks</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {latestExamRows.map((row, index) => (
+                          <tr key={`${row.exam_id || 'exam'}-${index}`}>
+                            <td>
+                              <div className="parent-marks__subject">{row.subject?.subject_name || 'Unknown Subject'}</div>
+                              {row.subject?.subject_code && (
+                                <div className="parent-marks__subject-code">{row.subject.subject_code}</div>
+                              )}
+                            </td>
+                            <td className="parent-marks__value">{Number(row.marks_obtained || 0)}</td>
+                            <td className="parent-marks__value">{Number(row.max_marks || 0)}</td>
+                            <td>
+                              <span
+                                className={`parent-marks__status-chip ${
+                                  (row.result_status || '').toLowerCase() === 'pass'
+                                    ? 'parent-marks__status-chip--pass'
+                                    : 'parent-marks__status-chip--fail'
+                                }`}
+                              >
+                                {row.result_status || 'N/A'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 ) : (
                   <div className="student-card__empty">No marks available yet.</div>

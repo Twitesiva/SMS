@@ -2015,3 +2015,191 @@
   letter-spacing: 0.08em;
   color: #64748b;
 }
+
+/* Parent Marks */
+.parent-marks__layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.1rem;
+}
+
+.parent-marks__statement {
+  display: grid;
+  gap: 1rem;
+}
+
+.parent-marks__hero {
+  border-radius: 18px;
+  padding: 1.4rem 1.6rem;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.14), rgba(96, 165, 250, 0.14));
+  border: 1px solid rgba(37, 99, 235, 0.28);
+  box-shadow: 0 18px 30px rgba(15, 23, 42, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.parent-marks__eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #1c2a52;
+  font-weight: 700;
+}
+
+.parent-marks__title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #0f172a;
+  text-transform: uppercase;
+  margin: 0.25rem 0;
+}
+
+.parent-marks__meta {
+  color: #1c2a52;
+  font-weight: 600;
+}
+
+.parent-marks__status {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.parent-marks__status-badge {
+  padding: 0.45rem 0.95rem;
+  border-radius: 999px;
+  background: #1e40af;
+  color: #ffffff;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.parent-marks__score {
+  display: grid;
+  gap: 0.25rem;
+  text-align: right;
+  color: #0f172a;
+}
+
+.parent-marks__score span {
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #1c2a52;
+  font-weight: 700;
+}
+
+.parent-marks__score strong {
+  font-size: 1.6rem;
+}
+
+.parent-marks__card {
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid #e1e8f5;
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+
+.parent-marks__card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid #e5e9f2;
+}
+
+.parent-marks__card-title {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #0f172a;
+}
+
+.parent-marks__card-sub {
+  color: #1c2a52;
+  font-weight: 600;
+}
+
+.parent-marks__card-badge {
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.parent-marks__table-wrapper {
+  overflow-x: auto;
+}
+
+.parent-marks__table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 520px;
+}
+
+.parent-marks__table thead th {
+  background: #93c5fd;
+  color: #000000;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.85rem;
+  text-align: left;
+  border-bottom: 3px solid #2563eb;
+}
+
+.parent-marks__table tbody td {
+  padding: 0.85rem;
+  border-bottom: 1px solid #eef2f7;
+  vertical-align: middle;
+}
+
+.parent-marks__subject {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.parent-marks__subject-code {
+  font-size: 0.85rem;
+  color: #475569;
+  font-weight: 600;
+}
+
+.parent-marks__value {
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.parent-marks__status-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  min-width: 92px;
+}
+
+.parent-marks__status-chip--pass {
+  background: rgba(34, 197, 94, 0.15);
+  color: #15803d;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.parent-marks__status-chip--fail {
+  background: rgba(239, 68, 68, 0.15);
+  color: #b91c1c;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
