@@ -315,38 +315,51 @@ export default function PaymentReports() {
     const chartData = useMemo(() => {
         if (!filteredStudents.length) return null;
 
+        const validGroupNames = new Set(groups.map(g => g.group_name));
+        const validCourseNames = new Set(courses.map(c => c.course_name));
+        const colors = ['#1f4e79', '#ed7d31', '#a5a5a5', '#ffc000', '#5b9bd5', '#70ad47', '#264478', '#9e480e', '#636363', '#997300'];
+
         // 1. Group Chart Data
         const groupCounts = {};
         filteredStudents.forEach(s => {
-            const g = s.group_name || 'Unknown';
-            groupCounts[g] = (groupCounts[g] || 0) + 1;
+            const g = s.group_name;
+            if (g && validGroupNames.has(g)) {
+                groupCounts[g] = (groupCounts[g] || 0) + 1;
+            }
         });
 
+        // Convert to individual datasets for Legend support
         const groupChart = {
-            labels: Object.keys(groupCounts),
-            datasets: [{
-                label: 'Students',
-                data: Object.values(groupCounts),
-                backgroundColor: '#1f4e79', // Dark Blue
-                borderRadius: 4
-            }]
+            labels: [''], // Single dummy label for the X-axis group
+            datasets: Object.keys(groupCounts).map((group, i) => ({
+                label: group,
+                data: [groupCounts[group]],
+                backgroundColor: colors[i % colors.length],
+                borderRadius: 4,
+                barPercentage: 0.8,
+                categoryPercentage: 0.9
+            }))
         };
 
         // 2. Course Chart Data
         const courseCounts = {};
         filteredStudents.forEach(s => {
-            const c = s.course_name || 'Unknown';
-            courseCounts[c] = (courseCounts[c] || 0) + 1;
+            const c = s.course_name;
+            if (c && validCourseNames.has(c)) {
+                courseCounts[c] = (courseCounts[c] || 0) + 1;
+            }
         });
 
         const courseChart = {
-            labels: Object.keys(courseCounts),
-            datasets: [{
-                label: 'Students',
-                data: Object.values(courseCounts),
-                backgroundColor: '#ed7d31', // Orange
-                borderRadius: 4
-            }]
+            labels: [''],
+            datasets: Object.keys(courseCounts).map((course, i) => ({
+                label: course,
+                data: [courseCounts[course]],
+                backgroundColor: colors[(i + 2) % colors.length], // Offset colors slightly
+                borderRadius: 4,
+                barPercentage: 0.8,
+                categoryPercentage: 0.9
+            }))
         };
 
         // 3. Semester Chart Data (Pie)
@@ -360,13 +373,12 @@ export default function PaymentReports() {
             labels: Object.keys(semCounts),
             datasets: [{
                 data: Object.values(semCounts),
-                backgroundColor: ['#1f4e79', '#2e75b6', '#9dc3e6', '#c9c9c9'], // Blues
+                backgroundColor: ['#1f4e79', '#2e75b6', '#9dc3e6', '#c9c9c9', '#e7e6e6', '#f2f2f2'],
                 borderWidth: 1
             }]
         };
 
         // 4. Payment Chart All (Pie)
-        // Usually helpful to see breakdown of current list.
         const payCounts = { Paid: 0, Partial: 0, Pending: 0 };
         filteredStudents.forEach(s => {
             if (s.paymentStatus === 'Paid') payCounts.Paid++;
@@ -385,7 +397,7 @@ export default function PaymentReports() {
 
         return { groupChart, courseChart, semesterChart, paymentChart };
 
-    }, [filteredStudents]);
+    }, [filteredStudents, groups, courses]);
 
     // Available Courses based on selected group
     const availableCourses = useMemo(() => {
@@ -427,7 +439,13 @@ export default function PaymentReports() {
                                 <select
                                     className="form-select form-select-sm"
                                     value={selectedYear}
-                                    onChange={(e) => setSelectedYear(e.target.value)}
+                                    onChange={(e) => {
+                                        setSelectedYear(e.target.value);
+                                        setSelectedGroup('');
+                                        setSelectedCourse('');
+                                        setSelectedSemester('');
+                                        setSelectedPaymentStatus('');
+                                    }}
                                 >
                                     <option value="">Select Year</option>
                                     {academicYears.map(y => <option key={y} value={y}>{y}</option>)}
@@ -490,32 +508,66 @@ export default function PaymentReports() {
                         <div className="col-md-3">
                             <div className="card shadow-sm border-0 h-100">
                                 <div className="card-header bg-white py-2 border-bottom">
-                                    <div className="small fw-bold text-uppercase text-secondary text-center">Group Distribution</div>
+                                    <div className="small fw-bold text-uppercase text-secondary text-center">Group</div>
                                 </div>
                                 <div className="card-body p-2 d-flex flex-column align-items-center justify-content-center">
                                     <div style={{ height: '160px', width: '100%' }}>
                                         <Bar
                                             data={chartData.groupChart}
-                                            options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: true } } }}
+                                            options={{
+                                                responsive: true,
+                                                maintainAspectRatio: false,
+                                                plugins: {
+                                                    legend: {
+                                                        display: true,
+                                                        position: 'top',
+                                                        align: 'end',
+                                                        labels: { boxWidth: 12, font: { size: 10 } }
+                                                    }
+                                                },
+                                                scales: {
+                                                    x: { display: false },
+                                                    y: { display: true }
+                                                }
+                                            }}
                                         />
                                     </div>
-                                    <div className="mt-2 small fw-bold text-muted">{filteredStudents[0]?.group_name || '-'}</div>
+                                    <div className="mt-2 small fw-bold text-muted text-center">
+                                        {selectedGroup || (chartData.groupChart.labels.length > 1 ? 'All Groups' : (filteredStudents[0]?.group_name || '-'))}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         <div className="col-md-3">
                             <div className="card shadow-sm border-0 h-100">
                                 <div className="card-header bg-white py-2 border-bottom">
-                                    <div className="small fw-bold text-uppercase text-secondary text-center">Course Distribution</div>
+                                    <div className="small fw-bold text-uppercase text-secondary text-center">Course</div>
                                 </div>
                                 <div className="card-body p-2 d-flex flex-column align-items-center justify-content-center">
                                     <div style={{ height: '160px', width: '100%' }}>
                                         <Bar
                                             data={chartData.courseChart}
-                                            options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: true } } }}
+                                            options={{
+                                                responsive: true,
+                                                maintainAspectRatio: false,
+                                                plugins: {
+                                                    legend: {
+                                                        display: true,
+                                                        position: 'top',
+                                                        align: 'end',
+                                                        labels: { boxWidth: 12, font: { size: 10 } }
+                                                    }
+                                                },
+                                                scales: {
+                                                    x: { display: false },
+                                                    y: { display: true }
+                                                }
+                                            }}
                                         />
                                     </div>
-                                    <div className="mt-2 small fw-bold text-muted">{filteredStudents[0]?.course_name || '-'}</div>
+                                    <div className="mt-2 small fw-bold text-muted text-center">
+                                        {selectedCourse || (chartData.courseChart.labels.length > 1 ? 'All Courses' : (filteredStudents[0]?.course_name || '-'))}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -525,10 +577,21 @@ export default function PaymentReports() {
                                     <div className="small fw-bold text-uppercase text-secondary text-center">Semester</div>
                                 </div>
                                 <div className="card-body p-2 d-flex align-items-center justify-content-center">
-                                    <div style={{ width: '140px', height: '140px' }}>
+                                    <div style={{ width: '100%', height: '160px' }}>
                                         <Pie
                                             data={chartData.semesterChart}
-                                            options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }}
+                                            options={{
+                                                responsive: true,
+                                                maintainAspectRatio: false,
+                                                plugins: {
+                                                    legend: {
+                                                        display: true,
+                                                        position: 'top',
+                                                        align: 'end',
+                                                        labels: { boxWidth: 10, font: { size: 9 } }
+                                                    }
+                                                }
+                                            }}
                                         />
                                     </div>
                                 </div>
@@ -540,10 +603,21 @@ export default function PaymentReports() {
                                     <div className="small fw-bold text-uppercase text-secondary text-center">Payment Status</div>
                                 </div>
                                 <div className="card-body p-2 d-flex align-items-center justify-content-center">
-                                    <div style={{ width: '140px', height: '140px' }}>
+                                    <div style={{ width: '100%', height: '160px' }}>
                                         <Pie
                                             data={chartData.paymentChart}
-                                            options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }}
+                                            options={{
+                                                responsive: true,
+                                                maintainAspectRatio: false,
+                                                plugins: {
+                                                    legend: {
+                                                        display: true,
+                                                        position: 'top',
+                                                        align: 'end',
+                                                        labels: { boxWidth: 10, font: { size: 9 } }
+                                                    }
+                                                }
+                                            }}
                                         />
                                     </div>
                                     {/* Minimal Legend if needed or keep default tooltip */}
