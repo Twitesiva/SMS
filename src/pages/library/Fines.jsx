@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import crestPrimary from '../../assets/media/images.png'
 import { supabase } from '../../../supabaseClient'
+import { showToast } from '../../store/ui'
 
 export default function Fines() {
   const [pendingFines, setPendingFines] = useState([])
@@ -17,52 +18,60 @@ export default function Fines() {
   })
   const [loadingBook, setLoadingBook] = useState(false)
   const [bookStatus, setBookStatus] = useState('')
+  const [missingForm, setMissingForm] = useState({
+    studentId: '',
+    loanId: '',
+    condition: 'MISSING',
+    amount: '500'
+  })
+  const [missingLoans, setMissingLoans] = useState([])
+  const [savingMissing, setSavingMissing] = useState(false)
 
   const today = useMemo(() => new Date(), [])
 
-  useEffect(() => {
-    const loadFines = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('library_fines')
-          .select(
-            'id, amount, status, created_at, paid_at, student_id, loan_id, students(full_name,student_id), library_loans(due_date, library_book_copies(book_id, library_books(title)))'
-          )
-          .order('created_at', { ascending: false })
+  const loadFines = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('library_fines')
+        .select(
+          'id, amount, status, created_at, paid_at, student_id, loan_id, students(full_name,student_id), library_loans(status, due_date, library_book_copies(book_id, library_books(title)))'
+        )
+        .order('created_at', { ascending: false })
 
-        if (error) throw error
+      if (error) throw error
 
-        const pending = (data || []).filter((row) => row.status === 'PENDING')
-        setPendingFines(pending)
+      const pending = (data || []).filter((row) => row.status === 'PENDING')
+      setPendingFines(pending)
 
-        const outstanding = pending.reduce((sum, row) => sum + Number(row.amount || 0), 0)
+      const outstanding = pending.reduce((sum, row) => sum + Number(row.amount || 0), 0)
 
-        const monthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`
-        const collected = (data || [])
-          .filter((row) => row.status === 'PAID' && row.paid_at && String(row.paid_at).slice(0, 7) === monthKey)
-          .reduce((sum, row) => sum + Number(row.amount || 0), 0)
+      const monthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`
+      const collected = (data || [])
+        .filter((row) => row.status === 'PAID' && row.paid_at && String(row.paid_at).slice(0, 7) === monthKey)
+        .reduce((sum, row) => sum + Number(row.amount || 0), 0)
 
-        const highPriority = pending.filter((row) => {
-          const dueDate = row.library_loans?.due_date
-          if (!dueDate) return false
-          const diff = Math.floor((today - new Date(dueDate)) / (1000 * 60 * 60 * 24))
-          return diff > 10
-        }).length
+      const highPriority = pending.filter((row) => {
+        const dueDate = row.library_loans?.due_date
+        if (!dueDate) return false
+        const diff = Math.floor((today - new Date(dueDate)) / (1000 * 60 * 60 * 24))
+        return diff > 10
+      }).length
 
-        setSummary({
-          outstanding,
-          collected,
-          highPriority
-        })
-      } catch (err) {
-        console.error('Failed to load fines', err)
-        setPendingFines([])
-        setSummary({ outstanding: null, collected: null, highPriority: null })
-      }
+      setSummary({
+        outstanding,
+        collected,
+        highPriority
+      })
+    } catch (err) {
+      console.error('Failed to load fines', err)
+      setPendingFines([])
+      setSummary({ outstanding: null, collected: null, highPriority: null })
     }
-
-    loadFines()
   }, [today])
+
+  useEffect(() => {
+    loadFines()
+  }, [loadFines])
 
   const formatValue = (value) => (value === null || value === undefined ? '--' : String(value))
 
@@ -103,6 +112,94 @@ export default function Fines() {
       setBookStatus('Unable to fetch book details.')
     } finally {
       setLoadingBook(false)
+    }
+  }
+
+  const fetchMissingLoans = async (studentId) => {
+    const trimmed = (studentId || '').trim()
+    if (!trimmed) {
+      setMissingLoans([])
+      setMissingForm((prev) => ({ ...prev, loanId: '' }))
+      return
+    }
+    try {
+      const { data, error } = await supabase
+        .from('library_loans')
+        .select('id, student_id, status, due_date, library_book_copies(id, library_books(title))')
+        .eq('student_id', trimmed)
+        .eq('status', 'ISSUED')
+        .order('issued_at', { ascending: false })
+
+      if (error) throw error
+      setMissingLoans(data || [])
+      if ((data || []).length === 1) {
+        setMissingForm((prev) => ({ ...prev, loanId: String(data[0].id) }))
+      } else {
+        setMissingForm((prev) => ({ ...prev, loanId: '' }))
+      }
+    } catch (err) {
+      console.error('Failed to load loans for missing/damaged', err)
+      setMissingLoans([])
+      setMissingForm((prev) => ({ ...prev, loanId: '' }))
+    }
+  }
+
+  const handleMissingChange = (key) => (event) => {
+    setMissingForm((prev) => ({ ...prev, [key]: event.target.value }))
+  }
+
+  const handleMissingSubmit = async (event) => {
+    event.preventDefault()
+    if (!missingForm.studentId.trim()) {
+      showToast('Enter a student ID.', { type: 'warning' })
+      return
+    }
+    if (!missingForm.loanId) {
+      showToast('Select a loan.', { type: 'warning' })
+      return
+    }
+
+    const amount = Number(missingForm.amount || 0)
+    if (Number.isNaN(amount) || amount <= 0) {
+      showToast('Enter a valid fine amount.', { type: 'warning' })
+      return
+    }
+
+    setSavingMissing(true)
+    try {
+      const loanId = Number(missingForm.loanId)
+      const loanRow = missingLoans.find((l) => l.id === loanId)
+      const copyId = loanRow?.library_book_copies?.id
+      const condition = (missingForm.condition || 'MISSING').toUpperCase()
+
+      const { error: loanError } = await supabase
+        .from('library_loans')
+        .update({ status: condition, returned_at: new Date().toISOString() })
+        .eq('id', loanId)
+      if (loanError) throw loanError
+
+      if (copyId) {
+        const { error: copyError } = await supabase
+          .from('library_book_copies')
+          .update({ availability: condition })
+          .eq('id', copyId)
+        if (copyError) throw copyError
+      }
+
+      const { error: fineError } = await supabase
+        .from('library_fines')
+        .insert([{ loan_id: loanId, amount, student_id: missingForm.studentId.trim(), status: 'PENDING' }])
+      if (fineError) throw fineError
+
+      showToast('Recorded as missing/damaged and fine created.', { type: 'success' })
+      setMissingForm({ studentId: '', loanId: '', condition: 'MISSING', amount: '500' })
+      setMissingLoans([])
+      loadFines()
+    } catch (err) {
+      console.error('Failed to mark missing/damaged', err)
+      showToast('Unable to update missing/damaged book right now.', { type: 'danger' })
+    } finally {
+      setSavingMissing(false)
     }
   }
   return (
@@ -228,6 +325,7 @@ export default function Fines() {
                   <tr>
                     <th>Student</th>
                     <th>Book</th>
+                    <th>Reason</th>
                     <th>Days</th>
                     <th className="text-end">Amount</th>
                   </tr>
@@ -242,13 +340,21 @@ export default function Fines() {
                       const student = fine.students
                       const book = fine.library_loans?.library_book_copies?.library_books
                       const dueDate = fine.library_loans?.due_date
+                      const loanStatus = fine.library_loans?.status
                       const days = dueDate
                         ? Math.max(0, Math.floor((today - new Date(dueDate)) / (1000 * 60 * 60 * 24)))
                         : 0
+                      let reason = '—'
+                      if (loanStatus === 'MISSING') reason = 'Missing'
+                      else if (loanStatus === 'DAMAGED') reason = 'Damaged'
+                      else if (dueDate && new Date(dueDate) < today) {
+                        reason = `Delayed${days > 0 ? ` (${days} days)` : ''}`
+                      }
                       return (
                         <tr key={fine.id}>
                           <td>{student?.full_name || 'Unknown'} ({student?.student_id || '--'})</td>
                           <td>{book?.title || 'Unknown'}</td>
+                          <td>{reason}</td>
                           <td>{days}</td>
                           <td className="text-end">Rs. {fine.amount || 0}</td>
                         </tr>
@@ -258,6 +364,91 @@ export default function Fines() {
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+        <div className="col-12">
+          <div className="card card-soft p-4 h-100">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <h4 className="mb-1">Missing / Damaged Books</h4>
+                <p className="text-muted mb-0">Mark copies as missing or damaged and raise fines.</p>
+              </div>
+            </div>
+            <form className="row g-3" onSubmit={handleMissingSubmit}>
+              <div className="col-md-4">
+                <label className="form-label">Student ID</label>
+                <input
+                  className="form-control"
+                  type="text"
+                  placeholder="STU-1001"
+                  value={missingForm.studentId}
+                  onChange={handleMissingChange('studentId')}
+                  onBlur={(event) => fetchMissingLoans(event.target.value)}
+                />
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary btn-sm mt-2"
+                  onClick={() => fetchMissingLoans(missingForm.studentId)}
+                  disabled={!missingForm.studentId.trim()}
+                >
+                  Load Loans
+                </button>
+              </div>
+              <div className="col-md-4">
+                <label className="form-label">Issued Book</label>
+                <select
+                  className="form-select"
+                  value={missingForm.loanId}
+                  onChange={handleMissingChange('loanId')}
+                  disabled={!missingLoans.length}
+                >
+                  <option value="">
+                    {missingForm.studentId.trim()
+                      ? missingLoans.length
+                        ? 'Select a loan'
+                        : 'No active loans'
+                      : 'Enter student ID'}
+                  </option>
+                  {missingLoans.map((loan) => (
+                    <option key={loan.id} value={loan.id}>
+                      {loan.library_book_copies?.library_books?.title || 'Unknown'} · Due {loan.due_date || '--'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-md-2">
+                <label className="form-label">Condition</label>
+                <select className="form-select" value={missingForm.condition} onChange={handleMissingChange('condition')}>
+                  <option value="MISSING">Missing</option>
+                  <option value="DAMAGED">Damaged</option>
+                </select>
+              </div>
+              <div className="col-md-2">
+                <label className="form-label">Fine (Rs.)</label>
+                <input
+                  className="form-control"
+                  type="number"
+                  value={missingForm.amount}
+                  onChange={handleMissingChange('amount')}
+                  min="0"
+                />
+              </div>
+              <div className="col-12 d-flex justify-content-end gap-2">
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary"
+                  onClick={() => {
+                    setMissingForm({ studentId: '', loanId: '', condition: 'MISSING', amount: '500' })
+                    setMissingLoans([])
+                  }}
+                >
+                  Reset
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={savingMissing}>
+                  {savingMissing ? 'Saving...' : 'Mark & Fine'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>

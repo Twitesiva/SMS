@@ -26,7 +26,7 @@ export default function InventoryInsights() {
             .from('library_books')
             .select('id, title, published_year, shelf_code, status')
             .order('created_at', { ascending: false }),
-          supabase.from('library_book_copies').select('id, book_id'),
+          supabase.from('library_book_copies').select('id, book_id, availability'),
           supabase
             .from('library_loans')
             .select(
@@ -50,6 +50,14 @@ export default function InventoryInsights() {
           return acc
         }, {})
 
+        const damagedByBook = copies.reduce((acc, row) => {
+          if (['MISSING', 'DAMAGED'].includes((row.availability || '').toUpperCase())) {
+            const key = String(row.book_id)
+            acc[key] = (acc[key] || 0) + 1
+          }
+          return acc
+        }, {})
+
         const issuedByBook = issued.reduce((acc, loan) => {
           const bookId = loan.library_book_copies?.book_id
           if (!bookId) return acc
@@ -62,13 +70,15 @@ export default function InventoryInsights() {
           const bookId = String(book.id)
           const total = copiesByBook[bookId] || 0
           const issuedCount = issuedByBook[bookId] || 0
+          const damagedCount = damagedByBook[bookId] || 0
           return {
             id: book.id,
             title: book.title || 'Untitled',
             shelf: book.shelf_code || '--',
             total,
             issued: issuedCount,
-            available: Math.max(0, total - issuedCount)
+            damaged: damagedCount,
+            available: Math.max(0, total - issuedCount - damagedCount)
           }
         })
 
@@ -77,7 +87,7 @@ export default function InventoryInsights() {
         const totalBooks = books.length
         const totalCopies = copies.length
         const issuedCopies = issued.length
-        const availableBalance = Math.max(0, totalCopies - issuedCopies)
+        const availableBalance = balance.reduce((sum, b) => sum + b.available, 0)
 
         setStats({
           totalBooks,
@@ -192,17 +202,18 @@ export default function InventoryInsights() {
                     <th>Shelf</th>
                     <th>Total</th>
                     <th>Issued</th>
+                    <th>Damaged / Missed</th>
                     <th className="text-end">Balance</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan="5" className="text-center text-muted py-4">Loading balance...</td>
+                      <td colSpan="6" className="text-center text-muted py-4">Loading balance...</td>
                     </tr>
                   ) : balanceRows.length === 0 ? (
                     <tr>
-                      <td colSpan="5" className="text-center text-muted py-4">No balance data available.</td>
+                      <td colSpan="6" className="text-center text-muted py-4">No balance data available.</td>
                     </tr>
                   ) : (
                     balanceRows.slice(0, 10).map((row) => (
@@ -213,6 +224,7 @@ export default function InventoryInsights() {
                         <td>{row.shelf}</td>
                         <td>{row.total}</td>
                         <td>{row.issued}</td>
+                        <td>{row.damaged}</td>
                         <td className="text-end">
                           <span className="library-insights-badge">{row.available}</span>
                         </td>
