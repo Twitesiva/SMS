@@ -37,7 +37,17 @@ export default function ParentMarks() {
 
         const { data: resultRows, error: resultsError } = await supabase
           .from('results')
-          .select('exam_id, marks_obtained, max_marks, result_status, created_at')
+          .select(`
+            exam_id,
+            marks_obtained,
+            max_marks,
+            result_status,
+            created_at,
+            subject:subjects (
+              subject_name,
+              subject_code
+            )
+          `)
           .eq('student_id', studentRow.id)
           .order('created_at', { ascending: false })
 
@@ -154,7 +164,10 @@ export default function ParentMarks() {
                   <div className="student-detail-list">
                     {marksRows.slice(0, 6).map((row, index) => (
                       <div key={`${row.exam_id || 'exam'}-${index}`} className="student-detail-row">
-                        <div className="student-detail-label">Score</div>
+                        <div className="student-detail-label">
+                          {row.subject?.subject_name || 'Unknown Subject'}
+                          {row.subject?.subject_code ? ` (${row.subject.subject_code})` : ''}
+                        </div>
                         <div className="student-detail-colon">:</div>
                         <div className="student-detail-value">
                           {Number(row.marks_obtained || 0)} / {Number(row.max_marks || 0)}
