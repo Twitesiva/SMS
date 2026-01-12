@@ -325,19 +325,39 @@ export default function InventoryInsights() {
               <div className="text-center text-muted py-4">No active issues yet.</div>
             ) : (
               <div className="library-insights-issued-list">
-                {issuedLoans.map((loan) => (
-                  <div key={loan.id} className="library-insights-issued-item">
-                    <div>
-                      <div className="fw-semibold">
-                        {loan.students?.full_name || 'Unknown'} ({loan.students?.student_id || '--'})
+                {issuedLoans.map((loan) => {
+                  // Construct a book object compatible with handleBookClick
+                  const bookData = loan.library_book_copies?.library_books
+                  const bookId = loan.library_book_copies?.book_id
+                  const bookObj = bookData ? { 
+                    id: bookId, 
+                    title: bookData.title, 
+                    author: bookData.author,
+                    shelf: bookData.shelf_code,
+                    // We don't have total/issued/damaged counts here easily without full balance rows,
+                    // but the modal fetches fresh details anyway. We can pass minimal needed or try to find in balanceRows.
+                    ...balanceRows.find(b => String(b.id) === String(bookId))
+                  } : null
+
+                  return (
+                    <div 
+                      key={loan.id} 
+                      className="library-insights-issued-item"
+                      onClick={() => bookObj && handleBookClick(bookObj, 'issued')}
+                      style={{ cursor: bookObj ? 'pointer' : 'default' }}
+                    >
+                      <div>
+                        <div className="fw-semibold">
+                          {loan.students?.full_name || 'Unknown'} ({loan.students?.student_id || '--'})
+                        </div>
+                        <div className="text-muted small">{loan.library_book_copies?.library_books?.title || 'Unknown'}</div>
                       </div>
-                      <div className="text-muted small">{loan.library_book_copies?.library_books?.title || 'Unknown'}</div>
+                      <span className="library-status library-status--issued">
+                        Due {loan.due_date || '--'}
+                      </span>
                     </div>
-                    <span className="library-status library-status--issued">
-                      Due {loan.due_date || '--'}
-                    </span>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
@@ -446,7 +466,8 @@ export default function InventoryInsights() {
                               <table className="table table-sm table-hover align-middle">
                                 <thead className="table-light">
                                   <tr>
-                                    <th>Student</th>
+                                    <th>Student ID</th>
+                                    <th>Student Name</th>
                                     <th>Loan Date</th>
                                     <th>Due Date</th>
                                   </tr>
@@ -454,10 +475,8 @@ export default function InventoryInsights() {
                                 <tbody>
                                   {bookDetails.loans.map(loan => (
                                     <tr key={loan.id}>
-                                      <td>
-                                        <div className="fw-semibold">{loan.students?.full_name || 'Unknown'}</div>
-                                        <div className="small text-muted">{loan.students?.student_id}</div>
-                                      </td>
+                                      <td className="fw-bold text-primary">{loan.students?.student_id}</td>
+                                      <td>{loan.students?.full_name || 'Unknown'}</td>
                                       <td>{loan.issued_at?.slice(0, 10)}</td>
                                       <td className={loan.due_date < todayString ? 'text-danger fw-bold' : ''}>
                                         {loan.due_date}
@@ -481,9 +500,10 @@ export default function InventoryInsights() {
                               <table className="table table-sm table-hover align-middle">
                                 <thead className="table-light">
                                   <tr>
+                                    <th>Student ID</th>
+                                    <th>Student Name</th>
                                     <th>Copy ID</th>
                                     <th>Status</th>
-                                    <th>Student ID</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -493,19 +513,13 @@ export default function InventoryInsights() {
                                       const issueLoan = bookDetails.issueLoans?.find(l => l.library_book_copies?.id === copy.id)
                                       return (
                                         <tr key={copy.id}>
+                                          <td className="fw-bold text-primary">{issueLoan?.students?.student_id || '-'}</td>
+                                          <td className="small">{issueLoan?.students?.full_name || '-'}</td>
                                           <td className="font-monospace">{copy.id}</td>
                                           <td>
                                             <span className={`badge ${copy.availability === 'MISSING' ? 'bg-danger' : 'bg-warning text-dark'}`}>
                                               {copy.availability}
                                             </span>
-                                          </td>
-                                          <td className="small text-muted">
-                                            {issueLoan ? (
-                                              <>
-                                                <div>{issueLoan.students?.full_name}</div>
-                                                <div>{issueLoan.students?.student_id}</div>
-                                              </>
-                                            ) : '-'}
                                           </td>
                                         </tr>
                                       )

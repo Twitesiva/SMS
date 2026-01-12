@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import crestPrimary from '../../assets/media/images.png'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
@@ -6,11 +6,83 @@ import { showToast } from '../../store/ui'
 export default function Circulation() {
   const [activeLoans, setActiveLoans] = useState([])
   const [showAllLoans, setShowAllLoans] = useState(false)
+
+  const [selectedBook, setSelectedBook] = useState(null)
+  const [modalTab, setModalTab] = useState('all') // 'all', 'issued', 'damaged'
+  const [bookDetails, setBookDetails] = useState({ copies: [], loans: [], issueLoans: [] })
+  const [loadingDetails, setLoadingDetails] = useState(false)
+
+  const activeLoansRef = useRef(null)
+  const issuesRef = useRef(null)
+
+  const todayString = useMemo(() => new Date().toISOString().slice(0, 10), [])
+
   const buildDefaultDueDate = () => {
     const date = new Date()
     date.setDate(date.getDate() + 30)
     return date.toISOString().slice(0, 10)
   }
+
+  const handleBookClick = async (book, tab = 'all') => {
+    setSelectedBook(book)
+    setModalTab(tab)
+    setLoadingDetails(true)
+    try {
+      // Fetch all copies for this book
+      const { data: copies, error: copiesError } = await supabase
+        .from('library_book_copies')
+        .select('*')
+        .eq('book_id', book.id)
+        .order('id')
+
+      if (copiesError) throw copiesError
+
+      // Fetch active loans for this book
+      const { data: loans, error: loansError } = await supabase
+        .from('library_loans')
+        .select(`
+          id,
+          status,
+          due_date,
+          issued_at,
+          students (full_name, student_id),
+          library_book_copies!inner (id, book_id)
+        `)
+        .eq('status', 'ISSUED')
+        .eq('library_book_copies.book_id', book.id)
+        .order('issued_at', { ascending: false })
+
+      if (loansError) throw loansError
+
+      // Fetch loans for missing/damaged copies
+      const { data: issueLoans, error: issueLoansError } = await supabase
+        .from('library_loans')
+        .select(`
+          id,
+          status,
+          issued_at,
+          students (full_name, student_id),
+          library_book_copies!inner (id)
+        `)
+        .in('status', ['MISSING', 'DAMAGED'])
+        .eq('library_book_copies.book_id', book.id)
+        .order('issued_at', { ascending: false })
+
+      if (issueLoansError) throw issueLoansError
+
+      setBookDetails({
+        copies: copies || [],
+        loans: loans || [],
+        issueLoans: issueLoans || []
+      })
+    } catch (err) {
+      console.error('Error fetching book details:', err)
+      showToast('Failed to load book details.', { type: 'error' })
+    } finally {
+      setLoadingDetails(false)
+    }
+  }
+
   const [form, setForm] = useState({
     studentId: '',
     bookRef: '',
@@ -29,7 +101,7 @@ export default function Circulation() {
       const { data, error } = await supabase
         .from('library_loans')
         .select(
-          'id, status, due_date, students(full_name,student_id), library_book_copies(book_id, library_books(title))'
+          'id, status, due_date, issued_at, students(full_name,student_id), library_book_copies(book_id, library_books(title, author, shelf_code))'
         )
         .eq('status', 'ISSUED')
         .order('due_date', { ascending: true })
@@ -431,11 +503,26 @@ export default function Circulation() {
                   ) : (
                     (showAllLoans ? activeLoans : activeLoans.slice(0, 2)).map((loan) => {
                       const student = loan.students
-                      const book = loan.library_book_copies?.library_books
+                      const bookData = loan.library_book_copies?.library_books
+                      const bookId = loan.library_book_copies?.book_id
+                      
+                      const bookObj = bookData ? {
+                        id: bookId,
+                        title: bookData.title,
+                        author: bookData.author,
+                        shelf: bookData.shelf_code
+                      } : null
+
                       return (
                         <tr key={loan.id}>
                           <td>{student?.full_name || 'Unknown'} ({student?.student_id || '--'})</td>
-                          <td>{book?.title || 'Unknown'}</td>
+                          <td 
+                            onClick={() => bookObj && handleBookClick(bookObj, 'issued')}
+                            style={{ cursor: bookObj ? 'pointer' : 'default' }}
+                            className={bookObj ? 'text-primary fw-semibold' : ''}
+                          >
+                            {bookData?.title || 'Unknown'}
+                          </td>
                           <td>
                             <span className="badge bg-success-subtle text-success">Issued</span>
                           </td>
@@ -450,6 +537,188 @@ export default function Circulation() {
           </div>
         </div>
       </div>
+
+      {selectedBook && (
+        <>
+          <div className="modal-backdrop fade show"></div>
+          <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
+            <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+              <div className="modal-content">
+                <div className="modal-header d-flex flex-column align-items-center border-bottom-0 pt-4 pb-0 position-relative">
+                  <div className="text-center w-100">
+                    <div className="mb-4 px-4">
+                      <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.7rem', letterSpacing: '0.15em' }}>
+                        Book Title
+                      </div>
+                      <h4 className="fw-bold text-dark mb-0" style={{ fontSize: '1.5rem' }}>
+                        {selectedBook.title}
+                      </h4>
+                    </div>
+                    
+                    <div className="row g-0 border-top border-bottom py-3 bg-light w-100">
+                      <div className="col-6 border-end px-2">
+                        <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.65rem', letterSpacing: '0.12em' }}>
+                          Author
+                        </div>
+                        <div className="fw-semibold text-primary" style={{ fontSize: '1.05rem' }}>
+                          {selectedBook.author || 'Unknown'}
+                        </div>
+                      </div>
+                      <div className="col-6 px-2">
+                        <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.65rem', letterSpacing: '0.12em' }}>
+                          Shelf Reference
+                        </div>
+                        <div className="fw-semibold text-dark" style={{ fontSize: '1.05rem' }}>
+                          {selectedBook.shelf || '--'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <button 
+                    type="button" 
+                    className="btn-close position-absolute" 
+                    style={{ right: '1.25rem', top: '1.25rem' }} 
+                    onClick={() => setSelectedBook(null)}
+                  ></button>
+                </div>
+                <div className="modal-body">
+                  {loadingDetails ? (
+                    <div className="text-center py-4">
+                      <div className="spinner-border text-primary" role="status"></div>
+                      <p className="mt-2 text-muted">Loading details...</p>
+                    </div>
+                  ) : (
+                    <div className="d-flex flex-column gap-4">
+                      {/* Stats Row */}
+                      <div className="row g-3">
+                        <div className="col-6 col-sm-3">
+                          <div 
+                            className={`p-3 border rounded text-center ${modalTab === 'all' ? 'bg-primary text-white' : 'bg-light'}`}
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => setModalTab('all')}
+                          >
+                            <div className={`small text-uppercase fw-bold ${modalTab === 'all' ? 'text-white-50' : 'text-muted'}`}>Total</div>
+                            <div className="fs-4 fw-bold">{bookDetails.copies.length}</div>
+                          </div>
+                        </div>
+                        <div className="col-6 col-sm-3">
+                          <div 
+                            className={`p-3 border rounded text-center ${modalTab === 'issued' ? 'bg-primary text-white' : 'bg-light'}`}
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => setModalTab('issued')}
+                          >
+                            <div className={`small text-uppercase fw-bold ${modalTab === 'issued' ? 'text-white-50' : 'text-muted'}`}>Issued</div>
+                            <div className={`fs-4 fw-bold ${modalTab === 'issued' ? 'text-white' : 'text-primary'}`}>{bookDetails.loans.length}</div>
+                          </div>
+                        </div>
+                        <div className="col-6 col-sm-3">
+                          <div 
+                            className={`p-3 border rounded text-center ${modalTab === 'damaged' ? 'bg-primary text-white' : 'bg-light'}`}
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => setModalTab('damaged')}
+                          >
+                            <div className={`small text-uppercase fw-bold ${modalTab === 'damaged' ? 'text-white-50' : 'text-muted'}`}>Damaged</div>
+                            <div className={`fs-4 fw-bold ${modalTab === 'damaged' ? 'text-white' : 'text-danger'}`}>
+                              {bookDetails.copies.filter(c => ['MISSING', 'DAMAGED'].includes((c.availability || '').toUpperCase())).length}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="col-6 col-sm-3">
+                          <div className="p-3 border rounded bg-light text-center">
+                            <div className="small text-muted text-uppercase fw-bold">Balance</div>
+                            <div className="fs-4 fw-bold text-success">
+                              {bookDetails.copies.length - bookDetails.loans.length - bookDetails.copies.filter(c => ['MISSING', 'DAMAGED'].includes((c.availability || '').toUpperCase())).length}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Filtered Sections */}
+                      {(modalTab === 'all' || modalTab === 'issued') && (
+                        <div>
+                          <h6 className="fw-bold mb-3 border-bottom pb-2">Active Loans</h6>
+                          {bookDetails.loans.length > 0 ? (
+                            <div className="table-responsive">
+                              <table className="table table-sm table-hover align-middle">
+                                <thead className="table-light">
+                                  <tr>
+                                    <th>Student ID</th>
+                                    <th>Student Name</th>
+                                    <th>Loan Date</th>
+                                    <th>Due Date</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {bookDetails.loans.map(loan => (
+                                    <tr key={loan.id}>
+                                      <td className="fw-bold text-primary">{loan.students?.student_id}</td>
+                                      <td>{loan.students?.full_name || 'Unknown'}</td>
+                                      <td>{loan.issued_at?.slice(0, 10)}</td>
+                                      <td className={loan.due_date < todayString ? 'text-danger fw-bold' : ''}>
+                                        {loan.due_date}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <p className="text-muted fst-italic mb-0">No active loans for this title.</p>
+                          )}
+                        </div>
+                      )}
+
+                      {(modalTab === 'all' || modalTab === 'damaged') && (
+                        <div>
+                          <h6 className="fw-bold mb-3 border-bottom pb-2">Copies with Issues</h6>
+                          {bookDetails.copies.filter(c => ['MISSING', 'DAMAGED'].includes((c.availability || '').toUpperCase())).length > 0 ? (
+                            <div className="table-responsive">
+                              <table className="table table-sm table-hover align-middle">
+                                <thead className="table-light">
+                                  <tr>
+                                    <th>Student ID</th>
+                                    <th>Student Name</th>
+                                    <th>Copy ID</th>
+                                    <th>Status</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {bookDetails.copies
+                                    .filter(c => ['MISSING', 'DAMAGED'].includes((c.availability || '').toUpperCase()))
+                                    .map(copy => {
+                                      const issueLoan = bookDetails.issueLoans?.find(l => l.library_book_copies?.id === copy.id)
+                                      return (
+                                        <tr key={copy.id}>
+                                          <td className="fw-bold text-primary">{issueLoan?.students?.student_id || '-'}</td>
+                                          <td className="small">{issueLoan?.students?.full_name || '-'}</td>
+                                          <td className="font-monospace">{copy.id}</td>
+                                          <td>
+                                            <span className={`badge ${copy.availability === 'MISSING' ? 'bg-danger' : 'bg-warning text-dark'}`}>
+                                              {copy.availability}
+                                            </span>
+                                          </td>
+                                        </tr>
+                                      )
+                                    })}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <p className="text-muted fst-italic mb-0">No damaged or missing copies reported.</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={() => setSelectedBook(null)}>Close</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

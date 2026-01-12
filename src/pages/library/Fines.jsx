@@ -10,14 +10,16 @@ export default function Fines() {
     collected: null,
     highPriority: null
   })
+  const [loadingBook, setLoadingBook] = useState(false)
+  const [bookStatus, setBookStatus] = useState('')
+  const [studentFines, setStudentFines] = useState([])
   const [fineForm, setFineForm] = useState({
     studentId: '',
+    fineId: '',
     bookTitle: '',
     amount: '100',
     paymentMode: 'Cash'
   })
-  const [loadingBook, setLoadingBook] = useState(false)
-  const [bookStatus, setBookStatus] = useState('')
   const [missingForm, setMissingForm] = useState({
     studentId: '',
     loanId: '',
@@ -26,6 +28,7 @@ export default function Fines() {
   })
   const [missingLoans, setMissingLoans] = useState([])
   const [savingMissing, setSavingMissing] = useState(false)
+  const [collecting, setCollecting] = useState(false)
 
   const today = useMemo(() => new Date(), [])
 
@@ -76,42 +79,109 @@ export default function Fines() {
   const formatValue = (value) => (value === null || value === undefined ? '--' : String(value))
 
   const handleFineChange = (key) => (event) => {
-    setFineForm((prev) => ({ ...prev, [key]: event.target.value }))
+    const value = event.target.value
+    setFineForm((prev) => {
+      const next = { ...prev, [key]: value }
+      if (key === 'fineId') {
+        const selected = studentFines.find(f => String(f.id) === String(value))
+        if (selected) {
+          next.bookTitle = selected.library_loans?.library_book_copies?.library_books?.title || 'Unknown'
+          next.amount = String(selected.amount || 0)
+        } else {
+          next.bookTitle = ''
+          next.amount = '0'
+        }
+      }
+      return next
+    })
   }
 
-  const fetchBorrowedBook = async (studentId) => {
+  const fetchStudentDues = async (studentId) => {
     const trimmed = (studentId || '').trim()
-    if (!trimmed) return
+    if (!trimmed) {
+      setStudentFines([])
+      return
+    }
 
     setLoadingBook(true)
     setBookStatus('')
     try {
       const { data, error } = await supabase
-        .from('library_loans')
-        .select(
-          'id, status, issued_at, student_id, library_book_copies(book_id, library_books(title))'
-        )
+        .from('library_fines')
+        .select(`
+          id, 
+          amount, 
+          status, 
+          library_loans (
+            id,
+            library_book_copies (
+              library_books (title)
+            )
+          )
+        `)
         .eq('student_id', trimmed)
-        .eq('status', 'ISSUED')
-        .order('issued_at', { ascending: false })
-        .limit(1)
+        .eq('status', 'PENDING')
 
       if (error) throw error
-      const loan = (data || [])[0]
-      if (!loan) {
-        setFineForm((prev) => ({ ...prev, bookTitle: '' }))
-        setBookStatus('No active loan found for this student.')
-        return
+      setStudentFines(data || [])
+      if ((data || []).length === 0) {
+        setBookStatus('No pending fines found for this student.')
+      } else {
+        setBookStatus(`${data.length} pending fine(s) found.`)
+        if (data.length === 1) {
+          const f = data[0]
+          setFineForm(prev => ({
+            ...prev,
+            fineId: String(f.id),
+            bookTitle: f.library_loans?.library_book_copies?.library_books?.title || 'Unknown',
+            amount: String(f.amount || 0)
+          }))
+        }
       }
-
-      const bookTitle = loan.library_book_copies?.library_books?.title || ''
-      setFineForm((prev) => ({ ...prev, bookTitle }))
-      setBookStatus(bookTitle ? 'Book details loaded.' : 'Book title not found.')
     } catch (err) {
-      console.error('Failed to fetch borrowed book', err)
-      setBookStatus('Unable to fetch book details.')
+      console.error('Failed to fetch student fines', err)
+      setBookStatus('Unable to fetch fine details.')
     } finally {
       setLoadingBook(false)
+    }
+  }
+
+  const handleCollectPayment = async (e) => {
+    if (e) e.preventDefault()
+    if (!fineForm.fineId) {
+      showToast('Select a fine to collect.', { type: 'warning' })
+      return
+    }
+
+    setCollecting(true)
+    try {
+      const { error } = await supabase
+        .from('library_fines')
+        .update({
+          status: 'PAID',
+          paid_at: new Date().toISOString(),
+          payment_mode: fineForm.paymentMode
+        })
+        .eq('id', fineForm.fineId)
+
+      if (error) throw error
+
+      showToast('Payment collected successfully.', { type: 'success' })
+      setFineForm({
+        studentId: '',
+        fineId: '',
+        bookTitle: '',
+        amount: '100',
+        paymentMode: 'Cash'
+      })
+      setStudentFines([])
+      setBookStatus('')
+      loadFines()
+    } catch (err) {
+      console.error('Failed to collect payment', err)
+      showToast('Unable to process payment.', { type: 'danger' })
+    } finally {
+      setCollecting(false)
     }
   }
 
@@ -251,38 +321,67 @@ export default function Fines() {
                 <h4 className="mb-1">Collect Fine</h4>
                 <p className="text-muted mb-0">Record payment details.</p>
               </div>
-              <button type="button" className="btn btn-outline-secondary">Reset</button>
+              <button 
+                type="button" 
+                className="btn btn-outline-secondary"
+                onClick={() => {
+                  setFineForm({ studentId: '', fineId: '', bookTitle: '', amount: '100', paymentMode: 'Cash' })
+                  setStudentFines([])
+                  setBookStatus('')
+                }}
+              >
+                Reset
+              </button>
             </div>
-            <form className="row g-3">
+            <form className="row g-3" onSubmit={handleCollectPayment}>
               <div className="col-12">
                 <label className="form-label">Student ID</label>
-                <input
-                  className="form-control"
-                  type="text"
-                  placeholder="STU-1001"
-                  value={fineForm.studentId}
-                  onChange={handleFineChange('studentId')}
-                  onBlur={(event) => fetchBorrowedBook(event.target.value)}
-                />
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary btn-sm mt-2"
-                  onClick={() => fetchBorrowedBook(fineForm.studentId)}
-                  disabled={loadingBook || !fineForm.studentId.trim()}
-                >
-                  {loadingBook ? 'Fetching...' : 'Fetch Borrowed Book'}
-                </button>
+                <div className="input-group">
+                  <input
+                    className="form-control"
+                    type="text"
+                    placeholder="STU-1001"
+                    value={fineForm.studentId}
+                    onChange={handleFineChange('studentId')}
+                    onBlur={(event) => fetchStudentDues(event.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => fetchStudentDues(fineForm.studentId)}
+                    disabled={loadingBook || !fineForm.studentId.trim()}
+                  >
+                    {loadingBook ? '...' : 'Fetch'}
+                  </button>
+                </div>
                 {bookStatus && <div className="form-text text-muted">{bookStatus}</div>}
               </div>
+
+              <div className="col-12">
+                <label className="form-label">Select Fine</label>
+                <select 
+                  className="form-select" 
+                  value={fineForm.fineId} 
+                  onChange={handleFineChange('fineId')}
+                  disabled={!studentFines.length}
+                >
+                  <option value="">{studentFines.length ? 'Select pending fine' : 'Enter student ID first'}</option>
+                  {studentFines.map(f => (
+                    <option key={f.id} value={f.id}>
+                      {f.library_loans?.library_book_copies?.library_books?.title || 'Unknown'} - Rs. {f.amount}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="col-12">
                 <label className="form-label">Book Title</label>
                 <input
                   className="form-control"
                   type="text"
-                  placeholder="Borrowed book title"
                   value={fineForm.bookTitle}
-                  onChange={handleFineChange('bookTitle')}
                   readOnly
+                  disabled
                 />
               </div>
               <div className="col-md-6">
@@ -291,7 +390,8 @@ export default function Fines() {
                   className="form-control"
                   type="number"
                   value={fineForm.amount}
-                  onChange={handleFineChange('amount')}
+                  readOnly
+                  disabled
                 />
               </div>
               <div className="col-md-6">
@@ -303,8 +403,9 @@ export default function Fines() {
                 </select>
               </div>
               <div className="col-12 d-flex justify-content-end gap-2">
-                <button type="button" className="btn btn-outline-secondary">Save Draft</button>
-                <button type="submit" className="btn btn-primary">Collect Payment</button>
+                <button type="submit" className="btn btn-primary" disabled={collecting || !fineForm.fineId}>
+                  {collecting ? 'Processing...' : 'Collect Payment'}
+                </button>
               </div>
             </form>
           </div>
