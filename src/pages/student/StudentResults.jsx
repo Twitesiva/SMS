@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import ParentShell from '../../components/ParentShell'
+import StudentShell from '../../components/StudentShell'
 import { supabase } from '../../../supabaseClient'
-import { useParentAuth } from '../../store/parentAuth'
-import '../student/Student.css'
+import { useStudentAuth } from '../../store/studentAuth'
+import './Student.css'
 
-export default function ParentMarks() {
-  const { parent } = useParentAuth()
+export default function StudentResults() {
+  const { student } = useStudentAuth()
   const [studentRecord, setStudentRecord] = useState(null)
   const [marksRows, setMarksRows] = useState([])
   const [summary, setSummary] = useState({ percentage: '0.0', latestExam: 'N/A', status: 'N/A' })
@@ -16,8 +16,8 @@ export default function ParentMarks() {
   useEffect(() => {
     let active = true
     const loadMarks = async () => {
-      if (!parent?.student_id) {
-        setError('Student ID not available for this parent.')
+      if (!student?.id) {
+        setError('Student not available in this session.')
         return
       }
 
@@ -26,8 +26,8 @@ export default function ParentMarks() {
       try {
         const { data: studentRow, error: studentError } = await supabase
           .from('students')
-          .select('id, full_name, student_id, course_name, group_name, academic_year, current_semester')
-          .eq('student_id', parent.student_id)
+          .select('id, full_name, student_id, hall_ticket_no, academic_year, course_name, group_name, current_semester')
+          .eq('id', student.id)
           .maybeSingle()
 
         if (studentError) throw studentError
@@ -99,7 +99,7 @@ export default function ParentMarks() {
     return () => {
       active = false
     }
-  }, [parent?.student_id])
+  }, [student?.id])
 
   useEffect(() => {
     let active = true
@@ -160,13 +160,11 @@ export default function ParentMarks() {
   const cgpa = useMemo(() => calculateGPA(marksRows), [marksRows, gradeMaster])
 
   return (
-    <ParentShell>
+    <StudentShell>
       <div className="students-section-shell mb-3">
         <div className="students-section-shell-header">
-          <h2 className="mb-2">Marks</h2>
-          <p className="students-section-copy mb-3">
-            Review latest exam results and overall performance.
-          </p>
+          <h2 className="mb-2">Results</h2>
+          <p className="students-section-copy mb-3">View published examination results and CGPA.</p>
           {badges.length > 0 && (
             <div className="d-flex flex-wrap gap-2">
               {badges.map((badge) => (
@@ -185,17 +183,15 @@ export default function ParentMarks() {
             <div className="student-details__loading-header">
               <div className="student-loader__spinner" aria-hidden="true"></div>
               <div>
-                <div className="student-loader__title">Loading marks</div>
-                <div className="student-loader__subtitle">Fetching exam results.</div>
+                <div className="student-loader__title">Loading results</div>
+                <div className="student-loader__subtitle">Fetching your latest scores.</div>
               </div>
             </div>
-            <span className="sr-only">Loading marks...</span>
+            <span className="sr-only">Loading results...</span>
           </div>
         )}
 
-        {error && !loading && (
-          <div className="student-details__status student-details__status--error">{error}</div>
-        )}
+        {error && !loading && <div className="student-details__status student-details__status--error">{error}</div>}
 
         {!loading && !error && studentRecord && (
           <div className="parent-marks__layout">
@@ -287,13 +283,13 @@ export default function ParentMarks() {
                     </table>
                   </div>
                 ) : (
-                  <div className="student-card__empty">No marks available yet.</div>
+                  <div className="student-card__empty">No results published yet.</div>
                 )}
               </div>
             </div>
           </div>
         )}
       </div>
-    </ParentShell>
+    </StudentShell>
   )
 }

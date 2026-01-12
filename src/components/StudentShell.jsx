@@ -18,7 +18,7 @@ const navItems = [
   { to: '/student/attendance', label: 'Attendance', icon: 'bi-calendar-check' },
   { to: '/student/notifications', label: 'Notifications', icon: 'bi-bell' },
   { to: '/student/circulars', label: 'Circulars', icon: 'bi-megaphone' },
-  { to: '/student/exam-result', label: 'Exam result', icon: 'bi-file-earmark-bar-graph' },
+  { to: '/student/results', label: 'Results', icon: 'bi-file-earmark-bar-graph' },
   { to: '/student/transport', label: 'Transport', icon: 'bi-bus-front' },
 ]
 
