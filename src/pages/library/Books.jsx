@@ -238,7 +238,7 @@ export default function Books() {
                 />
               </div>
               <div className="col-md-2">
-                <label className="form-label">Year</label>
+                <label className="form-label">Published Year</label>
                 <input
                   className="form-control"
                   type="number"

@@ -21,7 +21,6 @@ export default function AllBooks() {
   const [copyCounts, setCopyCounts] = useState({})
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
-  const [searchTermYear, setSearchTermYear] = useState('')
   const [editingBook, setEditingBook] = useState(null)
   const [editForm, setEditForm] = useState(emptyEditForm)
   const [saving, setSaving] = useState(false)
@@ -71,14 +70,6 @@ export default function AllBooks() {
     loadBooks()
   }, [])
 
-  const uniqueYears = useMemo(() => {
-    const years = new Set()
-    books.forEach((book) => {
-      if (book.published_year) years.add(String(book.published_year))
-    })
-    return Array.from(years).sort((a, b) => b.localeCompare(a))
-  }, [books])
-
   const filteredBooks = useMemo(() => {
     let result = books
     const term = searchTerm.trim().toLowerCase()
@@ -91,7 +82,8 @@ export default function AllBooks() {
           book.author,
           book.publisher,
           book.language,
-          book.shelf_code
+          book.shelf_code,
+          book.published_year
         ]
           .filter(Boolean)
           .join(' ')
@@ -100,12 +92,8 @@ export default function AllBooks() {
       })
     }
 
-    if (searchTermYear) {
-      result = result.filter((book) => String(book.published_year) === searchTermYear)
-    }
-
     return result
-  }, [books, searchTerm, searchTermYear])
+  }, [books, searchTerm])
 
   const stats = useMemo(() => {
     const totalTitles = books.length
@@ -284,20 +272,7 @@ export default function AllBooks() {
             />
           </div>
           
-          <div style={{ minWidth: '140px' }}>
-            <select 
-              className="form-select" 
-              value={searchTermYear} 
-              onChange={(e) => setSearchTermYear(e.target.value)}
-            >
-              <option value="">All Years</option>
-              {uniqueYears.map(year => (
-                <option key={year} value={year}>{year}</option>
-              ))}
-            </select>
-          </div>
-
-          <button className="btn btn-outline-secondary" type="button" onClick={() => { setSearchTerm(''); setSearchTermYear(''); loadBooks(); }}>
+          <button className="btn btn-outline-secondary" type="button" onClick={() => { setSearchTerm(''); loadBooks(); }}>
             Reset
           </button>
         </div>
@@ -311,9 +286,10 @@ export default function AllBooks() {
           <table className="table library-catalogue-table mb-0">
             <thead>
               <tr>
-                <th>Title</th>
+                <th>Book Title</th>
+                <th>Shelf</th>
                 <th>Author</th>
-                <th>Year</th>
+                <th>Published Year</th>
                 <th>Copies</th>
                 <th className="text-end">Actions</th>
               </tr>
@@ -321,11 +297,11 @@ export default function AllBooks() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="text-center text-muted py-4">Loading books...</td>
+                  <td colSpan="6" className="text-center text-muted py-4">Loading books...</td>
                 </tr>
               ) : filteredBooks.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="text-center text-muted py-4">No books found.</td>
+                  <td colSpan="6" className="text-center text-muted py-4">No books found.</td>
                 </tr>
               ) : (
                 filteredBooks.map((book) => {
@@ -334,10 +310,8 @@ export default function AllBooks() {
                     <tr key={book.id}>
                       <td>
                         <div className="library-catalogue-title">{book.title || 'Untitled'}</div>
-                        <div className="library-catalogue-meta">
-                          {book.shelf_code ? `Shelf ${book.shelf_code}` : 'Shelf not set'}
-                        </div>
                       </td>
+                      <td>{book.shelf_code || '-'}</td>
                       <td>{book.author || 'Unknown'}</td>
                       <td>{book.published_year || '-'}</td>
                       <td>
@@ -427,7 +401,7 @@ export default function AllBooks() {
                     />
                   </div>
                   <div className="col-md-2">
-                    <label className="form-label">Year</label>
+                    <label className="form-label">Published Year</label>
                     <input
                       className="form-control"
                       type="number"
