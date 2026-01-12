@@ -11,6 +11,7 @@ export default function ParentMarks() {
   const [summary, setSummary] = useState({ percentage: '0.0', latestExam: 'N/A', status: 'N/A' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [gradeMaster, setGradeMaster] = useState([])
 
   useEffect(() => {
     let active = true
@@ -25,7 +26,7 @@ export default function ParentMarks() {
       try {
         const { data: studentRow, error: studentError } = await supabase
           .from('students')
-          .select('id, full_name, student_id, course_name, group_name, academic_year')
+          .select('id, full_name, student_id, course_name, group_name, academic_year, current_semester')
           .eq('student_id', parent.student_id)
           .maybeSingle()
 
@@ -40,12 +41,19 @@ export default function ParentMarks() {
           .select(`
             exam_id,
             marks_obtained,
+            internal_marks,
+            theory_marks,
             max_marks,
             result_status,
+            semester,
             created_at,
             subject:subjects (
               subject_name,
-              subject_code
+              subject_code,
+              semester_number,
+              category:subject_category (
+                credits
+              )
             )
           `)
           .eq('student_id', studentRow.id)
@@ -93,9 +101,31 @@ export default function ParentMarks() {
     }
   }, [parent?.student_id])
 
+  useEffect(() => {
+    let active = true
+    const fetchGrades = async () => {
+      try {
+        const { data, error: gradeError } = await supabase.from('grade_master').select('*')
+        if (gradeError) throw gradeError
+        if (active && data) setGradeMaster(data)
+      } catch (err) {
+        console.error('Error fetching grades:', err)
+      }
+    }
+    fetchGrades()
+    return () => {
+      active = false
+    }
+  }, [])
+
   const badges = useMemo(() => {
     if (!studentRecord) return []
     return [studentRecord.course_name, studentRecord.group_name, studentRecord.academic_year].filter(Boolean)
+  }, [studentRecord])
+
+  const metaBase = useMemo(() => {
+    if (!studentRecord) return ''
+    return [studentRecord.course_name, studentRecord.group_name, studentRecord.academic_year].filter(Boolean).join(' • ')
   }, [studentRecord])
 
   const latestExamRows = useMemo(() => {
@@ -104,6 +134,30 @@ export default function ParentMarks() {
     if (!latestExamId) return [marksRows[0]]
     return marksRows.filter((row) => row.exam_id === latestExamId)
   }, [marksRows])
+
+  const getGradeInfo = (marks) => {
+    const m = Number(marks)
+    if (Number.isNaN(m)) return null
+    return gradeMaster.find((g) => m >= Number(g.min_marks) && m <= Number(g.max_marks))
+  }
+
+  const calculateGPA = (resultList) => {
+    let totalCredits = 0
+    let totalPoints = 0
+    resultList.forEach((res) => {
+      const credits = Number(res.subject?.category?.credits || 0)
+      const gradeInfo = getGradeInfo(res.marks_obtained)
+      const points = gradeInfo ? Number(gradeInfo.grade_point) : 0
+      if (credits > 0) {
+        totalCredits += credits
+        totalPoints += credits * points
+      }
+    })
+    if (!totalCredits) return '0.00'
+    return (totalPoints / totalCredits).toFixed(2)
+  }
+
+  const cgpa = useMemo(() => calculateGPA(marksRows), [marksRows, gradeMaster])
 
   return (
     <ParentShell>
@@ -151,16 +205,23 @@ export default function ParentMarks() {
                   <div className="parent-marks__eyebrow">Exam Statement</div>
                   <div className="parent-marks__title">{summary.latestExam}</div>
                   <div className="parent-marks__meta">
-                    {[studentRecord.course_name, studentRecord.group_name, studentRecord.academic_year]
-                      .filter(Boolean)
-                      .join(' • ')}
+                    {metaBase && <span>{metaBase}</span>}
+                    {studentRecord?.current_semester && (
+                      <>
+                        {metaBase ? ' • ' : ''}
+                        <strong className="parent-marks__meta-strong">{`Semester ${studentRecord.current_semester}`}</strong>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="parent-marks__status">
-                  <span className="parent-marks__status-badge">{summary.status}</span>
                   <div className="parent-marks__score">
                     <span>Percentage</span>
                     <strong>{summary.percentage}%</strong>
+                  </div>
+                  <div className="parent-marks__score">
+                    <span>CGPA</span>
+                    <strong>{cgpa}</strong>
                   </div>
                 </div>
               </div>
@@ -179,36 +240,48 @@ export default function ParentMarks() {
                     <table className="parent-marks__table">
                       <thead>
                         <tr>
+                          <th className="text-center">S.No</th>
                           <th>Subject</th>
-                          <th>Marks Obtained</th>
-                          <th>Max Marks</th>
+                          <th className="text-center">Semester</th>
+                          <th className="text-center">Internal</th>
+                          <th className="text-center">Theory</th>
+                          <th className="text-center">Total</th>
+                          <th className="text-center">Max Marks</th>
                           <th>Status</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {latestExamRows.map((row, index) => (
-                          <tr key={`${row.exam_id || 'exam'}-${index}`}>
-                            <td>
-                              <div className="parent-marks__subject">{row.subject?.subject_name || 'Unknown Subject'}</div>
-                              {row.subject?.subject_code && (
-                                <div className="parent-marks__subject-code">{row.subject.subject_code}</div>
-                              )}
-                            </td>
-                            <td className="parent-marks__value">{Number(row.marks_obtained || 0)}</td>
-                            <td className="parent-marks__value">{Number(row.max_marks || 0)}</td>
-                            <td>
-                              <span
-                                className={`parent-marks__status-chip ${
-                                  (row.result_status || '').toLowerCase() === 'pass'
-                                    ? 'parent-marks__status-chip--pass'
-                                    : 'parent-marks__status-chip--fail'
-                                }`}
-                              >
-                                {row.result_status || 'N/A'}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
+                        {latestExamRows.map((row, index) => {
+                          const semesterLabel = row.subject?.semester_number || row.semester || '—'
+                          const status = (row.result_status || '').toLowerCase() === 'pass' ? 'pass' : 'fail'
+                          return (
+                            <tr key={`${row.exam_id || 'exam'}-${index}`}>
+                              <td className="text-center parent-marks__value">{index + 1}</td>
+                              <td>
+                                <div className="parent-marks__subject">
+                                  {row.subject?.subject_code ? `${row.subject.subject_code} : ` : ''}
+                                  {row.subject?.subject_name || 'Unknown Subject'}
+                                </div>
+                              </td>
+                              <td className="text-center parent-marks__value">{semesterLabel}</td>
+                              <td className="text-center parent-marks__value">{Number(row.internal_marks || 0)}</td>
+                              <td className="text-center parent-marks__value">{Number(row.theory_marks || 0)}</td>
+                              <td className="text-center parent-marks__value">{Number(row.marks_obtained || 0)}</td>
+                              <td className="text-center parent-marks__value">{Number(row.max_marks || 0)}</td>
+                              <td>
+                                <span
+                                  className={`parent-marks__status-chip ${
+                                    status === 'pass'
+                                      ? 'parent-marks__status-chip--pass'
+                                      : 'parent-marks__status-chip--fail'
+                                  }`}
+                                >
+                                  {row.result_status || 'N/A'}
+                                </span>
+                              </td>
+                            </tr>
+                          )
+                        })}
                       </tbody>
                     </table>
                   </div>

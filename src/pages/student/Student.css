@@ -2061,6 +2061,11 @@
   font-weight: 600;
 }
 
+.parent-marks__meta-strong {
+  font-weight: 800;
+  color: #0f172a;
+}
+
 .parent-marks__status {
   display: flex;
   align-items: center;
@@ -2162,6 +2167,10 @@
   padding: 0.85rem;
   border-bottom: 1px solid #eef2f7;
   vertical-align: middle;
+}
+
+.parent-marks__table .text-center {
+  text-align: center;
 }
 
 .parent-marks__subject {
