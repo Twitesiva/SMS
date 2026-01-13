@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import crestPrimary from '../../assets/media/images.png'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
 
 export default function InventoryInsights() {
+  const navigate = useNavigate()
   const [stats, setStats] = useState({
     totalBooks: 0,
     totalCopies: 0,
@@ -214,35 +216,55 @@ export default function InventoryInsights() {
 
       <div className="library-insights-stats row g-3 mb-4">
         <div className="col-12 col-md-6 col-xl-3">
-          <div className="library-insights-stat">
+          <div 
+            className="library-insights-stat"
+            onClick={() => navigate('/library/books/all')}
+            style={{ cursor: 'pointer' }}
+          >
             <div className="library-insights-stat__label">Total Books</div>
             <div className="library-insights-stat__value">{stats.totalBooks}</div>
             <div className="library-insights-stat__meta">Catalogued titles</div>
           </div>
         </div>
         <div className="col-12 col-md-6 col-xl-3">
-          <div className="library-insights-stat">
+          <div 
+            className="library-insights-stat"
+            onClick={() => navigate('/library/books/all')}
+            style={{ cursor: 'pointer' }}
+          >
             <div className="library-insights-stat__label">Total Copies</div>
             <div className="library-insights-stat__value">{stats.totalCopies}</div>
             <div className="library-insights-stat__meta">All physical copies</div>
           </div>
         </div>
         <div className="col-12 col-md-6 col-xl-2">
-          <div className="library-insights-stat">
+          <div 
+            className="library-insights-stat"
+            onClick={() => navigate('/library/books/all')}
+            style={{ cursor: 'pointer' }}
+          >
             <div className="library-insights-stat__label">Available Balance</div>
             <div className="library-insights-stat__value">{stats.availableBalance}</div>
             <div className="library-insights-stat__meta">Copies ready to issue</div>
           </div>
         </div>
         <div className="col-12 col-md-6 col-xl-2">
-          <div className="library-insights-stat">
+          <div 
+            className="library-insights-stat"
+            onClick={() => navigate('/library/circulation')}
+            style={{ cursor: 'pointer' }}
+          >
             <div className="library-insights-stat__label">Issued Books</div>
             <div className="library-insights-stat__value">{stats.issuedCopies}</div>
             <div className="library-insights-stat__meta">Currently with members</div>
           </div>
         </div>
         <div className="col-12 col-md-6 col-xl-2">
-          <div className="library-insights-stat">
+          <div 
+            className="library-insights-stat"
+            onClick={() => navigate('/library/circulation')}
+            style={{ cursor: 'pointer' }}
+          >
             <div className="library-insights-stat__label">Overdue Items</div>
             <div className="library-insights-stat__value library-insights-stat__value--danger">
               {stats.overdueCount}
