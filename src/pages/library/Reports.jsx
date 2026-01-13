@@ -6,7 +6,14 @@ import { showToast } from '../../store/ui'
 export default function Reports() {
   const [monthlySummary, setMonthlySummary] = useState([])
   const [selectedMonth, setSelectedMonth] = useState(null)
-  const [reportDetails, setReportDetails] = useState({ issued: [], returned: [], overdue: [], loading: false })
+  const [reportDetails, setReportDetails] = useState({
+    issued: [],
+    returned: [],
+    overdue: [],
+    damaged: [],
+    missing: [],
+    loading: false
+  })
   const [activeTab, setActiveTab] = useState('issued')
 
   const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), [])
@@ -26,7 +33,14 @@ export default function Reports() {
 
   const handleMonthClick = async (month) => {
     setSelectedMonth(month)
-    setReportDetails({ issued: [], returned: [], overdue: [], loading: true })
+    setReportDetails({
+      issued: [],
+      returned: [],
+      overdue: [],
+      damaged: [],
+      missing: [],
+      loading: true
+    })
     setActiveTab('issued')
 
     try {
@@ -43,11 +57,11 @@ export default function Reports() {
         students (full_name, student_id),
         library_book_copies (
           book_id,
-          library_books (title)
+          library_books (title, author, shelf_code)
         )
       `
 
-      const [issuedRes, returnedRes, overdueRes] = await Promise.all([
+      const [issuedRes, returnedRes, overdueRes, damagedRes, missingRes] = await Promise.all([
         supabase
           .from('library_loans')
           .select(selectQuery)
@@ -67,17 +81,35 @@ export default function Reports() {
           .eq('status', 'ISSUED')
           .gte('due_date', startDate)
           .lt('due_date', endDate)
-          .order('due_date', { ascending: true })
+          .order('due_date', { ascending: true }),
+        supabase
+          .from('library_loans')
+          .select(selectQuery)
+          .gte('issued_at', startDate)
+          .lt('issued_at', endDate)
+          .eq('status', 'DAMAGED')
+          .order('issued_at', { ascending: false }),
+        supabase
+          .from('library_loans')
+          .select(selectQuery)
+          .gte('issued_at', startDate)
+          .lt('issued_at', endDate)
+          .eq('status', 'MISSING')
+          .order('issued_at', { ascending: false })
       ])
 
       if (issuedRes.error) throw issuedRes.error
       if (returnedRes.error) throw returnedRes.error
       if (overdueRes.error) throw overdueRes.error
+      if (damagedRes.error) throw damagedRes.error
+      if (missingRes.error) throw missingRes.error
 
       setReportDetails({
         issued: issuedRes.data || [],
         returned: returnedRes.data || [],
         overdue: overdueRes.data || [],
+        damaged: damagedRes.data || [],
+        missing: missingRes.data || [],
         loading: false
       })
     } catch (error) {
@@ -89,7 +121,14 @@ export default function Reports() {
 
   const closeReportModal = () => {
     setSelectedMonth(null)
-    setReportDetails({ issued: [], returned: [], overdue: [], loading: false })
+    setReportDetails({
+      issued: [],
+      returned: [],
+      overdue: [],
+      damaged: [],
+      missing: [],
+      loading: false
+    })
   }
 
   const downloadCsv = (filename, headers, rows) => {
@@ -163,19 +202,21 @@ export default function Reports() {
       const { data: loans, error } = await supabase
         .from('library_loans')
         .select(
-          'issued_at, returned_at, due_date, status, students(full_name,student_id), library_book_copies(book_id, library_books(title))'
+          'issued_at, returned_at, due_date, status, students(full_name,student_id), library_book_copies(book_id, library_books(title, author, shelf_code))'
         )
         .order('issued_at', { ascending: false })
 
       if (error) throw error
 
-      const headers = ['Student', 'Student ID', 'Book', 'Issued At', 'Returned At', 'Due Date', 'Status']
+      const headers = ['Student', 'Student ID', 'Book', 'Author', 'Shelf', 'Issued At', 'Returned At', 'Due Date', 'Status']
       const rows = (loans || []).map((loan) => ([
         loan.students?.full_name || '',
         loan.students?.student_id || '',
         loan.library_book_copies?.library_books?.title || '',
-        loan.issued_at || '',
-        loan.returned_at || '',
+        loan.library_book_copies?.library_books?.author || '',
+        loan.library_book_copies?.library_books?.shelf_code || '',
+        loan.issued_at ? loan.issued_at.slice(0, 10) : '',
+        loan.returned_at ? loan.returned_at.slice(0, 10) : '',
         loan.due_date || '',
         loan.status || ''
       ]))
@@ -433,46 +474,58 @@ export default function Reports() {
                       >
                         Overdue ({reportDetails.overdue.length})
                       </button>
+                      <button
+                        className={`btn btn-sm ${activeTab === 'damaged' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                        onClick={() => setActiveTab('damaged')}
+                      >
+                        Damaged ({reportDetails.damaged.length})
+                      </button>
+                      <button
+                        className={`btn btn-sm ${activeTab === 'missing' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                        onClick={() => setActiveTab('missing')}
+                      >
+                        Missed ({reportDetails.missing.length})
+                      </button>
                     </div>
 
                     <div className="table-responsive bg-white rounded border">
                       <table className="table table-hover mb-0">
                         <thead className="table-light">
                           <tr>
-                            <th>Date</th>
+                            <th>Issued</th>
+                            <th>Returned</th>
                             <th>Student</th>
                             <th>Book Title</th>
+                            <th>Author</th>
+                            <th>Shelf</th>
                             <th>Status</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {reportDetails[activeTab]
-                            .filter(item => activeTab === 'issued' ? item.status === 'ISSUED' : true)
-                            .length === 0 ? (
+                          {(reportDetails[activeTab] || []).length === 0 ? (
                             <tr>
-                              <td colSpan="4" className="text-center py-4 text-muted">
+                              <td colSpan="7" className="text-center py-4 text-muted">
                                 No records found for this category.
                               </td>
                             </tr>
                           ) : (
-                            reportDetails[activeTab]
-                              .filter(item => activeTab === 'issued' ? item.status === 'ISSUED' : true)
-                              .map((item) => (
+                            (reportDetails[activeTab] || []).map((item) => (
                               <tr key={item.id}>
-                                <td>
-                                  {activeTab === 'issued' && (item.issued_at || '-')}
-                                  {activeTab === 'returned' && (item.returned_at || '-')}
-                                  {activeTab === 'overdue' && (item.due_date || '-')}
-                                </td>
+                                <td>{item.issued_at ? item.issued_at.slice(0, 10) : '-'}</td>
+                                <td>{item.returned_at ? item.returned_at.slice(0, 10) : '-'}</td>
                                 <td>
                                   <div className="fw-semibold">{item.students?.full_name || 'Unknown'}</div>
                                   <div className="small text-muted">{item.students?.student_id || '-'}</div>
                                 </td>
                                 <td>{item.library_book_copies?.library_books?.title || 'Unknown Title'}</td>
+                                <td>{item.library_book_copies?.library_books?.author || '-'}</td>
+                                <td>{item.library_book_copies?.library_books?.shelf_code || '-'}</td>
                                 <td>
                                   <span className={`badge ${ 
                                     item.status === 'ISSUED' ? 'bg-warning text-dark' :
-                                    item.status === 'RETURNED' ? 'bg-success' : 'bg-secondary'
+                                    item.status === 'RETURNED' ? 'bg-success' :
+                                    item.status === 'DAMAGED' ? 'bg-danger' :
+                                    item.status === 'MISSING' ? 'bg-dark' : 'bg-secondary'
                                   }`}> 
                                     {item.status}
                                   </span>
