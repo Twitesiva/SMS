@@ -53,6 +53,7 @@ export default function Reports() {
           .select(selectQuery)
           .gte('issued_at', startDate)
           .lt('issued_at', endDate)
+          .eq('status', 'ISSUED')
           .order('issued_at', { ascending: false }),
         supabase
           .from('library_loans')
@@ -265,7 +266,7 @@ export default function Reports() {
         if (fineError) throw fineError
 
         const summary = monthLabels.map((month) => {
-          const issued = (loanRows || []).filter((loan) => String(loan.issued_at || '').slice(0, 7) === month.key).length
+          const issued = (loanRows || []).filter((loan) => String(loan.issued_at || '').slice(0, 7) === month.key && loan.status === 'ISSUED').length
           const returned = (loanRows || []).filter((loan) => String(loan.returned_at || '').slice(0, 7) === month.key).length
           const overdue = (loanRows || []).filter((loan) => {
             const dueKey = String(loan.due_date || '').slice(0, 7)
@@ -445,14 +446,18 @@ export default function Reports() {
                           </tr>
                         </thead>
                         <tbody>
-                          {reportDetails[activeTab].length === 0 ? (
+                          {reportDetails[activeTab]
+                            .filter(item => activeTab === 'issued' ? item.status === 'ISSUED' : true)
+                            .length === 0 ? (
                             <tr>
                               <td colSpan="4" className="text-center py-4 text-muted">
                                 No records found for this category.
                               </td>
                             </tr>
                           ) : (
-                            reportDetails[activeTab].map((item) => (
+                            reportDetails[activeTab]
+                              .filter(item => activeTab === 'issued' ? item.status === 'ISSUED' : true)
+                              .map((item) => (
                               <tr key={item.id}>
                                 <td>
                                   {activeTab === 'issued' && (item.issued_at || '-')}

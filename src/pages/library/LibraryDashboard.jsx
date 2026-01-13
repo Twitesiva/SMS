@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import crestPrimary from '../../assets/media/images.png'
 import { supabase } from '../../../supabaseClient'
 import './Library.css'
 
 export default function LibraryDashboard() {
+  const navigate = useNavigate()
   const [stats, setStats] = useState({
     totalBooks: null,
     issuedToday: null,
@@ -167,21 +169,33 @@ export default function LibraryDashboard() {
 
       <div className="library-dashboard-stats row g-3 mb-4">
         <div className="col-12 col-md-6 col-xl-3">
-          <div className="library-dashboard-stat">
-            <div className="library-dashboard-stat__label">Total Books</div>
+          <div 
+            className="library-dashboard-stat"
+            onClick={() => navigate('/library/inventory')}
+            style={{ cursor: 'pointer' }}
+          >
+            <div className="library-dashboard-stat__label">Total Books Title</div>
             <div className="library-dashboard-stat__value">{formatStat(stats.totalBooks)}</div>
             <div className="library-dashboard-stat__meta">Library inventory</div>
           </div>
         </div>
         <div className="col-12 col-md-6 col-xl-3">
-          <div className="library-dashboard-stat">
+          <div 
+            className="library-dashboard-stat"
+            onClick={() => navigate('/library/circulation')}
+            style={{ cursor: 'pointer' }}
+          >
             <div className="library-dashboard-stat__label">Issued Today</div>
             <div className="library-dashboard-stat__value">{formatStat(stats.issuedToday)}</div>
             <div className="library-dashboard-stat__meta">New issues today</div>
           </div>
         </div>
         <div className="col-12 col-md-6 col-xl-3">
-          <div className="library-dashboard-stat">
+          <div 
+            className="library-dashboard-stat"
+            onClick={() => navigate('/library/circulation')}
+            style={{ cursor: 'pointer' }}
+          >
             <div className="library-dashboard-stat__label">Overdue Items</div>
             <div className="library-dashboard-stat__value library-dashboard-stat__value--danger">
               {formatStat(stats.overdueItems)}
@@ -190,7 +204,11 @@ export default function LibraryDashboard() {
           </div>
         </div>
         <div className="col-12 col-md-6 col-xl-3">
-          <div className="library-dashboard-stat">
+          <div 
+            className="library-dashboard-stat"
+            onClick={() => navigate('/library/reports')}
+            style={{ cursor: 'pointer' }}
+          >
             <div className="library-dashboard-stat__label">Overall Issued (last 30 days)</div>
             <div className="library-dashboard-stat__value">{formatStat(stats.issuedLast30Days)}</div>
             <div className="library-dashboard-stat__meta">Total issues in period</div>
