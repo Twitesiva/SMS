@@ -29,6 +29,9 @@ export default function RoleSelection() {
             case 'parent':
                 navigate('/parent/login'); // Placeholder for parent login
                 break;
+            case 'transport':
+                navigate('/transport/login');
+                break;
             default:
                 break;
         }

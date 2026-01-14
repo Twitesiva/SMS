@@ -3,6 +3,7 @@ import { useAuth } from "./store/auth";
 import { useStudentAuth } from "./store/studentAuth";
 import { useStaffAuth } from "./store/staffAuth";
 import { useParentAuth } from "./store/parentAuth";
+import { useTransportAuth } from "./store/transportAuth";
 import PublicApply from "./pages/common/PublicApply.jsx";
 import Home from "./pages/common/Home.jsx";
 import Intro from "./pages/common/Intro.jsx";
@@ -104,6 +105,10 @@ import AdmissionsOverview from "./pages/admissions/AdmissionsOverview.jsx";
 import ApplicationReview from "./pages/admissions/ApplicationReview";
 import ConfirmedAdmissions from "./pages/admissions/ConfirmedAdmissions.jsx";
 import AdmissionsApplication from "./pages/admissions/AdmissionsApplication.jsx";
+import TransportLogin from "./pages/transport/TransportLogin.jsx";
+import TransportDashboard from "./pages/transport/TransportDashboard.jsx";
+import TransportRoutes from "./pages/transport/TransportRoutes.jsx";
+import TransportVehicles from "./pages/transport/TransportVehicles.jsx";
 
 
 export default function App() {
@@ -111,10 +116,12 @@ export default function App() {
   const { student } = useStudentAuth();
   const { staff } = useStaffAuth();
   const { parent } = useParentAuth();
+  const { transportUser } = useTransportAuth();
   const isAuthed = !!user;
   const isStudentAuthed = !!student;
   const isStaffAuthed = !!staff;
   const isParentAuthed = !!parent;
+  const isTransportAuthed = !!transportUser;
   return (
     <>
       <Routes>
@@ -123,7 +130,31 @@ export default function App() {
         <Route path="/roles" element={<RoleSelection />} />
         <Route path="/admission" element={<AdmissionPortal />} />
 
-
+        <Route path="/transport/login" element={<TransportLogin />} />
+        <Route
+          path="/transport/dashboard"
+          element={
+            <GuardedRoute isAuthed={isTransportAuthed} redirectTo="/transport/login">
+              <TransportDashboard />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/transport/routes"
+          element={
+            <GuardedRoute isAuthed={isTransportAuthed} redirectTo="/transport/login">
+              <TransportRoutes />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/transport/vehicles"
+          element={
+            <GuardedRoute isAuthed={isTransportAuthed} redirectTo="/transport/login">
+              <TransportVehicles />
+            </GuardedRoute>
+          }
+        />
 
         <Route path="/apply" element={<PublicApply />} />
         <Route path="/admission/login" element={<ApplicationLogin />} />

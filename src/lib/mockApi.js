@@ -19,6 +19,10 @@ const TABLES = {
   adminUsers: "admin_users",
   examSchedules: "exam_schedule",
   applicationDocuments: "application_documents",
+  transportRoutes: "transport_routes",
+  transportBoardingPoints: "transport_route_boarding_points",
+  transportFares: "transport_route_fares",
+  transportVehicles: "transport_vehicles",
 };
 
 const runQuery = async (query, label) => {
@@ -65,6 +69,8 @@ const DUPLICATE_RULES = {
     composite: ["academic_year", "group", "course", "semester", "fee_cat"],
     pk: "id",
   },
+  [TABLES.transportRoutes]: { cols: ["route_no"], pk: "route_no" },
+  [TABLES.transportVehicles]: { cols: ["vehicle_no"], pk: "vehicle_no" },
 };
 
 const ensureNoDuplicate = async (table, row = {}, opts = {}) => {
@@ -1314,5 +1320,158 @@ export const api = {
     }
 
     return student;
+  },
+
+  listTransportRoutes: async () => {
+    const { data: rows, error } = await supabase
+      .from(TABLES.transportRoutes)
+      .select(`
+        *,
+        transport_route_boarding_points (*),
+        transport_route_fares (*)
+      `)
+      .order('route_no')
+    
+    if (error) {
+      console.error('Unable to fetch transport routes', error)
+      throw new Error(error.message)
+    }
+
+    return rows.map(row => ({
+      id: row.id,
+      routeNo: row.route_no,
+      routeName: row.route_name,
+      boardingPoints: (row.transport_route_boarding_points || [])
+        .sort((a, b) => (a.stop_order || 0) - (b.stop_order || 0))
+        .map(bp => bp.name),
+      amounts: (row.transport_route_fares || []).map(f => ({
+        academicYear: f.academic_year,
+        amount: f.amount
+      }))
+    }))
+  },
+
+  upsertTransportRoute: async (route) => {
+    // 1. Upsert Route
+    const routePayload = {
+      route_no: route.routeNo,
+      route_name: route.routeName
+    }
+    
+    // Check if exists to get ID (since route_no is unique but not PK)
+    let routeId
+    const { data: existing } = await supabase
+      .from(TABLES.transportRoutes)
+      .select('id')
+      .eq('route_no', route.routeNo)
+      .maybeSingle()
+      
+    if (existing) {
+      routeId = existing.id
+      await runQuery(
+        supabase.from(TABLES.transportRoutes).update(routePayload).eq('id', routeId),
+        'Unable to update route'
+      )
+    } else {
+      const { data: newRoute } = await runQuery(
+        supabase.from(TABLES.transportRoutes).insert(routePayload).select('id').single(),
+        'Unable to create route'
+      )
+      routeId = newRoute.id
+    }
+
+    // 2. Manage Boarding Points (Delete all and recreate for simplicity, or diff)
+    // For simplicity: delete existing for this route, insert new
+    await runQuery(
+      supabase.from(TABLES.transportBoardingPoints).delete().eq('route_id', routeId),
+      'Unable to clear old boarding points'
+    )
+    if (route.boardingPoints?.length) {
+      const bpPayload = route.boardingPoints.map((name, index) => ({
+        route_id: routeId,
+        name,
+        stop_order: index + 1
+      }))
+      await runQuery(
+        supabase.from(TABLES.transportBoardingPoints).insert(bpPayload),
+        'Unable to insert boarding points'
+      )
+    }
+
+    // 3. Manage Fares
+    await runQuery(
+      supabase.from(TABLES.transportFares).delete().eq('route_id', routeId),
+      'Unable to clear old fares'
+    )
+    if (route.amounts?.length) {
+      const farePayload = route.amounts.map(f => ({
+        route_id: routeId,
+        academic_year: f.academicYear,
+        amount: Number(f.amount)
+      }))
+      await runQuery(
+        supabase.from(TABLES.transportFares).insert(farePayload),
+        'Unable to insert fares'
+      )
+    }
+  },
+
+  deleteTransportRoute: async (routeNo) => {
+    await runQuery(
+      supabase.from(TABLES.transportRoutes).delete().eq('route_no', routeNo),
+      'Unable to delete route'
+    )
+  },
+
+  listTransportVehicles: async () => {
+    const { data: rows, error } = await supabase
+      .from(TABLES.transportVehicles)
+      .select(`
+        *,
+        transport_routes (
+          route_no,
+          route_name
+        )
+      `)
+      .order('vehicle_no')
+
+    if (error) {
+      console.error('Unable to fetch transport vehicles', error)
+      throw new Error(error.message)
+    }
+
+    return rows.map(row => ({
+      vehicleNo: row.vehicle_no,
+      routeNo: row.transport_routes?.route_no || '',
+      routeName: row.transport_routes?.route_name || ''
+    }))
+  },
+
+  upsertTransportVehicle: async (vehicle) => {
+    // Resolve routeNo to route_id
+    const { data: route } = await supabase
+      .from(TABLES.transportRoutes)
+      .select('id')
+      .eq('route_no', vehicle.routeNo)
+      .maybeSingle()
+    
+    if (!route) throw new Error('Invalid route number')
+
+    const payload = {
+      vehicle_no: vehicle.vehicleNo,
+      route_id: route.id
+    }
+    
+    await runQuery(
+      supabase.from(TABLES.transportVehicles).upsert(payload, { onConflict: 'vehicle_no' }),
+      'Unable to save vehicle'
+    )
+  },
+
+  deleteTransportVehicle: async (vehicleNo) => {
+    await runQuery(
+      supabase.from(TABLES.transportVehicles).delete().eq('vehicle_no', vehicleNo),
+      'Unable to delete vehicle'
+    )
   },
 };
