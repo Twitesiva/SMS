@@ -8,6 +8,14 @@ const formatDate = (dateStr) => {
   return dateStr.slice(0, 10).split('-').reverse().join('/')
 }
 
+const missingReasonOptions = [
+  'Reported lost by borrower',
+  'Pages damaged/defaced',
+  'Water or liquid damage',
+  'Cover or binding damaged',
+  'Supplementary materials missing'
+]
+
 export default function Fines() {
   const [pendingFines, setPendingFines] = useState([])
   const [summary, setSummary] = useState({
@@ -29,7 +37,7 @@ export default function Fines() {
     studentId: '',
     loanId: '',
     condition: 'MISSING',
-    reason: '',
+    reason: missingReasonOptions[0],
     amount: '500'
   })
   const [missingLoans, setMissingLoans] = useState([])
@@ -262,13 +270,13 @@ export default function Fines() {
       }
 
       // Try inserting with 'reason' field if schema allows
-      const payload = { 
-        loan_id: loanId, 
-        amount, 
-        student_id: missingForm.studentId.trim(), 
-        status: 'PENDING'
-      }
-      if (missingForm.reason) payload.reason = missingForm.reason
+        const payload = { 
+          loan_id: loanId, 
+          amount, 
+          student_id: missingForm.studentId.trim(), 
+          status: 'PENDING'
+        }
+        if (missingForm.reason) payload.reason = missingForm.reason
 
       const { error: fineError } = await supabase
         .from('library_fines')
@@ -277,7 +285,7 @@ export default function Fines() {
       if (fineError) throw fineError
 
       showToast('Recorded as missing/damaged and fine created.', { type: 'success' })
-      setMissingForm({ studentId: '', loanId: '', condition: 'MISSING', reason: '', amount: '500' })
+      setMissingForm({ studentId: '', loanId: '', condition: 'MISSING', reason: missingReasonOptions[0], amount: '500' })
       setMissingLoans([])
       loadFines()
     } catch (err) {
@@ -556,13 +564,17 @@ export default function Fines() {
               </div>
               <div className="col-md-4">
                 <label className="form-label">Reason</label>
-                <input
-                  className="form-control"
-                  type="text"
-                  placeholder="Details"
-                  value={missingForm.reason || ''}
+                <select
+                  className="form-select"
+                  value={missingForm.reason}
                   onChange={handleMissingChange('reason')}
-                />
+                >
+                  {missingReasonOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="col-md-2">
                 <label className="form-label">Condition</label>
@@ -586,7 +598,7 @@ export default function Fines() {
                   type="button"
                   className="btn btn-outline-secondary"
                   onClick={() => {
-                    setMissingForm({ studentId: '', loanId: '', condition: 'MISSING', reason: '', amount: '500' })
+                    setMissingForm({ studentId: '', loanId: '', condition: 'MISSING', reason: missingReasonOptions[0], amount: '500' })
                     setMissingLoans([])
                   }}
                 >

@@ -5,9 +5,7 @@ import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
 
 export default function Books() {
-  const [recentBooks, setRecentBooks] = useState([])
-  const [copyCounts, setCopyCounts] = useState({})
-  const [form, setForm] = useState({
+  const createInitialForm = () => ({
     title: '',
     isbn: '',
     author: '',
@@ -17,8 +15,12 @@ export default function Books() {
     edition: '',
     copies: '',
     shelf_code: '',
+    arrival_date: new Date().toISOString().slice(0, 10),
     status: 'PUBLIC'
   })
+  const [recentBooks, setRecentBooks] = useState([])
+  const [copyCounts, setCopyCounts] = useState({})
+  const [form, setForm] = useState(createInitialForm)
   const [saving, setSaving] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
 
@@ -26,7 +28,7 @@ export default function Books() {
     try {
       const { data: bookRows, error: bookError } = await supabase
         .from('library_books')
-        .select('id, title, created_at, status')
+        .select('id, title, arrival_date, created_at, status')
         .order('created_at', { ascending: false })
         .limit(10)
 
@@ -68,18 +70,7 @@ export default function Books() {
   }
 
   const resetForm = () => {
-    setForm({
-      title: '',
-      isbn: '',
-      author: '',
-      language: '',
-      publisher: '',
-      published_year: '',
-      edition: '',
-      copies: '',
-      shelf_code: '',
-      status: 'PUBLIC'
-    })
+    setForm(createInitialForm())
     setStatusMessage('')
   }
 
@@ -106,6 +97,7 @@ export default function Books() {
         published_year: form.published_year ? Number(form.published_year) : null,
         edition: form.edition.trim() || null,
         shelf_code: form.shelf_code.trim() || null,
+        arrival_date: form.arrival_date || null,
         status: form.status || 'PUBLIC'
       }
 
@@ -170,7 +162,7 @@ export default function Books() {
                 <h4 className="mb-1">Book Details</h4>
                 <p className="text-muted mb-0">Add or update catalog information.</p>
               </div>
-              <button type="button" className="btn btn-outline-secondary">Reset</button>
+              <button type="button" className="btn btn-outline-secondary" onClick={resetForm}>Reset</button>
             </div>
             <form className="row g-3" onSubmit={handleSubmit}>
               <div className="col-md-8">
@@ -284,6 +276,16 @@ export default function Books() {
                   onChange={handleChange('copies')}
                 />
               </div>
+              <div className="col-md-3">
+                <label className="form-label">Arrival Date</label>
+                <input
+                  className="form-control"
+                  type="date"
+                  value={form.arrival_date}
+                  onChange={handleChange('arrival_date')}
+                  required
+                />
+              </div>
               <div className="col-md-2">
                 <label className="form-label">Shelf</label>
                 <input
@@ -329,19 +331,22 @@ export default function Books() {
           <table className="table library-books-table mb-0">
             <thead>
               <tr>
-                <th>Title</th>
-                <th>Copies</th>
-                <th className="text-end">Status</th>
+                <th className="fw-bold fs-6">TITLE</th>
+                <th className="fw-bold fs-6">ARRIVED</th>
+                <th className="text-end fw-bold fs-6">COPIES</th>
+                <th className="text-end fw-bold fs-6">STATUS</th>
               </tr>
             </thead>
             <tbody>
               {recentBooks.length === 0 ? (
                 <tr>
-                  <td colSpan="3" className="text-center text-muted py-4">No book entries loaded.</td>
+                  <td colSpan="4" className="text-center text-muted py-4">No book entries loaded.</td>
                 </tr>
               ) : (
                 recentBooks.map((book) => {
                   const count = copyCounts[String(book.id)] || 0
+                  const arrivedDateValue = book.arrival_date || book.created_at
+                  const arrivedDateLabel = arrivedDateValue ? new Date(arrivedDateValue).toLocaleDateString() : '-'
                   const statusLabel = book.status === 'PRIVATE' ? 'Private' : (count > 0 ? 'Available' : 'Out')
                   const badgeClass = book.status === 'PRIVATE' 
                     ? 'library-status library-status--restricted'
@@ -349,7 +354,8 @@ export default function Books() {
                   return (
                     <tr key={book.id}>
                       <td>{book.title || 'Untitled'}</td>
-                      <td>{count}</td>
+                      <td>{arrivedDateLabel}</td>
+                      <td className="text-end">{count}</td>
                       <td className="text-end"><span className={badgeClass}>{statusLabel}</span></td>
                     </tr>
                   )

@@ -13,6 +13,7 @@ const emptyEditForm = {
   published_year: '',
   edition: '',
   shelf_code: '',
+  arrival_date: '',
   status: 'PUBLIC'
 }
 
@@ -31,7 +32,7 @@ export default function AllBooks() {
     try {
       const { data: bookRows, error: bookError } = await supabase
         .from('library_books')
-        .select('id, title, isbn, author, language, publisher, published_year, edition, shelf_code, status, created_at')
+        .select('id, title, isbn, author, language, publisher, published_year, edition, shelf_code, arrival_date, status, created_at')
         .order('created_at', { ascending: false })
 
       if (bookError) throw bookError
@@ -118,6 +119,9 @@ export default function AllBooks() {
       published_year: book.published_year ? String(book.published_year) : '',
       edition: book.edition || '',
       shelf_code: book.shelf_code || '',
+      arrival_date:
+        book.arrival_date ||
+        (book.created_at ? new Date(book.created_at).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10)),
       status: book.status || 'PUBLIC'
     })
   }
@@ -151,6 +155,7 @@ export default function AllBooks() {
         published_year: editForm.published_year ? Number(editForm.published_year) : null,
         edition: editForm.edition.trim() || null,
         shelf_code: editForm.shelf_code.trim() || null,
+        arrival_date: editForm.arrival_date || null,
         status: editForm.status || 'PUBLIC'
       }
 
@@ -273,7 +278,7 @@ export default function AllBooks() {
           </div>
           
           <button className="btn btn-outline-secondary" type="button" onClick={() => { setSearchTerm(''); loadBooks(); }}>
-            Reset
+            Clear
           </button>
         </div>
         <div className="library-catalogue-toolbar__meta">
@@ -438,6 +443,16 @@ export default function AllBooks() {
                       type="number"
                       value={editForm.published_year}
                       onChange={handleEditChange('published_year')}
+                    />
+                  </div>
+                  <div className="col-md-3">
+                    <label className="form-label">Arrival Date</label>
+                    <input
+                      className="form-control"
+                      type="date"
+                      value={editForm.arrival_date}
+                      onChange={handleEditChange('arrival_date')}
+                      required
                     />
                   </div>
                   <div className="col-md-3">
