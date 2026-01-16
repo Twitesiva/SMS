@@ -209,12 +209,12 @@ export default function Books() {
                 <input
                   className="form-control"
                   type="text"
-                  placeholder="Search language"
-                  list="library-language-list"
+                  placeholder="Select or type language"
+                  list="books-language-list"
                   value={form.language}
                   onChange={handleChange('language')}
                 />
-                <datalist id="library-language-list">
+                <datalist id="books-language-list">
                   <option value="English" />
                   <option value="Tamil" />
                   <option value="Hindi" />
@@ -223,8 +223,25 @@ export default function Books() {
                   <option value="Kannada" />
                   <option value="Urdu" />
                   <option value="Sanskrit" />
+                  <option value="Arabic" />
+                  <option value="Assamese" />
+                  <option value="Bengali" />
+                  <option value="Chinese" />
+                  <option value="Dutch" />
                   <option value="French" />
                   <option value="German" />
+                  <option value="Gujarati" />
+                  <option value="Italian" />
+                  <option value="Japanese" />
+                  <option value="Korean" />
+                  <option value="Marathi" />
+                  <option value="Oriya" />
+                  <option value="Persian" />
+                  <option value="Portuguese" />
+                  <option value="Punjabi" />
+                  <option value="Russian" />
+                  <option value="Spanish" />
+                  <option value="Turkish" />
                 </datalist>
               </div>
               <div className="col-md-4">

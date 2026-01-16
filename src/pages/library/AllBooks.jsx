@@ -387,9 +387,40 @@ export default function AllBooks() {
                     <input
                       className="form-control"
                       type="text"
+                      placeholder="Select or type language"
+                      list="all-books-language-list"
                       value={editForm.language}
                       onChange={handleEditChange('language')}
                     />
+                    <datalist id="all-books-language-list">
+                      <option value="English" />
+                      <option value="Tamil" />
+                      <option value="Hindi" />
+                      <option value="Telugu" />
+                      <option value="Malayalam" />
+                      <option value="Kannada" />
+                      <option value="Urdu" />
+                      <option value="Sanskrit" />
+                      <option value="Arabic" />
+                      <option value="Assamese" />
+                      <option value="Bengali" />
+                      <option value="Chinese" />
+                      <option value="Dutch" />
+                      <option value="French" />
+                      <option value="German" />
+                      <option value="Gujarati" />
+                      <option value="Italian" />
+                      <option value="Japanese" />
+                      <option value="Korean" />
+                      <option value="Marathi" />
+                      <option value="Oriya" />
+                      <option value="Persian" />
+                      <option value="Portuguese" />
+                      <option value="Punjabi" />
+                      <option value="Russian" />
+                      <option value="Spanish" />
+                      <option value="Turkish" />
+                    </datalist>
                   </div>
                   <div className="col-md-4">
                     <label className="form-label">Publisher</label>
