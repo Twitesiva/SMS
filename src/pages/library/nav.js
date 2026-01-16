@@ -37,6 +37,11 @@ export const libraryNavGroups = [
         to: '/library/fines',
         label: 'Fines',
         icon: 'bi-cash-coin'
+      },
+      {
+        to: '/library/settings',
+        label: 'Settings',
+        icon: 'bi-gear'
       }
     ]
   },

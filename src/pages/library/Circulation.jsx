@@ -551,9 +551,13 @@ export default function Circulation() {
                         {returnLoans.map((loan) => {
                           const bookTitle = loan.library_book_copies?.library_books?.title || 'Unknown'
                           const dueDate = formatDate(loan.due_date)
+                          const isSelectedElsewhere = returnItems.some(
+                            (ri, i) => i !== idx && String(ri.loanId) === String(loan.id)
+                          )
                           return (
-                            <option key={loan.id} value={loan.id}>
-                              {bookTitle} � Due {dueDate}
+                            <option key={loan.id} value={loan.id} disabled={isSelectedElsewhere}>
+                              {bookTitle} - Due {dueDate}
+                              {isSelectedElsewhere ? ' (already selected)' : ''}
                             </option>
                           )
                         })}
@@ -804,20 +808,28 @@ export default function Circulation() {
                                 </thead>
                                 <tbody>
                                   {bookDetails.copies
-                                    .filter(c => ['MISSING', 'DAMAGED'].includes((c.availability || '').toUpperCase()))
-                                    .map(copy => {
-                                      const issueLoan = bookDetails.issueLoans?.find(l => l.library_book_copies?.id === copy.id)
+                                    .filter((c) => ['MISSING', 'DAMAGED'].includes((c.availability || '').toUpperCase()))
+                                    .map((copy) => {
+                                      const issueLoan = bookDetails.issueLoans?.find(
+                                        (l) => l.library_book_copies?.id === copy.id
+                                      )
                                       return (
                                         <tr key={copy.id}>
                                           <td className="fw-bold text-primary">{issueLoan?.students?.student_id || '-'}</td>
                                           <td className="small">{issueLoan?.students?.full_name || '-'}</td>
                                           <td className="font-monospace">{copy.id}</td>
                                           <td>
-                                            <span className={`badge ${copy.availability === 'MISSING' ? 'bg-danger' : 'bg-warning text-dark'}`}>
+                                            <span
+                                              className={`badge ${
+                                                copy.availability === 'MISSING' ? 'bg-danger' : 'bg-warning text-dark'
+                                              }`}
+                                            >
                                               {copy.availability}
                                             </span>
                                           </td>
                                         </tr>
+                                      )
+                                    })}
                                       )
                                     })}
                                 </tbody>
@@ -842,6 +854,7 @@ export default function Circulation() {
     </div>
   )
 }
+
 
 
 

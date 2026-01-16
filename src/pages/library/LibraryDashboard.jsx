@@ -338,7 +338,7 @@ export default function LibraryDashboard() {
                       </div>
                     </td>
                     <td>
-                      <div className="activity-book">{event.bookTitle || 'Unknown'}</div>
+                      <div className="activity-book fw-bold text-dark">{event.bookTitle || 'Unknown'}</div>
                     </td>
                     <td className="text-end activity-time">
                       {event.time ? new Date(event.time).toLocaleString('en-GB') : '--'}

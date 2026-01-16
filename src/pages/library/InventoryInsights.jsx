@@ -231,17 +231,6 @@ export default function InventoryInsights() {
             <div className="library-insights-stat__meta">Catalogued titles</div>
           </div>
         </div>
-        <div className="col-12 col-md-6 col-xl-3">
-          <div 
-            className="library-insights-stat"
-            onClick={() => navigate('/library/books/all')}
-            style={{ cursor: 'pointer' }}
-          >
-            <div className="library-insights-stat__label">Total Copies</div>
-            <div className="library-insights-stat__value">{stats.totalCopies}</div>
-            <div className="library-insights-stat__meta">All physical copies</div>
-          </div>
-        </div>
         <div className="col-12 col-md-6 col-xl-2">
           <div 
             className="library-insights-stat"
@@ -297,7 +286,7 @@ export default function InventoryInsights() {
                   <tr>
                     <th>Title</th>
                     <th>Shelf</th>
-                    <th>Total</th>
+                    <th>Copies</th>
                     <th>Issued</th>
                     <th>Damaged / Missed</th>
                     <th className="text-end">Balance</th>

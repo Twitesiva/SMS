@@ -16,9 +16,9 @@ const missingReasonOptions = [
   'Supplementary material missing'
 ]
 
-const createMissingItem = () => ({
+const createMissingItem = (condition = 'MISSING') => ({
   loanId: '',
-  condition: 'MISSING',
+  condition,
   reason: missingReasonOptions[0],
   amount: '500'
 })
@@ -43,7 +43,8 @@ export default function Fines() {
   const [missingForm, setMissingForm] = useState({
     studentId: ''
   })
-  const [missingItems, setMissingItems] = useState([createMissingItem()])
+  const [missingItemsMissing, setMissingItemsMissing] = useState([createMissingItem('MISSING')])
+  const [missingItemsDamaged, setMissingItemsDamaged] = useState([createMissingItem('DAMAGED')])
   const [missingLoans, setMissingLoans] = useState([])
   const [savingMissing, setSavingMissing] = useState(false)
   const [collecting, setCollecting] = useState(false)
@@ -206,7 +207,8 @@ export default function Fines() {
     const trimmed = (studentId || '').trim()
     if (!trimmed) {
       setMissingLoans([])
-      setMissingItems([createMissingItem()])
+      setMissingItemsMissing([createMissingItem('MISSING')])
+      setMissingItemsDamaged([createMissingItem('DAMAGED')])
       return
     }
     try {
@@ -220,14 +222,18 @@ export default function Fines() {
       if (error) throw error
       setMissingLoans(data || [])
       if ((data || []).length === 1) {
-        setMissingItems([{ ...createMissingItem(), loanId: String(data[0].id) }])
+        const loneId = String(data[0].id)
+        setMissingItemsMissing([{ ...createMissingItem('MISSING'), loanId: loneId }])
+        setMissingItemsDamaged([{ ...createMissingItem('DAMAGED'), loanId: loneId }])
       } else {
-        setMissingItems([createMissingItem()])
+        setMissingItemsMissing([createMissingItem('MISSING')])
+        setMissingItemsDamaged([createMissingItem('DAMAGED')])
       }
     } catch (err) {
       console.error('Failed to load loans for missing/damaged', err)
       setMissingLoans([])
-      setMissingItems([createMissingItem()])
+      setMissingItemsMissing([createMissingItem('MISSING')])
+      setMissingItemsDamaged([createMissingItem('DAMAGED')])
     }
   }
 
@@ -236,26 +242,33 @@ export default function Fines() {
     setMissingForm((prev) => ({ ...prev, [key]: value }))
     if (key === 'studentId') {
       setMissingLoans([])
-      setMissingItems([createMissingItem()])
+      setMissingItemsMissing([createMissingItem('MISSING')])
+      setMissingItemsDamaged([createMissingItem('DAMAGED')])
     }
   }
 
-  const handleMissingItemChange = (index, key) => (event) => {
+  const handleMissingItemChange = (type, index, key) => (event) => {
     const value = event.target.value
-    setMissingItems((prev) => {
+    const updater = type === 'MISSING' ? setMissingItemsMissing : setMissingItemsDamaged
+    updater((prev) => {
       const next = [...prev]
       next[index] = { ...next[index], [key]: value }
       return next
     })
   }
 
-  const addMissingItem = () =>
-    setMissingItems((prev) => {
+  const addMissingItem = (type) => {
+    const updater = type === 'MISSING' ? setMissingItemsMissing : setMissingItemsDamaged
+    updater((prev) => {
       if (!missingLoans.length || prev.length >= missingLoans.length) return prev
-      return [...prev, createMissingItem()]
+      return [...prev, createMissingItem(type)]
     })
-  const removeMissingItem = (index) =>
-    setMissingItems((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev))
+  }
+
+  const removeMissingItem = (type, index) => {
+    const updater = type === 'MISSING' ? setMissingItemsMissing : setMissingItemsDamaged
+    updater((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev))
+  }
 
   const handleMissingSubmit = async (event) => {
     event.preventDefault()
@@ -264,7 +277,7 @@ export default function Fines() {
       return
     }
 
-    const preparedItems = missingItems
+    const preparedItems = [...missingItemsMissing, ...missingItemsDamaged]
       .map((item) => ({
         loanId: Number(item.loanId || 0),
         condition: (item.condition || 'MISSING').toUpperCase(),
@@ -342,7 +355,8 @@ export default function Fines() {
           : `Updated ${successes.length} loan(s) successfully.`
       showToast(successMsg, { type: failCount > 0 ? 'warning' : 'success' })
       setMissingForm({ studentId: '' })
-      setMissingItems([createMissingItem()])
+      setMissingItemsMissing([createMissingItem('MISSING')])
+      setMissingItemsDamaged([createMissingItem('DAMAGED')])
       setMissingLoans([])
       loadFines()
     } else {
