@@ -18,6 +18,7 @@ export default function Books() {
     arrival_date: new Date().toISOString().slice(0, 10),
     status: 'PUBLIC'
   })
+
   const [recentBooks, setRecentBooks] = useState([])
   const [copyCounts, setCopyCounts] = useState({})
   const [form, setForm] = useState(createInitialForm)

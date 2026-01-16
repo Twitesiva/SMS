@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react'
+﻿import { useEffect, useMemo, useState, useCallback } from 'react'
 import crestPrimary from '../../assets/media/images.png'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
@@ -9,12 +9,19 @@ const formatDate = (dateStr) => {
 }
 
 const missingReasonOptions = [
-  'Reported lost by borrower',
-  'Pages damaged/defaced',
-  'Water or liquid damage',
-  'Cover or binding damaged',
-  'Supplementary materials missing'
+  'Declared lost by member',
+  'Severe page or print damage',
+  'Water or moisture exposure',
+  'Cover or binding failure',
+  'Supplementary material missing'
 ]
+
+const createMissingItem = () => ({
+  loanId: '',
+  condition: 'MISSING',
+  reason: missingReasonOptions[0],
+  amount: '500'
+})
 
 export default function Fines() {
   const [pendingFines, setPendingFines] = useState([])
@@ -34,12 +41,9 @@ export default function Fines() {
     paymentMode: 'Cash'
   })
   const [missingForm, setMissingForm] = useState({
-    studentId: '',
-    loanId: '',
-    condition: 'MISSING',
-    reason: missingReasonOptions[0],
-    amount: '500'
+    studentId: ''
   })
+  const [missingItems, setMissingItems] = useState([createMissingItem()])
   const [missingLoans, setMissingLoans] = useState([])
   const [savingMissing, setSavingMissing] = useState(false)
   const [collecting, setCollecting] = useState(false)
@@ -202,7 +206,7 @@ export default function Fines() {
     const trimmed = (studentId || '').trim()
     if (!trimmed) {
       setMissingLoans([])
-      setMissingForm((prev) => ({ ...prev, loanId: '' }))
+      setMissingItems([createMissingItem()])
       return
     }
     try {
@@ -216,20 +220,42 @@ export default function Fines() {
       if (error) throw error
       setMissingLoans(data || [])
       if ((data || []).length === 1) {
-        setMissingForm((prev) => ({ ...prev, loanId: String(data[0].id) }))
+        setMissingItems([{ ...createMissingItem(), loanId: String(data[0].id) }])
       } else {
-        setMissingForm((prev) => ({ ...prev, loanId: '' }))
+        setMissingItems([createMissingItem()])
       }
     } catch (err) {
       console.error('Failed to load loans for missing/damaged', err)
       setMissingLoans([])
-      setMissingForm((prev) => ({ ...prev, loanId: '' }))
+      setMissingItems([createMissingItem()])
     }
   }
 
   const handleMissingChange = (key) => (event) => {
-    setMissingForm((prev) => ({ ...prev, [key]: event.target.value }))
+    const value = event.target.value
+    setMissingForm((prev) => ({ ...prev, [key]: value }))
+    if (key === 'studentId') {
+      setMissingLoans([])
+      setMissingItems([createMissingItem()])
+    }
   }
+
+  const handleMissingItemChange = (index, key) => (event) => {
+    const value = event.target.value
+    setMissingItems((prev) => {
+      const next = [...prev]
+      next[index] = { ...next[index], [key]: value }
+      return next
+    })
+  }
+
+  const addMissingItem = () =>
+    setMissingItems((prev) => {
+      if (!missingLoans.length || prev.length >= missingLoans.length) return prev
+      return [...prev, createMissingItem()]
+    })
+  const removeMissingItem = (index) =>
+    setMissingItems((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev))
 
   const handleMissingSubmit = async (event) => {
     event.preventDefault()
@@ -237,85 +263,92 @@ export default function Fines() {
       showToast('Enter a student ID.', { type: 'warning' })
       return
     }
-    if (!missingForm.loanId) {
-      showToast('Select a loan.', { type: 'warning' })
-      return
-    }
 
-    const amount = Number(missingForm.amount || 0)
-    if (Number.isNaN(amount) || amount <= 0) {
-      showToast('Enter a valid fine amount.', { type: 'warning' })
+    const preparedItems = missingItems
+      .map((item) => ({
+        loanId: Number(item.loanId || 0),
+        condition: (item.condition || 'MISSING').toUpperCase(),
+        reason: item.reason,
+        amount: Number(item.amount || 0)
+      }))
+      .filter((item) => Number.isFinite(item.loanId) && item.loanId > 0 && item.amount > 0)
+
+    if (preparedItems.length === 0) {
+      showToast('Select at least one issued book to mark.', { type: 'warning' })
       return
     }
 
     setSavingMissing(true)
-    try {
-      const loanId = Number(missingForm.loanId)
-      const loanRow = missingLoans.find((l) => l.id === loanId)
+    const successes = []
+    const failures = []
+    for (const item of preparedItems) {
+      const loanRow = missingLoans.find((l) => l.id === item.loanId)
       const copyId = loanRow?.library_book_copies?.id
-      const condition = (missingForm.condition || 'MISSING').toUpperCase()
 
-      const { error: loanError } = await supabase
-        .from('library_loans')
-        .update({ status: condition, returned_at: new Date().toISOString() })
-        .eq('id', loanId)
-      if (loanError) throw loanError
+      try {
+        const { error: loanError } = await supabase
+          .from('library_loans')
+          .update({ status: item.condition, returned_at: new Date().toISOString() })
+          .eq('id', item.loanId)
+        if (loanError) throw loanError
 
-      if (copyId) {
-        const { error: copyError } = await supabase
-          .from('library_book_copies')
-          .update({ availability: condition })
-          .eq('id', copyId)
-        if (copyError) throw copyError
-      }
+        if (copyId) {
+          const { error: copyError } = await supabase
+            .from('library_book_copies')
+            .update({ availability: item.condition })
+            .eq('id', copyId)
+          if (copyError) throw copyError
+        }
 
-      // Try inserting with 'reason' field if schema allows
-        const payload = { 
-          loan_id: loanId, 
-          amount, 
-          student_id: missingForm.studentId.trim(), 
+        const payload = {
+          loan_id: item.loanId,
+          amount: item.amount,
+          student_id: missingForm.studentId.trim(),
           status: 'PENDING'
         }
-        if (missingForm.reason) payload.reason = missingForm.reason
+        if (item.reason) payload.reason = item.reason
 
-      const { error: fineError } = await supabase
-        .from('library_fines')
-        .insert([payload])
-      
-      if (fineError) throw fineError
+        const { error: fineError } = await supabase.from('library_fines').insert([payload])
+        if (fineError) throw fineError
 
-      showToast('Recorded as missing/damaged and fine created.', { type: 'success' })
-      setMissingForm({ studentId: '', loanId: '', condition: 'MISSING', reason: missingReasonOptions[0], amount: '500' })
-      setMissingLoans([])
-      loadFines()
-    } catch (err) {
-      console.error('Failed to mark missing/damaged', err)
-      // Fallback: If 'reason' column fails, try inserting without it
-      if (err.message?.includes('reason')) {
-         try {
-            const payload = { 
-              loan_id: Number(missingForm.loanId), 
-              amount: Number(missingForm.amount || 0), 
-              student_id: missingForm.studentId.trim(), 
+        successes.push(item.loanId)
+      } catch (err) {
+        console.error('Failed to mark missing/damaged', err)
+        if (err.message?.includes('reason')) {
+          try {
+            const fallbackPayload = {
+              loan_id: item.loanId,
+              amount: item.amount,
+              student_id: missingForm.studentId.trim(),
               status: 'PENDING'
             }
-            const { error: retryError } = await supabase.from('library_fines').insert([payload])
+            const { error: retryError } = await supabase.from('library_fines').insert([fallbackPayload])
             if (retryError) throw retryError
-            
-            showToast('Recorded without reason (schema limitation).', { type: 'warning' })
-            setMissingForm({ studentId: '', loanId: '', condition: 'MISSING', reason: '', amount: '500' })
-            setMissingLoans([])
-            loadFines()
-            setSavingMissing(false)
-            return
-         } catch (retryErr) {
+            successes.push(item.loanId)
+            continue
+          } catch (retryErr) {
             console.error('Retry failed', retryErr)
-         }
+          }
+        }
+        failures.push(item.loanId)
       }
-      showToast('Unable to update missing/damaged book right now.', { type: 'danger' })
-    } finally {
-      setSavingMissing(false)
     }
+
+    if (successes.length > 0) {
+      const failCount = failures.length
+      const successMsg =
+        failCount > 0
+          ? `Updated ${successes.length} loan(s). ${failCount} failed.`
+          : `Updated ${successes.length} loan(s) successfully.`
+      showToast(successMsg, { type: failCount > 0 ? 'warning' : 'success' })
+      setMissingForm({ studentId: '' })
+      setMissingItems([createMissingItem()])
+      setMissingLoans([])
+      loadFines()
+    } else {
+      showToast('Unable to update missing/damaged book right now.', { type: 'danger' })
+    }
+    setSavingMissing(false)
   }
   return (
     <div className="desktop-container" style={{ overflowX: 'hidden' }}>
@@ -481,36 +514,40 @@ export default function Fines() {
                     <tr>
                       <td colSpan="4" className="text-center text-muted py-4">No pending fines loaded.</td>
                     </tr>
-                  ) : (
-                    pendingFines.map((fine) => {
-                      const student = fine.students
-                      const book = fine.library_loans?.library_book_copies?.library_books
-                      const dueDate = fine.library_loans?.due_date
-                      const loanStatus = fine.library_loans?.status
-                      const days = dueDate
-                        ? Math.max(0, Math.floor((today - new Date(dueDate)) / (1000 * 60 * 60 * 24)))
-                        : 0
-                      let reason = '—'
+                ) : (
+                  pendingFines.map((fine) => {
+                    const student = fine.students
+                    const book = fine.library_loans?.library_book_copies?.library_books
+                    const dueDate = fine.library_loans?.due_date
+                    const loanStatus = fine.library_loans?.status
+                    const days = dueDate
+                      ? Math.max(0, Math.floor((today - new Date(dueDate)) / (1000 * 60 * 60 * 24)))
+                      : 0
+                    let reason = fine.reason || null
+                    if (!reason) {
                       if (loanStatus === 'MISSING') reason = 'Missing'
                       else if (loanStatus === 'DAMAGED') reason = 'Damaged'
                       else if (dueDate && new Date(dueDate) < today) {
-                        reason = `Delayed${days > 0 ? ` (${days} days)` : ''}`
+                          reason = `Delayed${days > 0 ? ` (${days} days)` : ''}`
+                      } else {
+                        reason = 'Fine'
                       }
-                      return (
-                        <tr key={fine.id}>
-                          <td>{student?.full_name || 'Unknown'} ({student?.student_id || '--'})</td>
-                          <td>{book?.title || 'Unknown'}</td>
-                          <td>{reason}</td>
-                          <td>{days}</td>
-                          <td className="text-end">Rs. {fine.amount || 0}</td>
-                        </tr>
-                      )
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    }
+                    return (
+                      <tr key={fine.id}>
+                        <td>{student?.full_name || 'Unknown'} ({student?.student_id || '--'})</td>
+                        <td>{book?.title || 'Unknown'}</td>
+                        <td>{reason}</td>
+                        <td>{days}</td>
+                        <td className="text-end">Rs. {fine.amount || 0}</td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
+        </div>
         </div>
         <div className="col-12">
           <div className="card card-soft p-4 h-100">
@@ -557,7 +594,7 @@ export default function Fines() {
                   </option>
                   {missingLoans.map((loan) => (
                     <option key={loan.id} value={loan.id}>
-                      {loan.library_book_copies?.library_books?.title || 'Unknown'} · Due {formatDate(loan.due_date)}
+                      {loan.library_book_copies?.library_books?.title || 'Unknown'} Â· Due {formatDate(loan.due_date)}
                     </option>
                   ))}
                 </select>
@@ -615,3 +652,4 @@ export default function Fines() {
     </div>
   )
 }
+

@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from 'react'
+﻿import { useEffect, useState, useMemo, useRef } from 'react'
 import crestPrimary from '../../assets/media/images.png'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
@@ -27,6 +27,10 @@ export default function Circulation() {
     date.setDate(date.getDate() + 30)
     return date.toISOString().slice(0, 10)
   }
+
+  const createIssueRow = () => ({
+    bookRef: ''
+  })
 
   const handleBookClick = async (book, tab = 'all') => {
     setSelectedBook(book)
@@ -90,13 +94,13 @@ export default function Circulation() {
 
   const [form, setForm] = useState({
     studentId: '',
-    bookRef: '',
     dueDate: buildDefaultDueDate()
   })
+  const [issueBooks, setIssueBooks] = useState([createIssueRow()])
   const [returnForm, setReturnForm] = useState({
-    studentId: '',
-    loanId: ''
+    studentId: ''
   })
+  const [returnItems, setReturnItems] = useState([{ loanId: '' }])
   const [returnLoans, setReturnLoans] = useState([])
   const [saving, setSaving] = useState(false)
   const [returning, setReturning] = useState(false)
@@ -127,24 +131,57 @@ export default function Circulation() {
     setForm((prev) => ({ ...prev, [key]: event.target.value }))
   }
 
+  const handleIssueBookChange = (index) => (event) => {
+    const value = event.target.value
+    setIssueBooks((prev) => {
+      const next = [...prev]
+      next[index] = { ...next[index], bookRef: value }
+      return next
+    })
+  }
+
+  const addIssueBook = () => {
+    setIssueBooks((prev) => [...prev, createIssueRow()])
+  }
+
+  const removeIssueBook = (index) => {
+    setIssueBooks((prev) => (prev.length > 1 ? prev.filter((_, idx) => idx !== index) : prev))
+  }
+
   const handleReturnChange = (key) => (event) => {
     setReturnForm((prev) => ({ ...prev, [key]: event.target.value }))
   }
 
+  const handleReturnItemChange = (index) => (event) => {
+    const value = event.target.value
+    setReturnItems((prev) => {
+      const next = [...prev]
+      next[index] = { loanId: value }
+      return next
+    })
+  }
+
+  const addReturnItem = () =>
+    setReturnItems((prev) => {
+      if (!returnLoans.length || prev.length >= returnLoans.length) return prev
+      return [...prev, { loanId: '' }]
+    })
+  const removeReturnItem = (index) => setReturnItems((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev))
+
   const resetForm = () => {
     setForm({
       studentId: '',
-      bookRef: '',
       dueDate: buildDefaultDueDate()
     })
+    setIssueBooks([createIssueRow()])
     setReturnForm({
-      studentId: '',
-      loanId: ''
+      studentId: ''
     })
+    setReturnItems([{ loanId: '' }])
     setReturnLoans([])
   }
 
-  const resolveBookCopy = async (bookRef) => {
+  const resolveBookCopy = async (bookRef, excludeCopyIds = []) => {
     const trimmed = bookRef.trim()
     if (!trimmed) return null
 
@@ -162,13 +199,17 @@ export default function Circulation() {
     const bookRow = (bookRows || [])[0]
     if (!bookRow) return null
 
-    const { data: copyRows, error: copyError } = await supabase
+    let copyQuery = supabase
       .from('library_book_copies')
       .select('id, availability')
       .eq('book_id', bookRow.id)
       .eq('availability', 'AVAILABLE')
-      .order('id', { ascending: true })
-      .limit(1)
+
+    if (excludeCopyIds.length > 0) {
+      copyQuery = copyQuery.not('id', 'in', `(${excludeCopyIds.join(',')})`)
+    }
+
+    const { data: copyRows, error: copyError } = await copyQuery.order('id', { ascending: true }).limit(1)
 
     if (copyError) throw copyError
     const copyRow = (copyRows || [])[0]
@@ -183,8 +224,12 @@ export default function Circulation() {
       showToast('Enter a student ID.', { type: 'warning' })
       return
     }
-    if (!form.bookRef.trim()) {
-      showToast('Enter a book ID or ISBN.', { type: 'warning' })
+    const preparedBooks = issueBooks
+      .map((item) => (item.bookRef || '').trim())
+      .filter((ref) => ref.length > 0)
+
+    if (preparedBooks.length === 0) {
+      showToast('Enter at least one book ID or ISBN.', { type: 'warning' })
       return
     }
 
@@ -204,25 +249,6 @@ export default function Circulation() {
         return
       }
 
-      const resolved = await resolveBookCopy(form.bookRef)
-      if (!resolved || !resolved.book) {
-        showToast('Book not found.', { type: 'warning' })
-        setSaving(false)
-        return
-      }
-
-      if (resolved.book.status === 'PRIVATE') {
-        showToast('This book is Private and cannot be issued.', { type: 'warning' })
-        setSaving(false)
-        return
-      }
-
-      if (!resolved.copy) {
-        showToast('No available copies for this book.', { type: 'warning' })
-        setSaving(false)
-        return
-      }
-
       const dueDate = form.dueDate ? form.dueDate : null
       if (!dueDate) {
         showToast('Select a due date.', { type: 'warning' })
@@ -230,27 +256,62 @@ export default function Circulation() {
         return
       }
 
-      const { error: insertError } = await supabase
-        .from('library_loans')
-        .insert([
-          {
-            student_id: studentRow.student_id,
-            book_copy_id: resolved.copy.id,
-            due_date: dueDate,
-            status: 'ISSUED'
-          }
-        ])
+      const usedCopyIds = new Set()
+      const assignments = []
+      const failures = []
 
+      for (const ref of preparedBooks) {
+        const resolved = await resolveBookCopy(ref, Array.from(usedCopyIds))
+        if (!resolved || !resolved.book) {
+          failures.push(`Book not found for "${ref}".`)
+          continue
+        }
+        if (resolved.book.status === 'PRIVATE') {
+          failures.push(`Book "${resolved.book.title || resolved.book.id}" is Private and cannot be issued.`)
+          continue
+        }
+        if (!resolved.copy) {
+          failures.push(`No available copies for "${resolved.book.title || resolved.book.id}".`)
+          continue
+        }
+        usedCopyIds.add(resolved.copy.id)
+        assignments.push({
+          book: resolved.book,
+          copyId: resolved.copy.id
+        })
+      }
+
+      if (assignments.length === 0) {
+        showToast(failures[0] || 'No books could be issued.', { type: 'warning' })
+        setSaving(false)
+        return
+      }
+
+      const loanRows = assignments.map((item) => ({
+        student_id: studentRow.student_id,
+        book_copy_id: item.copyId,
+        due_date: dueDate,
+        status: 'ISSUED'
+      }))
+
+      const { error: insertError } = await supabase.from('library_loans').insert(loanRows)
       if (insertError) throw insertError
 
+      const copyIds = assignments.map((item) => item.copyId)
       const { error: copyUpdateError } = await supabase
         .from('library_book_copies')
         .update({ availability: 'ISSUED' })
-        .eq('id', resolved.copy.id)
+        .in('id', copyIds)
 
       if (copyUpdateError) throw copyUpdateError
 
-      showToast('Book issued successfully.', { type: 'success' })
+      const successCount = assignments.length
+      const failCount = failures.length
+      if (failCount > 0) {
+        showToast(`Issued ${successCount} book(s). ${failCount} skipped: ${failures[0]}`, { type: 'warning' })
+      } else {
+        showToast(`Issued ${successCount} book(s) successfully.`, { type: 'success' })
+      }
 
       resetForm()
       loadLoans()
@@ -268,38 +329,43 @@ export default function Circulation() {
       showToast('Enter a student ID.', { type: 'warning' })
       return
     }
-    if (!returnForm.loanId) {
-      showToast('Select a book to return.', { type: 'warning' })
+
+    const selectedLoanIds = returnItems
+      .map((item) => Number(item.loanId || 0))
+      .filter((id) => Number.isFinite(id) && id > 0)
+
+    if (selectedLoanIds.length === 0) {
+      showToast('Select at least one book to return.', { type: 'warning' })
       return
     }
 
     setReturning(true)
     try {
-      const loanId = Number(returnForm.loanId)
+      const timestamp = new Date().toISOString()
       const { error: loanUpdateError } = await supabase
         .from('library_loans')
-        .update({ status: 'RETURNED', returned_at: new Date().toISOString() })
-        .eq('id', loanId)
+        .update({ status: 'RETURNED', returned_at: timestamp })
+        .in('id', selectedLoanIds)
 
       if (loanUpdateError) throw loanUpdateError
 
-      const loanMatch = returnLoans.find((loan) => loan.id === loanId)
-      const copyId = loanMatch?.book_copy_id
-      if (!copyId) {
-        showToast('Book copy not found for this loan.', { type: 'warning' })
-        setReturning(false)
-        return
+      const copyIds = returnLoans
+        .filter((loan) => selectedLoanIds.includes(loan.id))
+        .map((loan) => loan.book_copy_id)
+        .filter(Boolean)
+
+      if (copyIds.length > 0) {
+        const { error: copyUpdateError } = await supabase
+          .from('library_book_copies')
+          .update({ availability: 'AVAILABLE' })
+          .in('id', copyIds)
+
+        if (copyUpdateError) throw copyUpdateError
       }
 
-      const { error: copyUpdateError } = await supabase
-        .from('library_book_copies')
-        .update({ availability: 'AVAILABLE' })
-        .eq('id', copyId)
-
-      if (copyUpdateError) throw copyUpdateError
-
-      showToast('Book returned successfully.', { type: 'success' })
-      setReturnForm({ studentId: '', loanId: '' })
+      showToast(`Returned ${selectedLoanIds.length} book(s) successfully.`, { type: 'success' })
+      setReturnForm({ studentId: '' })
+      setReturnItems([{ loanId: '' }])
       setReturnLoans([])
       loadLoans()
     } catch (err) {
@@ -353,14 +419,34 @@ export default function Circulation() {
                 />
               </div>
               <div className="col-12">
-                <label className="form-label">Book ID / ISBN</label>
-                <input
-                  className="form-control"
-                  type="text"
-                  placeholder="Enter Book ID or ISBN"
-                  value={form.bookRef}
-                  onChange={handleChange('bookRef')}
-                />
+                <label className="form-label d-flex justify-content-between align-items-center">
+                  <span>Book ID / ISBN</span>
+                  <button type="button" className="btn btn-outline-secondary btn-sm" onClick={addIssueBook}>
+                    Add another
+                  </button>
+                </label>
+                <div className="d-flex flex-column gap-2">
+                  {issueBooks.map((item, idx) => (
+                    <div className="input-group" key={`issue-book-${idx}`}>
+                      <input
+                        className="form-control"
+                        type="text"
+                        placeholder="Enter Book ID or ISBN"
+                        value={item.bookRef}
+                        onChange={handleIssueBookChange(idx)}
+                      />
+                      {issueBooks.length > 1 && (
+                        <button
+                          type="button"
+                          className="btn btn-outline-danger"
+                          onClick={() => removeIssueBook(idx)}
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
               <div className="col-12">
                 <label className="form-label">Due Date</label>
@@ -403,8 +489,9 @@ export default function Circulation() {
                   value={returnForm.studentId}
                   onChange={(event) => {
                     const value = event.target.value
-                    setReturnForm((prev) => ({ ...prev, studentId: value, loanId: '' }))
+                    setReturnForm((prev) => ({ ...prev, studentId: value }))
                     setReturnLoans([])
+                    setReturnItems([{ loanId: '' }])
                   }}
                   onBlur={async () => {
                     if (!returnForm.studentId.trim()) return
@@ -421,40 +508,68 @@ export default function Circulation() {
                       if (loanError) throw loanError
                       setReturnLoans(loanRows || [])
                       if ((loanRows || []).length === 1) {
-                        setReturnForm((prev) => ({ ...prev, loanId: String(loanRows[0].id) }))
+                        setReturnItems([{ loanId: String(loanRows[0].id) }])
+                      } else {
+                        setReturnItems([{ loanId: '' }])
                       }
                     } catch (err) {
                       console.error('Failed to load return loans', err)
                       setReturnLoans([])
+                      setReturnItems([{ loanId: '' }])
                     }
                   }}
                 />
               </div>
               <div className="col-12">
-                <label className="form-label">Issued Book</label>
-                <select
-                  className="form-select"
-                  value={returnForm.loanId}
-                  onChange={handleReturnChange('loanId')}
-                  disabled={!returnLoans.length}
-                >
-                  <option value="">
-                    {returnForm.studentId.trim()
-                      ? returnLoans.length
-                        ? 'Select a book'
-                        : 'No active loans found'
-                      : 'Enter student ID to load books'}
-                  </option>
-                  {returnLoans.map((loan) => {
-                    const bookTitle = loan.library_book_copies?.library_books?.title || 'Unknown'
-                    const dueDate = formatDate(loan.due_date)
-                    return (
-                      <option key={loan.id} value={loan.id}>
-                        {bookTitle} • Due {dueDate}
-                      </option>
-                    )
-                  })}
-                </select>
+                <label className="form-label d-flex justify-content-between align-items-center">
+                  <span>Issued Book(s)</span>
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm"
+                    onClick={addReturnItem}
+                    disabled={!returnLoans.length || returnItems.length >= returnLoans.length}
+                  >
+                    Add another
+                  </button>
+                </label>
+                <div className="d-flex flex-column gap-2">
+                  {returnItems.map((item, idx) => (
+                    <div className="input-group" key={`return-item-${idx}`}>
+                      <select
+                        className="form-select"
+                        value={item.loanId}
+                        onChange={handleReturnItemChange(idx)}
+                        disabled={!returnLoans.length}
+                      >
+                        <option value="">
+                          {returnForm.studentId.trim()
+                            ? returnLoans.length
+                              ? 'Select a book'
+                              : 'No active loans found'
+                            : 'Enter student ID to load books'}
+                        </option>
+                        {returnLoans.map((loan) => {
+                          const bookTitle = loan.library_book_copies?.library_books?.title || 'Unknown'
+                          const dueDate = formatDate(loan.due_date)
+                          return (
+                            <option key={loan.id} value={loan.id}>
+                              {bookTitle} � Due {dueDate}
+                            </option>
+                          )
+                        })}
+                      </select>
+                      {returnItems.length > 1 && (
+                        <button
+                          type="button"
+                          className="btn btn-outline-danger"
+                          onClick={() => removeReturnItem(idx)}
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
               <div className="col-12 d-flex justify-content-end gap-2">
                 <button type="button" className="btn btn-outline-secondary" onClick={resetForm}>
@@ -727,3 +842,12 @@ export default function Circulation() {
     </div>
   )
 }
+
+
+
+
+
+
+
+
+
