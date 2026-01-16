@@ -3,6 +3,11 @@ import crestPrimary from '../../assets/media/images.png'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
 
+const formatDate = (dateStr) => {
+  if (!dateStr) return '-'
+  return dateStr.slice(0, 10).split('-').reverse().join('/')
+}
+
 export default function History() {
   const [studentId, setStudentId] = useState('')
   const [studentData, setStudentData] = useState(null)
@@ -111,7 +116,7 @@ export default function History() {
           <div className="admin-applications__crest mx-auto" aria-hidden="true">
             <img src={crestPrimary} alt="Vijayam crest" />
           </div>
-          <h3 className="setup-hero-title mb-2">For No Dues and History</h3>
+          <h3 className="setup-hero-title mb-2">Student History</h3>
           <p className="setup-hero-copy mb-3">View complete library activity for a student.</p>
         </div>
       </section>
@@ -184,9 +189,9 @@ export default function History() {
                               <div className="fw-semibold">{loan.library_book_copies?.library_books?.title || 'Unknown'}</div>
                               <div className="small text-muted">{loan.library_book_copies?.library_books?.shelf_code}</div>
                             </td>
-                            <td>{loan.issued_at?.slice(0, 10)}</td>
+                            <td>{formatDate(loan.issued_at)}</td>
                             <td className={history.overdue.includes(loan) ? 'text-danger fw-bold' : ''}>
-                              {loan.due_date}
+                              {formatDate(loan.due_date)}
                             </td>
                           </tr>
                         ))}
@@ -220,7 +225,7 @@ export default function History() {
                         {history.returned.map(loan => (
                           <tr key={loan.id}>
                             <td>{loan.library_book_copies?.library_books?.title || 'Unknown'}</td>
-                            <td>{loan.returned_at?.slice(0, 10) || '-'}</td>
+                            <td>{formatDate(loan.returned_at)}</td>
                             <td>
                               <span className={`badge ${loan.status === 'RETURNED' ? 'bg-success' : 'bg-danger'}`}>
                                 {loan.status}
@@ -260,7 +265,7 @@ export default function History() {
                       <tbody>
                         {history.fines.map(fine => (
                           <tr key={fine.id}>
-                            <td>{fine.created_at?.slice(0, 10)}</td>
+                            <td>{formatDate(fine.created_at)}</td>
                             <td>{fine.library_loans?.library_book_copies?.library_books?.title || 'Unknown'}</td>
                             <td>{fine.library_loans?.status || '-'}</td>
                             <td className="fw-bold">Rs. {fine.amount}</td>
@@ -269,7 +274,7 @@ export default function History() {
                                 {fine.status}
                               </span>
                             </td>
-                            <td>{fine.paid_at?.slice(0, 10) || '-'}</td>
+                            <td>{formatDate(fine.paid_at)}</td>
                           </tr>
                         ))}
                       </tbody>

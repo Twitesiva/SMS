@@ -55,7 +55,7 @@ export const libraryNavGroups = [
       },
       {
         to: '/library/history',
-        label: 'For No Dues and History',
+        label: 'Student History',
         icon: 'bi-clock-history'
       }
     ]

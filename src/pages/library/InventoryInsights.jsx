@@ -4,6 +4,11 @@ import crestPrimary from '../../assets/media/images.png'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
 
+const formatDate = (dateStr) => {
+  if (!dateStr) return '-'
+  return dateStr.slice(0, 10).split('-').reverse().join('/')
+}
+
 export default function InventoryInsights() {
   const navigate = useNavigate()
   const [stats, setStats] = useState({
@@ -375,7 +380,7 @@ export default function InventoryInsights() {
                         <div className="text-muted small">{loan.library_book_copies?.library_books?.title || 'Unknown'}</div>
                       </div>
                       <span className="library-status library-status--issued">
-                        Due {loan.due_date || '--'}
+                        Due {formatDate(loan.due_date)}
                       </span>
                     </div>
                   )
@@ -499,9 +504,9 @@ export default function InventoryInsights() {
                                     <tr key={loan.id}>
                                       <td className="fw-bold text-primary">{loan.students?.student_id}</td>
                                       <td>{loan.students?.full_name || 'Unknown'}</td>
-                                      <td>{loan.issued_at?.slice(0, 10)}</td>
+                                      <td>{formatDate(loan.issued_at)}</td>
                                       <td className={loan.due_date < todayString ? 'text-danger fw-bold' : ''}>
-                                        {loan.due_date}
+                                        {formatDate(loan.due_date)}
                                       </td>
                                     </tr>
                                   ))}

@@ -4,6 +4,11 @@ import crestPrimary from '../../assets/media/images.png'
 import { supabase } from '../../../supabaseClient'
 import './Library.css'
 
+const formatDate = (dateStr) => {
+  if (!dateStr) return '--'
+  return dateStr.slice(0, 10).split('-').reverse().join('/')
+}
+
 export default function LibraryDashboard() {
   const navigate = useNavigate()
   const [stats, setStats] = useState({
@@ -256,7 +261,7 @@ export default function LibraryDashboard() {
                               {loan.status || 'Unknown'}
                             </span>
                           </td>
-                          <td className="text-end">{loan.due_date || '--'}</td>
+                          <td className="text-end">{formatDate(loan.due_date)}</td>
                         </tr>
                       )
                     })
@@ -336,7 +341,7 @@ export default function LibraryDashboard() {
                       <div className="activity-book">{event.bookTitle || 'Unknown'}</div>
                     </td>
                     <td className="text-end activity-time">
-                      {event.time ? new Date(event.time).toLocaleString() : '--'}
+                      {event.time ? new Date(event.time).toLocaleString('en-GB') : '--'}
                     </td>
                   </tr>
                 ))

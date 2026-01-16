@@ -3,6 +3,11 @@ import crestPrimary from '../../assets/media/images.png'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
 
+const formatDate = (dateStr) => {
+  if (!dateStr) return '-'
+  return dateStr.slice(0, 10).split('-').reverse().join('/')
+}
+
 export default function Reports() {
   const [monthlySummary, setMonthlySummary] = useState([])
   const [selectedMonth, setSelectedMonth] = useState(null)
@@ -215,9 +220,9 @@ export default function Reports() {
         loan.library_book_copies?.library_books?.title || '',
         loan.library_book_copies?.library_books?.author || '',
         loan.library_book_copies?.library_books?.shelf_code || '',
-        loan.issued_at ? loan.issued_at.slice(0, 10) : '',
-        loan.returned_at ? loan.returned_at.slice(0, 10) : '',
-        loan.due_date || '',
+        formatDate(loan.issued_at),
+        formatDate(loan.returned_at),
+        formatDate(loan.due_date),
         loan.status || ''
       ]))
 
@@ -251,7 +256,7 @@ export default function Reports() {
           loan.students?.full_name || '',
           loan.students?.student_id || '',
           loan.library_book_copies?.library_books?.title || '',
-          loan.due_date || '',
+          formatDate(loan.due_date),
           daysOverdue
         ]
       })
@@ -511,8 +516,8 @@ export default function Reports() {
                           ) : (
                             (reportDetails[activeTab] || []).map((item) => (
                               <tr key={item.id}>
-                                <td>{item.issued_at ? item.issued_at.slice(0, 10) : '-'}</td>
-                                <td>{item.returned_at ? item.returned_at.slice(0, 10) : '-'}</td>
+                                <td>{formatDate(item.issued_at)}</td>
+                                <td>{formatDate(item.returned_at)}</td>
                                 <td>
                                   <div className="fw-semibold">{item.students?.full_name || 'Unknown'}</div>
                                   <div className="small text-muted">{item.students?.student_id || '-'}</div>

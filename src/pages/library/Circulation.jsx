@@ -3,6 +3,11 @@ import crestPrimary from '../../assets/media/images.png'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
 
+const formatDate = (dateStr) => {
+  if (!dateStr) return '-'
+  return dateStr.slice(0, 10).split('-').reverse().join('/')
+}
+
 export default function Circulation() {
   const [activeLoans, setActiveLoans] = useState([])
   const [showAllLoans, setShowAllLoans] = useState(false)
@@ -442,7 +447,7 @@ export default function Circulation() {
                   </option>
                   {returnLoans.map((loan) => {
                     const bookTitle = loan.library_book_copies?.library_books?.title || 'Unknown'
-                    const dueDate = loan.due_date || '--'
+                    const dueDate = formatDate(loan.due_date)
                     return (
                       <option key={loan.id} value={loan.id}>
                         {bookTitle} • Due {dueDate}
@@ -526,7 +531,7 @@ export default function Circulation() {
                           <td>
                             <span className="badge bg-success-subtle text-success">Issued</span>
                           </td>
-                          <td className="text-end">{loan.due_date || '--'}</td>
+                          <td className="text-end">{formatDate(loan.due_date)}</td>
                         </tr>
                       )
                     })
@@ -653,9 +658,9 @@ export default function Circulation() {
                                     <tr key={loan.id}>
                                       <td className="fw-bold text-primary">{loan.students?.student_id}</td>
                                       <td>{loan.students?.full_name || 'Unknown'}</td>
-                                      <td>{loan.issued_at?.slice(0, 10)}</td>
+                                      <td>{formatDate(loan.issued_at)}</td>
                                       <td className={loan.due_date < todayString ? 'text-danger fw-bold' : ''}>
-                                        {loan.due_date}
+                                        {formatDate(loan.due_date)}
                                       </td>
                                     </tr>
                                   ))}

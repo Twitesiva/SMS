@@ -3,6 +3,11 @@ import crestPrimary from '../../assets/media/images.png'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
 
+const formatDate = (dateStr) => {
+  if (!dateStr) return '-'
+  return dateStr.slice(0, 10).split('-').reverse().join('/')
+}
+
 export default function Fines() {
   const [pendingFines, setPendingFines] = useState([])
   const [summary, setSummary] = useState({
@@ -544,7 +549,7 @@ export default function Fines() {
                   </option>
                   {missingLoans.map((loan) => (
                     <option key={loan.id} value={loan.id}>
-                      {loan.library_book_copies?.library_books?.title || 'Unknown'} · Due {loan.due_date || '--'}
+                      {loan.library_book_copies?.library_books?.title || 'Unknown'} · Due {formatDate(loan.due_date)}
                     </option>
                   ))}
                 </select>
