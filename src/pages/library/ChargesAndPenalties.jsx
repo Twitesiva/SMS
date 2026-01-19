@@ -126,7 +126,7 @@ export default function ChargesAndPenalties() {
           <div className="admin-applications__crest mx-auto" aria-hidden="true">
             <img src={crestPrimary} alt="Vijayam crest" />
           </div>
-          <h3 className="setup-hero-title mb-2">Charges & Penalties</h3>
+          <h3 className="setup-hero-title mb-2 fw-bold text-dark">Charges & Penalties</h3>
           <p className="setup-hero-copy mb-3">Configure default amounts for fines and deposits.</p>
           <div className="setup-hero-chips d-flex flex-wrap gap-2 justify-content-center">
             <span className="setup-hero-chip text-uppercase">FINES</span>
@@ -141,13 +141,13 @@ export default function ChargesAndPenalties() {
           <div className="card card-soft p-4">
             <div className="d-flex justify-content-between align-items-center mb-3">
               <div>
-                <h4 className="mb-1">Charges & Penalties</h4>
-                <p className="text-muted mb-0">Set default amounts for library charges.</p>
+                <h4 className="mb-1 fw-bold text-dark">Charges & Penalties</h4>
+                <p className="fw-bold text-dark mb-0">Set default amounts for library charges.</p>
               </div>
             </div>
             <form className="row g-3" onSubmit={handleSave}>
               <div className="col-md-6">
-                <label className="form-label">Overdue Fine (Rs.)</label>
+                <label className="form-label fw-bold text-dark">Overdue Fine (Rs.)</label>
                 <input
                   className="form-control"
                   type="number"
@@ -158,7 +158,7 @@ export default function ChargesAndPenalties() {
                 />
               </div>
               <div className="col-md-6">
-                <label className="form-label">Missing Book Charge (Rs.)</label>
+                <label className="form-label fw-bold text-dark">Missing Book Charge (Rs.)</label>
                 <input
                   className="form-control"
                   type="number"
@@ -169,7 +169,7 @@ export default function ChargesAndPenalties() {
                 />
               </div>
               <div className="col-md-6">
-                <label className="form-label">Damaged Book Charge (Rs.)</label>
+                <label className="form-label fw-bold text-dark">Damaged Book Charge (Rs.)</label>
                 <input
                   className="form-control"
                   type="number"
@@ -180,7 +180,7 @@ export default function ChargesAndPenalties() {
                 />
               </div>
               <div className="col-md-6">
-                <label className="form-label">Security Deposit (Rs.)</label>
+                <label className="form-label fw-bold text-dark">Security Deposit (Rs.)</label>
                 <input
                   className="form-control"
                   type="number"

@@ -167,7 +167,7 @@ export default function Books() {
             </div>
             <form className="row g-3" onSubmit={handleSubmit}>
               <div className="col-md-8">
-                <label className="form-label">Title</label>
+                <label className="form-label text-dark fw-semibold">Title</label>
                 <input
                   className="form-control"
                   type="text"
@@ -178,7 +178,7 @@ export default function Books() {
                 />
               </div>
               <div className="col-md-4">
-                <label className="form-label">ISBN</label>
+                <label className="form-label text-dark fw-semibold">ISBN</label>
                 <input
                   className="form-control"
                   type="text"
@@ -188,7 +188,7 @@ export default function Books() {
                 />
               </div>
               <div className="col-md-6">
-                <label className="form-label">Author</label>
+                <label className="form-label text-dark fw-semibold">Author</label>
                 <input
                   className="form-control"
                   type="text"
@@ -198,7 +198,7 @@ export default function Books() {
                 />
               </div>
               <div className="col-md-6">
-                <label className="form-label">Language</label>
+                <label className="form-label text-dark fw-semibold">Language</label>
                 <input
                   className="form-control"
                   type="text"
@@ -238,7 +238,7 @@ export default function Books() {
                 </datalist>
               </div>
               <div className="col-md-4">
-                <label className="form-label">Publisher</label>
+                <label className="form-label text-dark fw-semibold">Publisher</label>
                 <input
                   className="form-control"
                   type="text"
@@ -248,7 +248,7 @@ export default function Books() {
                 />
               </div>
               <div className="col-md-2">
-                <label className="form-label">Published Year</label>
+                <label className="form-label text-dark fw-semibold">Published Year</label>
                 <input
                   className="form-control"
                   type="number"
@@ -258,7 +258,7 @@ export default function Books() {
                 />
               </div>
               <div className="col-md-2">
-                <label className="form-label">Edition</label>
+                <label className="form-label text-dark fw-semibold">Edition</label>
                 <input
                   className="form-control"
                   type="text"
@@ -268,7 +268,7 @@ export default function Books() {
                 />
               </div>
               <div className="col-md-2">
-                <label className="form-label">Copies</label>
+                <label className="form-label text-dark fw-semibold">Copies</label>
                 <input
                   className="form-control"
                   type="number"
@@ -278,7 +278,7 @@ export default function Books() {
                 />
               </div>
               <div className="col-md-3">
-                <label className="form-label">Arrival Date</label>
+                <label className="form-label text-dark fw-semibold">Arrival Date</label>
                 <input
                   className="form-control"
                   type="date"
@@ -288,7 +288,7 @@ export default function Books() {
                 />
               </div>
               <div className="col-md-2">
-                <label className="form-label">Shelf</label>
+                <label className="form-label text-dark fw-semibold">Shelf</label>
                 <input
                   className="form-control"
                   type="text"
@@ -298,7 +298,7 @@ export default function Books() {
                 />
               </div>
               <div className="col-md-3">
-                <label className="form-label">Status</label>
+                <label className="form-label text-dark fw-semibold">Status</label>
                 <select className="form-select" value={form.status} onChange={handleChange('status')}>
                   <option value="PUBLIC">Public</option>
                   <option value="PRIVATE">Private</option>
