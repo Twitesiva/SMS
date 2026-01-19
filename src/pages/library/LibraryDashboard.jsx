@@ -21,6 +21,8 @@ export default function LibraryDashboard() {
   const [recentLoans, setRecentLoans] = useState([])
   const [overdueLoans, setOverdueLoans] = useState([])
   const [activityEvents, setActivityEvents] = useState([])
+  const [allLoans, setAllLoans] = useState([])
+  const [statPreview, setStatPreview] = useState(null) // 'issuedToday' | 'returnedToday'
 
   const todayString = useMemo(() => new Date().toISOString().slice(0, 10), [])
 
@@ -64,7 +66,7 @@ export default function LibraryDashboard() {
               'id, status, issued_at, due_date, returned_at, students(full_name,student_id), library_book_copies(book_id, library_books(title))'
             )
             .order('issued_at', { ascending: false })
-            .limit(10),
+            .limit(50),
           supabase
             .from('library_fines')
             .select('id, amount, created_at, status, students(full_name,student_id), library_loans(library_book_copies(book_id, library_books(title)))')
@@ -81,6 +83,7 @@ export default function LibraryDashboard() {
         if (finesRes.error) throw finesRes.error
 
         const allLoans = loansRes.data || []
+        setAllLoans(allLoans)
 
         setStats({
           totalBooks: booksRes.count ?? 0,
@@ -156,6 +159,22 @@ export default function LibraryDashboard() {
 
   const formatStat = (value) => (value === null || value === undefined ? '--' : String(value))
 
+  const previewRows = useMemo(() => {
+    if (!statPreview) return []
+    const isSameDay = (dateStr) => String(dateStr || '').slice(0, 10) === todayString
+    if (statPreview === 'issuedToday') {
+      return (allLoans || [])
+        .filter((loan) => isSameDay(loan.issued_at) && (loan.status || '').toUpperCase() === 'ISSUED')
+        .slice(0, 10)
+    }
+    if (statPreview === 'returnedToday') {
+      return (allLoans || [])
+        .filter((loan) => isSameDay(loan.returned_at))
+        .slice(0, 10)
+    }
+    return []
+  }, [statPreview, allLoans, todayString])
+
   return (
     <div className="desktop-container library-dashboard-page" style={{ overflowX: 'hidden' }}>
       <section className="library-dashboard-hero">
@@ -195,7 +214,7 @@ export default function LibraryDashboard() {
         <div className="col">
           <div 
             className="library-dashboard-stat"
-            onClick={() => navigate('/library/circulation')}
+            onClick={() => setStatPreview('issuedToday')}
             style={{ cursor: 'pointer' }}
           >
             <div className="library-dashboard-stat__label">Issued Today</div>
@@ -206,7 +225,7 @@ export default function LibraryDashboard() {
         <div className="col">
           <div 
             className="library-dashboard-stat"
-            onClick={() => navigate('/library/circulation')}
+            onClick={() => setStatPreview('returnedToday')}
             style={{ cursor: 'pointer' }}
           >
             <div className="library-dashboard-stat__label">Returned Today</div>
@@ -294,29 +313,53 @@ export default function LibraryDashboard() {
           <div className="library-dashboard-panel h-100">
             <div className="library-dashboard-panel__header">
               <div>
-                <h5 className="mb-1">Overdue Watchlist</h5>
-                <p className="text-muted mb-0">Members with pending returns.</p>
+                <h5 className="mb-1">Today Details</h5>
+                <p className="text-muted mb-0">
+                  {statPreview === 'issuedToday' && 'Issued today'}
+                  {statPreview === 'returnedToday' && 'Returned today'}
+                  {!statPreview && 'Click a stat tile to view details.'}
+                </p>
               </div>
+              {statPreview && (
+                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setStatPreview(null)}>
+                  Clear
+                </button>
+              )}
             </div>
-            {overdueLoans.length === 0 ? (
-              <div className="text-center text-muted py-4">No overdue items yet.</div>
-            ) : (
-              <div className="library-dashboard-overdue-list">
-                {overdueLoans.map((loan) => {
-                  const student = loan.students
-                  const book = loan.library_book_copies?.library_books
-                  return (
-                    <div key={loan.id} className="library-dashboard-overdue-item">
-                      <div>
-                        <div className="fw-semibold">{student?.full_name || 'Unknown'} ({student?.student_id || '--'})</div>
-                        <div className="text-muted small">{book?.title || 'Unknown'}</div>
-                      </div>
-                      <span className="library-status library-status--overdue">Overdue</span>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
+            <div className="table-responsive">
+              <table className="table library-dashboard-table mb-0">
+                <thead>
+                  <tr>
+                    <th>Member</th>
+                    <th>Book</th>
+                    <th className="text-end">Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {!statPreview ? (
+                    <tr>
+                      <td colSpan="3" className="text-center text-muted py-4">Select Issued Today or Returned Today to view details.</td>
+                    </tr>
+                  ) : previewRows.length === 0 ? (
+                    <tr>
+                      <td colSpan="3" className="text-center text-muted py-4">No records for today.</td>
+                    </tr>
+                  ) : (
+                    previewRows.map((loan) => (
+                      <tr key={loan.id}>
+                        <td>{loan.students?.full_name || 'Unknown'} ({loan.students?.student_id || '--'})</td>
+                        <td>{loan.library_book_copies?.library_books?.title || 'Unknown'}</td>
+                        <td className="text-end">
+                          {statPreview === 'issuedToday'
+                            ? (loan.issued_at ? new Date(loan.issued_at).toLocaleTimeString('en-GB') : '--')
+                            : (loan.returned_at ? new Date(loan.returned_at).toLocaleTimeString('en-GB') : '--')}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
