@@ -593,11 +593,52 @@ export default function Subjects() {
     )
     const courseName = courseMeta?.courseName || courseCode
 
+    // Check for duplicates
+    const yearIdStr = String(academicYearId || '')
+    const semStr = String(semester || '')
+    const courseCodeStr = (courseCode || '').trim().toLowerCase()
+
+    const duplicates = names.filter((name) => {
+      const nLower = (name || '').trim().toLowerCase()
+      if (!nLower) return false
+
+      const exists = [...subjects, ...pendingSubjects].some((s) => {
+        const sYear = String(s.academicYearId || '')
+        const sSem = String(s.semester === undefined || s.semester === null ? '' : s.semester)
+        const sCourse = (s.courseCode || '').trim().toLowerCase()
+
+        if (sYear !== yearIdStr) return false
+        if (sSem !== semStr) return false
+        if (sCourse !== courseCodeStr) return false
+
+        const sName = (s.subjectName || '').trim().toLowerCase()
+        if (sName === nLower) return true
+
+        if (Array.isArray(s.subjectNames)) {
+          return s.subjectNames.some((sub) => (sub || '').trim().toLowerCase() === nLower)
+        }
+
+        return false
+      })
+
+      return exists
+    })
+
+    if (duplicates.length > 0) {
+      showToast(`Subject(s) already exist: ${duplicates.join(', ')}`, {
+        type: 'warning',
+        title: 'Duplicate Entry'
+      })
+      return
+    }
+
     try {
+      const sharedBatchId = editingBatchId || randomId()
+
       const newEntries = names.map((name, idx) => ({
         id: editingSubjectId || randomId(),
         subjectId: editingSubjectId || randomId(),
-        batchId: editingBatchId || randomId(),
+        batchId: sharedBatchId,
         academicYearId,
         academicYearName,
         groupCode,
@@ -657,80 +698,122 @@ export default function Subjects() {
   }
 
   const editPendingSubject = (rec) => {
-    const batchRef = buildSubjectBatchKey(rec)
+    // Helper to identify logically related items (same container)
+    const getLogicalKey = (s) => [
+      String(s.academicYearId || s.academicYearName || ''),
+      String(s.groupCode || ''),
+      String(s.courseCode || ''),
+      String(s.semester === undefined || s.semester === null ? '' : s.semester),
+      String(s.category || '')
+    ].join('__')
 
-    setPendingSubjects((prev) =>
-      prev.filter((s) => buildSubjectBatchKey(s) !== batchRef)
+    const targetKey = getLogicalKey(rec)
+
+    const pendingSiblings = pendingSubjects.filter(
+      (s) => getLogicalKey(s) === targetKey
     )
 
-    const options = catItems[rec.category] || []
-    const courseMeta =
-      courseLookup[rec.courseCode] ||
-      courseLookup[rec.courseName] ||
-      courseLookup[rec.course_name] ||
-      {}
-    const resolvedGroupCode =
-      rec.groupCode ||
-      rec.group_code ||
-      courseMeta.groupCode ||
-      courseMeta.group_code ||
-      ''
-    const resolvedCourseCode =
-      rec.courseCode ||
-      rec.course_code ||
-      courseMeta.courseCode ||
-      courseMeta.course_code ||
-      rec.courseName ||
-      rec.course_name ||
-      ''
-    const resolvedCourseName =
-      courseMeta.courseName ||
-      courseMeta.course_name ||
-      rec.courseName ||
-      rec.course_name ||
-      resolvedCourseCode
+    setPendingSubjects((prev) =>
+      prev.filter((s) => getLogicalKey(s) !== targetKey)
+    )
 
-    const names = rec.subjectNames?.length
-      ? rec.subjectNames
-      : [rec.subjectName].filter(Boolean)
-    const codes =
-      rec.subjectCodes?.length
+    let unifiedNames = []
+    let unifiedCodes = []
+    let template = rec
+
+    if (pendingSiblings.length > 0) {
+      pendingSiblings.forEach((item) => {
+        const ns = item.subjectNames?.length
+          ? item.subjectNames
+          : [item.subjectName].filter(Boolean)
+        const cs = item.subjectCodes?.length
+          ? item.subjectCodes
+          : item.subjectCode
+            ? [item.subjectCode]
+            : []
+
+        const itemPrimaryCode = item.subjectCode || ''
+
+        ns.forEach((name, i) => {
+          unifiedNames.push(name)
+          const code = cs[i] !== undefined ? cs[i] : (i === 0 ? itemPrimaryCode : '')
+          unifiedCodes.push(code)
+        })
+      })
+      if (pendingSiblings[0]) template = pendingSiblings[0]
+    } else {
+      unifiedNames = rec.subjectNames?.length
+        ? rec.subjectNames
+        : [rec.subjectName].filter(Boolean)
+      unifiedCodes = rec.subjectCodes?.length
         ? rec.subjectCodes
         : rec.subjectCode
           ? [rec.subjectCode]
           : []
-    const primaryCode = codes[0] || (rec.subjectCode || '')
+    }
+
+    const options = catItems[template.category] || []
+    const courseMeta =
+      courseLookup[template.courseCode] ||
+      courseLookup[template.courseName] ||
+      courseLookup[template.course_name] ||
+      {}
+    const resolvedGroupCode =
+      template.groupCode ||
+      template.group_code ||
+      courseMeta.groupCode ||
+      courseMeta.group_code ||
+      ''
+    const resolvedCourseCode =
+      template.courseCode ||
+      template.course_code ||
+      courseMeta.courseCode ||
+      courseMeta.course_code ||
+      template.courseName ||
+      template.course_name ||
+      ''
+    const resolvedCourseName =
+      courseMeta.courseName ||
+      courseMeta.course_name ||
+      template.courseName ||
+      template.course_name ||
+      resolvedCourseCode
+
+    const names = unifiedNames
+    const codes = unifiedCodes
+    const primaryCode = codes[0] || ''
 
     const allPreset =
       names.length > 0 &&
       names.every((name) => options.some((item) => item.name === name))
 
     const fixedCategoryId =
-      categoryIdMap[rec.category] || rec.categoryId || rec.category_id || ''
+      categoryIdMap[template.category] || template.categoryId || template.category_id || ''
 
     setSubjectForm({
-      ...rec,
+      ...template,
       groupCode: resolvedGroupCode,
       courseCode: resolvedCourseCode,
       courseName: resolvedCourseName,
       categoryId: fixedCategoryId,
       semester:
-        rec.semester === undefined || rec.semester === null
+        template.semester === undefined || template.semester === null
           ? ''
-          : rec.semester.toString(),
-      feeCategory: rec.feeCategory || '',
-      feeAmount: rec.feeAmount?.toString() || '',
+          : template.semester.toString(),
+      feeCategory: template.feeCategory || '',
+      feeAmount: template.feeAmount?.toString() || '',
       subjectCode: primaryCode,
       subjectName: allPreset ? '' : names[0] || '',
       extraSubjectNames: allPreset ? [] : names.slice(1),
       extraSubjectCodes: allPreset
         ? []
-        : names.slice(1).map((_, idx) => codes[idx + 1] || primaryCode),
+        : names.slice(1).map((_, idx) => codes[idx + 1] || ''),
       subjectSelections: allPreset ? names : []
     })
 
-    setEditingSubjectId(rec.subjectId || rec.id || '')
+    setEditingSubjectId(template.subjectId || template.id || '')
     setEditingBatchId(batchRef || '')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const submitPendingSubjects = async () => {
@@ -902,20 +985,23 @@ export default function Subjects() {
   }
 
   const deletePendingSubject = (item) => {
-    const batchRef = buildSubjectBatchKey(item)
+    const getLogicalKey = (s) => [
+      String(s.academicYearId || s.academicYearName || ''),
+      String(s.groupCode || ''),
+      String(s.courseCode || ''),
+      String(s.semester === undefined || s.semester === null ? '' : s.semester),
+      String(s.category || '')
+    ].join('__')
+
+    const targetKey = getLogicalKey(item)
 
     setPendingSubjects((prev) =>
-      prev.filter((s) => buildSubjectBatchKey(s) !== batchRef)
+      prev.filter((s) => getLogicalKey(s) !== targetKey)
     )
 
     if (editingSubjectId === (item.subjectId || item.id)) {
       setSubjectForm(buildSubjectForm(categories[0] || ''))
       setEditingSubjectId('')
-    }
-
-    if (editingBatchId === batchRef) {
-      setSubjectForm(buildSubjectForm(categories[0] || ''))
-      setEditingBatchId('')
     }
   }
 

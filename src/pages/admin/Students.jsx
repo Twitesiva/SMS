@@ -695,16 +695,40 @@ export default function Students() {
 
         if (yearsError) throw yearsError;
 
-        // Transform students data to include related fields
-        const transformedStudents = studentsData.map((student) => ({
-          ...student,
-          group_name: student.group?.group_name || student.group_name,
-          group_code: student.group?.group_code,
-          course_name: student.course?.course_name || student.course_name,
-          course_code: student.course?.course_code,
-          academic_year: student.year?.academic_year || student.academic_year,
-          category: student.Category || student.category, // Normalize category here too if beneficial
-        }));
+        // Transform students data to include related fields with robust name resolution
+        const transformedStudents = studentsData.map((student) => {
+          // Resolve Group Name: Use joined data -> or find in groups list by code/name -> or fallback to raw value
+          let resolvedGroupName = student.group?.group_name;
+          if (!resolvedGroupName && student.group_name) {
+            const foundGroup = groupsData.find(g =>
+              g.group_code === student.group_name ||
+              g.group_name === student.group_name
+            );
+            if (foundGroup) resolvedGroupName = foundGroup.group_name;
+            else resolvedGroupName = student.group_name;
+          }
+
+          // Resolve Course Name: Use joined data -> or find in courses list by code/name -> or fallback to raw value
+          let resolvedCourseName = student.course?.course_name;
+          if (!resolvedCourseName && student.course_name) {
+            const foundCourse = coursesData.find(c =>
+              c.course_code === student.course_name ||
+              c.course_name === student.course_name
+            );
+            if (foundCourse) resolvedCourseName = foundCourse.course_name;
+            else resolvedCourseName = student.course_name;
+          }
+
+          return {
+            ...student,
+            group_name: resolvedGroupName,
+            group_code: student.group?.group_code,
+            course_name: resolvedCourseName,
+            course_code: student.course?.course_code,
+            academic_year: student.year?.academic_year || student.academic_year,
+            category: student.Category || student.category,
+          };
+        });
 
         setStudents(transformedStudents);
         setYears(yearsData || []);
@@ -1631,225 +1655,139 @@ export default function Students() {
               </div>
               <div className="students-modal-body">
                 <div className="students-modal-summary">
-                  <div className="students-modal-avatar">
-                    <div className="students-modal-avatar-inner">
-                      {viewingMedia.photoUrl ? (
-                        <img
-                          src={viewingMedia.photoUrl}
-                          alt={viewingStudent.full_name || "Student photo"}
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                            objectPosition: "top",
-                            borderRadius: "8px",
-                          }}
-                        />
-                      ) : (
-                        <div className="students-modal-avatar-initials">
-                          {viewingMedia.initials}
-                        </div>
-                      )}
-                    </div>
-                    <div className="students-modal-avatar-meta">
-                      <p className="students-modal-avatar-status text-uppercase small mb-0">
-                        {viewingStudent.status === "DISCONTINUE"
-                          ? "Discontinued"
-                          : viewingStudent.status === "HOLD"
-                            ? "On Hold"
-                            : "Active Student"}
-                      </p>
-                      <h6 className="text-truncate mb-0">
-                        {viewingStudent.full_name || "-"}
-                      </h6>
-                    </div>
-                  </div>
-                  <div className="students-modal-details">
-                    <div className="students-modal-statuses">
-                      {viewingPaymentStatus ? (
-                        <span
-                          className={`students-modal-badge students-modal-badge--${viewingPaymentStatus.variant}`}
-                        >
-                          {viewingPaymentStatus.label}
-                        </span>
-                      ) : null}
-                      <span
-                        className={`students-modal-badge students-modal-badge--${viewingStudent.status === "DISCONTINUE"
-                          ? "danger"
-                          : viewingStudent.status === "HOLD"
-                            ? "warning"
-                            : "success"
-                          }`}
-                      >
-                        {viewingStudent.status === "DISCONTINUE"
-                          ? "Discontinued"
-                          : viewingStudent.status === "HOLD"
-                            ? "On Hold"
-                            : "Active"}
-                      </span>
-                    </div>
-                    <div className="students-modal-info-grid row g-3">
-                      {[
-                        {
-                          label: "Category",
-                          value:
-                            viewingStudent.Category ||
-                            viewingStudent.category,
-                        },
-                        {
-                          label: "Academic Year",
-                          value: viewingStudent.academic_year,
-                        },
-                        {
-                          label: "Semester",
-                          value: formatDerivedSemesterLabel(viewingStudent.academic_year),
-                        },
-                        {
-                          label: "Course",
-                          value:
-                            viewingStudent.course?.course_name ||
-                            viewingStudent.course_name,
-                        },
-                        {
-                          label: "Group",
-                          value:
-                            viewingStudent.group?.group_name ||
-                            viewingStudent.group_name,
-                        },
-                        {
-                          label: "Hall Ticket",
-                          value: viewingStudent.hall_ticket_no,
-                        },
-                        { label: "Gender", value: viewingStudent.gender },
-                        {
-                          label: "Date of Birth",
-                          value: formatDateLabel(viewingStudent.date_of_birth),
-                        },
-                        {
-                          label: "Nationality",
-                          value: viewingStudent.nationality,
-                        },
-                      ].map((field) => (
-                        <div key={field.label} className="col-6 col-md-4">
-                          <small className="students-modal-field-label">
-                            {field.label}
-                          </small>
-                          <div className="students-modal-field-value">
-                            {field.value || "-"}
+                  <div className="card shadow-sm border-0 mb-4">
+                    <div className="card-body p-4">
+                      <div className="d-flex flex-column flex-md-row gap-5 align-items-start">
+                        {/* Photo Section */}
+                        <div className="flex-shrink-0 mx-auto mx-md-0" style={{ width: '220px' }}>
+                          <div className="border rounded-3 p-2 bg-white shadow-sm">
+                            <div className="bg-light rounded-2 overflow-hidden position-relative" style={{ height: '260px' }}>
+                              {viewingMedia.photoUrl ? (
+                                <img
+                                  src={viewingMedia.photoUrl}
+                                  alt={viewingStudent.full_name}
+                                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                />
+                              ) : (
+                                <div className="d-flex align-items-center justify-content-center h-100 text-secondary display-6 fw-bold">
+                                  {viewingMedia.initials}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-center mt-3">
+                            <span className={`badge rounded-pill px-4 py-2 text-uppercase letter-spacing-1 ${['ACTIVE', 'CONTINUE'].includes(viewingStudent.status)
+                              ? 'bg-success-subtle text-success border border-success'
+                              : viewingStudent.status === 'HOLD' ? 'bg-warning-subtle text-warning border border-warning'
+                                : 'bg-danger-subtle text-danger border border-danger'
+                              }`}>
+                              {['ACTIVE', 'CONTINUE'].includes(viewingStudent.status) ? 'Active' : viewingStudent.status}
+                            </span>
                           </div>
                         </div>
-                      ))}
+
+                        {/* Details Section */}
+                        <div className="flex-grow-1 w-100">
+                          <h5 className="border-bottom pb-2 mb-3 text-uppercase text-muted fs-6 fw-bold letter-spacing-1">
+                            Academic Profile
+                          </h5>
+                          <div className="row row-cols-1 row-cols-lg-2 g-x-5 g-y-2 mb-4">
+                            <div className="col d-flex">
+                              <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Student ID :</span>
+                              <span className="fw-medium text-dark">{viewingStudent.student_id}</span>
+                            </div>
+                            <div className="col d-flex">
+                              <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Academic Year :</span>
+                              <span className="fw-medium text-dark">{viewingStudent.academic_year}</span>
+                            </div>
+                            <div className="col d-flex">
+                              <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Semester :</span>
+                              <span className="fw-medium text-dark">{formatDerivedSemesterLabel(viewingStudent.academic_year)}</span>
+                            </div>
+                            <div className="col d-flex">
+                              <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Course :</span>
+                              <span className="fw-medium text-dark">{viewingStudent.course?.course_name || viewingStudent.course_name}</span>
+                            </div>
+                            <div className="col d-flex">
+                              <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Group :</span>
+                              <span className="fw-medium text-dark">{viewingStudent.group?.group_name || viewingStudent.group_name}</span>
+                            </div>
+                            <div className="col d-flex">
+                              <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Category :</span>
+                              <span className="fw-medium text-dark">{viewingStudent.Category || viewingStudent.category}</span>
+                            </div>
+                          </div>
+
+                          <h5 className="border-bottom pb-2 mb-3 text-uppercase text-muted fs-6 fw-bold letter-spacing-1">
+                            Personal Information
+                          </h5>
+                          <div className="row row-cols-1 row-cols-lg-2 g-x-5 g-y-2 mb-4">
+                            <div className="col d-flex">
+                              <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Full Name :</span>
+                              <span className="fw-medium text-dark">{viewingStudent.full_name}</span>
+                            </div>
+                            <div className="col d-flex">
+                              <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>DOB :</span>
+                              <span className="fw-medium text-dark">{formatDateLabel(viewingStudent.date_of_birth)}</span>
+                            </div>
+                            <div className="col d-flex">
+                              <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Gender :</span>
+                              <span className="fw-medium text-dark">{viewingStudent.gender}</span>
+                            </div>
+                            <div className="col d-flex">
+                              <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Nationality :</span>
+                              <span className="fw-medium text-dark">{viewingStudent.nationality}</span>
+                            </div>
+                            <div className="col d-flex">
+                              <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Religion :</span>
+                              <span className="fw-medium text-dark">{viewingStudent.religion}</span>
+                            </div>
+                            <div className="col d-flex">
+                              <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Caste :</span>
+                              <span className="fw-medium text-dark">{viewingStudent.caste} {viewingStudent.sub_caste ? `(${viewingStudent.sub_caste})` : ''}</span>
+                            </div>
+                          </div>
+
+                          <h5 className="border-bottom pb-2 mb-3 mt-4 text-uppercase text-muted fs-6 fw-bold letter-spacing-1">
+                            Contact & Family
+                          </h5>
+                          <div className="d-flex flex-column gap-2">
+                            <div className="d-flex">
+                              <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Phone :</span>
+                              <span className="fw-medium text-dark">{viewingStudent.phone_number || "-"}</span>
+                            </div>
+                            <div className="d-flex">
+                              <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Father :</span>
+                              <span className="fw-medium text-dark">{viewingStudent.father_name || "-"}</span>
+                            </div>
+                            <div className="d-flex">
+                              <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Email :</span>
+                              <span className="fw-medium text-dark">{viewingStudent.email || "-"}</span>
+                            </div>
+                            <div className="d-flex">
+                              <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Mother :</span>
+                              <span className="fw-medium text-dark">{viewingStudent.mother_name || "-"}</span>
+                            </div>
+                            <div className="d-flex">
+                              <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Aadhar :</span>
+                              <span className="fw-medium text-dark">{viewingStudent.aadhar_number || "-"}</span>
+                            </div>
+                            <div className="d-flex mt-1">
+                              <span className="text-muted small text-uppercase fw-semibold flex-shrink-0" style={{ width: '120px' }}>Address :</span>
+                              <span className="fw-medium text-dark">
+                                {viewingStudent.address}, {viewingStudent.state} - {viewingStudent.pincode}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div className="students-modal-card-grid row g-3 mt-4">
-                  <div className="col-lg-6">
-                    <div className="students-modal-card">
-                      <div className="students-modal-card-header">
-                        <p className="students-modal-card-title">Contact</p>
-                        <span className="students-modal-card-meta">Primary</span>
-                      </div>
-                      <div className="students-modal-card-body">
-                        <div className="fw-semibold">
-                          {viewingStudent.phone_number || "-"}
-                        </div>
-                        <div className="text-muted small">
-                          {viewingStudent.email || "-"}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="col-lg-6">
-                    <div className="students-modal-card">
-                      <div className="students-modal-card-header">
-                        <p className="students-modal-card-title">Residence</p>
-                      </div>
-                      <div className="students-modal-card-body">
-                        <div className="students-modal-card-value text-capitalize">
-                          {viewingStudent.address || "-"}
-                        </div>
-                        <div className="mt-2">
-                          <span className="text-muted small">State : </span>
-                          <span className="fw-semibold">
-                            {viewingStudent.state || "-"}
-                          </span>
-                        </div>
-                        <div className="mt-2">
-                          <span className="text-muted small">Pin : </span>
-                          <span className="fw-semibold">
-                            {viewingStudent.pincode || "-"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="col-lg-6">
-                    <div className="students-modal-card">
-                      <div className="students-modal-card-header">
-                        <p className="students-modal-card-title">Parents</p>
-                        <span className="students-modal-card-meta">Family Info</span>
-                      </div>
-                      <div className="students-modal-card-body">
-                        <div>
-                          <span className="text-muted small">Father Name : </span>
-                          <span className="fw-semibold">
-                            {viewingStudent.father_name || "-"}
-                          </span>
-                        </div>
-                        <div className="mt-3">
-                          <span className="text-muted small">Mother Name : </span>
-                          <span className="fw-semibold">
-                            {viewingStudent.mother_name || "-"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="col-lg-6">
-                    <div className="students-modal-card">
-                      <div className="students-modal-card-header">
-                        <p className="students-modal-card-title">Identity</p>
-                        <span className="students-modal-card-meta">Core details</span>
-                      </div>
-                      <div className="students-modal-card-body">
-                        <div>
-                          <span className="text-muted small">Aadhar : </span>
-                          <span className="fw-semibold">
-                            {viewingStudent.aadhar_number || "-"}
-                          </span>
-                        </div>
-                        <div className="mt-3">
-                          <span className="text-muted small">Religion : </span>
-                          <span className="fw-semibold">
-                            {viewingStudent.religion || "-"}
-                          </span>
-                        </div>
-                        <div className="mt-3 text-capitalize">
-                          <span className="text-muted small">Caste : </span>
-                          <span className="fw-semibold">
-                            {viewingStudent.caste || "-"}
-                            {viewingStudent.sub_caste
-                              ? ` • ${viewingStudent.sub_caste}`
-                              : ""}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="students-modal-card students-modal-card--full mt-4">
-                  <div className="students-modal-card-header">
-                    <p className="students-modal-card-title mb-0">
-                      Payment History
-                    </p>
-                    <span className="students-modal-card-meta">
-                      {viewingPaymentRecords.data.length
-                        ? `${viewingPaymentRecords.data.length} semester${viewingPaymentRecords.data.length === 1 ? "" : "s"
-                        }`
-                        : "No registrations yet"}
-                    </span>
-                  </div>
-                  <div className="students-modal-card-body">
+
+
+                <div className="students-modal-card students-modal-card--full mt-4 border-0 shadow-none bg-transparent">
+                  <div className="students-modal-card-body p-0">
                     {viewingPaymentRecords.loading ? (
                       <div className="text-center py-3">
                         <div className="spinner-border text-primary" role="status">
@@ -1865,93 +1803,90 @@ export default function Students() {
                         No payments recorded yet.
                       </div>
                     ) : (
-                      viewingPaymentRecords.data.map((record, index) => {
-                        const totalFee = Number(record.total_fee || 0);
-                        const payments = Array.isArray(record.payments)
-                          ? record.payments
-                          : [];
-                        const paidTotal = payments
-                          .filter((payment) => payment.payment_status === "success")
-                          .reduce(
-                            (sum, payment) => sum + Number(payment.amount_paid || 0),
-                            0
-                          );
-                        const outstanding = Math.max(totalFee - paidTotal, 0);
-                        const semesterLabel = record.semester
-                          ? `Semester ${record.semester}`
-                          : "Semester not set";
-                        return (
-                          <div
-                            key={`payment-history-${record.semester ?? index}`}
-                            className="students-payment-record"
-                          >
-                            <div className="students-payment-record-header">
-                              <div>
-                                <strong>{semesterLabel}</strong>
-                                <div className="text-muted small">
-                                  {payments.length
-                                    ? `${payments.length} payment${payments.length === 1 ? "" : "s"
-                                    }`
-                                    : "No payments yet"}
+                      <div className="d-flex flex-column gap-4">
+                        <h4 className="fw-bold text-dark mb-2 border-bottom pb-2">Payment History</h4>
+                        {viewingPaymentRecords.data.map((record, index) => {
+                          const totalFee = Number(record.total_fee || 0);
+                          const payments = Array.isArray(record.payments)
+                            ? record.payments
+                            : [];
+                          const paidTotal = payments
+                            .filter((payment) => payment.payment_status === "success")
+                            .reduce(
+                              (sum, payment) => sum + Number(payment.amount_paid || 0),
+                              0
+                            );
+                          const outstanding = Math.max(totalFee - paidTotal, 0);
+                          const excessAmount = Math.max(paidTotal - totalFee, 0);
+                          const semesterNum = record.semester || "-";
+                          return (
+                            <div
+                              key={`payment-history-${record.semester ?? index}`}
+                              className="students-payment-record card border shadow-sm mb-3 overflow-hidden"
+                            >
+                              <div className="card-header bg-white border-bottom-0 pt-3 pb-2 d-flex justify-content-between align-items-center">
+                                <div>
+                                  <h5 className="mb-0 text-dark fw-bold" style={{ fontSize: '1rem' }}>
+                                    Semester {semesterNum}
+                                  </h5>
+                                </div>
+                                <div className="text-end">
+                                  <div className="fw-bold text-dark" style={{ fontSize: '0.9rem' }}>
+                                    Total Fee: {totalFee ? formatCurrency(totalFee) : "-"}
+                                  </div>
+                                  <div className="small text-muted">
+                                    Paid: {formatCurrency(paidTotal)}
+                                    {outstanding > 0 && <span className="text-danger ms-1">(Bal: {formatCurrency(outstanding)})</span>}
+                                    {excessAmount > 0 && <span className="text-danger ms-1">(includes Fine: {formatCurrency(excessAmount)})</span>}
+                                  </div>
                                 </div>
                               </div>
-                              <div className="text-end">
-                                <div className="fw-semibold">
-                                  {totalFee
-                                    ? formatCurrency(totalFee)
-                                    : "Total fee not set"}
-                                </div>
-                                <div className="text-muted small">
-                                  <strong>
-                                    {outstanding > 0
-                                      ? `Balance ${formatCurrency(outstanding)}`
-                                      : "Paid in full"}
-                                  </strong>
-                                </div>
-                              </div>
-                            </div>
-                            {payments.length ? (
-                              <div className="table-responsive mt-2">
-                                <table className="table table-sm mb-0 align-middle">
-                                  <thead className="table-light">
-                                    <tr>
-                                      <th>Date</th>
-                                      <th>Amount</th>
-                                      <th>Type</th>
-                                      <th>Fee Type</th>
-                                      <th>Status</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {payments.map((payment) => (
-                                      <tr
-                                        key={
-                                          payment.id ||
-                                          `${payment.payment_type}-${payment.created_at}`
-                                        }
-                                      >
-                                        <td className="text-nowrap">
-                                          {formatPaymentDate(payment.created_at)}
-                                        </td>
-                                        <td>
-                                          {payment.amount_paid
-                                            ? formatCurrency(payment.amount_paid)
-                                            : "-"}
-                                        </td>
-                                        <td>{payment.payment_type || "-"}</td>
-                                        <td>{payment.fee_type || "-"}</td>
-                                        <td className="text-capitalize">
-                                          {payment.payment_status || "-"}
-                                        </td>
+
+                              {payments.length > 0 ? (
+                                <div className="table-responsive">
+                                  <table className="table table-sm mb-0 align-middle user-select-none">
+                                    <thead style={{ backgroundColor: '#cff4fc', color: '#000' }}>
+                                      <tr>
+                                        <th className="ps-3 py-2 fw-bold border-bottom-0 text-uppercase small" style={{ fontSize: '0.75rem' }}>Date</th>
+                                        <th className="py-2 fw-bold border-bottom-0 text-uppercase small" style={{ fontSize: '0.75rem' }}>Amount</th>
+                                        <th className="py-2 fw-bold border-bottom-0 text-uppercase small" style={{ fontSize: '0.75rem' }}>Type</th>
+                                        <th className="py-2 fw-bold border-bottom-0 text-uppercase small" style={{ fontSize: '0.75rem' }}>Fee Type</th>
+                                        <th className="pe-3 py-2 fw-bold border-bottom-0 text-end text-uppercase small" style={{ fontSize: '0.75rem' }}>Status</th>
                                       </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            ) : null}
-                          </div>
-                        );
-                      })
+                                    </thead>
+                                    <tbody>
+                                      {payments.map((payment) => (
+                                        <tr key={payment.id || `${payment.payment_type}-${payment.created_at}`}>
+                                          <td className="ps-3 text-nowrap text-dark small fw-medium">
+                                            {formatPaymentDate(payment.created_at)}
+                                          </td>
+                                          <td className="text-dark fw-bold small">
+                                            {payment.amount_paid ? formatCurrency(payment.amount_paid) : "-"}
+                                          </td>
+                                          <td className="text-dark small">{payment.payment_type || "-"}</td>
+                                          <td className="text-dark small">{payment.fee_type || "-"}</td>
+                                          <td className="pe-3 text-end text-capitalize small">
+                                            <span className={`fw-bold ${payment.payment_status?.toLowerCase() === 'success'
+                                              ? 'text-success'
+                                              : 'text-warning'
+                                              }`}>
+                                              {payment.payment_status || "-"}
+                                            </span>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              ) : (
+                                <div className="p-3 text-center text-muted small bg-light">
+                                  No payment records specific to this semester.
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -1960,7 +1895,6 @@ export default function Students() {
           </div>
         </div>
       )}
-
       {/* Edit Student Modal */}
       {editingStudent && (
         <div
@@ -2342,200 +2276,205 @@ export default function Students() {
             </div>
           </div>
         </div>
-      )}
+      )
+      }
       {/* Status Change Modal */}
-      {statusModal.show && (
-        <div className="modal d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Update Student Status</h5>
-                <button type="button" className="btn-close" onClick={closeStatusModal}></button>
-              </div>
-              <div className="modal-body">
-                <div className="mb-3">
-                  <label className="form-label">Select Status</label>
-                  <div className="d-flex flex-column gap-2">
-                    <div className="form-check">
-                      <input
-                        className="form-check-input"
-                        type="radio"
-                        name="statusOption"
-                        id="continueOption"
-                        value="CONTINUE"
-                        checked={statusModal.selectedStatus === 'CONTINUE'}
-                        onChange={() => setStatusModal({ ...statusModal, selectedStatus: 'CONTINUE' })}
-                      />
-                      <label className="form-check-label" htmlFor="continueOption">
-                        Continue (Active)
-                      </label>
-                    </div>
-                    <div className="form-check">
-                      <input
-                        className="form-check-input"
-                        type="radio"
-                        name="statusOption"
-                        id="discontinueOption"
-                        value="DISCONTINUE"
-                        checked={statusModal.selectedStatus === 'DISCONTINUE'}
-                        onChange={() => setStatusModal({ ...statusModal, selectedStatus: 'DISCONTINUE' })}
-                      />
-                      <label className="form-check-label" htmlFor="discontinueOption">
-                        Discontinue
-                      </label>
-                    </div>
-                    <div className="form-check">
-                      <input
-                        className="form-check-input"
-                        type="radio"
-                        name="statusOption"
-                        id="holdOption"
-                        value="HOLD"
-                        checked={statusModal.selectedStatus === 'HOLD'}
-                        onChange={() => setStatusModal({ ...statusModal, selectedStatus: 'HOLD' })}
-                      />
-                      <label className="form-check-label" htmlFor="holdOption">
-                        Hold
-                      </label>
+      {
+        statusModal.show && (
+          <div className="modal d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">Update Student Status</h5>
+                  <button type="button" className="btn-close" onClick={closeStatusModal}></button>
+                </div>
+                <div className="modal-body">
+                  <div className="mb-3">
+                    <label className="form-label">Select Status</label>
+                    <div className="d-flex flex-column gap-2">
+                      <div className="form-check">
+                        <input
+                          className="form-check-input"
+                          type="radio"
+                          name="statusOption"
+                          id="continueOption"
+                          value="CONTINUE"
+                          checked={statusModal.selectedStatus === 'CONTINUE'}
+                          onChange={() => setStatusModal({ ...statusModal, selectedStatus: 'CONTINUE' })}
+                        />
+                        <label className="form-check-label" htmlFor="continueOption">
+                          Continue (Active)
+                        </label>
+                      </div>
+                      <div className="form-check">
+                        <input
+                          className="form-check-input"
+                          type="radio"
+                          name="statusOption"
+                          id="discontinueOption"
+                          value="DISCONTINUE"
+                          checked={statusModal.selectedStatus === 'DISCONTINUE'}
+                          onChange={() => setStatusModal({ ...statusModal, selectedStatus: 'DISCONTINUE' })}
+                        />
+                        <label className="form-check-label" htmlFor="discontinueOption">
+                          Discontinue
+                        </label>
+                      </div>
+                      <div className="form-check">
+                        <input
+                          className="form-check-input"
+                          type="radio"
+                          name="statusOption"
+                          id="holdOption"
+                          value="HOLD"
+                          checked={statusModal.selectedStatus === 'HOLD'}
+                          onChange={() => setStatusModal({ ...statusModal, selectedStatus: 'HOLD' })}
+                        />
+                        <label className="form-check-label" htmlFor="holdOption">
+                          Hold
+                        </label>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={closeStatusModal}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={updateStudentStatus}
-                >
-                  Update Status
-                </button>
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={closeStatusModal}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={updateStudentStatus}
+                  >
+                    Update Status
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
-      {paymentHistoryModal.show && (
-        <div
-          className="modal d-block"
-          tabIndex="-1"
-          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-        >
-          <div className="modal-dialog modal-dialog-centered modal-lg">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">
-                  Payment history for{" "}
-                  {paymentHistoryModal.student?.full_name ||
-                    paymentHistoryModal.student?.student_id ||
-                    "Student"}
-                </h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={closePaymentHistoryModal}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <p className="text-muted mb-3">
-                  {paymentHistoryModal.student?.hall_ticket_no &&
-                    `Hall Ticket: ${paymentHistoryModal.student?.hall_ticket_no}`}
-                </p>
-                {paymentHistoryModal.loading ? (
-                  <div className="text-center py-4">
-                    <div className="spinner-border text-primary" role="status">
-                      <span className="visually-hidden">Loading...</span>
-                    </div>
-                  </div>
-                ) : paymentHistoryModal.error ? (
-                  <div className="alert alert-warning mb-0">
-                    {paymentHistoryModal.error}
-                  </div>
-                ) : paymentHistoryModal.semesterData && paymentHistoryModal.semesterData.length > 0 ? (
-                  <>
-                    {paymentHistoryModal.semesterData.map((semData) => (
-                      <div key={`semester-${semData.semester}`} className="mb-4">
-                        <div className="d-flex justify-content-between align-items-center mb-2">
-                          <h6 className="mb-0">Semester {semData.semester}</h6>
-                          <div className="text-end">
-                            <div className="fw-semibold">
-                              Total Fee: {formatCurrency(semData.totalFee)}
-                            </div>
-                            <div className="small text-muted">
-                              Paid: {formatCurrency(semData.totalPaid)}
-                              {semData.totalPaid > semData.totalFee && (
-                                <span className="text-danger ms-2">
-                                  (includes Fine: {formatCurrency(semData.totalPaid - semData.totalFee)})
-                                </span>
-                              )}
-                              {semData.balance > 0 && (
-                                <span className="text-danger ms-2">
-                                  Balance: {formatCurrency(semData.balance)}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        {semData.payments && semData.payments.length > 0 ? (
-                          <div className="table-responsive">
-                            <table className="table table-sm table-bordered mb-0">
-                              <thead className="table-light">
-                                <tr>
-                                  <th>Date</th>
-                                  <th>Amount</th>
-                                  <th>Type</th>
-                                  <th>Fee Type</th>
-                                  <th>Status</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {semData.payments.map((payment, idx) => (
-                                  <tr key={payment.id || `payment-${idx}`}>
-                                    <td className="text-nowrap">{formatPaymentDate(payment.created_at)}</td>
-                                    <td>
-                                      {payment.amount_paid
-                                        ? formatCurrency(payment.amount_paid)
-                                        : "-"}
-                                    </td>
-                                    <td>{payment.payment_type || "—"}</td>
-                                    <td>{payment.fee_type || "—"}</td>
-                                    <td className="text-capitalize">
-                                      {payment.payment_status || "—"}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        ) : (
-                          <div className="text-muted small">No payments recorded for this semester.</div>
-                        )}
+        )
+      }
+      {
+        paymentHistoryModal.show && (
+          <div
+            className="modal d-block"
+            tabIndex="-1"
+            style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+          >
+            <div className="modal-dialog modal-dialog-centered modal-lg">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">
+                    Payment history for{" "}
+                    {paymentHistoryModal.student?.full_name ||
+                      paymentHistoryModal.student?.student_id ||
+                      "Student"}
+                  </h5>
+                  <button
+                    type="button"
+                    className="btn-close"
+                    onClick={closePaymentHistoryModal}
+                  ></button>
+                </div>
+                <div className="modal-body">
+                  <p className="text-muted mb-3">
+                    {paymentHistoryModal.student?.hall_ticket_no &&
+                      `Hall Ticket: ${paymentHistoryModal.student?.hall_ticket_no}`}
+                  </p>
+                  {paymentHistoryModal.loading ? (
+                    <div className="text-center py-4">
+                      <div className="spinner-border text-primary" role="status">
+                        <span className="visually-hidden">Loading...</span>
                       </div>
-                    ))}
-                  </>
-                ) : (
-                  <div className="text-muted">No payment records found for this student.</div>
-                )}
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={closePaymentHistoryModal}
-                >
-                  Close
-                </button>
+                    </div>
+                  ) : paymentHistoryModal.error ? (
+                    <div className="alert alert-warning mb-0">
+                      {paymentHistoryModal.error}
+                    </div>
+                  ) : paymentHistoryModal.semesterData && paymentHistoryModal.semesterData.length > 0 ? (
+                    <>
+                      {paymentHistoryModal.semesterData.map((semData) => (
+                        <div key={`semester-${semData.semester}`} className="mb-4">
+                          <div className="d-flex justify-content-between align-items-center mb-2">
+                            <h6 className="mb-0">Semester {semData.semester}</h6>
+                            <div className="text-end">
+                              <div className="fw-semibold">
+                                Total Fee: {formatCurrency(semData.totalFee)}
+                              </div>
+                              <div className="small text-muted">
+                                Paid: {formatCurrency(semData.totalPaid)}
+                                {semData.totalPaid > semData.totalFee && (
+                                  <span className="text-danger ms-2">
+                                    (includes Fine: {formatCurrency(semData.totalPaid - semData.totalFee)})
+                                  </span>
+                                )}
+                                {semData.balance > 0 && (
+                                  <span className="text-danger ms-2">
+                                    Balance: {formatCurrency(semData.balance)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          {semData.payments && semData.payments.length > 0 ? (
+                            <div className="table-responsive">
+                              <table className="table table-sm table-bordered mb-0">
+                                <thead className="table-light">
+                                  <tr>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Type</th>
+                                    <th>Fee Type</th>
+                                    <th>Status</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {semData.payments.map((payment, idx) => (
+                                    <tr key={payment.id || `payment-${idx}`}>
+                                      <td className="text-nowrap">{formatPaymentDate(payment.created_at)}</td>
+                                      <td>
+                                        {payment.amount_paid
+                                          ? formatCurrency(payment.amount_paid)
+                                          : "-"}
+                                      </td>
+                                      <td>{payment.payment_type || "—"}</td>
+                                      <td>{payment.fee_type || "—"}</td>
+                                      <td className="text-capitalize">
+                                        {payment.payment_status || "—"}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <div className="text-muted small">No payments recorded for this semester.</div>
+                          )}
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    <div className="text-muted">No payment records found for this student.</div>
+                  )}
+                </div>
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={closePaymentHistoryModal}
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
       <ConfirmationModal
         isOpen={deleteModal.show}
         onClose={closeDeleteModal}
@@ -2545,6 +2484,6 @@ export default function Students() {
         confirmText={deleteModal.loading ? "Deleting..." : "Delete student"}
         isLoading={deleteModal.loading}
       />
-    </AdShellAdmin>
+    </AdShellAdmin >
   );
 }

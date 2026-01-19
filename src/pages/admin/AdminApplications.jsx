@@ -10,6 +10,7 @@ import './Setup.css'
 
 
 
+
 export default function AdminApplications() {
   const { pathname } = useLocation()
   const isAdminPortal = pathname.startsWith('/admin-portal')
@@ -92,6 +93,8 @@ export default function AdminApplications() {
     }
     bootstrap()
   }, [])
+
+
 
   useEffect(() => {
     if (category) {
@@ -511,6 +514,8 @@ export default function AdminApplications() {
             </div>
           </div>
         </section>
+
+
 
         <div className="row g-4 justify-content-center mx-0">
           <div className="col-12 col-lg-11 col-xl-10">

@@ -8,7 +8,18 @@ import "./AdminShell.css";
 
 const adminPortalNavGroups = [
     {
-        title: 'Applications ahh',
+        title: 'Main Dashboard',
+        static: true,
+        items: [
+            {
+                to: '/admin-portal/main-dashboard',
+                label: 'Main Dashboard',
+                icon: 'bi-speedometer2'
+            }
+        ]
+    },
+    {
+        title: 'Applications',
         static: true,
         items: [
             {
@@ -19,7 +30,7 @@ const adminPortalNavGroups = [
         ]
     },
     {
-        title: 'Student Portal',
+        title: 'Creation Portal',
         items: [
             {
                 to: '/admin-portal/academic-years',
@@ -37,38 +48,10 @@ const adminPortalNavGroups = [
                 icon: 'bi-journal-text'
             },
             {
-                to: '/admin-portal/students',
-                label: 'Students Details',
-                icon: 'bi-person-badge'
-            }
-        ]
-    },
-    {
-        title: 'Fees Creation',
-        static: true,
-        items: [
-            {
                 to: '/admin-portal/fees-creation',
                 label: 'Student Fees Creation',
                 icon: 'bi-currency-rupee'
-            }
-        ]
-    },
-    {
-        title: 'Fees Collection',
-        static: true,
-        items: [
-            {
-                to: '/admin-portal/fees-collection',
-                label: 'Fees Collection',
-                icon: 'bi-cash-stack'
-            }
-        ]
-    },
-    {
-        title: 'Profile Creation',
-        static: true,
-        items: [
+            },
             {
                 to: '/admin-portal/profile-creation',
                 label: 'Staff Profile Creation',
@@ -77,7 +60,23 @@ const adminPortalNavGroups = [
         ]
     },
     {
-        title: 'Staff Management',
+        title: 'Student and Staff Details',
+        static: false,
+        items: [
+            {
+                to: '/admin-portal/students',
+                label: 'Student Details',
+                icon: 'bi-person-badge'
+            },
+            {
+                to: '/admin-portal/staff',
+                label: 'Staff Details',
+                icon: 'bi-person-workspace'
+            }
+        ]
+    },
+    {
+        title: 'Subject Allocation to  Staff',
         static: true,
         items: [
             {
@@ -99,13 +98,24 @@ const adminPortalNavGroups = [
         ]
     },
     {
-        title: 'Circulars ahh',
+        title: 'Circulars',
         static: true,
         items: [
             {
                 to: '/admin-portal/circulars',
                 label: 'Circulars',
                 icon: 'bi-megaphone'
+            }
+        ]
+    },
+    {
+        title: 'Fees Collection',
+        static: true,
+        items: [
+            {
+                to: '/admin-portal/fees-collection',
+                label: 'Fees Collection',
+                icon: 'bi-cash-stack'
             }
         ]
     },

@@ -423,7 +423,7 @@ export default function PaymentReports() {
                                         />
                                     </div>
                                     <div className="mt-2 small fw-bold text-muted text-center">
-                                        {selectedGroup || (chartData.groupChart.labels.length > 1 ? 'All Groups' : (filteredStudents[0]?.group_name || '-'))}
+                                        {selectedGroup || (chartData.groupChart.datasets.length > 1 ? 'All Groups' : (chartData.groupChart.datasets[0]?.label || '-'))}
                                     </div>
                                 </div>
                             </div>
@@ -456,7 +456,7 @@ export default function PaymentReports() {
                                         />
                                     </div>
                                     <div className="mt-2 small fw-bold text-muted text-center">
-                                        {selectedCourse || (chartData.courseChart.labels.length > 1 ? 'All Courses' : (filteredStudents[0]?.course_name || '-'))}
+                                        {selectedCourse || (chartData.courseChart.datasets.length > 1 ? 'All Courses' : (chartData.courseChart.datasets[0]?.label || '-'))}
                                     </div>
                                 </div>
                             </div>

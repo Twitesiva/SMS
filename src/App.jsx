@@ -17,9 +17,11 @@ import ApplicationLogin from "./pages/common/ApplicationLogin.jsx";
 import ApplicationTracker from "./pages/common/ApplicationTracker.jsx";
 import Circulars from "./pages/admin/Circulars.jsx";
 import AdminApplications from "./pages/admin/AdminApplications.jsx";
+import MainDashboard from "./pages/admin/MainDashboard.jsx";
 import AdmissionsLogin from "./pages/admissions/AdminLogin.jsx";
 import AdminLogin from "./pages/admin/AdminLogin.jsx";
 import AdminStudents from "./pages/admin/Students.jsx";
+import AdminStaff from "./pages/admin/Staff.jsx";
 import ProfileCreation from "./pages/admin/ProfileCreation.jsx";
 import FeesCreation from "./pages/admin/FeesCreation.jsx";
 import AcademicYears from "./pages/admin/AcademicYears.jsx";
@@ -216,6 +218,14 @@ export default function App() {
           }
         />
         <Route
+          path="/admin-portal/main-dashboard"
+          element={
+            <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
+              <MainDashboard />
+            </GuardedRoute>
+          }
+        />
+        <Route
           path="/admin-portal/applications"
           element={
             <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
@@ -228,6 +238,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
               <AdminStudents />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/admin-portal/staff"
+          element={
+            <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
+              <AdminStaff />
             </GuardedRoute>
           }
         />
