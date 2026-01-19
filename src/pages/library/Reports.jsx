@@ -24,8 +24,36 @@ export default function Reports() {
   const [circulationFilter, setCirculationFilter] = useState('all')
   const [overdueFilter, setOverdueFilter] = useState('all')
   const [topBorrowedLimit, setTopBorrowedLimit] = useState('20')
+  const [monthFilter, setMonthFilter] = useState('all')
+  const [yearFilter, setYearFilter] = useState('all')
 
   const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), [])
+  const monthOptions = useMemo(
+    () => [
+      { value: 'all', label: 'All months' },
+      { value: '01', label: 'Jan' },
+      { value: '02', label: 'Feb' },
+      { value: '03', label: 'Mar' },
+      { value: '04', label: 'Apr' },
+      { value: '05', label: 'May' },
+      { value: '06', label: 'Jun' },
+      { value: '07', label: 'Jul' },
+      { value: '08', label: 'Aug' },
+      { value: '09', label: 'Sep' },
+      { value: '10', label: 'Oct' },
+      { value: '11', label: 'Nov' },
+      { value: '12', label: 'Dec' }
+    ],
+    []
+  )
+
+  const matchesMonthYear = (value) => {
+    const key = String(value || '').slice(0, 7)
+    const [year, month] = key.split('-')
+    if (yearFilter && yearFilter !== 'all' && year !== yearFilter) return false
+    if (monthFilter !== 'all' && month !== monthFilter) return false
+    return true
+  }
   const monthLabels = useMemo(() => {
     const now = new Date()
     const labels = []
@@ -165,7 +193,7 @@ export default function Reports() {
     try {
       const { data: books, error: bookError } = await supabase
         .from('library_books')
-        .select('id, title, author, language, publisher, published_year, shelf_code, status')
+        .select('id, title, author, language, publisher, published_year, shelf_code, status, created_at')
         .order('created_at', { ascending: false })
 
       if (bookError) throw bookError
@@ -190,6 +218,7 @@ export default function Reports() {
       const filteredBooks = (books || []).filter((book) => {
         const copyCount = copiesByBook[String(book.id)] || 0
         const statusValue = (book.status || '').toUpperCase()
+        if (!matchesMonthYear(book.created_at)) return false
         if (summaryFilter === 'available') return copyCount > 0
         if (summaryFilter === 'out') return copyCount === 0
         if (summaryFilter === 'public') return statusValue === 'PUBLIC'
@@ -237,6 +266,8 @@ export default function Reports() {
         const status = (loan.status || '').toUpperCase()
         const dueDateValue = loan.due_date ? new Date(loan.due_date) : null
         const isOverdue = dueDateValue ? (new Date(todayIso) > dueDateValue && status === 'ISSUED') : false
+
+        if (!matchesMonthYear(loan.issued_at || loan.returned_at || loan.due_date)) return false
 
         if (circulationFilter === 'issued') return status === 'ISSUED'
         if (circulationFilter === 'returned') return status === 'RETURNED'
@@ -299,9 +330,11 @@ export default function Reports() {
             formatDate(loan.due_date),
             daysOverdue
           ],
-          daysOverdue
+          daysOverdue,
+          dueKey: String(loan.due_date || '').slice(0, 7)
         }
-      }).filter(({ daysOverdue }) => {
+      }).filter(({ daysOverdue, dueKey }) => {
+        if (!matchesMonthYear(`${dueKey}-01`)) return false
         if (overdueFilter === 'week') return daysOverdue <= 7
         if (overdueFilter === 'month') return daysOverdue > 7 && daysOverdue <= 30
         if (overdueFilter === 'overMonth') return daysOverdue > 30
@@ -328,11 +361,12 @@ export default function Reports() {
     try {
       const { data: loans, error } = await supabase
         .from('library_loans')
-        .select('library_book_copies(book_id, library_books(title))')
+        .select('issued_at, library_book_copies(book_id, library_books(title))')
 
       if (error) throw error
 
       const counts = (loans || []).reduce((acc, loan) => {
+        if (!matchesMonthYear(loan.issued_at)) return acc
         const bookTitle = loan.library_book_copies?.library_books?.title || 'Unknown'
         acc[bookTitle] = (acc[bookTitle] || 0) + 1
         return acc
@@ -438,6 +472,30 @@ export default function Reports() {
                 <option value="private">Private status</option>
               </select>
             </div>
+            <div className="mb-2">
+              <label className="form-label small text-muted mb-1">Month</label>
+              <select
+                className="form-select form-select-sm"
+                value={monthFilter}
+                onChange={(e) => setMonthFilter(e.target.value)}
+              >
+                {monthOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="mb-2">
+              <label className="form-label small text-muted mb-1">Year</label>
+              <input
+                className="form-control form-control-sm"
+                type="number"
+                min="1900"
+                max="9999"
+                placeholder="All years"
+                value={yearFilter === 'all' ? '' : yearFilter}
+                onChange={(e) => setYearFilter(e.target.value.trim() || 'all')}
+              />
+            </div>
             <button className="btn btn-outline-primary w-100" type="button" onClick={handleLibrarySummaryDownload}>
               Download
             </button>
@@ -462,6 +520,30 @@ export default function Reports() {
                 <option value="missing">Missing</option>
               </select>
             </div>
+            <div className="mb-2">
+              <label className="form-label small text-muted mb-1">Month</label>
+              <select
+                className="form-select form-select-sm"
+                value={monthFilter}
+                onChange={(e) => setMonthFilter(e.target.value)}
+              >
+                {monthOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="mb-2">
+              <label className="form-label small text-muted mb-1">Year</label>
+              <input
+                className="form-control form-control-sm"
+                type="number"
+                min="1900"
+                max="9999"
+                placeholder="All years"
+                value={yearFilter === 'all' ? '' : yearFilter}
+                onChange={(e) => setYearFilter(e.target.value.trim() || 'all')}
+              />
+            </div>
             <button className="btn btn-outline-primary w-100" type="button" onClick={handleCirculationDownload}>
               Download
             </button>
@@ -483,6 +565,30 @@ export default function Reports() {
                 <option value="month">8-30 days</option>
                 <option value="overMonth">Over 30 days</option>
               </select>
+            </div>
+            <div className="mb-2">
+              <label className="form-label small text-muted mb-1">Month</label>
+              <select
+                className="form-select form-select-sm"
+                value={monthFilter}
+                onChange={(e) => setMonthFilter(e.target.value)}
+              >
+                {monthOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="mb-2">
+              <label className="form-label small text-muted mb-1">Year</label>
+              <input
+                className="form-control form-control-sm"
+                type="number"
+                min="1900"
+                max="9999"
+                placeholder="All years"
+                value={yearFilter === 'all' ? '' : yearFilter}
+                onChange={(e) => setYearFilter(e.target.value.trim() || 'all')}
+              />
             </div>
             <button className="btn btn-outline-primary w-100" type="button" onClick={handleOverdueDownload}>
               Download
@@ -506,6 +612,30 @@ export default function Reports() {
                 <option value="100">Top 100</option>
                 <option value="all">All</option>
               </select>
+            </div>
+            <div className="mb-2">
+              <label className="form-label small text-muted mb-1">Month</label>
+              <select
+                className="form-select form-select-sm"
+                value={monthFilter}
+                onChange={(e) => setMonthFilter(e.target.value)}
+              >
+                {monthOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="mb-2">
+              <label className="form-label small text-muted mb-1">Year</label>
+              <input
+                className="form-control form-control-sm"
+                type="number"
+                min="1900"
+                max="9999"
+                placeholder="All years"
+                value={yearFilter === 'all' ? '' : yearFilter}
+                onChange={(e) => setYearFilter(e.target.value.trim() || 'all')}
+              />
             </div>
             <button className="btn btn-outline-primary w-100" type="button" onClick={handleTopBorrowedDownload}>
               Download

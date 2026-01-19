@@ -4,6 +4,11 @@ import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
 import ConfirmationModal from '../../components/ConfirmationModal'
 
+const formatDate = (dateStr) => {
+  if (!dateStr) return '-'
+  return dateStr.slice(0, 10).split('-').reverse().join('/')
+}
+
 const emptyEditForm = {
   title: '',
   isbn: '',
@@ -27,6 +32,73 @@ export default function AllBooks() {
   const [saving, setSaving] = useState(false)
   const [deleteModal, setDeleteModal] = useState({ show: false, book: null, loading: false })
 
+  const [selectedBook, setSelectedBook] = useState(null)
+  const [modalTab, setModalTab] = useState('all') // 'all', 'issued', 'damaged'
+  const [bookDetails, setBookDetails] = useState({ copies: [], loans: [], issueLoans: [] })
+  const [loadingDetails, setLoadingDetails] = useState(false)
+  const todayString = useMemo(() => new Date().toISOString().slice(0, 10), [])
+
+  const handleBookClick = async (book, tab = 'all') => {
+    setSelectedBook(book)
+    setModalTab(tab)
+    setLoadingDetails(true)
+    try {
+      // Fetch all copies for this book
+      const { data: copies, error: copiesError } = await supabase
+        .from('library_book_copies')
+        .select('*')
+        .eq('book_id', book.id)
+        .order('id')
+
+      if (copiesError) throw copiesError
+
+      // Fetch active loans for this book
+      const { data: loans, error: loansError } = await supabase
+        .from('library_loans')
+        .select(`
+          id,
+          status,
+          due_date,
+          issued_at,
+          students (full_name, student_id),
+          library_book_copies!inner (id, book_id)
+        `)
+        .eq('status', 'ISSUED')
+        .eq('library_book_copies.book_id', book.id)
+        .order('issued_at', { ascending: false })
+
+      if (loansError) throw loansError
+
+      // Fetch loans for missing/damaged copies
+      const { data: issueLoans, error: issueLoansError } = await supabase
+        .from('library_loans')
+        .select(`
+          id,
+          status,
+          issued_at,
+          book_copy_id,
+          students (full_name, student_id),
+          library_book_copies!inner (id)
+        `)
+        .in('status', ['MISSING', 'DAMAGED'])
+        .eq('library_book_copies.book_id', book.id)
+        .order('issued_at', { ascending: false })
+
+      if (issueLoansError) throw issueLoansError
+
+      setBookDetails({
+        copies: copies || [],
+        loans: loans || [],
+        issueLoans: issueLoans || []
+      })
+    } catch (err) {
+      console.error('Error fetching book details:', err)
+      showToast('Failed to load book details.', { type: 'error' })
+    } finally {
+      setLoadingDetails(false)
+    }
+  }
+
   const loadBooks = async () => {
     setLoading(true)
     try {
@@ -46,16 +118,25 @@ export default function AllBooks() {
 
       const { data: copyRows, error: copyError } = await supabase
         .from('library_book_copies')
-        .select('book_id')
+        .select('book_id, availability')
         .in('book_id', bookIds)
 
       if (copyError) throw copyError
 
-      const counts = (copyRows || []).reduce((acc, row) => {
-        const key = String(row.book_id)
-        acc[key] = (acc[key] || 0) + 1
-        return acc
-      }, {})
+      const counts = (copyRows || []).reduce(
+        (acc, row) => {
+          const key = String(row.book_id)
+          acc[key] = acc[key] || { total: 0, available: 0, damaged: 0, missing: 0, issued: 0 }
+          acc[key].total += 1
+          const availability = (row.availability || '').toUpperCase()
+          if (availability === 'AVAILABLE') acc[key].available += 1
+          else if (availability === 'DAMAGED') acc[key].damaged += 1
+          else if (availability === 'MISSING') acc[key].missing += 1
+          else if (availability === 'ISSUED') acc[key].issued += 1
+          return acc
+        },
+        {}
+      )
       setCopyCounts(counts)
     } catch (error) {
       console.error('Failed to load books', error)
@@ -98,14 +179,18 @@ export default function AllBooks() {
 
   const stats = useMemo(() => {
     const totalTitles = books.length
-    const totalCopies = Object.values(copyCounts).reduce((sum, count) => sum + count, 0)
+    const totalCopies = Object.values(copyCounts).reduce((sum, count) => sum + (count?.total || 0), 0)
+    const totalAvailable = Object.values(copyCounts).reduce((sum, count) => sum + (count?.available || 0), 0)
+    const totalDamaged = Object.values(copyCounts).reduce((sum, count) => sum + (count?.damaged || 0), 0)
+    const totalMissing = Object.values(copyCounts).reduce((sum, count) => sum + (count?.missing || 0), 0)
+    const totalIssued = Object.values(copyCounts).reduce((sum, count) => sum + (count?.issued || 0), 0)
     const shelfSet = new Set(
       books
         .map((book) => String(book.shelf_code || '').trim())
         .filter((code) => code.length > 0)
     )
     const totalShelves = shelfSet.size
-    return { totalTitles, totalCopies, totalShelves }
+    return { totalTitles, totalCopies, totalAvailable, totalDamaged, totalMissing, totalIssued, totalShelves }
   }, [books, copyCounts])
 
   const openEdit = (book) => {
@@ -234,26 +319,42 @@ export default function AllBooks() {
         </div>
       </section>
 
-      <div className="library-catalogue-stats row g-3 mb-4">
-        <div className="col-12 col-md-4">
+      <div className="library-catalogue-stats row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-5 g-3 mb-4">
+        <div className="col">
           <div className="library-catalogue-stat">
             <div className="library-catalogue-stat__label">Total Titles</div>
             <div className="library-catalogue-stat__value">{stats.totalTitles}</div>
             <div className="library-catalogue-stat__meta">All catalogued books</div>
           </div>
         </div>
-        <div className="col-12 col-md-4">
+        <div className="col">
           <div className="library-catalogue-stat">
             <div className="library-catalogue-stat__label">Total Copies</div>
             <div className="library-catalogue-stat__value">{stats.totalCopies}</div>
             <div className="library-catalogue-stat__meta">Across all shelves</div>
           </div>
         </div>
-        <div className="col-12 col-md-4">
+        <div className="col">
           <div className="library-catalogue-stat">
-            <div className="library-catalogue-stat__label">Total Shelves</div>
-            <div className="library-catalogue-stat__value">{stats.totalShelves}</div>
-            <div className="library-catalogue-stat__meta">Distinct shelf codes</div>
+            <div className="library-catalogue-stat__label">Available Copies</div>
+            <div className="library-catalogue-stat__value">{stats.totalAvailable}</div>
+            <div className="library-catalogue-stat__meta">Currently available</div>
+          </div>
+        </div>
+        <div className="col">
+          <div className="library-catalogue-stat">
+            <div className="library-catalogue-stat__label">Damaged / Missing</div>
+            <div className="library-catalogue-stat__value">
+              {stats.totalDamaged} / {stats.totalMissing}
+            </div>
+            <div className="library-catalogue-stat__meta">Condition tracking</div>
+          </div>
+        </div>
+        <div className="col">
+          <div className="library-catalogue-stat">
+            <div className="library-catalogue-stat__label">Issued Copies</div>
+            <div className="library-catalogue-stat__value">{stats.totalIssued}</div>
+            <div className="library-catalogue-stat__meta">Currently issued</div>
           </div>
         </div>
       </div>
@@ -296,45 +397,80 @@ export default function AllBooks() {
                 <th>Author</th>
                 <th>Published Year</th>
                 <th>Copies</th>
+                <th>Available</th>
+                <th>Issued</th>
+                <th>Damaged</th>
+                <th>Missing</th>
                 <th className="text-end">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="text-center text-muted py-4">Loading books...</td>
+                  <td colSpan="10" className="text-center text-muted py-4">Loading books...</td>
                 </tr>
               ) : filteredBooks.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="text-center text-muted py-4">No books found.</td>
+                  <td colSpan="10" className="text-center text-muted py-4">No books found.</td>
                 </tr>
               ) : (
                 filteredBooks.map((book) => {
-                  const copies = copyCounts[String(book.id)] || 0
+                  const copyInfo = copyCounts[String(book.id)] || { total: 0, available: 0, issued: 0, damaged: 0, missing: 0 }
                   return (
-                    <tr key={book.id}>
+                    <tr 
+                      key={book.id} 
+                      onClick={() => handleBookClick(book)} 
+                      style={{ cursor: 'pointer' }}
+                      className="library-book-row"
+                    >
                       <td>
                         <div className="library-catalogue-title">{book.title || 'Untitled'}</div>
                       </td>
                       <td>{book.shelf_code || '-'}</td>
                       <td>{book.author || 'Unknown'}</td>
                       <td>{book.published_year || '-'}</td>
-                      <td>
-                        <span className="library-catalogue-count">{copies}</span>
-                      </td>
-                      <td className="text-end">
-                        <div className="library-catalogue-actions">
-                          <button
-                            type="button"
-                            className="library-action-button library-action-button--edit"
-                            onClick={() => openEdit(book)}
+                  <td>
+                    <span className="library-catalogue-count">{copyInfo.total}</span>
+                  </td>
+                  <td>
+                    <span className="library-catalogue-count">
+                      {copyInfo.available}
+                    </span>
+                  </td>
+                  <td>
+                    <span className="library-catalogue-count">
+                      {copyInfo.issued}
+                    </span>
+                  </td>
+                  <td>
+                    <span className="library-catalogue-count">
+                      {copyInfo.damaged}
+                    </span>
+                  </td>
+                  <td>
+                    <span className="library-catalogue-count">
+                      {copyInfo.missing}
+                    </span>
+                  </td>
+                  <td className="text-end">
+                    <div className="library-catalogue-actions">
+                      <button
+                        type="button"
+                        className="library-action-button library-action-button--edit"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openEdit(book)
+                            }}
                           >
                             Edit
                           </button>
                           <button
                             type="button"
                             className="library-action-button library-action-button--delete"
-                            onClick={() => openDeleteModal(book)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openDeleteModal(book)
+                            }}
                           >
                             Delete
                           </button>
@@ -504,6 +640,194 @@ export default function AllBooks() {
         confirmText={deleteModal.loading ? 'Deleting...' : 'Delete'}
         isLoading={deleteModal.loading}
       />
+
+      {selectedBook && (
+        <>
+          <div className="modal-backdrop fade show"></div>
+          <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
+            <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+              <div className="modal-content">
+                <div className="modal-header d-flex flex-column align-items-center border-bottom-0 pt-4 pb-0 position-relative">
+                  <div className="text-center w-100">
+                    <div className="mb-4 px-4">
+                      <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.7rem', letterSpacing: '0.15em' }}>
+                        Book Title
+                      </div>
+                      <h4 className="fw-bold text-dark mb-0" style={{ fontSize: '1.5rem' }}>
+                        {selectedBook.title}
+                      </h4>
+                    </div>
+                    
+                    <div className="row g-0 border-top border-bottom py-3 bg-light w-100">
+                      <div className="col-6 border-end px-2">
+                        <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.65rem', letterSpacing: '0.12em' }}>
+                          Author
+                        </div>
+                        <div className="fw-semibold text-primary" style={{ fontSize: '1.05rem' }}>
+                          {selectedBook.author || 'Unknown'}
+                        </div>
+                      </div>
+                      <div className="col-6 px-2">
+                        <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.65rem', letterSpacing: '0.12em' }}>
+                          Shelf Reference
+                        </div>
+                        <div className="fw-semibold text-dark" style={{ fontSize: '1.05rem' }}>
+                          {selectedBook.shelf_code || '--'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <button 
+                    type="button" 
+                    className="btn-close position-absolute" 
+                    style={{ right: '1.25rem', top: '1.25rem' }} 
+                    onClick={() => setSelectedBook(null)}
+                  ></button>
+                </div>
+                <div className="modal-body">
+                  {loadingDetails ? (
+                    <div className="text-center py-4">
+                      <div className="spinner-border text-primary" role="status"></div>
+                      <p className="mt-2 text-muted">Loading details...</p>
+                    </div>
+                  ) : (
+                    <div className="d-flex flex-column gap-4">
+                      {/* Stats Row */}
+                      <div className="row g-3">
+                        <div className="col-6 col-sm-3">
+                          <div 
+                            className={`p-3 border rounded text-center ${modalTab === 'all' ? 'bg-primary text-white' : 'bg-light'}`}
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => setModalTab('all')}
+                          >
+                            <div className={`small text-uppercase fw-bold ${modalTab === 'all' ? 'text-white-50' : 'text-muted'}`}>Total</div>
+                            <div className="fs-4 fw-bold">{bookDetails.copies.length}</div>
+                          </div>
+                        </div>
+                        <div className="col-6 col-sm-3">
+                          <div 
+                            className={`p-3 border rounded text-center ${modalTab === 'issued' ? 'bg-primary text-white' : 'bg-light'}`}
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => setModalTab('issued')}
+                          >
+                            <div className={`small text-uppercase fw-bold ${modalTab === 'issued' ? 'text-white-50' : 'text-muted'}`}>Issued</div>
+                            <div className={`fs-4 fw-bold ${modalTab === 'issued' ? 'text-white' : 'text-primary'}`}>{bookDetails.loans.length}</div>
+                          </div>
+                        </div>
+                        <div className="col-6 col-sm-3">
+                          <div 
+                            className={`p-3 border rounded text-center ${modalTab === 'damaged' ? 'bg-primary text-white' : 'bg-light'}`}
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => setModalTab('damaged')}
+                          >
+                            <div className={`small text-uppercase fw-bold ${modalTab === 'damaged' ? 'text-white-50' : 'text-muted'}`}>Damaged</div>
+                            <div className={`fs-4 fw-bold ${modalTab === 'damaged' ? 'text-white' : 'text-danger'}`}>
+                              {bookDetails.copies.filter(c => ['MISSING', 'DAMAGED'].includes((c.availability || '').toUpperCase())).length}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="col-6 col-sm-3">
+                          <div className="p-3 border rounded bg-light text-center">
+                            <div className="small text-muted text-uppercase fw-bold">Balance</div>
+                            <div className="fs-4 fw-bold text-success">
+                              {bookDetails.copies.length - bookDetails.loans.length - bookDetails.copies.filter(c => ['MISSING', 'DAMAGED'].includes((c.availability || '').toUpperCase())).length}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Filtered Sections */}
+                      {(modalTab === 'all' || modalTab === 'issued') && (
+                        <div>
+                          <h6 className="fw-bold mb-3 border-bottom pb-2">Active Loans</h6>
+                          {bookDetails.loans.length > 0 ? (
+                            <div className="table-responsive">
+                              <table className="table table-sm table-hover align-middle">
+                                <thead className="table-light">
+                                  <tr>
+                                    <th>Student ID</th>
+                                    <th>Student Name</th>
+                                    <th>Loan Date</th>
+                                    <th>Due Date</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {bookDetails.loans.map(loan => (
+                                    <tr key={loan.id}>
+                                      <td className="fw-bold text-primary">{loan.students?.student_id}</td>
+                                      <td>{loan.students?.full_name || 'Unknown'}</td>
+                                      <td>{formatDate(loan.issued_at)}</td>
+                                      <td className={loan.due_date < todayString ? 'text-danger fw-bold' : ''}>
+                                        {formatDate(loan.due_date)}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <p className="text-muted fst-italic mb-0">No active loans for this title.</p>
+                          )}
+                        </div>
+                      )}
+
+                      {(modalTab === 'all' || modalTab === 'damaged') && (
+                        <div>
+                          <h6 className="fw-bold mb-3 border-bottom pb-2">Copies with Issues</h6>
+                          {bookDetails.copies.filter(c => ['MISSING', 'DAMAGED'].includes((c.availability || '').toUpperCase())).length > 0 ? (
+                            <div className="table-responsive">
+                              <table className="table table-sm table-hover align-middle">
+                                <thead className="table-light">
+                                  <tr>
+                                    <th>Student ID</th>
+                                    <th>Student Name</th>
+                                    <th>Copy ID</th>
+                                    <th>Status</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {bookDetails.copies
+                                    .filter((c) => ['MISSING', 'DAMAGED'].includes((c.availability || '').toUpperCase()))
+                                    .map((copy) => {
+                                      const issueLoan = bookDetails.issueLoans?.find(
+                                        (l) => l.book_copy_id === copy.id
+                                      )
+                                      return (
+                                        <tr key={copy.id}>
+                                          <td className="fw-bold text-primary">{issueLoan?.students?.student_id || '-'}</td>
+                                          <td className="small">{issueLoan?.students?.full_name || '-'}</td>
+                                          <td className="font-monospace">{copy.id}</td>
+                                          <td>
+                                            <span
+                                              className={`badge ${
+                                                copy.availability === 'MISSING' ? 'bg-danger' : 'bg-warning text-dark'
+                                              }`}
+                                            >
+                                              {copy.availability}
+                                            </span>
+                                          </td>
+                                        </tr>
+                                      )
+                                    })}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <p className="text-muted fst-italic mb-0">No damaged or missing copies reported.</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={() => setSelectedBook(null)}>Close</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

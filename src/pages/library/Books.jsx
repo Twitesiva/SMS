@@ -174,7 +174,6 @@ export default function Books() {
                   placeholder="Enter book title"
                   value={form.title}
                   onChange={handleChange('title')}
-                  required
                 />
               </div>
               <div className="col-md-4">
@@ -284,7 +283,6 @@ export default function Books() {
                   type="date"
                   value={form.arrival_date}
                   onChange={handleChange('arrival_date')}
-                  required
                 />
               </div>
               <div className="col-md-2">

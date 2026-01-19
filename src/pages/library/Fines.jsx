@@ -94,21 +94,12 @@ export default function Fines() {
 
   const loadFineCharges = useCallback(async () => {
     try {
-      const [{ data: reasonData, error: reasonError }, { data: defaultsData, error: defaultsError }] = await Promise.all([
-        supabase.from('library_fine_reasons').select('reason, amount, condition'),
-        supabase
-          .from('global_settings')
-          .select('missing_amount, damaged_amount')
-          .order('id', { ascending: true })
-          .limit(1)
-          .single()
-      ])
-
-      if (!reasonError && Array.isArray(reasonData)) {
-        setReasonCharges(reasonData)
-      } else if (reasonError) {
-        console.error('Unable to load reason-based fine amounts', reasonError)
-      }
+      const { data: defaultsData, error: defaultsError } = await supabase
+        .from('global_settings')
+        .select('missing_amount, damaged_amount')
+        .order('id', { ascending: true })
+        .limit(1)
+        .single()
 
       if (!defaultsError && defaultsData) {
         setFineChargeDefaults({
@@ -118,6 +109,9 @@ export default function Fines() {
       } else if (defaultsError) {
         console.error('Unable to load default fine amounts', defaultsError)
       }
+      
+      // Table library_fine_reasons does not exist yet, using defaults.
+      setReasonCharges([])
     } catch (err) {
       console.error('Failed to load fine configuration', err)
     }

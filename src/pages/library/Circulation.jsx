@@ -606,7 +606,6 @@ export default function Circulation() {
                     {showAllLoans ? 'Show less' : 'View more'}
                   </button>
                 )}
-                <button type="button" className="btn btn-outline-secondary btn-sm">Export</button>
               </div>
             </div>
             <div className="table-responsive">

@@ -22,6 +22,11 @@ export const libraryNavGroups = [
         to: '/library/books/all',
         label: 'View Books',
         icon: 'bi-journal-text'
+      },
+      {
+        to: '/library/shelves',
+        label: 'Shelves',
+        icon: 'bi-grid-3x3'
       }
     ]
   },
