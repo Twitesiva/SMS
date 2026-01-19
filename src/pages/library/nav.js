@@ -40,7 +40,7 @@ export const libraryNavGroups = [
       },
       {
         to: '/library/settings',
-        label: 'Settings',
+        label: 'Charges & Penalties',
         icon: 'bi-gear'
       }
     ]

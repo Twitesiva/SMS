@@ -16,12 +16,13 @@ const missingReasonOptions = [
   'Supplementary material missing'
 ]
 
-const createMissingItem = (condition = 'MISSING') => ({
+const initialMissingForm = {
+  studentId: '',
   loanId: '',
-  condition,
+  condition: 'MISSING',
   reason: missingReasonOptions[0],
   amount: '500'
-})
+}
 
 export default function Fines() {
   const [pendingFines, setPendingFines] = useState([])
@@ -40,16 +41,81 @@ export default function Fines() {
     amount: '100',
     paymentMode: 'Cash'
   })
-  const [missingForm, setMissingForm] = useState({
-    studentId: ''
-  })
-  const [missingItemsMissing, setMissingItemsMissing] = useState([createMissingItem('MISSING')])
-  const [missingItemsDamaged, setMissingItemsDamaged] = useState([createMissingItem('DAMAGED')])
+  const [missingForm, setMissingForm] = useState(initialMissingForm)
   const [missingLoans, setMissingLoans] = useState([])
+  const [reasonCharges, setReasonCharges] = useState([])
+  const [fineChargeDefaults, setFineChargeDefaults] = useState({ missing: 500, damaged: 500 })
   const [savingMissing, setSavingMissing] = useState(false)
   const [collecting, setCollecting] = useState(false)
 
   const today = useMemo(() => new Date(), [])
+
+  const resolveFineAmount = useCallback(
+    (reasonValue, conditionValue) => {
+      const normalizedReason = (reasonValue || '').toLowerCase()
+      const normalizedCondition = (conditionValue || 'MISSING').toUpperCase()
+
+      const matched = (reasonCharges || []).find((row) => {
+        const matchesReason = (row.reason || '').toLowerCase() === normalizedReason
+        const matchesCondition = row.condition
+          ? String(row.condition).toUpperCase() === normalizedCondition
+          : true
+        return matchesReason && matchesCondition
+      })
+
+      if (matched && Number.isFinite(Number(matched.amount))) {
+        return String(Number(matched.amount))
+      }
+
+      const fallback = normalizedCondition === 'DAMAGED' ? fineChargeDefaults.damaged : fineChargeDefaults.missing
+      return String(Number.isFinite(Number(fallback)) ? Number(fallback) : 0)
+    },
+    [reasonCharges, fineChargeDefaults]
+  )
+
+  const loadFineCharges = useCallback(async () => {
+    try {
+      const [{ data: reasonData, error: reasonError }, { data: defaultsData, error: defaultsError }] = await Promise.all([
+        supabase.from('library_fine_reasons').select('reason, amount, condition'),
+        supabase
+          .from('global_settings')
+          .select('missing_amount, damaged_amount')
+          .order('id', { ascending: true })
+          .limit(1)
+          .single()
+      ])
+
+      if (!reasonError && Array.isArray(reasonData)) {
+        setReasonCharges(reasonData)
+      } else if (reasonError) {
+        console.error('Unable to load reason-based fine amounts', reasonError)
+      }
+
+      if (!defaultsError && defaultsData) {
+        setFineChargeDefaults({
+          missing: Number(defaultsData.missing_amount ?? 500),
+          damaged: Number(defaultsData.damaged_amount ?? 500)
+        })
+      } else if (defaultsError) {
+        console.error('Unable to load default fine amounts', defaultsError)
+      }
+    } catch (err) {
+      console.error('Failed to load fine configuration', err)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadFineCharges()
+  }, [loadFineCharges])
+
+  useEffect(() => {
+    setMissingForm((prev) => {
+      const condition = prev.condition || 'MISSING'
+      const reason = prev.reason || missingReasonOptions[0]
+      const amount = resolveFineAmount(reason, condition)
+      return { ...prev, condition, reason, amount }
+    })
+  }, [resolveFineAmount])
 
   const loadFines = useCallback(async () => {
     try {
@@ -207,8 +273,11 @@ export default function Fines() {
     const trimmed = (studentId || '').trim()
     if (!trimmed) {
       setMissingLoans([])
-      setMissingItemsMissing([createMissingItem('MISSING')])
-      setMissingItemsDamaged([createMissingItem('DAMAGED')])
+      setMissingForm((prev) => ({
+        ...initialMissingForm,
+        amount: resolveFineAmount(initialMissingForm.reason, initialMissingForm.condition),
+        studentId: ''
+      }))
       return
     }
     try {
@@ -223,77 +292,71 @@ export default function Fines() {
       setMissingLoans(data || [])
       if ((data || []).length === 1) {
         const loneId = String(data[0].id)
-        setMissingItemsMissing([{ ...createMissingItem('MISSING'), loanId: loneId }])
-        setMissingItemsDamaged([{ ...createMissingItem('DAMAGED'), loanId: loneId }])
+        setMissingForm((prev) => ({
+          ...prev,
+          loanId: loneId,
+          amount: resolveFineAmount(prev.reason || missingReasonOptions[0], prev.condition || 'MISSING')
+        }))
       } else {
-        setMissingItemsMissing([createMissingItem('MISSING')])
-        setMissingItemsDamaged([createMissingItem('DAMAGED')])
+        setMissingForm((prev) => ({ ...prev, loanId: '' }))
       }
     } catch (err) {
       console.error('Failed to load loans for missing/damaged', err)
       setMissingLoans([])
-      setMissingItemsMissing([createMissingItem('MISSING')])
-      setMissingItemsDamaged([createMissingItem('DAMAGED')])
     }
   }
 
   const handleMissingChange = (key) => (event) => {
     const value = event.target.value
-    setMissingForm((prev) => ({ ...prev, [key]: value }))
-    if (key === 'studentId') {
-      setMissingLoans([])
-      setMissingItemsMissing([createMissingItem('MISSING')])
-      setMissingItemsDamaged([createMissingItem('DAMAGED')])
-    }
-  }
-
-  const handleMissingItemChange = (type, index, key) => (event) => {
-    const value = event.target.value
-    const updater = type === 'MISSING' ? setMissingItemsMissing : setMissingItemsDamaged
-    updater((prev) => {
-      const next = [...prev]
-      next[index] = { ...next[index], [key]: value }
+    setMissingForm((prev) => {
+      const next = { ...prev, [key]: value }
+      if (key === 'studentId') {
+        next.loanId = ''
+      }
+      if (key === 'reason' || key === 'condition') {
+        const conditionToUse = key === 'condition' ? value : next.condition || 'MISSING'
+        const reasonToUse = key === 'reason' ? value : next.reason || missingReasonOptions[0]
+        next.amount = resolveFineAmount(reasonToUse, conditionToUse)
+      }
       return next
     })
-  }
-
-  const addMissingItem = (type) => {
-    const updater = type === 'MISSING' ? setMissingItemsMissing : setMissingItemsDamaged
-    updater((prev) => {
-      if (!missingLoans.length || prev.length >= missingLoans.length) return prev
-      return [...prev, createMissingItem(type)]
-    })
-  }
-
-  const removeMissingItem = (type, index) => {
-    const updater = type === 'MISSING' ? setMissingItemsMissing : setMissingItemsDamaged
-    updater((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev))
+    if (key === 'studentId') {
+      setMissingLoans([])
+    }
   }
 
   const handleMissingSubmit = async (event) => {
     event.preventDefault()
-    if (!missingForm.studentId.trim()) {
+    const trimmedStudentId = missingForm.studentId.trim()
+    if (!trimmedStudentId) {
       showToast('Enter a student ID.', { type: 'warning' })
       return
     }
 
-    const preparedItems = [...missingItemsMissing, ...missingItemsDamaged]
-      .map((item) => ({
-        loanId: Number(item.loanId || 0),
-        condition: (item.condition || 'MISSING').toUpperCase(),
-        reason: item.reason,
-        amount: Number(item.amount || 0)
-      }))
-      .filter((item) => Number.isFinite(item.loanId) && item.loanId > 0 && item.amount > 0)
-
-    if (preparedItems.length === 0) {
+    const loanIdNum = Number(missingForm.loanId || 0)
+    if (!Number.isFinite(loanIdNum) || loanIdNum <= 0) {
       showToast('Select at least one issued book to mark.', { type: 'warning' })
+      return
+    }
+
+    const amountNum = Number(missingForm.amount || 0)
+    if (!Number.isFinite(amountNum) || amountNum <= 0) {
+      showToast('Enter a valid fine amount.', { type: 'warning' })
       return
     }
 
     setSavingMissing(true)
     const successes = []
     const failures = []
+    const preparedItems = [
+      {
+        loanId: loanIdNum,
+        condition: (missingForm.condition || 'MISSING').toUpperCase(),
+        reason: missingForm.reason,
+        amount: amountNum
+      }
+    ]
+
     for (const item of preparedItems) {
       const loanRow = missingLoans.find((l) => l.id === item.loanId)
       const copyId = loanRow?.library_book_copies?.id
@@ -316,7 +379,7 @@ export default function Fines() {
         const payload = {
           loan_id: item.loanId,
           amount: item.amount,
-          student_id: missingForm.studentId.trim(),
+          student_id: trimmedStudentId,
           status: 'PENDING'
         }
         if (item.reason) payload.reason = item.reason
@@ -332,7 +395,7 @@ export default function Fines() {
             const fallbackPayload = {
               loan_id: item.loanId,
               amount: item.amount,
-              student_id: missingForm.studentId.trim(),
+              student_id: trimmedStudentId,
               status: 'PENDING'
             }
             const { error: retryError } = await supabase.from('library_fines').insert([fallbackPayload])
@@ -354,9 +417,10 @@ export default function Fines() {
           ? `Updated ${successes.length} loan(s). ${failCount} failed.`
           : `Updated ${successes.length} loan(s) successfully.`
       showToast(successMsg, { type: failCount > 0 ? 'warning' : 'success' })
-      setMissingForm({ studentId: '' })
-      setMissingItemsMissing([createMissingItem('MISSING')])
-      setMissingItemsDamaged([createMissingItem('DAMAGED')])
+      setMissingForm({
+        ...initialMissingForm,
+        amount: resolveFineAmount(initialMissingForm.reason, initialMissingForm.condition)
+      })
       setMissingLoans([])
       loadFines()
     } else {
@@ -649,7 +713,10 @@ export default function Fines() {
                   type="button"
                   className="btn btn-outline-secondary"
                   onClick={() => {
-                    setMissingForm({ studentId: '', loanId: '', condition: 'MISSING', reason: missingReasonOptions[0], amount: '500' })
+                    setMissingForm({
+                      ...initialMissingForm,
+                      amount: resolveFineAmount(initialMissingForm.reason, initialMissingForm.condition)
+                    })
                     setMissingLoans([])
                   }}
                 >

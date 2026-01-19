@@ -10,13 +10,13 @@ const initialForm = {
   depositAmount: '0'
 }
 
-export default function LibrarySettings() {
+export default function ChargesAndPenalties() {
   const [form, setForm] = useState(initialForm)
   const [settingsId, setSettingsId] = useState(null)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  const loadSettings = async () => {
+  const loadCharges = async () => {
     setLoading(true)
     try {
       const { data, error } = await supabase
@@ -51,15 +51,15 @@ export default function LibrarySettings() {
             : initialForm.depositAmount
       })
     } catch (err) {
-      console.error('Failed to load library settings', err)
-      showToast('Unable to load settings right now.', { type: 'danger' })
+      console.error('Failed to load library charges', err)
+      showToast('Unable to load charges right now.', { type: 'danger' })
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    loadSettings()
+    loadCharges()
   }, [])
 
   const handleChange = (key) => (event) => {
@@ -110,10 +110,10 @@ export default function LibrarySettings() {
         setSettingsId(data?.id || null)
       }
 
-      showToast('Settings updated successfully.', { type: 'success' })
+      showToast('Charges updated successfully.', { type: 'success' })
     } catch (err) {
-      console.error('Failed to save library settings', err)
-      showToast('Unable to save settings. Check schema for required columns.', { type: 'danger' })
+      console.error('Failed to save library charges', err)
+      showToast('Unable to save charges. Check schema for required columns.', { type: 'danger' })
     } finally {
       setSaving(false)
     }
@@ -126,7 +126,7 @@ export default function LibrarySettings() {
           <div className="admin-applications__crest mx-auto" aria-hidden="true">
             <img src={crestPrimary} alt="Vijayam crest" />
           </div>
-          <h3 className="setup-hero-title mb-2">Library Settings</h3>
+          <h3 className="setup-hero-title mb-2">Charges & Penalties</h3>
           <p className="setup-hero-copy mb-3">Configure default amounts for fines and deposits.</p>
           <div className="setup-hero-chips d-flex flex-wrap gap-2 justify-content-center">
             <span className="setup-hero-chip text-uppercase">FINES</span>
@@ -141,12 +141,9 @@ export default function LibrarySettings() {
           <div className="card card-soft p-4">
             <div className="d-flex justify-content-between align-items-center mb-3">
               <div>
-                <h4 className="mb-1">Fine & Deposit Amounts</h4>
+                <h4 className="mb-1">Charges & Penalties</h4>
                 <p className="text-muted mb-0">Set default amounts for library charges.</p>
               </div>
-              <button type="button" className="btn btn-outline-secondary" onClick={loadSettings} disabled={loading || saving}>
-                {loading ? 'Refreshing...' : 'Refresh'}
-              </button>
             </div>
             <form className="row g-3" onSubmit={handleSave}>
               <div className="col-md-6">
@@ -198,7 +195,7 @@ export default function LibrarySettings() {
                   Reset
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={saving || loading}>
-                  {saving ? 'Saving...' : 'Save Settings'}
+                  {saving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </form>
