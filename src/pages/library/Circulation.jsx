@@ -11,6 +11,7 @@ const formatDate = (dateStr) => {
 export default function Circulation() {
   const [activeLoans, setActiveLoans] = useState([])
   const [showAllLoans, setShowAllLoans] = useState(false)
+  const [depositAmount, setDepositAmount] = useState(0)
 
   const [selectedBook, setSelectedBook] = useState(null)
   const [modalTab, setModalTab] = useState('all') // 'all', 'issued', 'damaged'
@@ -126,6 +127,37 @@ export default function Circulation() {
   useEffect(() => {
     loadLoans()
   }, [])
+
+  useEffect(() => {
+    const loadDeposit = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('global_settings')
+          .select('deposit_amount')
+          .order('id', { ascending: true })
+          .limit(1)
+          .single()
+        if (error) throw error
+        const amt = Number(data?.deposit_amount || 0)
+        setDepositAmount(Number.isFinite(amt) ? amt : 0)
+      } catch (err) {
+        console.error('Failed to load deposit amount', err)
+        setDepositAmount(0)
+      }
+    }
+    loadDeposit()
+  }, [])
+
+  const issueCount = useMemo(
+    () => issueBooks.filter((item) => (item.bookRef || '').trim().length > 0).length,
+    [issueBooks]
+  )
+
+  const depositDue = useMemo(() => {
+    const amt = Number(depositAmount || 0)
+    if (!Number.isFinite(amt) || amt <= 0) return 0
+    return issueCount > 0 ? amt : 0
+  }, [depositAmount, issueCount])
 
   const handleChange = (key) => (event) => {
     setForm((prev) => ({ ...prev, [key]: event.target.value }))
@@ -310,7 +342,8 @@ export default function Circulation() {
       if (failCount > 0) {
         showToast(`Issued ${successCount} book(s). ${failCount} skipped: ${failures[0]}`, { type: 'warning' })
       } else {
-        showToast(`Issued ${successCount} book(s) successfully.`, { type: 'success' })
+        const depositMsg = depositDue > 0 ? ` Deposit: Rs. ${depositDue}.` : ''
+        showToast(`Issued ${successCount} book(s) successfully.${depositMsg}`, { type: 'success' })
       }
 
       resetForm()
@@ -448,7 +481,7 @@ export default function Circulation() {
                   ))}
                 </div>
               </div>
-              <div className="col-12">
+              <div className="col-md-6">
                 <label className="form-label">Due Date</label>
                 <input
                   className="form-control"
@@ -458,6 +491,19 @@ export default function Circulation() {
                   readOnly
                   disabled
                 />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label">Deposit</label>
+                <div className="d-flex align-items-center justify-content-between border rounded px-3 py-2 bg-light">
+                  <div>
+                    <div className="small text-muted">Required</div>
+                    <div className="fw-semibold">Rs. {Number(depositAmount || 0)}</div>
+                  </div>
+                  <div className="text-end">
+                    <div className="small text-muted">For this issue</div>
+                    <div className="fw-bold">Rs. {depositDue}</div>
+                  </div>
+                </div>
               </div>
               <div className="col-12 d-flex justify-content-end gap-2">
                 <button type="button" className="btn btn-outline-secondary" onClick={resetForm}>

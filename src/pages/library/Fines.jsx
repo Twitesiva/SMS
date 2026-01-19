@@ -401,8 +401,7 @@ export default function Fines() {
         loan_id: loanIdNum,
         amount: amountNum,
         student_id: trimmedStudentId,
-        status: 'PENDING',
-        reason: form.reason
+        status: 'PENDING'
       }
 
       const { error: fineError } = await supabase.from('library_fines').insert([payload])

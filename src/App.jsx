@@ -40,7 +40,6 @@ import LibraryFines from "./pages/library/Fines.jsx";
 import LibraryReports from "./pages/library/Reports.jsx";
 import LibraryHistory from "./pages/library/History.jsx";
 import ChargesAndPenalties from "./pages/library/ChargesAndPenalties.jsx";
-import LibraryShelves from "./pages/library/Shelves.jsx";
 
 import StaffSubjectMapping from "./pages/admin/StaffSubjectMapping.jsx";
 
@@ -274,7 +273,7 @@ export default function App() {
           <Route index element={<LibraryDashboard />} />
           <Route path="books" element={<LibraryBooks />} />
           <Route path="books/all" element={<LibraryAllBooks />} />
-          <Route path="shelves" element={<LibraryShelves />} />
+          <Route path="shelves" element={<Navigate to="/library/books/all" replace />} />
           <Route path="inventory" element={<LibraryInventoryInsights />} />
           <Route path="circulation" element={<LibraryCirculation />} />
           <Route path="fines" element={<LibraryFines />} />
