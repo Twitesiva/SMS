@@ -1,4 +1,4 @@
-import AdminShell from '../../components/AdminShell'
+import AdShellAdmin from '../../components/AdShellAdmin'
 import crestPrimary from '../../assets/media/images.png'
 import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../../../supabaseClient'
@@ -30,119 +30,7 @@ const TIME_SLOTS = [
 /* ===============================
    NAV
 ================================ */
-const adminNavGroups = [
 
-  {
-    title: 'Applications',
-    static: true,
-    items: [
-      {
-        to: '/admin-portal/applications',
-        label: 'Applications',
-        icon: 'bi-inboxes'
-      }
-    ]
-  },
-  {
-    title: 'Student Portal',
-    items: [
-      {
-        to: '/admin-portal/academic-years',
-        label: 'Academic Years',
-        icon: 'bi-calendar3'
-      },
-      {
-        to: '/admin-portal/groups-courses',
-        label: 'Groups & Courses',
-        icon: 'bi-diagram-3'
-      },
-      {
-        to: '/admin-portal/subjects',
-        label: 'Subjects',
-        icon: 'bi-journal-text'
-      }
-    ]
-  },
-  {
-    title: 'Fees Creation',
-    static: true,
-    items: [
-      {
-        to: '/admin-portal/fees-creation',
-        label: 'Student Fees Creation',
-        icon: 'bi-currency-rupee'
-      }
-    ]
-  },
-  {
-    title: 'Fees Collection',
-    static: true,
-    items: [
-      {
-        to: '/admin-portal/fees-collection',
-        label: 'Fees Collection',
-        icon: 'bi-cash-stack'
-      }
-    ]
-  },
-  {
-    title: 'Profile Creation',
-    static: true,
-    items: [
-      {
-        to: '/admin-portal/profile-creation',
-        label: 'Staff Profile Creation',
-        icon: 'bi-person-plus-fill'
-      }
-    ]
-  },
-  {
-    title: 'Staff Management',
-    static: true,
-    items: [
-      {
-        to: '/admin-portal/subject-mapping',
-        label: 'Subject Mapping',
-        icon: 'bi-person-lines-fill'
-      }
-    ]
-  },
-
-  {
-    title: 'Class Time Table',
-    static: true,
-    items: [
-      {
-        to: '/admin-portal/class-time-table',
-        label: 'Class Time Table',
-        icon: 'bi-calendar-date'
-      }
-    ]
-  },
-  {
-    title: 'Circulars',
-    static: true,
-    items: [
-      {
-        to: '/admin-portal/circulars',
-        label: 'Circulars',
-        icon: 'bi-megaphone'
-      }
-    ]
-  },
-  {
-    title: 'Payment Reports',
-    static: true,
-    items: [
-      {
-        to: '/admin-portal/payment-reports',
-        label: 'Payment Reports',
-        icon: 'bi-file-earmark-bar-graph'
-      }
-    ]
-  },
-
-]
 
 /* ===============================
    PAGE
@@ -738,8 +626,7 @@ export default function ClassTimeTable() {
   const hasFilters = selectedAcademicYear && selectedGroupId && selectedCourseId && selectedSemester
 
   return (
-    <AdminShell
-      navGroups={adminNavGroups}
+    <AdShellAdmin
       brandTitle="Admin Management Console"
       brandSubtitle="Chittoor"
       footerTitle="Admin Management Studio"
@@ -1009,7 +896,7 @@ export default function ClassTimeTable() {
         )}
         <ToastContainer position="top-right" autoClose={3000} />
       </div>
-    </AdminShell>
+    </AdShellAdmin>
   )
 }
 

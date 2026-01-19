@@ -19,6 +19,7 @@ import Circulars from "./pages/admin/Circulars.jsx";
 import AdminApplications from "./pages/admin/AdminApplications.jsx";
 import AdmissionsLogin from "./pages/admissions/AdminLogin.jsx";
 import AdminLogin from "./pages/admin/AdminLogin.jsx";
+import AdminStudents from "./pages/admin/Students.jsx";
 import ProfileCreation from "./pages/admin/ProfileCreation.jsx";
 import FeesCreation from "./pages/admin/FeesCreation.jsx";
 import AcademicYears from "./pages/admin/AcademicYears.jsx";
@@ -219,6 +220,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
               <AdminApplications />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/admin-portal/students"
+          element={
+            <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
+              <AdminStudents />
             </GuardedRoute>
           }
         />
