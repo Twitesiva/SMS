@@ -41,11 +41,30 @@ export default function Fines() {
     amount: '100',
     paymentMode: 'Cash'
   })
-  const [missingForm, setMissingForm] = useState(initialMissingForm)
-  const [missingLoans, setMissingLoans] = useState([])
+  
+  // Separate states for Missing and Damaged forms
+  const [missingBookForm, setMissingBookForm] = useState({
+    studentId: '',
+    loanId: '',
+    condition: 'MISSING',
+    reason: missingReasonOptions[0],
+    amount: '500'
+  })
+  const [damagedBookForm, setDamagedBookForm] = useState({
+    studentId: '',
+    loanId: '',
+    condition: 'DAMAGED',
+    reason: missingReasonOptions[0],
+    amount: '500'
+  })
+
+  const [missingBookLoans, setMissingBookLoans] = useState([])
+  const [damagedBookLoans, setDamagedBookLoans] = useState([])
+  
   const [reasonCharges, setReasonCharges] = useState([])
   const [fineChargeDefaults, setFineChargeDefaults] = useState({ missing: 500, damaged: 500 })
   const [savingMissing, setSavingMissing] = useState(false)
+  const [savingDamaged, setSavingDamaged] = useState(false)
   const [collecting, setCollecting] = useState(false)
 
   const today = useMemo(() => new Date(), [])
@@ -108,12 +127,15 @@ export default function Fines() {
     loadFineCharges()
   }, [loadFineCharges])
 
+  // Update amounts when dependencies change
   useEffect(() => {
-    setMissingForm((prev) => {
-      const condition = prev.condition || 'MISSING'
-      const reason = prev.reason || missingReasonOptions[0]
-      const amount = resolveFineAmount(reason, condition)
-      return { ...prev, condition, reason, amount }
+    setMissingBookForm((prev) => {
+      const amount = resolveFineAmount(prev.reason, 'MISSING')
+      return { ...prev, amount }
+    })
+    setDamagedBookForm((prev) => {
+      const amount = resolveFineAmount(prev.reason, 'DAMAGED')
+      return { ...prev, amount }
     })
   }, [resolveFineAmount])
 
@@ -269,14 +291,19 @@ export default function Fines() {
     }
   }
 
-  const fetchMissingLoans = async (studentId) => {
+  // Generic fetch for both forms
+  const fetchStudentLoans = async (studentId, type) => {
     const trimmed = (studentId || '').trim()
+    const setLoans = type === 'MISSING' ? setMissingBookLoans : setDamagedBookLoans
+    const setForm = type === 'MISSING' ? setMissingBookForm : setDamagedBookForm
+    const defaultReason = missingReasonOptions[0]
+    
     if (!trimmed) {
-      setMissingLoans([])
-      setMissingForm((prev) => ({
-        ...initialMissingForm,
-        amount: resolveFineAmount(initialMissingForm.reason, initialMissingForm.condition),
-        studentId: ''
+      setLoans([])
+      setForm((prev) => ({
+        ...prev,
+        loanId: '',
+        amount: resolveFineAmount(prev.reason || defaultReason, type)
       }))
       return
     }
@@ -289,144 +316,125 @@ export default function Fines() {
         .order('issued_at', { ascending: false })
 
       if (error) throw error
-      setMissingLoans(data || [])
+      setLoans(data || [])
       if ((data || []).length === 1) {
         const loneId = String(data[0].id)
-        setMissingForm((prev) => ({
+        setForm((prev) => ({
           ...prev,
           loanId: loneId,
-          amount: resolveFineAmount(prev.reason || missingReasonOptions[0], prev.condition || 'MISSING')
+          amount: resolveFineAmount(prev.reason || defaultReason, type)
         }))
       } else {
-        setMissingForm((prev) => ({ ...prev, loanId: '' }))
+        setForm((prev) => ({ ...prev, loanId: '' }))
       }
     } catch (err) {
-      console.error('Failed to load loans for missing/damaged', err)
-      setMissingLoans([])
+      console.error(`Failed to load loans for ${type}`, err)
+      setLoans([])
     }
   }
 
-  const handleMissingChange = (key) => (event) => {
+  const handleBookReportChange = (type) => (key) => (event) => {
     const value = event.target.value
-    setMissingForm((prev) => {
+    const setForm = type === 'MISSING' ? setMissingBookForm : setDamagedBookForm
+    const setLoans = type === 'MISSING' ? setMissingBookLoans : setDamagedBookLoans
+    
+    setForm((prev) => {
       const next = { ...prev, [key]: value }
       if (key === 'studentId') {
         next.loanId = ''
       }
-      if (key === 'reason' || key === 'condition') {
-        const conditionToUse = key === 'condition' ? value : next.condition || 'MISSING'
-        const reasonToUse = key === 'reason' ? value : next.reason || missingReasonOptions[0]
-        next.amount = resolveFineAmount(reasonToUse, conditionToUse)
+      if (key === 'reason') {
+        next.amount = resolveFineAmount(value, type)
       }
       return next
     })
+    
     if (key === 'studentId') {
-      setMissingLoans([])
+      setLoans([])
     }
   }
 
-  const handleMissingSubmit = async (event) => {
+  const handleBookReportSubmit = (type) => async (event) => {
     event.preventDefault()
-    const trimmedStudentId = missingForm.studentId.trim()
+    const form = type === 'MISSING' ? missingBookForm : damagedBookForm
+    const setSaving = type === 'MISSING' ? setSavingMissing : setSavingDamaged
+    const setForm = type === 'MISSING' ? setMissingBookForm : setDamagedBookForm
+    const setLoans = type === 'MISSING' ? setMissingBookLoans : setDamagedBookLoans
+    const loans = type === 'MISSING' ? missingBookLoans : damagedBookLoans
+
+    const trimmedStudentId = form.studentId.trim()
     if (!trimmedStudentId) {
       showToast('Enter a student ID.', { type: 'warning' })
       return
     }
 
-    const loanIdNum = Number(missingForm.loanId || 0)
+    const loanIdNum = Number(form.loanId || 0)
     if (!Number.isFinite(loanIdNum) || loanIdNum <= 0) {
       showToast('Select at least one issued book to mark.', { type: 'warning' })
       return
     }
 
-    const amountNum = Number(missingForm.amount || 0)
+    const amountNum = Number(form.amount || 0)
     if (!Number.isFinite(amountNum) || amountNum <= 0) {
       showToast('Enter a valid fine amount.', { type: 'warning' })
       return
     }
 
-    setSavingMissing(true)
+    setSaving(true)
     const successes = []
     const failures = []
-    const preparedItems = [
-      {
-        loanId: loanIdNum,
-        condition: (missingForm.condition || 'MISSING').toUpperCase(),
-        reason: missingForm.reason,
-        amount: amountNum
-      }
-    ]
-
-    for (const item of preparedItems) {
-      const loanRow = missingLoans.find((l) => l.id === item.loanId)
+    
+    // Process logic similar to before
+    try {
+      const loanRow = loans.find((l) => l.id === loanIdNum)
       const copyId = loanRow?.library_book_copies?.id
 
-      try {
-        const { error: loanError } = await supabase
-          .from('library_loans')
-          .update({ status: item.condition, returned_at: new Date().toISOString() })
-          .eq('id', item.loanId)
-        if (loanError) throw loanError
+      const { error: loanError } = await supabase
+        .from('library_loans')
+        .update({ status: type, returned_at: new Date().toISOString() })
+        .eq('id', loanIdNum)
+      if (loanError) throw loanError
 
-        if (copyId) {
-          const { error: copyError } = await supabase
-            .from('library_book_copies')
-            .update({ availability: item.condition })
-            .eq('id', copyId)
-          if (copyError) throw copyError
-        }
-
-        const payload = {
-          loan_id: item.loanId,
-          amount: item.amount,
-          student_id: trimmedStudentId,
-          status: 'PENDING'
-        }
-        if (item.reason) payload.reason = item.reason
-
-        const { error: fineError } = await supabase.from('library_fines').insert([payload])
-        if (fineError) throw fineError
-
-        successes.push(item.loanId)
-      } catch (err) {
-        console.error('Failed to mark missing/damaged', err)
-        if (err.message?.includes('reason')) {
-          try {
-            const fallbackPayload = {
-              loan_id: item.loanId,
-              amount: item.amount,
-              student_id: trimmedStudentId,
-              status: 'PENDING'
-            }
-            const { error: retryError } = await supabase.from('library_fines').insert([fallbackPayload])
-            if (retryError) throw retryError
-            successes.push(item.loanId)
-            continue
-          } catch (retryErr) {
-            console.error('Retry failed', retryErr)
-          }
-        }
-        failures.push(item.loanId)
+      if (copyId) {
+        const { error: copyError } = await supabase
+          .from('library_book_copies')
+          .update({ availability: type })
+          .eq('id', copyId)
+        if (copyError) throw copyError
       }
-    }
 
-    if (successes.length > 0) {
-      const failCount = failures.length
-      const successMsg =
-        failCount > 0
-          ? `Updated ${successes.length} loan(s). ${failCount} failed.`
-          : `Updated ${successes.length} loan(s) successfully.`
-      showToast(successMsg, { type: failCount > 0 ? 'warning' : 'success' })
-      setMissingForm({
-        ...initialMissingForm,
-        amount: resolveFineAmount(initialMissingForm.reason, initialMissingForm.condition)
+      const payload = {
+        loan_id: loanIdNum,
+        amount: amountNum,
+        student_id: trimmedStudentId,
+        status: 'PENDING',
+        reason: form.reason
+      }
+
+      const { error: fineError } = await supabase.from('library_fines').insert([payload])
+      if (fineError) throw fineError
+
+      successes.push(loanIdNum)
+      
+      showToast(`${type === 'MISSING' ? 'Missing' : 'Damaged'} book reported and fine raised.`, { type: 'success' })
+      
+      // Reset form
+      setForm({
+        studentId: '',
+        loanId: '',
+        condition: type,
+        reason: missingReasonOptions[0],
+        amount: resolveFineAmount(missingReasonOptions[0], type)
       })
-      setMissingLoans([])
+      setLoans([])
       loadFines()
-    } else {
-      showToast('Unable to update missing/damaged book right now.', { type: 'danger' })
+
+    } catch (err) {
+      console.error(`Failed to mark ${type}`, err)
+      showToast(`Unable to update ${type.toLowerCase()} book.`, { type: 'danger' })
+    } finally {
+      setSaving(false)
     }
-    setSavingMissing(false)
   }
   return (
     <div className="desktop-container" style={{ overflowX: 'hidden' }}>
@@ -469,7 +477,7 @@ export default function Fines() {
         </div>
       </div>
 
-      <div className="row g-4 justify-content-center mx-0">
+      <div className="row g-4 justify-content-center mx-0 mb-4">
         <div className="col-12 col-lg-6">
           <div className="card card-soft p-4 h-100">
             <div className="d-flex justify-content-between align-items-center mb-3">
@@ -590,99 +598,104 @@ export default function Fines() {
                 <tbody>
                   {pendingFines.length === 0 ? (
                     <tr>
-                      <td colSpan="4" className="text-center text-muted py-4">No pending fines loaded.</td>
+                      <td colSpan="5" className="text-center text-muted py-4">No pending fines loaded.</td>
                     </tr>
-                ) : (
-                  pendingFines.map((fine) => {
-                    const student = fine.students
-                    const book = fine.library_loans?.library_book_copies?.library_books
-                    const dueDate = fine.library_loans?.due_date
-                    const loanStatus = fine.library_loans?.status
-                    const days = dueDate
-                      ? Math.max(0, Math.floor((today - new Date(dueDate)) / (1000 * 60 * 60 * 24)))
-                      : 0
-                    let reason = fine.reason || null
-                    if (!reason) {
-                      if (loanStatus === 'MISSING') reason = 'Missing'
-                      else if (loanStatus === 'DAMAGED') reason = 'Damaged'
-                      else if (dueDate && new Date(dueDate) < today) {
-                          reason = `Delayed${days > 0 ? ` (${days} days)` : ''}`
-                      } else {
-                        reason = 'Fine'
+                  ) : (
+                    pendingFines.map((fine) => {
+                      const student = fine.students
+                      const book = fine.library_loans?.library_book_copies?.library_books
+                      const dueDate = fine.library_loans?.due_date
+                      const loanStatus = fine.library_loans?.status
+                      const days = dueDate
+                        ? Math.max(0, Math.floor((today - new Date(dueDate)) / (1000 * 60 * 60 * 24)))
+                        : 0
+                      let reason = fine.reason || null
+                      if (!reason) {
+                        if (loanStatus === 'MISSING') reason = 'Missing'
+                        else if (loanStatus === 'DAMAGED') reason = 'Damaged'
+                        else if (dueDate && new Date(dueDate) < today) {
+                            reason = `Delayed${days > 0 ? ` (${days} days)` : ''}`
+                        } else {
+                          reason = 'Fine'
+                        }
                       }
-                    }
-                    return (
-                      <tr key={fine.id}>
-                        <td>{student?.full_name || 'Unknown'} ({student?.student_id || '--'})</td>
-                        <td>{book?.title || 'Unknown'}</td>
-                        <td>{reason}</td>
-                        <td>{days}</td>
-                        <td className="text-end">Rs. {fine.amount || 0}</td>
-                      </tr>
-                    )
-                  })
-                )}
-              </tbody>
-            </table>
+                      return (
+                        <tr key={fine.id}>
+                          <td>{student?.full_name || 'Unknown'} ({student?.student_id || '--'})</td>
+                          <td>{book?.title || 'Unknown'}</td>
+                          <td>{reason}</td>
+                          <td>{days}</td>
+                          <td className="text-end">Rs. {fine.amount || 0}</td>
+                        </tr>
+                      )
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-        </div>
-        <div className="col-12">
+      </div>
+
+      <div className="row g-4 justify-content-center mx-0">
+        <div className="col-12 col-lg-6">
           <div className="card card-soft p-4 h-100">
             <div className="d-flex justify-content-between align-items-center mb-3">
               <div>
-                <h4 className="mb-1">Missing / Damaged Books</h4>
-                <p className="text-muted mb-0">Mark copies as missing or damaged and raise fines.</p>
+                <h4 className="mb-1">Report Missing Book</h4>
+                <p className="text-muted mb-0">Mark copies as missing and raise fine.</p>
               </div>
             </div>
-            <form className="row g-3" onSubmit={handleMissingSubmit}>
-              <div className="col-md-4">
+            <form className="row g-3" onSubmit={handleBookReportSubmit('MISSING')}>
+              <div className="col-12">
                 <label className="form-label">Student ID</label>
-                <input
-                  className="form-control"
-                  type="text"
-                  placeholder="STU-1001"
-                  value={missingForm.studentId}
-                  onChange={handleMissingChange('studentId')}
-                  onBlur={(event) => fetchMissingLoans(event.target.value)}
-                />
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary btn-sm mt-2"
-                  onClick={() => fetchMissingLoans(missingForm.studentId)}
-                  disabled={!missingForm.studentId.trim()}
-                >
-                  Load Loans
-                </button>
+                <div className="input-group">
+                  <input
+                    className="form-control"
+                    type="text"
+                    placeholder="STU-1001"
+                    value={missingBookForm.studentId}
+                    onChange={handleBookReportChange('MISSING')('studentId')}
+                    onBlur={(event) => fetchStudentLoans(event.target.value, 'MISSING')}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => fetchStudentLoans(missingBookForm.studentId, 'MISSING')}
+                    disabled={!missingBookForm.studentId.trim()}
+                  >
+                    Load
+                  </button>
+                </div>
               </div>
-              <div className="col-md-4">
+              <div className="col-12">
                 <label className="form-label">Issued Book</label>
                 <select
                   className="form-select"
-                  value={missingForm.loanId}
-                  onChange={handleMissingChange('loanId')}
-                  disabled={!missingLoans.length}
+                  value={missingBookForm.loanId}
+                  onChange={handleBookReportChange('MISSING')('loanId')}
+                  disabled={!missingBookLoans.length}
                 >
                   <option value="">
-                    {missingForm.studentId.trim()
-                      ? missingLoans.length
+                    {missingBookForm.studentId.trim()
+                      ? missingBookLoans.length
                         ? 'Select a loan'
                         : 'No active loans'
                       : 'Enter student ID'}
                   </option>
-                  {missingLoans.map((loan) => (
+                  {missingBookLoans.map((loan) => (
                     <option key={loan.id} value={loan.id}>
-                      {loan.library_book_copies?.library_books?.title || 'Unknown'} Â· Due {formatDate(loan.due_date)}
+                      {loan.library_book_copies?.library_books?.title || 'Unknown'} · Due {formatDate(loan.due_date)}
                     </option>
                   ))}
                 </select>
               </div>
-              <div className="col-md-4">
+              <div className="col-12">
                 <label className="form-label">Reason</label>
                 <select
                   className="form-select"
-                  value={missingForm.reason}
-                  onChange={handleMissingChange('reason')}
+                  value={missingBookForm.reason}
+                  onChange={handleBookReportChange('MISSING')('reason')}
                 >
                   {missingReasonOptions.map((option) => (
                     <option key={option} value={option}>
@@ -691,20 +704,18 @@ export default function Fines() {
                   ))}
                 </select>
               </div>
-              <div className="col-md-2">
+              <div className="col-md-6">
                 <label className="form-label">Condition</label>
-                <select className="form-select" value={missingForm.condition} onChange={handleMissingChange('condition')}>
-                  <option value="MISSING">Missing</option>
-                  <option value="DAMAGED">Damaged</option>
-                </select>
+                <input className="form-control" type="text" value="Missing" disabled readOnly />
               </div>
-              <div className="col-md-2">
+              <div className="col-md-6">
                 <label className="form-label">Fine (Rs.)</label>
                 <input
                   className="form-control"
                   type="number"
-                  value={missingForm.amount}
-                  onChange={handleMissingChange('amount')}
+                  value={missingBookForm.amount}
+                  disabled
+                  readOnly
                   min="0"
                 />
               </div>
@@ -713,17 +724,126 @@ export default function Fines() {
                   type="button"
                   className="btn btn-outline-secondary"
                   onClick={() => {
-                    setMissingForm({
-                      ...initialMissingForm,
-                      amount: resolveFineAmount(initialMissingForm.reason, initialMissingForm.condition)
+                    setMissingBookForm({
+                      studentId: '',
+                      loanId: '',
+                      condition: 'MISSING',
+                      reason: missingReasonOptions[0],
+                      amount: resolveFineAmount(missingReasonOptions[0], 'MISSING')
                     })
-                    setMissingLoans([])
+                    setMissingBookLoans([])
                   }}
                 >
                   Reset
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={savingMissing}>
-                  {savingMissing ? 'Saving...' : 'Mark & Fine'}
+                  {savingMissing ? 'Saving...' : 'Mark Missing'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div className="col-12 col-lg-6">
+          <div className="card card-soft p-4 h-100">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <h4 className="mb-1">Report Damaged Book</h4>
+                <p className="text-muted mb-0">Mark copies as damaged and raise fine.</p>
+              </div>
+            </div>
+            <form className="row g-3" onSubmit={handleBookReportSubmit('DAMAGED')}>
+              <div className="col-12">
+                <label className="form-label">Student ID</label>
+                <div className="input-group">
+                  <input
+                    className="form-control"
+                    type="text"
+                    placeholder="STU-1001"
+                    value={damagedBookForm.studentId}
+                    onChange={handleBookReportChange('DAMAGED')('studentId')}
+                    onBlur={(event) => fetchStudentLoans(event.target.value, 'DAMAGED')}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => fetchStudentLoans(damagedBookForm.studentId, 'DAMAGED')}
+                    disabled={!damagedBookForm.studentId.trim()}
+                  >
+                    Load
+                  </button>
+                </div>
+              </div>
+              <div className="col-12">
+                <label className="form-label">Issued Book</label>
+                <select
+                  className="form-select"
+                  value={damagedBookForm.loanId}
+                  onChange={handleBookReportChange('DAMAGED')('loanId')}
+                  disabled={!damagedBookLoans.length}
+                >
+                  <option value="">
+                    {damagedBookForm.studentId.trim()
+                      ? damagedBookLoans.length
+                        ? 'Select a loan'
+                        : 'No active loans'
+                      : 'Enter student ID'}
+                  </option>
+                  {damagedBookLoans.map((loan) => (
+                    <option key={loan.id} value={loan.id}>
+                      {loan.library_book_copies?.library_books?.title || 'Unknown'} · Due {formatDate(loan.due_date)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-12">
+                <label className="form-label">Reason</label>
+                <select
+                  className="form-select"
+                  value={damagedBookForm.reason}
+                  onChange={handleBookReportChange('DAMAGED')('reason')}
+                >
+                  {missingReasonOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-md-6">
+                <label className="form-label">Condition</label>
+                <input className="form-control" type="text" value="Damaged" disabled readOnly />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label">Fine (Rs.)</label>
+                <input
+                  className="form-control"
+                  type="number"
+                  value={damagedBookForm.amount}
+                  disabled
+                  readOnly
+                  min="0"
+                />
+              </div>
+              <div className="col-12 d-flex justify-content-end gap-2">
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary"
+                  onClick={() => {
+                    setDamagedBookForm({
+                      studentId: '',
+                      loanId: '',
+                      condition: 'DAMAGED',
+                      reason: missingReasonOptions[0],
+                      amount: resolveFineAmount(missingReasonOptions[0], 'DAMAGED')
+                    })
+                    setDamagedBookLoans([])
+                  }}
+                >
+                  Reset
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={savingDamaged}>
+                  {savingDamaged ? 'Saving...' : 'Mark Damaged'}
                 </button>
               </div>
             </form>

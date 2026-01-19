@@ -20,6 +20,10 @@ export default function Reports() {
     loading: false
   })
   const [activeTab, setActiveTab] = useState('issued')
+  const [summaryFilter, setSummaryFilter] = useState('all')
+  const [circulationFilter, setCirculationFilter] = useState('all')
+  const [overdueFilter, setOverdueFilter] = useState('all')
+  const [topBorrowedLimit, setTopBorrowedLimit] = useState('20')
 
   const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), [])
   const monthLabels = useMemo(() => {
@@ -183,7 +187,22 @@ export default function Reports() {
       }
 
       const headers = ['Title', 'Author', 'Language', 'Publisher', 'Year', 'Shelf', 'Status', 'Copies']
-      const rows = (books || []).map((book) => ([
+      const filteredBooks = (books || []).filter((book) => {
+        const copyCount = copiesByBook[String(book.id)] || 0
+        const statusValue = (book.status || '').toUpperCase()
+        if (summaryFilter === 'available') return copyCount > 0
+        if (summaryFilter === 'out') return copyCount === 0
+        if (summaryFilter === 'public') return statusValue === 'PUBLIC'
+        if (summaryFilter === 'private') return statusValue === 'PRIVATE'
+        return true
+      })
+
+      if (filteredBooks.length === 0) {
+        showToast('No records match the selected filter.', { type: 'warning' })
+        return
+      }
+
+      const rows = filteredBooks.map((book) => ([
         book.title || '',
         book.author || '',
         book.language || '',
@@ -194,7 +213,8 @@ export default function Reports() {
         copiesByBook[String(book.id)] || 0
       ]))
 
-      downloadCsv('library-summary.csv', headers, rows)
+      const suffix = summaryFilter === 'all' ? '' : `-${summaryFilter}`
+      downloadCsv(`library-summary${suffix}.csv`, headers, rows)
       showToast('Library summary downloaded.', { type: 'success' })
     } catch (error) {
       console.error('Failed to download library summary', error)
@@ -213,8 +233,26 @@ export default function Reports() {
 
       if (error) throw error
 
+      const filteredLoans = (loans || []).filter((loan) => {
+        const status = (loan.status || '').toUpperCase()
+        const dueDateValue = loan.due_date ? new Date(loan.due_date) : null
+        const isOverdue = dueDateValue ? (new Date(todayIso) > dueDateValue && status === 'ISSUED') : false
+
+        if (circulationFilter === 'issued') return status === 'ISSUED'
+        if (circulationFilter === 'returned') return status === 'RETURNED'
+        if (circulationFilter === 'damaged') return status === 'DAMAGED'
+        if (circulationFilter === 'missing') return status === 'MISSING'
+        if (circulationFilter === 'overdue') return isOverdue
+        return true
+      })
+
+      if (filteredLoans.length === 0) {
+        showToast('No circulation records match the selected filter.', { type: 'warning' })
+        return
+      }
+
       const headers = ['Student', 'Student ID', 'Book', 'Author', 'Shelf', 'Issued At', 'Returned At', 'Due Date', 'Status']
-      const rows = (loans || []).map((loan) => ([
+      const rows = filteredLoans.map((loan) => ([
         loan.students?.full_name || '',
         loan.students?.student_id || '',
         loan.library_book_copies?.library_books?.title || '',
@@ -226,7 +264,8 @@ export default function Reports() {
         loan.status || ''
       ]))
 
-      downloadCsv('circulation-report.csv', headers, rows)
+      const suffix = circulationFilter === 'all' ? '' : `-${circulationFilter}`
+      downloadCsv(`circulation-report${suffix}.csv`, headers, rows)
       showToast('Circulation report downloaded.', { type: 'success' })
     } catch (error) {
       console.error('Failed to download circulation report', error)
@@ -249,19 +288,35 @@ export default function Reports() {
 
       const headers = ['Student', 'Student ID', 'Book', 'Due Date', 'Days Overdue']
       const today = new Date()
-      const rows = (loans || []).map((loan) => {
+      const filtered = (loans || []).map((loan) => {
         const dueDateValue = loan.due_date ? new Date(loan.due_date) : null
         const daysOverdue = dueDateValue ? Math.max(0, Math.floor((today - dueDateValue) / (1000 * 60 * 60 * 24))) : 0
-        return [
-          loan.students?.full_name || '',
-          loan.students?.student_id || '',
-          loan.library_book_copies?.library_books?.title || '',
-          formatDate(loan.due_date),
+        return {
+          row: [
+            loan.students?.full_name || '',
+            loan.students?.student_id || '',
+            loan.library_book_copies?.library_books?.title || '',
+            formatDate(loan.due_date),
+            daysOverdue
+          ],
           daysOverdue
-        ]
+        }
+      }).filter(({ daysOverdue }) => {
+        if (overdueFilter === 'week') return daysOverdue <= 7
+        if (overdueFilter === 'month') return daysOverdue > 7 && daysOverdue <= 30
+        if (overdueFilter === 'overMonth') return daysOverdue > 30
+        return true
       })
 
-      downloadCsv('overdue-report.csv', headers, rows)
+      if (filtered.length === 0) {
+        showToast('No overdue records match the selected filter.', { type: 'warning' })
+        return
+      }
+
+      const rows = filtered.map(({ row }) => row)
+
+      const suffix = overdueFilter === 'all' ? '' : `-${overdueFilter}`
+      downloadCsv(`overdue-report${suffix}.csv`, headers, rows)
       showToast('Overdue report downloaded.', { type: 'success' })
     } catch (error) {
       console.error('Failed to download overdue report', error)
@@ -285,10 +340,16 @@ export default function Reports() {
 
       const rows = Object.entries(counts)
         .sort((a, b) => b[1] - a[1])
-        .slice(0, 20)
+        .slice(0, topBorrowedLimit === 'all' ? undefined : Number(topBorrowedLimit))
         .map(([title, total]) => [title, total])
 
-      downloadCsv('top-borrowed.csv', ['Book Title', 'Total Issued'], rows)
+      if (rows.length === 0) {
+        showToast('No borrowed records available.', { type: 'warning' })
+        return
+      }
+
+      const suffix = topBorrowedLimit === 'all' ? '' : `-top${topBorrowedLimit}`
+      downloadCsv(`top-borrowed${suffix}.csv`, ['Book Title', 'Total Issued'], rows)
       showToast('Top borrowed report downloaded.', { type: 'success' })
     } catch (error) {
       console.error('Failed to download top borrowed report', error)
@@ -363,6 +424,20 @@ export default function Reports() {
           <div className="card card-soft p-4 h-100">
             <h5 className="mb-2">Library Summary</h5>
             <p className="text-muted small mb-3">Stock by category, location, and status.</p>
+            <div className="mb-2">
+              <label className="form-label small text-muted mb-1">Filter</label>
+              <select
+                className="form-select form-select-sm"
+                value={summaryFilter}
+                onChange={(e) => setSummaryFilter(e.target.value)}
+              >
+                <option value="all">All stock</option>
+                <option value="available">Available copies</option>
+                <option value="out">Out of stock</option>
+                <option value="public">Public status</option>
+                <option value="private">Private status</option>
+              </select>
+            </div>
             <button className="btn btn-outline-primary w-100" type="button" onClick={handleLibrarySummaryDownload}>
               Download
             </button>
@@ -372,6 +447,21 @@ export default function Reports() {
           <div className="card card-soft p-4 h-100">
             <h5 className="mb-2">Circulation Report</h5>
             <p className="text-muted small mb-3">Issued, returned, and renewals.</p>
+            <div className="mb-2">
+              <label className="form-label small text-muted mb-1">Filter</label>
+              <select
+                className="form-select form-select-sm"
+                value={circulationFilter}
+                onChange={(e) => setCirculationFilter(e.target.value)}
+              >
+                <option value="all">All statuses</option>
+                <option value="issued">Issued</option>
+                <option value="returned">Returned</option>
+                <option value="overdue">Overdue</option>
+                <option value="damaged">Damaged</option>
+                <option value="missing">Missing</option>
+              </select>
+            </div>
             <button className="btn btn-outline-primary w-100" type="button" onClick={handleCirculationDownload}>
               Download
             </button>
@@ -381,6 +471,19 @@ export default function Reports() {
           <div className="card card-soft p-4 h-100">
             <h5 className="mb-2">Overdue Report</h5>
             <p className="text-muted small mb-3">Pending returns and fine amounts.</p>
+            <div className="mb-2">
+              <label className="form-label small text-muted mb-1">Filter</label>
+              <select
+                className="form-select form-select-sm"
+                value={overdueFilter}
+                onChange={(e) => setOverdueFilter(e.target.value)}
+              >
+                <option value="all">All overdue</option>
+                <option value="week">Up to 7 days</option>
+                <option value="month">8-30 days</option>
+                <option value="overMonth">Over 30 days</option>
+              </select>
+            </div>
             <button className="btn btn-outline-primary w-100" type="button" onClick={handleOverdueDownload}>
               Download
             </button>
@@ -390,6 +493,20 @@ export default function Reports() {
           <div className="card card-soft p-4 h-100">
             <h5 className="mb-2">Top Borrowed</h5>
             <p className="text-muted small mb-3">Most issued titles and trends.</p>
+            <div className="mb-2">
+              <label className="form-label small text-muted mb-1">Limit</label>
+              <select
+                className="form-select form-select-sm"
+                value={topBorrowedLimit}
+                onChange={(e) => setTopBorrowedLimit(e.target.value)}
+              >
+                <option value="10">Top 10</option>
+                <option value="20">Top 20</option>
+                <option value="50">Top 50</option>
+                <option value="100">Top 100</option>
+                <option value="all">All</option>
+              </select>
+            </div>
             <button className="btn btn-outline-primary w-100" type="button" onClick={handleTopBorrowedDownload}>
               Download
             </button>
