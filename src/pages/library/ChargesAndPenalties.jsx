@@ -15,6 +15,8 @@ export default function ChargesAndPenalties() {
   const [settingsId, setSettingsId] = useState(null)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [editing, setEditing] = useState(false)
 
   const loadCharges = async () => {
     setLoading(true)
@@ -68,6 +70,10 @@ export default function ChargesAndPenalties() {
 
   const handleSave = async (event) => {
     event.preventDefault()
+    if (!editing && settingsId) {
+      setEditing(true)
+      return
+    }
     const fineAmount = Number(form.fineAmount || 0)
     const missingAmount = Number(form.missingAmount || 0)
     const damagedAmount = Number(form.damagedAmount || 0)
@@ -116,6 +122,27 @@ export default function ChargesAndPenalties() {
       showToast('Unable to save charges. Check schema for required columns.', { type: 'danger' })
     } finally {
       setSaving(false)
+      setEditing(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!settingsId) {
+      showToast('No saved settings to delete.', { type: 'warning' })
+      return
+    }
+    setDeleting(true)
+    try {
+      const { error } = await supabase.from('global_settings').delete().eq('id', settingsId)
+      if (error) throw error
+      setSettingsId(null)
+      setForm(initialForm)
+      showToast('Charges deleted.', { type: 'success' })
+    } catch (err) {
+      console.error('Failed to delete charges', err)
+      showToast('Unable to delete charges.', { type: 'danger' })
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -154,7 +181,7 @@ export default function ChargesAndPenalties() {
                   min="0"
                   value={form.fineAmount}
                   onChange={handleChange('fineAmount')}
-                  disabled={loading}
+                  disabled={loading || (settingsId && !editing)}
                 />
               </div>
               <div className="col-md-6">
@@ -165,7 +192,7 @@ export default function ChargesAndPenalties() {
                   min="0"
                   value={form.missingAmount}
                   onChange={handleChange('missingAmount')}
-                  disabled={loading}
+                  disabled={loading || (settingsId && !editing)}
                 />
               </div>
               <div className="col-md-6">
@@ -176,7 +203,7 @@ export default function ChargesAndPenalties() {
                   min="0"
                   value={form.damagedAmount}
                   onChange={handleChange('damagedAmount')}
-                  disabled={loading}
+                  disabled={loading || (settingsId && !editing)}
                 />
               </div>
               <div className="col-md-6">
@@ -187,16 +214,30 @@ export default function ChargesAndPenalties() {
                   min="0"
                   value={form.depositAmount}
                   onChange={handleChange('depositAmount')}
-                  disabled={loading}
+                  disabled={loading || (settingsId && !editing)}
                 />
               </div>
               <div className="col-12 d-flex justify-content-end gap-2">
-                <button type="button" className="btn btn-outline-secondary" onClick={() => setForm(initialForm)} disabled={loading || saving}>
-                  Reset
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={saving || loading}>
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </button>
+                {settingsId && editing && (
+                  <button
+                    type="button"
+                    className="btn btn-outline-danger"
+                    onClick={handleDelete}
+                    disabled={deleting || saving || loading}
+                  >
+                    {deleting ? 'Deleting...' : 'Delete'}
+                  </button>
+                )}
+                {settingsId && !editing && (
+                  <button type="submit" className="btn btn-primary" disabled={saving || loading}>
+                    Edit
+                  </button>
+                )}
+                {(!settingsId || editing) && (
+                  <button type="submit" className="btn btn-primary" disabled={saving || loading}>
+                    {saving ? 'Saving...' : 'Save Changes'}
+                  </button>
+                )}
               </div>
             </form>
           </div>
