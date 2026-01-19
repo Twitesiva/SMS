@@ -31,6 +31,7 @@ export default function AllBooks() {
   const [editForm, setEditForm] = useState(emptyEditForm)
   const [saving, setSaving] = useState(false)
   const [deleteModal, setDeleteModal] = useState({ show: false, book: null, loading: false })
+  const [tableFilter, setTableFilter] = useState('all') // all | available | issued | damaged | missing
 
   const [selectedBook, setSelectedBook] = useState(null)
   const [modalTab, setModalTab] = useState('all') // 'all', 'issued', 'damaged'
@@ -174,8 +175,17 @@ export default function AllBooks() {
       })
     }
 
-    return result
-  }, [books, searchTerm])
+    const applyFilter = (book) => {
+      const info = copyCounts[String(book.id)] || { total: 0, available: 0, issued: 0, damaged: 0, missing: 0 }
+      if (tableFilter === 'available') return info.available > 0
+      if (tableFilter === 'issued') return info.issued > 0
+      if (tableFilter === 'damaged') return info.damaged > 0
+      if (tableFilter === 'missing') return info.missing > 0
+      return true
+    }
+
+    return result.filter(applyFilter)
+  }, [books, searchTerm, copyCounts, tableFilter])
 
   const stats = useMemo(() => {
     const totalTitles = books.length
@@ -360,7 +370,7 @@ export default function AllBooks() {
         </div>
       </section>
 
-      <div className="library-catalogue-stats row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-5 g-3 mb-4">
+      <div className="library-catalogue-stats row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-6 g-3 mb-4">
         <div className="col">
           <div className="library-catalogue-stat">
             <div className="library-catalogue-stat__label">Total Titles</div>
@@ -369,33 +379,38 @@ export default function AllBooks() {
           </div>
         </div>
         <div className="col">
-          <div className="library-catalogue-stat">
+          <div className="library-catalogue-stat" style={{ cursor: 'pointer' }} onClick={() => setTableFilter('all')}>
             <div className="library-catalogue-stat__label">Total Copies</div>
             <div className="library-catalogue-stat__value">{stats.totalCopies}</div>
             <div className="library-catalogue-stat__meta">Across all shelves</div>
           </div>
         </div>
         <div className="col">
-          <div className="library-catalogue-stat">
-            <div className="library-catalogue-stat__label">Available Copies</div>
+          <div className={`library-catalogue-stat ${tableFilter === 'available' ? 'border border-primary' : ''}`} style={{ cursor: 'pointer' }} onClick={() => setTableFilter('available')}>
+            <div className="library-catalogue-stat__label">Available</div>
             <div className="library-catalogue-stat__value">{stats.totalAvailable}</div>
-            <div className="library-catalogue-stat__meta">Currently available</div>
+            <div className="library-catalogue-stat__meta">Filter: available</div>
           </div>
         </div>
         <div className="col">
-          <div className="library-catalogue-stat">
-            <div className="library-catalogue-stat__label">Damaged / Missing</div>
-            <div className="library-catalogue-stat__value">
-              {stats.totalDamaged} / {stats.totalMissing}
-            </div>
-            <div className="library-catalogue-stat__meta">Condition tracking</div>
-          </div>
-        </div>
-        <div className="col">
-          <div className="library-catalogue-stat">
-            <div className="library-catalogue-stat__label">Issued Copies</div>
+          <div className={`library-catalogue-stat ${tableFilter === 'issued' ? 'border border-primary' : ''}`} style={{ cursor: 'pointer' }} onClick={() => setTableFilter('issued')}>
+            <div className="library-catalogue-stat__label">Issued</div>
             <div className="library-catalogue-stat__value">{stats.totalIssued}</div>
-            <div className="library-catalogue-stat__meta">Currently issued</div>
+            <div className="library-catalogue-stat__meta">Filter: issued</div>
+          </div>
+        </div>
+        <div className="col">
+          <div className={`library-catalogue-stat ${tableFilter === 'damaged' ? 'border border-primary' : ''}`} style={{ cursor: 'pointer' }} onClick={() => setTableFilter('damaged')}>
+            <div className="library-catalogue-stat__label">Damaged</div>
+            <div className="library-catalogue-stat__value">{stats.totalDamaged}</div>
+            <div className="library-catalogue-stat__meta">Filter: damaged</div>
+          </div>
+        </div>
+        <div className="col">
+          <div className={`library-catalogue-stat ${tableFilter === 'missing' ? 'border border-primary' : ''}`} style={{ cursor: 'pointer' }} onClick={() => setTableFilter('missing')}>
+            <div className="library-catalogue-stat__label">Missing</div>
+            <div className="library-catalogue-stat__value">{stats.totalMissing}</div>
+            <div className="library-catalogue-stat__meta">Filter: missing</div>
           </div>
         </div>
       </div>
@@ -403,7 +418,12 @@ export default function AllBooks() {
       <div className="library-catalogue-toolbar">
         <div>
           <h4 className="mb-1">Catalogue Overview</h4>
-          <p className="text-muted mb-0">Search by title, author, ISBN, shelf code, or year.</p>
+          <p className="text-muted mb-0">
+            Search by title, author, ISBN, shelf code, or year.
+            {tableFilter !== 'all' && (
+              <span className="ms-2 badge bg-primary">Filter: {tableFilter}</span>
+            )}
+          </p>
         </div>
         <div className="library-catalogue-toolbar__actions">
           <div className="library-catalogue-search">
@@ -418,10 +438,11 @@ export default function AllBooks() {
               onChange={(event) => setSearchTerm(event.target.value)}
             />
           </div>
-          
-          <button className="btn btn-outline-secondary" type="button" onClick={() => { setSearchTerm(''); loadBooks(); }}>
-            Clear
-          </button>
+          {tableFilter !== 'all' && (
+            <button className="btn btn-outline-primary" type="button" onClick={() => setTableFilter('all')}>
+              Clear Filter
+            </button>
+          )}
         </div>
         <div className="library-catalogue-toolbar__meta">
           Showing {filteredBooks.length} of {books.length} titles

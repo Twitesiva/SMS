@@ -34,14 +34,19 @@ export const libraryNavGroups = [
         icon: 'bi-arrow-left-right'
       },
       {
-        to: '/library/settings',
-        label: 'Charges & Penalties',
-        icon: 'bi-gear'
-      },
-      {
         to: '/library/fines',
         label: 'Fines',
         icon: 'bi-cash-coin'
+      }
+    ]
+  },
+  {
+    title: 'Charges',
+    items: [
+      {
+        to: '/library/settings',
+        label: 'Charges & Penalties',
+        icon: 'bi-gear'
       }
     ]
   },
@@ -52,7 +57,12 @@ export const libraryNavGroups = [
         to: '/library/inventory',
         label: 'Library Insights',
         icon: 'bi-clipboard-data'
-      },
+      }
+    ]
+  },
+  {
+    title: 'Reports',
+    items: [
       {
         to: '/library/reports',
         label: 'Reports',
