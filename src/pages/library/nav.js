@@ -34,14 +34,14 @@ export const libraryNavGroups = [
         icon: 'bi-arrow-left-right'
       },
       {
-        to: '/library/fines',
-        label: 'Fines',
-        icon: 'bi-cash-coin'
-      },
-      {
         to: '/library/settings',
         label: 'Charges & Penalties',
         icon: 'bi-gear'
+      },
+      {
+        to: '/library/fines',
+        label: 'Fines',
+        icon: 'bi-cash-coin'
       }
     ]
   },

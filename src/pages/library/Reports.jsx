@@ -27,6 +27,12 @@ export default function Reports() {
   const [monthFilter, setMonthFilter] = useState('all')
   const [yearFilter, setYearFilter] = useState('all')
 
+  const [summaryPreview, setSummaryPreview] = useState({ rows: [], loading: false })
+  const [circulationPreview, setCirculationPreview] = useState({ rows: [], loading: false })
+  const [overduePreview, setOverduePreview] = useState({ rows: [], loading: false })
+  const [topBorrowedPreview, setTopBorrowedPreview] = useState({ rows: [], loading: false })
+  const [activePreview, setActivePreview] = useState(null)
+
   const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), [])
   const monthOptions = useMemo(
     () => [
@@ -251,6 +257,71 @@ export default function Reports() {
     }
   }
 
+  const previewLibrarySummary = async () => {
+    setActivePreview('summary')
+    setSummaryPreview({ rows: [], loading: true })
+    try {
+      const { data: books, error: bookError } = await supabase
+        .from('library_books')
+        .select('id, title, author, status, created_at')
+        .order('created_at', { ascending: false })
+        .limit(50)
+      if (bookError) throw bookError
+
+      const filteredBooks = (books || []).filter((book) => {
+        if (!matchesMonthYear(book.created_at)) return false
+        const statusValue = (book.status || '').toUpperCase()
+        if (summaryFilter === 'available' || summaryFilter === 'out') {
+          return true // handled after counts
+        }
+        if (summaryFilter === 'public') return statusValue === 'PUBLIC'
+        if (summaryFilter === 'private') return statusValue === 'PRIVATE'
+        return true
+      })
+
+      const bookIds = filteredBooks.map((b) => b.id)
+      let copiesByBook = {}
+      if (bookIds.length > 0) {
+        const { data: copies, error: copyError } = await supabase
+          .from('library_book_copies')
+          .select('book_id, availability')
+          .in('book_id', bookIds)
+        if (copyError) throw copyError
+        copiesByBook = (copies || []).reduce((acc, row) => {
+          const key = String(row.book_id)
+          acc[key] = acc[key] || { total: 0, available: 0 }
+          acc[key].total += 1
+          if ((row.availability || '').toUpperCase() === 'AVAILABLE') acc[key].available += 1
+          return acc
+        }, {})
+      }
+
+      const rows = filteredBooks
+        .map((book) => {
+          const copyInfo = copiesByBook[String(book.id)] || { total: 0, available: 0 }
+          return {
+            title: book.title || 'Untitled',
+            status: book.status || '-',
+            copies: copyInfo.total,
+            available: copyInfo.available,
+            availabilityFlag:
+              summaryFilter === 'available'
+                ? copyInfo.available > 0
+                : summaryFilter === 'out'
+                ? copyInfo.available === 0
+                : true
+          }
+        })
+        .filter((row) => row.availabilityFlag)
+        .slice(0, 8)
+      setSummaryPreview({ rows, loading: false })
+    } catch (error) {
+      console.error('Unable to preview summary', error)
+      setSummaryPreview({ rows: [], loading: false })
+      showToast('Unable to load summary preview.', { type: 'danger' })
+    }
+  }
+
   const handleCirculationDownload = async () => {
     try {
       const { data: loans, error } = await supabase
@@ -301,6 +372,49 @@ export default function Reports() {
     } catch (error) {
       console.error('Failed to download circulation report', error)
       showToast('Unable to download circulation report.', { type: 'danger' })
+    }
+  }
+
+  const previewCirculation = async () => {
+    setActivePreview('circulation')
+    setCirculationPreview({ rows: [], loading: true })
+    try {
+      const { data: loans, error } = await supabase
+        .from('library_loans')
+        .select(
+          'issued_at, returned_at, due_date, status, students(full_name,student_id), library_book_copies(book_id, library_books(title, author, shelf_code))'
+        )
+        .order('issued_at', { ascending: false })
+        .limit(50)
+
+      if (error) throw error
+
+      const filteredLoans = (loans || []).filter((loan) => {
+        const status = (loan.status || '').toUpperCase()
+        const dueDateValue = loan.due_date ? new Date(loan.due_date) : null
+        const isOverdue = dueDateValue ? new Date(todayIso) > dueDateValue && status === 'ISSUED' : false
+        if (!matchesMonthYear(loan.issued_at || loan.returned_at || loan.due_date)) return false
+        if (circulationFilter === 'issued') return status === 'ISSUED'
+        if (circulationFilter === 'returned') return status === 'RETURNED'
+        if (circulationFilter === 'damaged') return status === 'DAMAGED'
+        if (circulationFilter === 'missing') return status === 'MISSING'
+        if (circulationFilter === 'overdue') return isOverdue
+        return true
+      })
+
+      const rows = filteredLoans.slice(0, 8).map((loan) => ({
+        student: loan.students?.full_name || 'Unknown',
+        studentId: loan.students?.student_id || '--',
+        book: loan.library_book_copies?.library_books?.title || 'Unknown',
+        status: loan.status || '-',
+        due: loan.due_date
+      }))
+
+      setCirculationPreview({ rows, loading: false })
+    } catch (err) {
+      console.error('Unable to preview circulation', err)
+      setCirculationPreview({ rows: [], loading: false })
+      showToast('Unable to load circulation preview.', { type: 'danger' })
     }
   }
 
@@ -357,6 +471,51 @@ export default function Reports() {
     }
   }
 
+  const previewOverdue = async () => {
+    setActivePreview('overdue')
+    setOverduePreview({ rows: [], loading: true })
+    try {
+      const { data: loans, error } = await supabase
+        .from('library_loans')
+        .select(
+          'due_date, status, students(full_name,student_id), library_book_copies(book_id, library_books(title))'
+        )
+        .eq('status', 'ISSUED')
+        .lt('due_date', todayIso)
+        .order('due_date', { ascending: true })
+        .limit(50)
+
+      if (error) throw error
+
+      const today = new Date()
+      const filtered = (loans || []).map((loan) => {
+        const dueDateValue = loan.due_date ? new Date(loan.due_date) : null
+        const daysOverdue = dueDateValue ? Math.max(0, Math.floor((today - dueDateValue) / (1000 * 60 * 60 * 24))) : 0
+        return { loan, daysOverdue }
+      }).filter(({ daysOverdue, loan }) => {
+        if (!matchesMonthYear(loan.due_date)) return false
+        if (overdueFilter === 'week') return daysOverdue <= 7
+        if (overdueFilter === 'month') return daysOverdue > 7 && daysOverdue <= 30
+        if (overdueFilter === 'overMonth') return daysOverdue > 30
+        return true
+      })
+
+      const rows = filtered.slice(0, 8).map(({ loan, daysOverdue }) => ({
+        student: loan.students?.full_name || 'Unknown',
+        studentId: loan.students?.student_id || '--',
+        book: loan.library_book_copies?.library_books?.title || 'Unknown',
+        due: loan.due_date,
+        days: daysOverdue
+      }))
+
+      setOverduePreview({ rows, loading: false })
+    } catch (err) {
+      console.error('Unable to preview overdue', err)
+      setOverduePreview({ rows: [], loading: false })
+      showToast('Unable to load overdue preview.', { type: 'danger' })
+    }
+  }
+
   const handleTopBorrowedDownload = async () => {
     try {
       const { data: loans, error } = await supabase
@@ -390,6 +549,44 @@ export default function Reports() {
       showToast('Unable to download top borrowed report.', { type: 'danger' })
     }
   }
+
+  const previewTopBorrowed = async () => {
+    setActivePreview('top')
+    setTopBorrowedPreview({ rows: [], loading: true })
+    try {
+      const { data: loans, error } = await supabase
+        .from('library_loans')
+        .select('issued_at, library_book_copies(book_id, library_books(title))')
+
+      if (error) throw error
+
+      const counts = (loans || []).reduce((acc, loan) => {
+        if (!matchesMonthYear(loan.issued_at)) return acc
+        const bookTitle = loan.library_book_copies?.library_books?.title || 'Unknown'
+        acc[bookTitle] = (acc[bookTitle] || 0) + 1
+        return acc
+      }, {})
+
+      const rows = Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, topBorrowedLimit === 'all' ? 10 : Number(topBorrowedLimit))
+        .map(([title, total]) => ({ title, total }))
+
+      setTopBorrowedPreview({ rows, loading: false })
+    } catch (err) {
+      console.error('Unable to preview top borrowed', err)
+      setTopBorrowedPreview({ rows: [], loading: false })
+      showToast('Unable to load top borrowed preview.', { type: 'danger' })
+    }
+  }
+
+  // Auto-refresh the active preview only when filters change
+  useEffect(() => {
+    if (activePreview === 'summary') void previewLibrarySummary()
+    else if (activePreview === 'circulation') void previewCirculation()
+    else if (activePreview === 'overdue') void previewOverdue()
+    else if (activePreview === 'top') void previewTopBorrowed()
+  }, [activePreview, summaryFilter, circulationFilter, overdueFilter, topBorrowedLimit, monthFilter, yearFilter])
 
   useEffect(() => {
     const loadReports = async () => {
@@ -499,6 +696,9 @@ export default function Reports() {
             <button className="btn btn-outline-primary w-100" type="button" onClick={handleLibrarySummaryDownload}>
               Download
             </button>
+            <button className="btn btn-link w-100 mt-2 p-0" type="button" onClick={previewLibrarySummary} disabled={summaryPreview.loading}>
+              {summaryPreview.loading ? 'Loading preview...' : 'Preview'}
+            </button>
           </div>
         </div>
         <div className="col-12 col-md-6 col-xl-3">
@@ -547,6 +747,9 @@ export default function Reports() {
             <button className="btn btn-outline-primary w-100" type="button" onClick={handleCirculationDownload}>
               Download
             </button>
+            <button className="btn btn-link w-100 mt-2 p-0" type="button" onClick={previewCirculation} disabled={circulationPreview.loading}>
+              {circulationPreview.loading ? 'Loading preview...' : 'Preview'}
+            </button>
           </div>
         </div>
         <div className="col-12 col-md-6 col-xl-3">
@@ -562,7 +765,7 @@ export default function Reports() {
               >
                 <option value="all">All overdue</option>
                 <option value="week">Up to 7 days</option>
-                <option value="month">8-30 days</option>
+                <option value="month">8 to 30 days</option>
                 <option value="overMonth">Over 30 days</option>
               </select>
             </div>
@@ -592,6 +795,9 @@ export default function Reports() {
             </div>
             <button className="btn btn-outline-primary w-100" type="button" onClick={handleOverdueDownload}>
               Download
+            </button>
+            <button className="btn btn-link w-100 mt-2 p-0" type="button" onClick={previewOverdue} disabled={overduePreview.loading}>
+              {overduePreview.loading ? 'Loading preview...' : 'Preview'}
             </button>
           </div>
         </div>
@@ -640,7 +846,136 @@ export default function Reports() {
             <button className="btn btn-outline-primary w-100" type="button" onClick={handleTopBorrowedDownload}>
               Download
             </button>
+            <button className="btn btn-link w-100 mt-2 p-0" type="button" onClick={previewTopBorrowed} disabled={topBorrowedPreview.loading}>
+              {topBorrowedPreview.loading ? 'Loading preview...' : 'Preview'}
+            </button>
           </div>
+        </div>
+      </div>
+
+      <div className="card card-soft p-3 mt-2">
+        <div className="d-flex justify-content-between align-items-center mb-2">
+          <h6 className="mb-0">
+            {activePreview === 'summary' && 'Library Summary Preview'}
+            {activePreview === 'circulation' && 'Circulation Preview'}
+            {activePreview === 'overdue' && 'Overdue Preview'}
+            {activePreview === 'top' && 'Top Borrowed Preview'}
+            {!activePreview && 'Preview'}
+          </h6>
+          <span className="text-muted small">
+            {activePreview === 'summary' && `${summaryPreview.rows.length} rows`}
+            {activePreview === 'circulation' && `${circulationPreview.rows.length} rows`}
+            {activePreview === 'overdue' && `${overduePreview.rows.length} rows`}
+            {activePreview === 'top' && `${topBorrowedPreview.rows.length} rows`}
+            {!activePreview && ''}
+          </span>
+        </div>
+        <div className="table-responsive">
+          <table className="table table-sm mb-0">
+            {activePreview && (
+              <thead className="table-light">
+                {activePreview === 'summary' && (
+                  <tr>
+                    <th>Title</th>
+                    <th>Status</th>
+                    <th className="text-end">Copies</th>
+                    <th className="text-end">Available</th>
+                  </tr>
+                )}
+                {activePreview === 'circulation' && (
+                  <tr>
+                    <th>Student</th>
+                    <th>Book</th>
+                    <th>Status</th>
+                    <th className="text-end">Due</th>
+                  </tr>
+                )}
+                {activePreview === 'overdue' && (
+                  <tr>
+                    <th>Student</th>
+                    <th>Book</th>
+                    <th className="text-end">Due</th>
+                    <th className="text-end">Days</th>
+                  </tr>
+                )}
+                {activePreview === 'top' && (
+                  <tr>
+                    <th>Book</th>
+                    <th className="text-end">Total Issued</th>
+                  </tr>
+                )}
+              </thead>
+            )}
+            <tbody>
+              {!activePreview && (
+                <tr>
+                  <td className="text-center text-muted py-3">Select a preview to view data.</td>
+                </tr>
+              )}
+              {activePreview === 'summary' && (
+                summaryPreview.loading ? (
+                  <tr><td colSpan="4" className="text-center text-muted py-3">Loading...</td></tr>
+                ) : summaryPreview.rows.length === 0 ? (
+                  <tr><td colSpan="4" className="text-center text-muted py-3">No data.</td></tr>
+                ) : (
+                  summaryPreview.rows.map((row, idx) => (
+                    <tr key={`${row.title}-${idx}`}>
+                      <td>{row.title}</td>
+                      <td>{row.status}</td>
+                      <td className="text-end">{row.copies}</td>
+                      <td className="text-end">{row.available}</td>
+                    </tr>
+                  ))
+                )
+              )}
+              {activePreview === 'circulation' && (
+                circulationPreview.loading ? (
+                  <tr><td colSpan="4" className="text-center text-muted py-3">Loading...</td></tr>
+                ) : circulationPreview.rows.length === 0 ? (
+                  <tr><td colSpan="4" className="text-center text-muted py-3">No data.</td></tr>
+                ) : (
+                  circulationPreview.rows.map((row, idx) => (
+                    <tr key={`${row.studentId}-${idx}`}>
+                      <td>{row.student} ({row.studentId})</td>
+                      <td>{row.book}</td>
+                      <td>{row.status}</td>
+                      <td className="text-end">{formatDate(row.due)}</td>
+                    </tr>
+                  ))
+                )
+              )}
+              {activePreview === 'overdue' && (
+                overduePreview.loading ? (
+                  <tr><td colSpan="4" className="text-center text-muted py-3">Loading...</td></tr>
+                ) : overduePreview.rows.length === 0 ? (
+                  <tr><td colSpan="4" className="text-center text-muted py-3">No data.</td></tr>
+                ) : (
+                  overduePreview.rows.map((row, idx) => (
+                    <tr key={`${row.studentId}-${idx}`}>
+                      <td>{row.student} ({row.studentId})</td>
+                      <td>{row.book}</td>
+                      <td className="text-end">{formatDate(row.due)}</td>
+                      <td className="text-end">{row.days}</td>
+                    </tr>
+                  ))
+                )
+              )}
+              {activePreview === 'top' && (
+                topBorrowedPreview.loading ? (
+                  <tr><td colSpan="2" className="text-center text-muted py-3">Loading...</td></tr>
+                ) : topBorrowedPreview.rows.length === 0 ? (
+                  <tr><td colSpan="2" className="text-center text-muted py-3">No data.</td></tr>
+                ) : (
+                  topBorrowedPreview.rows.map((row, idx) => (
+                    <tr key={`${row.title}-${idx}`}>
+                      <td>{row.title}</td>
+                      <td className="text-end">{row.total}</td>
+                    </tr>
+                  ))
+                )
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
