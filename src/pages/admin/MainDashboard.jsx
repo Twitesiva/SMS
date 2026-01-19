@@ -42,6 +42,20 @@ export default function MainDashboard() {
 
     useEffect(() => {
         const fetchData = async () => {
+            // Define a vibrant color palette for all charts
+            const palette = [
+                '#4c75f2', // Blue
+                '#42d29d', // Green
+                '#f3ba2f', // Yellow
+                '#ff7b7b', // Red
+                '#36a2eb', // Sky
+                '#fd7e14', // Orange
+                '#20c997', // Teal
+                '#6f42c1', // Purple
+                '#d63384', // Pink
+                '#0dcaf0'  // Cyan
+            ];
+
             try {
                 // Fetch counts
                 const { count: studentCount } = await supabase
@@ -68,44 +82,112 @@ export default function MainDashboard() {
                 // --- Chart Data Fetching ---
 
                 // 1. Students Distribution
-                const { data: studentsData } = await supabase
+                // We fetch both direct text columns and foreign key relations to handle all data scenarios
+                const { data: studentsData, error: studentsError } = await supabase
                     .from('students')
-                    .select('group_name, course_name')
+                    .select(`
+                        id,
+                        group_name,
+                        course_name,
+                        groups:groups!students_group_id_fkey(group_name),
+                        courses:courses!fk_students_course(course_name)
+                    `)
+
+                // Fetch group and course reference data to resolve codes to names
+                const [{ data: groupsRef }, { data: coursesRef }] = await Promise.all([
+                    supabase.from('groups').select('group_name, group_code'),
+                    supabase.from('courses').select('course_name, course_code')
+                ]);
+
+                if (studentsError) console.error('Students Fetch Error:', studentsError)
 
                 if (studentsData) {
-                    const groupByGroup = studentsData.reduce((acc, curr) => {
-                        const g = curr.group_name || 'Unknown'
-                        acc[g] = (acc[g] || 0) + 1
-                        return acc
-                    }, {})
+                    // Create lookup maps for group validation and code resolution
+                    const validGroupNames = new Set(groupsRef?.map(g => g.group_name) || []);
+                    const groupCodeToNameMap = (groupsRef || []).reduce((acc, g) => {
+                        if (g.group_code) acc[g.group_code.toLowerCase()] = g.group_name;
+                        acc[String(g.group_code)] = g.group_name;
+                        return acc;
+                    }, {});
 
-                    const groupByCourse = studentsData.reduce((acc, curr) => {
-                        const c = curr.course_name || 'Unknown'
-                        acc[c] = (acc[c] || 0) + 1
-                        return acc
-                    }, {})
+                    // Create lookup maps for course validation and code resolution
+                    const validCourseNames = new Set(coursesRef?.map(c => c.course_name) || []);
+                    const courseCodeToNameMap = (coursesRef || []).reduce((acc, c) => {
+                        if (c.course_code) acc[c.course_code.toLowerCase()] = c.course_name;
+                        acc[String(c.course_code)] = c.course_name;
+                        return acc;
+                    }, {});
+
+                    console.log('Group Ref Map:', groupCodeToNameMap);
+                    console.log('Course Ref Map:', courseCodeToNameMap);
+
+                    // Map students to their group/course names with fallbacks
+                    const processedStudents = studentsData.map(s => {
+                        let gName = s.groups?.group_name || s.group_name;
+                        let cName = s.courses?.course_name || s.course_name;
+
+                        // Normalize Group Name
+                        if (gName) {
+                            if (!validGroupNames.has(gName)) {
+                                const mappedName = groupCodeToNameMap[String(gName).toLowerCase()] || groupCodeToNameMap[String(gName)];
+                                gName = mappedName || null; // Nullify if it can't be resolved to a valid name
+                            }
+                        }
+
+                        // Normalize Course Name
+                        if (cName) {
+                            if (!validCourseNames.has(cName)) {
+                                const mappedName = courseCodeToNameMap[String(cName).toLowerCase()] || courseCodeToNameMap[String(cName)];
+                                cName = mappedName || null; // Nullify if it can't be resolved to a valid name
+                            }
+                        }
+
+                        return { group_name: gName, course_name: cName };
+                    }).filter(s => s.group_name && s.course_name); // Filter out students with unresolved names
+
+                    console.log('Processed Students (Filtered):', processedStudents);
+
+                    const groupByGroup = processedStudents.reduce((acc, curr) => {
+                        const g = curr.group_name;
+                        acc[g] = (acc[g] || 0) + 1;
+                        return acc;
+                    }, {});
+
+                    const groupByCourse = processedStudents.reduce((acc, curr) => {
+                        const c = curr.course_name;
+                        acc[c] = (acc[c] || 0) + 1;
+                        return acc;
+                    }, {});
+
+                    console.log('Group Counts:', groupByGroup);
+                    console.log('Course Counts:', groupByCourse);
 
                     setStudentChartData({
                         group: {
-                            labels: Object.keys(groupByGroup),
-                            datasets: [{
-                                label: 'Students by Group',
-                                data: Object.values(groupByGroup),
-                                backgroundColor: '#4c75f2',
+                            labels: ['Students'],
+                            datasets: Object.keys(groupByGroup).map((key, i) => ({
+                                label: key,
+                                data: [groupByGroup[key]],
+                                backgroundColor: palette[i % palette.length],
                                 borderRadius: 6,
-                            }]
+                                barPercentage: 0.6,
+                                categoryPercentage: 0.9
+                            }))
                         },
                         course: {
-                            labels: Object.keys(groupByCourse),
-                            datasets: [{
-                                label: 'Students by Course',
-                                data: Object.values(groupByCourse),
-                                backgroundColor: '#a569bd',
+                            labels: ['Students'],
+                            datasets: Object.keys(groupByCourse).map((key, i) => ({
+                                label: key,
+                                data: [groupByCourse[key]],
+                                backgroundColor: palette[i % palette.length],
                                 borderRadius: 6,
-                            }]
+                                barPercentage: 0.6,
+                                categoryPercentage: 0.9
+                            }))
                         }
                     })
                 }
+
 
                 // 2. Staff Distribution
                 const { data: teachersData } = await supabase
@@ -120,30 +202,39 @@ export default function MainDashboard() {
                     }, {})
 
                     setStaffChartData({
-                        labels: Object.keys(groupByDesig),
-                        datasets: [{
-                            label: 'Staff by Designation',
-                            data: Object.values(groupByDesig),
-                            backgroundColor: ['#4c75f2', '#a569bd', '#42d29d', '#f3ba2f', '#ff7b7b'],
+                        labels: ['Staff'],
+                        datasets: Object.keys(groupByDesig).map((key, i) => ({
+                            label: key,
+                            data: [groupByDesig[key]],
+                            backgroundColor: palette[i % palette.length],
                             borderRadius: 6,
-                        }]
+                            barPercentage: 0.6,
+                            categoryPercentage: 0.9
+                        }))
                     })
                 }
 
-                // 3. Payment Status (from Admissions)
-                const { data: admissionsData } = await supabase
-                    .from('admissions')
-                    .select('admission_fee_paid')
+                // 3. Payment Status (from student_fee_payments, strictly Fees)
+                const { data: paymentData, error: paymentError } = await supabase
+                    .from('student_fee_payments')
+                    .select('student_id')
+                    .eq('payment_status', 'success')
+                    .not('academic_fee_id', 'is', null) // Filter for Academic Fees only
+                    .limit(5000)
 
-                if (admissionsData) {
-                    const paidCount = admissionsData.filter(a => a.admission_fee_paid).length
-                    const unpaidCount = admissionsData.length - paidCount
+                if (paymentError) console.error('Payment Fetch Error:', paymentError)
+
+                if (paymentData) {
+                    // Count unique students who have made a successful payment
+                    const uniquePaidStudents = new Set(paymentData.map(p => p.student_id)).size
+                    const totalStudents = studentCount || 0
+                    const unpaidCount = Math.max(0, totalStudents - uniquePaidStudents)
 
                     setPaymentChartData({
                         labels: ['Paid', 'Unpaid'],
                         datasets: [{
-                            label: 'Admission Fees',
-                            data: [paidCount, unpaidCount],
+                            label: 'Academic Fees',
+                            data: [uniquePaidStudents, unpaidCount],
                             backgroundColor: ['#42d29d', '#ff7b7b'],
                             borderRadius: 6,
                         }]
@@ -160,12 +251,22 @@ export default function MainDashboard() {
     const barOptions = {
         responsive: true,
         plugins: {
-            legend: { display: false },
+            legend: {
+                display: true,
+                position: 'bottom',
+                labels: {
+                    color: '#000000',
+                    font: { weight: 'bold', size: 11 },
+                    padding: 20,
+                    usePointStyle: true,
+                    pointStyle: 'circle'
+                }
+            },
             title: { display: false }
         },
         scales: {
             y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
-            x: { grid: { display: false } }
+            x: { display: false }
         },
         maintainAspectRatio: false
     }
@@ -173,7 +274,16 @@ export default function MainDashboard() {
     const doughnutOptions = {
         responsive: true,
         plugins: {
-            legend: { position: 'bottom' }
+            legend: {
+                position: 'bottom',
+                labels: {
+                    color: '#000000',
+                    font: { weight: 'bold', size: 11 },
+                    padding: 20,
+                    usePointStyle: true,
+                    pointStyle: 'circle'
+                }
+            }
         },
         maintainAspectRatio: false
     }
@@ -309,8 +419,8 @@ export default function MainDashboard() {
                         <article className="dashboard-chart-card card-shadow" style={{ minHeight: '400px' }}>
                             <div className="dashboard-chart-header">
                                 <div>
-                                    <h3>Admission Payment Status</h3>
-                                    <p className="text-muted mb-0">Fee collection overview</p>
+                                    <h3>Fee Payment Status</h3>
+                                    <p className="text-muted mb-0">Academic fee collection overview</p>
                                 </div>
                             </div>
                             <div className="dashboard-chart-wrapper">
