@@ -78,7 +78,7 @@ export default function AllBooks() {
           issued_at,
           book_copy_id,
           students (full_name, student_id),
-          library_book_copies!inner (id)
+          library_book_copies!inner (id, book_id)
         `)
         .in('status', ['MISSING', 'DAMAGED'])
         .eq('library_book_copies.book_id', book.id)
@@ -276,13 +276,54 @@ export default function AllBooks() {
     if (!deleteModal.book) return
     setDeleteModal((prev) => ({ ...prev, loading: true }))
     try {
-      const { error: copyError } = await supabase
+      // Fetch copies for this book
+      const { data: copyRows, error: copyFetchError } = await supabase
         .from('library_book_copies')
-        .delete()
+        .select('id')
         .eq('book_id', deleteModal.book.id)
+      if (copyFetchError) throw copyFetchError
 
-      if (copyError) throw copyError
+      const copyIds = (copyRows || []).map((c) => c.id)
 
+      // Fetch loans tied to these copies
+      let loanIds = []
+      if (copyIds.length > 0) {
+        const { data: loanRows, error: loanFetchError } = await supabase
+          .from('library_loans')
+          .select('id')
+          .in('book_copy_id', copyIds)
+        if (loanFetchError) throw loanFetchError
+        loanIds = (loanRows || []).map((l) => l.id)
+      }
+
+      // Delete fines linked to those loans
+      if (loanIds.length > 0) {
+        const { error: fineDeleteError } = await supabase
+          .from('library_fines')
+          .delete()
+          .in('loan_id', loanIds)
+        if (fineDeleteError) throw fineDeleteError
+      }
+
+      // Delete loans
+      if (loanIds.length > 0) {
+        const { error: loanDeleteError } = await supabase
+          .from('library_loans')
+          .delete()
+          .in('id', loanIds)
+        if (loanDeleteError) throw loanDeleteError
+      }
+
+      // Delete copies
+      if (copyIds.length > 0) {
+        const { error: copyDeleteError } = await supabase
+          .from('library_book_copies')
+          .delete()
+          .in('id', copyIds)
+        if (copyDeleteError) throw copyDeleteError
+      }
+
+      // Delete book
       const { error: bookError } = await supabase
         .from('library_books')
         .delete()
@@ -290,7 +331,7 @@ export default function AllBooks() {
 
       if (bookError) throw bookError
 
-      showToast('Book deleted successfully.', { type: 'success' })
+      showToast('Book and related records deleted.', { type: 'success' })
       closeDeleteModal()
       loadBooks()
     } catch (error) {

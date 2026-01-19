@@ -14,6 +14,7 @@ export default function LibraryDashboard() {
   const [stats, setStats] = useState({
     totalBooks: null,
     issuedToday: null,
+    returnedToday: null,
     overdueItems: null,
     issuedLast30Days: null
   })
@@ -35,7 +36,7 @@ export default function LibraryDashboard() {
         thirtyDaysAgo.setDate(now.getDate() - 30)
         thirtyDaysAgo.setHours(0, 0, 0, 0)
 
-        const [booksRes, issuedLast30DaysRes, issuedTodayRes, overdueRes, loansRes, finesRes] = await Promise.all([
+        const [booksRes, issuedLast30DaysRes, issuedTodayRes, returnedTodayRes, overdueRes, loansRes, finesRes] = await Promise.all([
           supabase.from('library_books').select('id', { count: 'exact', head: true }),
           supabase
             .from('library_loans')
@@ -47,6 +48,11 @@ export default function LibraryDashboard() {
             .select('id', { count: 'exact', head: true })
             .gte('issued_at', startOfDay.toISOString())
             .lte('issued_at', endOfDay.toISOString()),
+          supabase
+            .from('library_loans')
+            .select('id', { count: 'exact', head: true })
+            .gte('returned_at', startOfDay.toISOString())
+            .lte('returned_at', endOfDay.toISOString()),
           supabase
             .from('library_loans')
             .select('id', { count: 'exact', head: true })
@@ -69,6 +75,7 @@ export default function LibraryDashboard() {
         if (booksRes.error) throw booksRes.error
         if (issuedLast30DaysRes.error) throw issuedLast30DaysRes.error
         if (issuedTodayRes.error) throw issuedTodayRes.error
+        if (returnedTodayRes.error) throw returnedTodayRes.error
         if (overdueRes.error) throw overdueRes.error
         if (loansRes.error) throw loansRes.error
         if (finesRes.error) throw finesRes.error
@@ -78,6 +85,7 @@ export default function LibraryDashboard() {
         setStats({
           totalBooks: booksRes.count ?? 0,
           issuedToday: issuedTodayRes.count ?? 0,
+          returnedToday: returnedTodayRes.count ?? 0,
           overdueItems: overdueRes.count ?? 0,
           issuedLast30Days: issuedLast30DaysRes.count ?? 0
         })
@@ -172,8 +180,8 @@ export default function LibraryDashboard() {
         </div>
       </section>
 
-      <div className="library-dashboard-stats row g-3 mb-4">
-        <div className="col-12 col-md-6 col-xl-3">
+      <div className="library-dashboard-stats row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-5 g-3 mb-4">
+        <div className="col">
           <div 
             className="library-dashboard-stat"
             onClick={() => navigate('/library/inventory')}
@@ -184,7 +192,7 @@ export default function LibraryDashboard() {
             <div className="library-dashboard-stat__meta">Library inventory</div>
           </div>
         </div>
-        <div className="col-12 col-md-6 col-xl-3">
+        <div className="col">
           <div 
             className="library-dashboard-stat"
             onClick={() => navigate('/library/circulation')}
@@ -195,7 +203,18 @@ export default function LibraryDashboard() {
             <div className="library-dashboard-stat__meta">New issues today</div>
           </div>
         </div>
-        <div className="col-12 col-md-6 col-xl-3">
+        <div className="col">
+          <div 
+            className="library-dashboard-stat"
+            onClick={() => navigate('/library/circulation')}
+            style={{ cursor: 'pointer' }}
+          >
+            <div className="library-dashboard-stat__label">Returned Today</div>
+            <div className="library-dashboard-stat__value">{formatStat(stats.returnedToday)}</div>
+            <div className="library-dashboard-stat__meta">Books checked in</div>
+          </div>
+        </div>
+        <div className="col">
           <div 
             className="library-dashboard-stat"
             onClick={() => navigate('/library/circulation')}
@@ -208,7 +227,7 @@ export default function LibraryDashboard() {
             <div className="library-dashboard-stat__meta">Pending returns</div>
           </div>
         </div>
-        <div className="col-12 col-md-6 col-xl-3">
+        <div className="col">
           <div 
             className="library-dashboard-stat"
             onClick={() => navigate('/library/reports')}
