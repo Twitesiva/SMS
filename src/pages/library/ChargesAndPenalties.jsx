@@ -18,6 +18,13 @@ export default function ChargesAndPenalties() {
   const [deleting, setDeleting] = useState(false)
   const [editing, setEditing] = useState(false)
 
+  const parsed = {
+    fine: Number(form.fineAmount || 0),
+    missing: Number(form.missingAmount || 0),
+    damaged: Number(form.damagedAmount || 0),
+    deposit: Number(form.depositAmount || 0)
+  }
+
   const loadCharges = async () => {
     setLoading(true)
     try {
@@ -163,13 +170,67 @@ export default function ChargesAndPenalties() {
         </div>
       </section>
 
+      <div className="row g-3 mb-4">
+        <div className="col-6 col-md-3">
+          <div className="card card-soft p-3 h-100 text-center">
+            <div className="text-muted small">Overdue Fine</div>
+            <div className="fs-4 fw-bold">Rs. {Number.isFinite(parsed.fine) ? parsed.fine : 0}</div>
+          </div>
+        </div>
+        <div className="col-6 col-md-3">
+          <div className="card card-soft p-3 h-100 text-center">
+            <div className="text-muted small">Missing Charge</div>
+            <div className="fs-4 fw-bold">Rs. {Number.isFinite(parsed.missing) ? parsed.missing : 0}</div>
+          </div>
+        </div>
+        <div className="col-6 col-md-3">
+          <div className="card card-soft p-3 h-100 text-center">
+            <div className="text-muted small">Damaged Charge</div>
+            <div className="fs-4 fw-bold">Rs. {Number.isFinite(parsed.damaged) ? parsed.damaged : 0}</div>
+          </div>
+        </div>
+        <div className="col-6 col-md-3">
+          <div className="card card-soft p-3 h-100 text-center">
+            <div className="text-muted small">Security Deposit</div>
+            <div className="fs-4 fw-bold">Rs. {Number.isFinite(parsed.deposit) ? parsed.deposit : 0}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="card card-soft border-info bg-light p-3 mb-3">
+        <div className="d-flex gap-2 align-items-start">
+          <div className="badge bg-info text-dark rounded-pill me-2 mt-1">Note</div>
+          <div className="small mb-0 text-muted">
+            <div>• Overdue fines trigger after due date.</div>
+            <div>• Missing/damaged charges apply when a copy is marked missing/damaged.</div>
+            <div>• Deposit is collected at issue time.</div>
+            <div className="mt-1">Ensure these values match your library policy before issuing books.</div>
+          </div>
+        </div>
+      </div>
+
       <div className="row g-4 justify-content-center mx-0">
         <div className="col-12 col-lg-8">
           <div className="card card-soft p-4">
-            <div className="d-flex justify-content-between align-items-center mb-3">
+            <div className="d-flex justify-content-between align-items-center mb-2">
               <div>
-                <h4 className="mb-1 fw-bold text-dark">Charges & Penalties</h4>
-                <p className="fw-bold text-dark mb-0">Set default amounts for library charges.</p>
+                <div className="text-muted text-uppercase small fw-bold">Charges & Penalties</div>
+                <h4 className="mb-1 fw-bold text-dark">Set default amounts</h4>
+                <p className="text-muted mb-0 small">
+                  {settingsId && !editing ? 'Locked after save. Click Edit to modify.' : 'Update and save the active rates.'}
+                </p>
+              </div>
+              <div className="d-flex gap-2">
+                {settingsId && editing && (
+                  <button
+                    type="button"
+                    className="btn btn-outline-danger btn-sm"
+                    onClick={handleDelete}
+                    disabled={deleting || saving || loading}
+                  >
+                    {deleting ? 'Deleting...' : 'Delete'}
+                  </button>
+                )}
               </div>
             </div>
             <form className="row g-3" onSubmit={handleSave}>
@@ -218,16 +279,6 @@ export default function ChargesAndPenalties() {
                 />
               </div>
               <div className="col-12 d-flex justify-content-end gap-2">
-                {settingsId && editing && (
-                  <button
-                    type="button"
-                    className="btn btn-outline-danger"
-                    onClick={handleDelete}
-                    disabled={deleting || saving || loading}
-                  >
-                    {deleting ? 'Deleting...' : 'Delete'}
-                  </button>
-                )}
                 {settingsId && !editing && (
                   <button type="submit" className="btn btn-primary" disabled={saving || loading}>
                     Edit
