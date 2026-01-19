@@ -830,8 +830,6 @@ export default function Circulation() {
                                         </tr>
                                       )
                                     })}
-                                      )
-                                    })}
                                 </tbody>
                               </table>
                             </div>
