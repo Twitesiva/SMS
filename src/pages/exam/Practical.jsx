@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import AdminShell from "../components/AdminShell";
-import { supabase } from '../../supabaseClient'
+import AdminShell from "../../components/AdminShell";
+import { supabase } from '../../../supabaseClient'
 
 export default function Practical() {
     const [exams, setExams] = useState([])
