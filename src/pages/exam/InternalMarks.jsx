@@ -250,7 +250,8 @@ export default function InternalMarks() {
                     hallTicketNo: student?.hall_ticket_no || 'N/A',
                     internalMarks: existingMark ? existingMark.internal_marks : '',
                     theoryMarks: existingMark ? existingMark.theory_marks : 0, // Store theory marks for total calculation
-                    isSaved: !!existingMark
+                    isSaved: !!existingMark,
+                    error: null
                 }
             })
 
@@ -386,9 +387,13 @@ export default function InternalMarks() {
 
             if (subjectData) {
                 subjectData.forEach(subj => {
-                    if (examSubjectCodes.has(subj.subject_code) && !seenCodes.has(subj.subject_code)) {
-                        seenCodes.add(subj.subject_code)
-                        uniqueSubjects.push(subj)
+                    const code = subj.subject_code
+                    if (examSubjectCodes.has(code) && !seenCodes.has(code)) {
+                        // Filter out practical subjects (ending with 'P')
+                        if (!code.trim().toUpperCase().endsWith('P')) {
+                            seenCodes.add(code)
+                            uniqueSubjects.push(subj)
+                        }
                     }
                 })
             }
@@ -511,6 +516,7 @@ export default function InternalMarks() {
                                             <th style={{ width: '20%' }}>Hall Ticket No</th>
                                             <th style={{ width: '35%' }}>Student Name</th>
                                             <th style={{ width: '20%' }}>Internal Marks</th>
+                                            <th style={{ width: '20%' }}>Status</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -520,25 +526,37 @@ export default function InternalMarks() {
                                                 <td>{student.hallTicketNo}</td>
                                                 <td>
                                                     {student.studentName}
-                                                    {student.isSaved && <span className="badge bg-success ms-2">Saved</span>}
                                                 </td>
                                                 <td>
-                                                    <input
-                                                        type="number"
-                                                        className="form-control"
-                                                        value={student.internalMarks}
-                                                        onChange={(e) => {
-                                                            const newValue = e.target.value
-                                                            const numValue = Number(newValue)
-                                                            if (newValue === '' || (numValue >= 0 && numValue <= 30)) {
+                                                    <div className="d-flex flex-column">
+                                                        <input
+                                                            type="number"
+                                                            className={`form-control ${student.error ? 'is-invalid' : ''}`}
+                                                            value={student.internalMarks}
+                                                            disabled={student.isSaved}
+                                                            onChange={(e) => {
+                                                                const newValue = e.target.value;
+                                                                const numValue = Number(newValue);
+                                                                let error = null;
+                                                                if (newValue !== '' && (numValue < 0 || numValue > 30)) {
+                                                                    error = "Please enter valid marks";
+                                                                }
                                                                 setStudentList(prev => prev.map((s, i) =>
-                                                                    i === index ? { ...s, internalMarks: newValue } : s
-                                                                ))
-                                                            }
-                                                        }}
-                                                        placeholder="Marks"
-                                                        max="30"
-                                                    />
+                                                                    i === index ? { ...s, internalMarks: newValue, error: error } : s
+                                                                ));
+                                                            }}
+                                                            placeholder="Marks"
+                                                            max="30"
+                                                        />
+                                                        {student.error && (
+                                                            <small className="text-danger mt-1">
+                                                                {student.error}
+                                                            </small>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    {student.isSaved ? <span className="badge bg-success">Submitted</span> : <span className="text-muted">-</span>}
                                                 </td>
                                             </tr>
                                         ))}
@@ -548,7 +566,7 @@ export default function InternalMarks() {
                                     <button
                                         className="btn btn-primary"
                                         onClick={handleSaveMarks}
-                                        disabled={isSaving}
+                                        disabled={isSaving || studentList.some(s => s.error)}
                                     >
                                         {isSaving ? 'Saving...' : 'Save Marks'}
                                     </button>

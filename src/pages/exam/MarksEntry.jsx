@@ -145,12 +145,12 @@ export default function MarksEntry() {
       return
     }
     const obtained = Number(marksForm.marks_obtained)
-    const max = 100
+    const max = 70
     if (Number.isNaN(obtained)) {
       return
     }
-    if (obtained > 100) {
-      setMarksError('Please Enter valid Marks')
+    if (obtained > 70) {
+      setMarksError('Please enter valid marks')
       return
     }
     setSavingMarks(true)
@@ -291,8 +291,8 @@ export default function MarksEntry() {
                   setMarksForm(prev => ({ ...prev, marks_obtained: value }))
                   if (value === '') {
                     setMarksError('')
-                  } else if (Number(value) > 100) {
-                    setMarksError('Invalid marks')
+                  } else if (Number(value) > 70) {
+                    setMarksError('Please enter valid marks')
                   } else {
                     setMarksError('')
                   }

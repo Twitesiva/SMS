@@ -149,6 +149,11 @@ export default function Decode() {
       const uniqueSubjectsMap = new Map();
       if (subjectsData) {
         subjectsData.forEach(s => {
+          // Filter out subjects ending with 'P'
+          if (s.subject_code && s.subject_code.trim().toUpperCase().endsWith('P')) {
+            return;
+          }
+
           if (uniqueSubjectsMap.has(s.subject_code)) {
             const existing = uniqueSubjectsMap.get(s.subject_code);
             // If the current duplicate has isGenerated=true, use it (or update existing)
@@ -310,14 +315,22 @@ export default function Decode() {
       try {
         const { data, error } = await supabase
           .from('exam_schedule')
-          .select('exam_date')
+          .select('exam_date, subject_code')
           .eq('exam_master_id', selectedExam)
           .order('exam_date', { ascending: true });
 
         if (error) throw error;
 
+        // Filter out dates that only have practical subjects (ending in 'P')
+        // We do this by keeping only rows where subject_code does NOT end in 'P'
+        // Then we get unique dates from those rows.
+        const validRows = data.filter(item => {
+          const code = item.subject_code || '';
+          return !code.trim().toUpperCase().endsWith('P');
+        });
+
         // Get unique dates and format them
-        const uniqueDates = [...new Set(data.map(item => item.exam_date))];
+        const uniqueDates = [...new Set(validRows.map(item => item.exam_date))];
         setExamDates(uniqueDates);
 
         // Reset selected date and clear related states
