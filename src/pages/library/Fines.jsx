@@ -707,8 +707,7 @@ export default function Fines() {
                   className="form-control"
                   type="number"
                   value={missingBookForm.amount}
-                  disabled
-                  readOnly
+                  onChange={handleBookReportChange('MISSING')('amount')}
                   min="0"
                 />
               </div>
@@ -813,8 +812,7 @@ export default function Fines() {
                   className="form-control"
                   type="number"
                   value={damagedBookForm.amount}
-                  disabled
-                  readOnly
+                  onChange={handleBookReportChange('DAMAGED')('amount')}
                   min="0"
                 />
               </div>

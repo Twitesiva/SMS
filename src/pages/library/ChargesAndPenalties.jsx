@@ -5,8 +5,6 @@ import { showToast } from '../../store/ui'
 
 const initialForm = {
   fineAmount: '100',
-  missingAmount: '500',
-  damagedAmount: '500',
   depositAmount: '0'
 }
 
@@ -20,8 +18,6 @@ export default function ChargesAndPenalties() {
 
   const parsed = {
     fine: Number(form.fineAmount || 0),
-    missing: Number(form.missingAmount || 0),
-    damaged: Number(form.damagedAmount || 0),
     deposit: Number(form.depositAmount || 0)
   }
 
@@ -30,7 +26,7 @@ export default function ChargesAndPenalties() {
     try {
       const { data, error } = await supabase
         .from('global_settings')
-        .select('id, fine_amount, missing_amount, damaged_amount, deposit_amount')
+        .select('id, fine_amount, deposit_amount')
         .order('id', { ascending: true })
         .limit(1)
         .single()
@@ -46,14 +42,6 @@ export default function ChargesAndPenalties() {
       setSettingsId(data.id)
       setForm({
         fineAmount: data.fine_amount !== null && data.fine_amount !== undefined ? String(data.fine_amount) : initialForm.fineAmount,
-        missingAmount:
-          data.missing_amount !== null && data.missing_amount !== undefined
-            ? String(data.missing_amount)
-            : initialForm.missingAmount,
-        damagedAmount:
-          data.damaged_amount !== null && data.damaged_amount !== undefined
-            ? String(data.damaged_amount)
-            : initialForm.damagedAmount,
         depositAmount:
           data.deposit_amount !== null && data.deposit_amount !== undefined
             ? String(data.deposit_amount)
@@ -82,11 +70,9 @@ export default function ChargesAndPenalties() {
       return
     }
     const fineAmount = Number(form.fineAmount || 0)
-    const missingAmount = Number(form.missingAmount || 0)
-    const damagedAmount = Number(form.damagedAmount || 0)
     const depositAmount = Number(form.depositAmount || 0)
 
-    if ([fineAmount, missingAmount, damagedAmount, depositAmount].some((v) => Number.isNaN(v) || v < 0)) {
+    if ([fineAmount, depositAmount].some((v) => Number.isNaN(v) || v < 0)) {
       showToast('Enter valid non-negative amounts.', { type: 'warning' })
       return
     }
@@ -98,8 +84,6 @@ export default function ChargesAndPenalties() {
           .from('global_settings')
           .update({
             fine_amount: fineAmount,
-            missing_amount: missingAmount,
-            damaged_amount: damagedAmount,
             deposit_amount: depositAmount
           })
           .eq('id', settingsId)
@@ -111,8 +95,6 @@ export default function ChargesAndPenalties() {
           .insert([
             {
               fine_amount: fineAmount,
-              missing_amount: missingAmount,
-              damaged_amount: damagedAmount,
               deposit_amount: depositAmount
             }
           ])
@@ -170,26 +152,14 @@ export default function ChargesAndPenalties() {
         </div>
       </section>
 
-      <div className="row g-3 mb-4">
-        <div className="col-6 col-md-3">
+      <div className="row g-3 mb-4 justify-content-center">
+        <div className="col-6 col-md-4">
           <div className="card card-soft p-3 h-100 text-center">
             <div className="text-muted small">Overdue Fine</div>
             <div className="fs-4 fw-bold">Rs. {Number.isFinite(parsed.fine) ? parsed.fine : 0}</div>
           </div>
         </div>
-        <div className="col-6 col-md-3">
-          <div className="card card-soft p-3 h-100 text-center">
-            <div className="text-muted small">Missing Charge</div>
-            <div className="fs-4 fw-bold">Rs. {Number.isFinite(parsed.missing) ? parsed.missing : 0}</div>
-          </div>
-        </div>
-        <div className="col-6 col-md-3">
-          <div className="card card-soft p-3 h-100 text-center">
-            <div className="text-muted small">Damaged Charge</div>
-            <div className="fs-4 fw-bold">Rs. {Number.isFinite(parsed.damaged) ? parsed.damaged : 0}</div>
-          </div>
-        </div>
-        <div className="col-6 col-md-3">
+        <div className="col-6 col-md-4">
           <div className="card card-soft p-3 h-100 text-center">
             <div className="text-muted small">Security Deposit</div>
             <div className="fs-4 fw-bold">Rs. {Number.isFinite(parsed.deposit) ? parsed.deposit : 0}</div>
@@ -202,8 +172,8 @@ export default function ChargesAndPenalties() {
           <div className="badge bg-info text-dark rounded-pill me-2 mt-1">Note</div>
           <div className="small mb-0 text-muted">
             <div>• Overdue fines trigger after due date.</div>
-            <div>• Missing/damaged charges apply when a copy is marked missing/damaged.</div>
             <div>• Deposit is collected at issue time.</div>
+            <div>• Missed and Damaged book charges are handled manually during reporting.</div>
             <div className="mt-1">Ensure these values match your library policy before issuing books.</div>
           </div>
         </div>
@@ -242,28 +212,6 @@ export default function ChargesAndPenalties() {
                   min="0"
                   value={form.fineAmount}
                   onChange={handleChange('fineAmount')}
-                  disabled={loading || (settingsId && !editing)}
-                />
-              </div>
-              <div className="col-md-6">
-                <label className="form-label fw-bold text-dark">Missing Book Charge (Rs.)</label>
-                <input
-                  className="form-control"
-                  type="number"
-                  min="0"
-                  value={form.missingAmount}
-                  onChange={handleChange('missingAmount')}
-                  disabled={loading || (settingsId && !editing)}
-                />
-              </div>
-              <div className="col-md-6">
-                <label className="form-label fw-bold text-dark">Damaged Book Charge (Rs.)</label>
-                <input
-                  className="form-control"
-                  type="number"
-                  min="0"
-                  value={form.damagedAmount}
-                  onChange={handleChange('damagedAmount')}
                   disabled={loading || (settingsId && !editing)}
                 />
               </div>
