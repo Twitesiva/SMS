@@ -26,6 +26,16 @@ export const libraryNavGroups = [
     ]
   },
   {
+    title: 'Charges',
+    items: [
+      {
+        to: '/library/settings',
+        label: 'Charges & Penalties',
+        icon: 'bi-gear'
+      }
+    ]
+  },
+  {
     title: 'Book Activity',
     items: [
       {
@@ -37,16 +47,6 @@ export const libraryNavGroups = [
         to: '/library/fines',
         label: 'Fines',
         icon: 'bi-cash-coin'
-      }
-    ]
-  },
-  {
-    title: 'Charges',
-    items: [
-      {
-        to: '/library/settings',
-        label: 'Charges & Penalties',
-        icon: 'bi-gear'
       }
     ]
   },

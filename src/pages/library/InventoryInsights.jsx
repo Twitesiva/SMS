@@ -126,8 +126,16 @@ export default function InventoryInsights() {
           return acc
         }, {})
 
+        const missingByBook = copies.reduce((acc, row) => {
+          if ((row.availability || '').toUpperCase() === 'MISSING') {
+            const key = String(row.book_id)
+            acc[key] = (acc[key] || 0) + 1
+          }
+          return acc
+        }, {})
+
         const damagedByBook = copies.reduce((acc, row) => {
-          if (['MISSING', 'DAMAGED'].includes((row.availability || '').toUpperCase())) {
+          if ((row.availability || '').toUpperCase() === 'DAMAGED') {
             const key = String(row.book_id)
             acc[key] = (acc[key] || 0) + 1
           }
@@ -146,7 +154,10 @@ export default function InventoryInsights() {
           const bookId = String(book.id)
           const total = copiesByBook[bookId] || 0
           const issuedCount = issuedByBook[bookId] || 0
+          const missingCount = missingByBook[bookId] || 0
           const damagedCount = damagedByBook[bookId] || 0
+          const issuesCount = missingCount + damagedCount
+
           return {
             id: book.id,
             title: book.title || 'Untitled',
@@ -154,8 +165,10 @@ export default function InventoryInsights() {
             shelf: book.shelf_code || '--',
             total,
             issued: issuedCount,
+            missing: missingCount,
             damaged: damagedCount,
-            available: Math.max(0, total - issuedCount - damagedCount)
+            issues: issuesCount,
+            available: Math.max(0, total - issuedCount - issuesCount)
           }
         })
 
@@ -313,7 +326,7 @@ export default function InventoryInsights() {
                         <td onClick={() => handleBookClick(row, 'all')}>{row.shelf}</td>
                         <td onClick={() => handleBookClick(row, 'all')}>{row.total}</td>
                         <td onClick={() => handleBookClick(row, 'issued')} className="text-primary fw-bold">{row.issued}</td>
-                        <td onClick={() => handleBookClick(row, 'damaged')} className="text-danger fw-bold">{row.damaged}</td>
+                        <td onClick={() => handleBookClick(row, 'damaged')} className="text-danger fw-bold">{row.issues}</td>
                         <td className="text-end" onClick={() => handleBookClick(row, 'all')}>
                           <span className="library-insights-badge">{row.available}</span>
                         </td>
@@ -390,29 +403,29 @@ export default function InventoryInsights() {
                   <div className="text-center w-100">
                     {/* Book Title Section */}
                     <div className="mb-4 px-4">
-                      <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.7rem', letterSpacing: '0.15em' }}>
+                      <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.85rem', letterSpacing: '0.15em' }}>
                         Book Title
                       </div>
-                      <h4 className="fw-bold text-dark mb-0" style={{ fontSize: '1.5rem' }}>
+                      <h3 className="fw-bold text-dark mb-0" style={{ fontSize: '2rem' }}>
                         {selectedBook.title}
-                      </h4>
+                      </h3>
                     </div>
                     
                     {/* Info Bar */}
                     <div className="row g-0 border-top border-bottom py-3 bg-light w-100">
                       <div className="col-6 border-end px-2">
-                        <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.65rem', letterSpacing: '0.12em' }}>
+                        <div className="text-uppercase fw-extrabold text-muted mb-1" style={{ fontSize: '0.75rem', letterSpacing: '0.12em' }}>
                           Author
                         </div>
-                        <div className="fw-semibold text-primary" style={{ fontSize: '1.05rem' }}>
+                        <div className="fw-bold text-primary" style={{ fontSize: '1.25rem' }}>
                           {selectedBook.author}
                         </div>
                       </div>
                       <div className="col-6 px-2">
-                        <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.65rem', letterSpacing: '0.12em' }}>
+                        <div className="text-uppercase fw-extrabold text-muted mb-1" style={{ fontSize: '0.75rem', letterSpacing: '0.12em' }}>
                           Shelf Reference
                         </div>
-                        <div className="fw-semibold text-dark" style={{ fontSize: '1.05rem' }}>
+                        <div className="fw-bold text-dark" style={{ fontSize: '1.25rem' }}>
                           {selectedBook.shelf}
                         </div>
                       </div>
@@ -434,41 +447,51 @@ export default function InventoryInsights() {
                   ) : (
                     <div className="d-flex flex-column gap-4">
                       {/* Stats Row */}
-                      <div className="row g-3">
-                        <div className="col-6 col-sm-3">
+                      <div className="row g-2 justify-content-center">
+                        <div className="col-4 col-sm">
                           <div 
-                            className={`p-3 border rounded text-center ${modalTab === 'all' ? 'bg-primary text-white' : 'bg-light'}`}
+                            className={`p-2 border rounded text-center h-100 d-flex flex-column justify-content-center ${modalTab === 'all' ? 'bg-primary text-white' : 'bg-light'}`}
                             style={{ cursor: 'pointer' }}
                             onClick={() => setModalTab('all')}
                           >
-                            <div className={`small text-uppercase fw-bold ${modalTab === 'all' ? 'text-white-50' : 'text-muted'}`}>Total</div>
-                            <div className="fs-4 fw-bold">{selectedBook.total}</div>
+                            <div className={`small text-uppercase fw-bold ${modalTab === 'all' ? 'text-white-50' : 'text-muted'}`} style={{fontSize: '0.75rem'}}>Total</div>
+                            <div className="fs-3 fw-bold">{selectedBook.total}</div>
                           </div>
                         </div>
-                        <div className="col-6 col-sm-3">
+                        <div className="col-4 col-sm">
                           <div 
-                            className={`p-3 border rounded text-center ${modalTab === 'issued' ? 'bg-primary text-white' : 'bg-light'}`}
+                            className={`p-2 border rounded text-center h-100 d-flex flex-column justify-content-center ${modalTab === 'issued' ? 'bg-primary text-white' : 'bg-light'}`}
                             style={{ cursor: 'pointer' }}
                             onClick={() => setModalTab('issued')}
                           >
-                            <div className={`small text-uppercase fw-bold ${modalTab === 'issued' ? 'text-white-50' : 'text-muted'}`}>Issued</div>
-                            <div className={`fs-4 fw-bold ${modalTab === 'issued' ? 'text-white' : 'text-primary'}`}>{selectedBook.issued}</div>
+                            <div className={`small text-uppercase fw-bold ${modalTab === 'issued' ? 'text-white-50' : 'text-muted'}`} style={{fontSize: '0.75rem'}}>Issued</div>
+                            <div className={`fs-3 fw-bold ${modalTab === 'issued' ? 'text-white' : 'text-primary'}`}>{selectedBook.issued}</div>
                           </div>
                         </div>
-                        <div className="col-6 col-sm-3">
+                        <div className="col-4 col-sm">
                           <div 
-                            className={`p-3 border rounded text-center ${modalTab === 'damaged' ? 'bg-primary text-white' : 'bg-light'}`}
+                            className={`p-2 border rounded text-center h-100 d-flex flex-column justify-content-center ${modalTab === 'missed' ? 'bg-primary text-white' : 'bg-light'}`}
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => setModalTab('missed')}
+                          >
+                            <div className={`small text-uppercase fw-bold ${modalTab === 'missed' ? 'text-white-50' : 'text-muted'}`} style={{fontSize: '0.75rem'}}>Missed</div>
+                            <div className={`fs-3 fw-bold ${modalTab === 'missed' ? 'text-white' : 'text-danger'}`}>{selectedBook.missing}</div>
+                          </div>
+                        </div>
+                         <div className="col-4 col-sm">
+                          <div 
+                            className={`p-2 border rounded text-center h-100 d-flex flex-column justify-content-center ${modalTab === 'damaged' ? 'bg-primary text-white' : 'bg-light'}`}
                             style={{ cursor: 'pointer' }}
                             onClick={() => setModalTab('damaged')}
                           >
-                            <div className={`small text-uppercase fw-bold ${modalTab === 'damaged' ? 'text-white-50' : 'text-muted'}`}>Damaged</div>
-                            <div className={`fs-4 fw-bold ${modalTab === 'damaged' ? 'text-white' : 'text-danger'}`}>{selectedBook.damaged}</div>
+                            <div className={`small text-uppercase fw-bold ${modalTab === 'damaged' ? 'text-white-50' : 'text-muted'}`} style={{fontSize: '0.75rem'}}>Damaged</div>
+                            <div className={`fs-3 fw-bold ${modalTab === 'damaged' ? 'text-white' : 'text-warning text-dark'}`}>{selectedBook.damaged}</div>
                           </div>
                         </div>
-                        <div className="col-6 col-sm-3">
-                          <div className="p-3 border rounded bg-light text-center">
-                            <div className="small text-muted text-uppercase fw-bold">Balance</div>
-                            <div className="fs-4 fw-bold text-success">{selectedBook.available}</div>
+                        <div className="col-4 col-sm">
+                          <div className="p-2 border rounded bg-light text-center h-100 d-flex flex-column justify-content-center">
+                            <div className="small text-muted text-uppercase fw-bold" style={{fontSize: '0.75rem'}}>Balance</div>
+                            <div className="fs-3 fw-bold text-success">{selectedBook.available}</div>
                           </div>
                         </div>
                       </div>
@@ -476,7 +499,7 @@ export default function InventoryInsights() {
                       {/* Filtered Sections */}
                       {(modalTab === 'all' || modalTab === 'issued') && (
                         <div>
-                          <h6 className="fw-bold mb-3 border-bottom pb-2">Active Loans</h6>
+                          <h4 className="fw-bold mb-3 border-bottom pb-2">Active Loans</h4>
                           {bookDetails.loans.length > 0 ? (
                             <div className="table-responsive">
                               <table className="table table-sm table-hover align-middle">
@@ -492,9 +515,9 @@ export default function InventoryInsights() {
                                   {bookDetails.loans.map(loan => (
                                     <tr key={loan.id}>
                                       <td className="fw-bold text-primary">{loan.students?.student_id}</td>
-                                      <td>{loan.students?.full_name || 'Unknown'}</td>
+                                      <td className="fw-semibold">{loan.students?.full_name || 'Unknown'}</td>
                                       <td>{formatDate(loan.issued_at)}</td>
-                                      <td className={loan.due_date < todayString ? 'text-danger fw-bold' : ''}>
+                                      <td className={loan.due_date < todayString ? 'text-danger fw-bold' : 'fw-semibold'}>
                                         {formatDate(loan.due_date)}
                                       </td>
                                     </tr>
@@ -508,10 +531,10 @@ export default function InventoryInsights() {
                         </div>
                       )}
 
-                      {(modalTab === 'all' || modalTab === 'damaged') && (
-                        <div>
-                          <h6 className="fw-bold mb-3 border-bottom pb-2">Copies with Issues</h6>
-                          {bookDetails.copies.filter(c => ['MISSING', 'DAMAGED'].includes((c.availability || '').toUpperCase())).length > 0 ? (
+                      {(modalTab === 'all' || modalTab === 'missed') && (
+                        <div className="mb-4">
+                          <h4 className="fw-bold mb-3 border-bottom pb-2 text-danger">Missed Copies</h4>
+                          {bookDetails.copies.filter(c => (c.availability || '').toUpperCase() === 'MISSING').length > 0 ? (
                             <div className="table-responsive">
                               <table className="table table-sm table-hover align-middle">
                                 <thead className="table-light">
@@ -524,16 +547,16 @@ export default function InventoryInsights() {
                                 </thead>
                                 <tbody>
                                   {bookDetails.copies
-                                    .filter(c => ['MISSING', 'DAMAGED'].includes((c.availability || '').toUpperCase()))
+                                    .filter(c => (c.availability || '').toUpperCase() === 'MISSING')
                                     .map(copy => {
                                       const issueLoan = bookDetails.issueLoans?.find(l => l.library_book_copies?.id === copy.id)
                                       return (
                                         <tr key={copy.id}>
                                           <td className="fw-bold text-primary">{issueLoan?.students?.student_id || '-'}</td>
-                                          <td className="small">{issueLoan?.students?.full_name || '-'}</td>
-                                          <td className="font-monospace">{copy.id}</td>
+                                          <td className="fw-semibold">{issueLoan?.students?.full_name || '-'}</td>
+                                          <td className="font-monospace fw-bold">{copy.id}</td>
                                           <td>
-                                            <span className={`badge ${copy.availability === 'MISSING' ? 'bg-danger' : 'bg-warning text-dark'}`}>
+                                            <span className="badge bg-danger fs-6">
                                               {copy.availability}
                                             </span>
                                           </td>
@@ -544,7 +567,48 @@ export default function InventoryInsights() {
                               </table>
                             </div>
                           ) : (
-                            <p className="text-muted fst-italic mb-0">No damaged or missing copies reported.</p>
+                            <p className="text-muted fst-italic mb-0">No missed copies reported.</p>
+                          )}
+                        </div>
+                      )}
+
+                      {(modalTab === 'all' || modalTab === 'damaged') && (
+                        <div>
+                          <h4 className="fw-bold mb-3 border-bottom pb-2 text-warning text-dark">Damaged Copies</h4>
+                          {bookDetails.copies.filter(c => (c.availability || '').toUpperCase() === 'DAMAGED').length > 0 ? (
+                            <div className="table-responsive">
+                              <table className="table table-sm table-hover align-middle">
+                                <thead className="table-light">
+                                  <tr>
+                                    <th>Student ID</th>
+                                    <th>Student Name</th>
+                                    <th>Copy ID</th>
+                                    <th>Status</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {bookDetails.copies
+                                    .filter(c => (c.availability || '').toUpperCase() === 'DAMAGED')
+                                    .map(copy => {
+                                      const issueLoan = bookDetails.issueLoans?.find(l => l.library_book_copies?.id === copy.id)
+                                      return (
+                                        <tr key={copy.id}>
+                                          <td className="fw-bold text-primary">{issueLoan?.students?.student_id || '-'}</td>
+                                          <td className="fw-semibold">{issueLoan?.students?.full_name || '-'}</td>
+                                          <td className="font-monospace fw-bold">{copy.id}</td>
+                                          <td>
+                                            <span className="badge bg-warning text-dark fs-6">
+                                              {copy.availability}
+                                            </span>
+                                          </td>
+                                        </tr>
+                                      )
+                                    })}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <p className="text-muted fst-italic mb-0">No damaged copies reported.</p>
                           )}
                         </div>
                       )}

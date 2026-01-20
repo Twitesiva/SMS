@@ -459,10 +459,10 @@ export default function AllBooks() {
                 <th>Author</th>
                 <th>Published Year</th>
                 <th>Copies</th>
-                <th>Available</th>
                 <th>Issued</th>
                 <th>Damaged</th>
                 <th>Missing</th>
+                <th>Available</th>
                 <th className="text-end">Actions</th>
               </tr>
             </thead>
@@ -496,11 +496,6 @@ export default function AllBooks() {
                   </td>
                   <td>
                     <span className="library-catalogue-count">
-                      {copyInfo.available}
-                    </span>
-                  </td>
-                  <td>
-                    <span className="library-catalogue-count">
                       {copyInfo.issued}
                     </span>
                   </td>
@@ -512,6 +507,11 @@ export default function AllBooks() {
                   <td>
                     <span className="library-catalogue-count">
                       {copyInfo.missing}
+                    </span>
+                  </td>
+                  <td>
+                    <span className="library-catalogue-count">
+                      {copyInfo.available}
                     </span>
                   </td>
                   <td className="text-end">
