@@ -1,7 +1,7 @@
 import { Outlet, useNavigate } from 'react-router-dom'
 import AdminShell from './AdminShell'
 import { libraryNavGroups } from '../pages/library/nav'
-import '../pages/library/Library.css'
+import './LibraryShell.css'
 
 export default function LibraryShell() {
   const nav = useNavigate()
@@ -15,6 +15,8 @@ export default function LibraryShell() {
       navGroups={libraryNavGroups}
       brandTitle="Library Management Console"
       brandSubtitle="Vijayam"
+      customSidebarClass="library-sidebar-modern"
+      customShellClass="library-shell admin-shell--library"
     >
       <Outlet />
     </AdminShell>

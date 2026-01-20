@@ -3,17 +3,130 @@
   background: #f8fafc;
 }
 
-.sidebar-modern {
+.library-shell {
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+.sidebar-modern,
+.library-sidebar-modern {
   min-height: 100vh;
   padding: 1.75rem;
-  background: linear-gradient(180deg, #2e2a6e 0%, #2563eb 100%);
-  box-shadow: 0 30px 55px rgba(15, 23, 42, 0.4);
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%);
+  box-shadow: 0 30px 55px rgba(96, 108, 136, 0.4);
   border-right: none;
   color: #ffffff;
   display: flex;
   flex-direction: column;
   gap: 1rem;
   transition: width 0.3s ease, padding 0.3s ease, box-shadow 0.3s ease;
+}
+
+.transport-shell {
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+/* Transport specific sidebar styling */
+.transport-sidebar-modern {
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.transport-sidebar-modern::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #606c88 0%, #3f4c6b 50%, #606c88 100%);
+}
+
+.parent-shell {
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+/* Parent specific sidebar styling */
+.parent-sidebar-modern {
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.parent-sidebar-modern::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #606c88 0%, #3f4c6b 50%, #606c88 100%);
+}
+
+.staff-shell {
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+/* Staff specific sidebar styling */
+.staff-sidebar-modern {
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.staff-sidebar-modern::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #606c88 0%, #3f4c6b 50%, #606c88 100%);
+}
+
+.admission-shell {
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+/* Admission specific sidebar styling */
+.admission-sidebar-modern {
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.admission-sidebar-modern::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #606c88 0%, #3f4c6b 50%, #606c88 100%);
+}
+
+.admin-shell--library .sidebar-modern {
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%);
+  box-shadow: 0 30px 55px rgba(96, 108, 136, 0.4);
+}
+
+.admin-shell--library .nav-item-modern {
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.admin-shell--library .nav-item-modern:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Library specific sidebar styling */
+.library-sidebar-modern {
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%);
 }
 
 .sidebar-header {
@@ -47,6 +160,100 @@
   display: block;
   font-size: 0.92rem;
   letter-spacing: 0.22em;
+}
+
+/* Base sidebar brand styling for all portals */
+.sidebar-modern .sidebar-brand-title__main {
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
+.sidebar-modern .sidebar-brand-subtitle {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.1em;
+  opacity: 0.9;
+}
+
+.sidebar-modern .nav-item-modern .icon {
+  color: #ffffff;
+  transition: color 0.2s ease;
+  font-size: 1.4rem;
+  font-weight: 900;
+}
+
+.sidebar-modern .nav-item-modern:hover .icon,
+.sidebar-modern .nav-item-modern.active .icon {
+  color: #ffffff;
+}
+
+/* Base navigation styling for all portals */
+.sidebar-modern .nav-item-modern {
+  color: #ffffff;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  font-weight: 900;
+  font-size: 1rem;
+}
+
+.sidebar-modern .nav-item-modern:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.sidebar-modern .nav-item-modern.active {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  font-weight: 900;
+}
+
+/* Base nav group title styling for all portals */
+.sidebar-modern .nav-group-title {
+  font-size: 0.9rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #ffffff;
+  padding: 0 1rem;
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sidebar-modern .nav-group.static .nav-group-title {
+  color: #ffffff;
+  font-weight: 900;
+}
+
+/* Library specific brand styling */
+.library-sidebar-modern .sidebar-brand-title__main {
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
+.library-sidebar-modern .sidebar-brand-subtitle {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.1em;
+  opacity: 0.9;
+}
+
+.library-sidebar-modern .nav-item-modern .icon {
+  color: #ffffff;
+  transition: color 0.2s ease;
+  font-size: 1.4rem;
+  font-weight: 900;
+}
+
+.library-sidebar-modern .nav-item-modern:hover .icon,
+.library-sidebar-modern .nav-item-modern.active .icon {
+  color: #ffffff;
 }
 
 .sidebar-brand-title__sub {
@@ -134,6 +341,25 @@
   background-color: rgba(255, 255, 255, 0.45);
 }
 
+/* Library specific scrollbar styling */
+.library-sidebar-modern .sidebar-nav::-webkit-scrollbar {
+  width: 4px;
+}
+
+.library-sidebar-modern .sidebar-nav::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+.library-sidebar-modern .sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(170, 7, 107, 0.5);
+  border-radius: 2px;
+}
+
+.library-sidebar-modern .sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(170, 7, 107, 0.7);
+}
+
 .sidebar-scroll-hint {
   text-transform: uppercase;
   font-size: 0.7rem;
@@ -172,6 +398,46 @@
   font-weight: 600;
   letter-spacing: 0.01em;
   transition: background 0.25s ease, color 0.25s ease;
+}
+
+/* Library specific navigation styling */
+.library-sidebar-modern .nav-item-modern {
+  color: #ffffff;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  font-weight: 900;
+  font-size: 1rem;
+}
+
+.library-sidebar-modern .nav-item-modern:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.library-sidebar-modern .nav-item-modern.active {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  font-weight: 900;
+}
+
+/* Library specific nav group title styling */
+.library-sidebar-modern .nav-group-title {
+  font-size: 0.9rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #ffffff;
+  padding: 0 1rem;
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.library-sidebar-modern .nav-group.static .nav-group-title {
+  color: #ffffff;
+  font-weight: 900;
 }
 
 .nav-item-modern .icon {

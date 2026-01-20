@@ -75,6 +75,8 @@ export default function AdminShell({
   footerTitle = "Exam Management Studio",
   footerSubtitle = "Crafted for Vijayam College",
   className = "",
+  customSidebarClass = "",
+  customShellClass = "",
 }) {
   const { pathname } = useLocation();
   const navTo = useNavigate();
@@ -188,11 +190,11 @@ export default function AdminShell({
 
   return (
     <div
-      className={`admin-shell d-grid ${className}`.trim()}
+      className={`${customShellClass || 'admin-shell'} d-grid ${className}`.trim()}
       style={{ gridTemplateColumns: collapsed ? "92px 1fr" : "280px 1fr" }}
     >
       <aside
-        className={`sidebar-modern d-flex flex-column ${collapsed ? "collapsed" : ""
+        className={`${customSidebarClass || 'sidebar-modern'} d-flex flex-column ${collapsed ? "collapsed" : ""
           }`}
       >
         <div className="sidebar-header">
