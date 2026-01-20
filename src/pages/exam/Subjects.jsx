@@ -672,6 +672,35 @@ export default function SubjectsSection({
                       codeValue: subjectForm.subjectCode,
                       onCodeChange: (e) =>
                         setSubjectForm({ ...subjectForm, subjectCode: e.target.value }),
+                      action: (
+                        <button
+                          type="button"
+                          className="btn btn-outline-danger btn-sm"
+                          onClick={() => {
+                            setSubjectForm(prev => {
+                              const extraNames = prev.extraSubjectNames || []
+                              const extraCodes = prev.extraSubjectCodes || []
+                              if (extraNames.length > 0) {
+                                return {
+                                  ...prev,
+                                  subjectName: extraNames[0],
+                                  subjectCode: extraCodes[0] || '',
+                                  extraSubjectNames: extraNames.slice(1),
+                                  extraSubjectCodes: extraCodes.slice(1)
+                                }
+                              } else {
+                                return {
+                                  ...prev,
+                                  subjectName: '',
+                                  subjectCode: ''
+                                }
+                              }
+                            })
+                          }}
+                        >
+                          {(subjectForm.extraSubjectNames || []).length > 0 ? 'Remove' : 'Clear'}
+                        </button>
+                      )
                     })}
                   </div>
                   {extraInputFields}
@@ -757,7 +786,7 @@ export default function SubjectsSection({
                           </tr>
                         </thead>
                         <tbody>
-                          {(showAllSavedSubjects ? savedCombos : savedCombos.slice(0, 3)).map((combo, index) => {
+                          {(showAllSavedSubjects ? savedCombos : savedCombos.slice(0, 3)).map((combo, comboIndex) => {
                             const categoriesByType = {};
                             combo.categories.forEach(cat => {
                               const existing = categoriesByType[cat.name];
@@ -777,64 +806,62 @@ export default function SubjectsSection({
                               }
                             });
 
-                            return (
-                              <tr key={`${combo.comboKey}-${index}`}>
-                                <td>{combo.academicYear}</td>
-                                <td>{displayGroupName(combo.groupCode)}</td>
-                                <td>{combo.courseName || combo.courseCode || '-'}</td>
-                                <td>Sem {combo.semester}</td>
-                                <td>
-                                  <div className="d-flex flex-column gap-2">
-                                    {Object.entries(categoriesByType).map(([category, entry]) => (
-                                      <button
-                                        type="button"
-                                        className="btn btn-outline-secondary students-button students-button-sm text-start"
-                                        key={category}
-                                        onClick={() => {
-                                          const subjects = entry.subjects || []
-                                          const codes = entry.subjectCodes || []
-                                          const subjectObjects = subjects.map((s, i) => ({
-                                            name: s,
-                                            code: codes[i] || ''
-                                          })).filter(obj => obj.name)
+                            const catEntries = Object.entries(categoriesByType);
+                            if (catEntries.length === 0) return null;
 
-                                          openCategoryModal(
-                                            combo,
-                                            category,
-                                            subjectObjects
-                                          )
-                                        }}
-                                      >
-                                        <span className="fw-semibold">{category}</span>
-                                        <span className="text-muted small d-block">
-                                          Click to view
-                                        </span>
-                                      </button>
-                                    ))}
-                                  </div>
+                            return catEntries.map(([category, entry], catIndex) => (
+                              <tr key={`${combo.comboKey}-${category}`}>
+                                {catIndex === 0 && (
+                                  <>
+                                    <td rowSpan={catEntries.length} className="align-middle border-end">{combo.academicYear}</td>
+                                    <td rowSpan={catEntries.length} className="align-middle border-end">{displayGroupName(combo.groupCode)}</td>
+                                    <td rowSpan={catEntries.length} className="align-middle border-end">{combo.courseName || combo.courseCode || '-'}</td>
+                                    <td rowSpan={catEntries.length} className="align-middle border-end">Sem {combo.semester}</td>
+                                  </>
+                                )}
+                                <td>
+                                  <button
+                                    type="button"
+                                    className="btn btn-outline-secondary students-button students-button-sm text-start w-100"
+                                    onClick={() => {
+                                      const subjects = entry.subjects || []
+                                      const codes = entry.subjectCodes || []
+                                      const subjectObjects = subjects.map((s, i) => ({
+                                        name: s,
+                                        code: codes[i] || ''
+                                      })).filter(obj => obj.name)
+
+                                      openCategoryModal(
+                                        combo,
+                                        category,
+                                        subjectObjects
+                                      )
+                                    }}
+                                  >
+                                    <span className="fw-semibold">{category}</span>
+                                    <span className="text-muted small d-block">
+                                      Click to view
+                                    </span>
+                                  </button>
                                 </td>
                                 <td>
-                                  <div className="d-flex flex-column gap-2">
-                                    {Object.entries(categoriesByType).map(([category, entry]) => (
-                                      <div key={category} className="d-flex gap-2">
-                                        <button
-                                          className="btn btn-sm btn-outline-primary students-button students-button-sm"
-                                          onClick={() => editSubject(buildAggregatedCategoryPayload(combo, entry))}
-                                        >
-                                          Edit {category}
-                                        </button>
-                                        <button
-                                          className="btn btn-sm btn-outline-danger students-button students-button-sm"
-                                          onClick={() => setConfirmModalState({ isOpen: true, type: 'SAVED_SUBJECT', payload: buildAggregatedCategoryPayload(combo, entry) })}
-                                        >
-                                          Delete
-                                        </button>
-                                      </div>
-                                    ))}
+                                  <div className="d-flex gap-2">
+                                    <button
+                                      className="btn btn-sm btn-outline-primary students-button students-button-sm"
+                                      onClick={() => editSubject(buildAggregatedCategoryPayload(combo, entry))}
+                                    >
+                                      Edit {category}
+                                    </button>
+                                    <button
+                                      className="btn btn-sm btn-outline-danger students-button students-button-sm"
+                                      onClick={() => setConfirmModalState({ isOpen: true, type: 'SAVED_SUBJECT', payload: buildAggregatedCategoryPayload(combo, entry) })}
+                                    >
+                                      Delete
+                                    </button>
                                   </div>
                                 </td>
                               </tr>
-                            );
+                            ));
                           })}
                         </tbody>
                       </table>

@@ -6,7 +6,7 @@ import { logActivity } from "../lib/logger";
 import logo from "../assets/media/images.png";
 import "./AdminShell.css";
 
-const defaultNavGroups = [
+const examPortalNavGroups = [
   {
     title: "Dashboard",
     static: true,
@@ -69,7 +69,7 @@ const isUuid = (value = "") =>
 export default function AdminShell({
   children,
   onSignOut,
-  navGroups = defaultNavGroups,
+  navGroups,
   brandTitle = "Exam Management System",
   brandSubtitle = "Arts & Science·Chittoor",
   footerTitle = "Exam Management Studio",
@@ -85,9 +85,12 @@ export default function AdminShell({
   const [expandedGroups, setExpandedGroups] = useState({});
   const sidebarRef = useRef(null);
 
+  // Determine which nav groups to use
+  const activeNavGroups = navGroups || examPortalNavGroups;
+
   // Automatically expand the group that contains the current active route
   useEffect(() => {
-    const activeGroupIndex = navGroups.findIndex(
+    const activeGroupIndex = activeNavGroups.findIndex(
       (group) => !group.static && group.items.some((item) => item.to === pathname)
     );
     if (activeGroupIndex !== -1) {
@@ -97,7 +100,7 @@ export default function AdminShell({
       }));
     } else {
       // Handle static groups effectively
-      const staticGroupIndex = navGroups.findIndex(
+      const staticGroupIndex = activeNavGroups.findIndex(
         (group) => group.static && group.items.some((item) => item.to === pathname)
       );
       if (staticGroupIndex !== -1) {
@@ -112,7 +115,7 @@ export default function AdminShell({
     if (user?.id && isUuid(user.id)) {
       // Find the human-readable label for the current page
       let pageLabel = pathname;
-      for (const group of navGroups) {
+      for (const group of activeNavGroups) {
         const found = group.items.find(item => item.to === pathname);
         if (found) {
           pageLabel = found.label;
@@ -128,10 +131,10 @@ export default function AdminShell({
         description: `${(user.role || 'User').charAt(0).toUpperCase() + (user.role || 'user').slice(1).toLowerCase()} viewed page ${pageLabel}`
       });
     }
-  }, [pathname, user, navGroups]);
+  }, [pathname, user, activeNavGroups]);
 
   const toggleGroup = (index) => {
-    if (navGroups[index]?.static) return;
+    if (activeNavGroups[index]?.static) return;
     setExpandedGroups((prev) => ({
       ...prev,
       [index]: !prev[index],
@@ -240,7 +243,7 @@ export default function AdminShell({
           ref={sidebarRef}
           className="sidebar-nav flex-grow-1 d-flex flex-column gap-1"
         >
-          {navGroups.map((group, groupIndex) => {
+          {activeNavGroups.map((group, groupIndex) => {
             const isStatic = group.static;
             if (isStatic) {
               const item = group.items[0];

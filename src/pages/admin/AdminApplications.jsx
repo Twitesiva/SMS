@@ -2,125 +2,14 @@ import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { api } from '../../lib/mockApi'
 import { supabase } from '../../../supabaseClient'
-import AdminShell from '../../components/AdminShell'
+import AdShellAdmin from '../../components/AdShellAdmin'
 import crestPrimary from '../../assets/media/images.png'
 import { validateRequiredFields } from '../../lib/validation'
 import { showToast } from '../../store/ui'
 import './Setup.css'
 
-const adminNavGroups = [
 
-  {
-    title: 'Applications',
-    static: true,
-    items: [
-      {
-        to: '/admin-portal/applications',
-        label: 'Applications',
-        icon: 'bi-inboxes'
-      }
-    ]
-  },
-  {
-    title: 'Student Portal',
-    items: [
-      {
-        to: '/admin-portal/academic-years',
-        label: 'Academic Years',
-        icon: 'bi-calendar3'
-      },
-      {
-        to: '/admin-portal/groups-courses',
-        label: 'Groups & Courses',
-        icon: 'bi-diagram-3'
-      },
-      {
-        to: '/admin-portal/subjects',
-        label: 'Subjects',
-        icon: 'bi-journal-text'
-      }
-    ]
-  },
-  {
-    title: 'Fees Creation',
-    static: true,
-    items: [
-      {
-        to: '/admin-portal/fees-creation',
-        label: 'Student Fees Creation',
-        icon: 'bi-currency-rupee'
-      }
-    ]
-  },
-  {
-    title: 'Fees Collection',
-    static: true,
-    items: [
-      {
-        to: '/admin-portal/fees-collection',
-        label: 'Fees Collection',
-        icon: 'bi-cash-stack'
-      }
-    ]
-  },
-  {
-    title: 'Profile Creation',
-    static: true,
-    items: [
-      {
-        to: '/admin-portal/profile-creation',
-        label: 'Staff Profile Creation',
-        icon: 'bi-person-plus-fill'
-      }
-    ]
-  },
-  {
-    title: 'Staff Management',
-    static: true,
-    items: [
-      {
-        to: '/admin-portal/subject-mapping',
-        label: 'Subject Mapping',
-        icon: 'bi-person-lines-fill'
-      }
-    ]
-  },
 
-  {
-    title: 'Class Time Table',
-    static: true,
-    items: [
-      {
-        to: '/admin-portal/class-time-table',
-        label: 'Class Time Table',
-        icon: 'bi-calendar-date'
-      }
-    ]
-  },
-  {
-    title: 'Circulars',
-    static: true,
-    items: [
-      {
-        to: '/admin-portal/circulars',
-        label: 'Circulars',
-        icon: 'bi-megaphone'
-      }
-    ]
-  },
-  {
-    title: 'Payment Reports',
-    static: true,
-    items: [
-      {
-        to: '/admin-portal/payment-reports',
-        label: 'Payment Reports',
-        icon: 'bi-file-earmark-bar-graph'
-      }
-    ]
-  },
-
-]
 
 export default function AdminApplications() {
   const { pathname } = useLocation()
@@ -204,6 +93,8 @@ export default function AdminApplications() {
     }
     bootstrap()
   }, [])
+
+
 
   useEffect(() => {
     if (category) {
@@ -607,7 +498,7 @@ export default function AdminApplications() {
   }
 
   return (
-    <AdminShell navGroups={isAdminPortal ? adminNavGroups : undefined}>
+    <AdShellAdmin>
       <div className="desktop-container" style={{ overflowX: 'hidden' }}>
         <section className="setup-hero mb-4 text-center">
           <div className="setup-hero-copywrap mx-auto text-center" style={{ maxWidth: '640px' }}>
@@ -623,6 +514,8 @@ export default function AdminApplications() {
             </div>
           </div>
         </section>
+
+
 
         <div className="row g-4 justify-content-center mx-0">
           <div className="col-12 col-lg-11 col-xl-10">
@@ -933,7 +826,6 @@ export default function AdminApplications() {
 
         </div>
       </div>
-    </AdminShell>
+    </AdShellAdmin>
   )
 }
-

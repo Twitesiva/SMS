@@ -267,11 +267,10 @@ export default function StudentResults() {
                               <td className="text-center parent-marks__value">{Number(row.max_marks || 0)}</td>
                               <td>
                                 <span
-                                  className={`parent-marks__status-chip ${
-                                    status === 'pass'
+                                  className={`parent-marks__status-chip ${status === 'pass'
                                       ? 'parent-marks__status-chip--pass'
                                       : 'parent-marks__status-chip--fail'
-                                  }`}
+                                    }`}
                                 >
                                   {row.result_status || 'N/A'}
                                 </span>

@@ -47,6 +47,16 @@ const normalizeStatus = (value) => {
   return { label: 'Pending', tone: 'warning' }
 }
 
+const formatAcademicYear = (val) => {
+  if (!val) return ''
+  const s = String(val).trim()
+  // If it's a 4-digit year (e.g. 2026), convert to range (e.g. 2025-2026)
+  if (s.match(/^\d{4}$/)) {
+    return `${parseInt(s) - 1}-${s}`
+  }
+  return s
+}
+
 export default function StudentFeePayment() {
   const { student } = useStudentAuth()
   const [payments, setPayments] = useState([])
@@ -68,13 +78,29 @@ export default function StudentFeePayment() {
       setFeeWarning('')
       setTotalFee(null)
       try {
-        const { data, error: fetchError } = await supabase
+        // 1. Get Application ID to find initial admission payments
+        const { data: admData } = await supabase
+          .from('admissions')
+          .select('application_id')
+          .eq('student_id', student.id)
+          .maybeSingle()
+
+        const appId = admData?.application_id
+
+        let query = supabase
           .from('student_fee_payments')
           .select(
-            'id, amount_paid, payment_type, fee_type, payment_mode, payment_status, created_at, academic_fee:academic_fee_id(academic_year, year_of_study, category)'
+            'id, amount_paid, payment_type, fee_type, payment_mode, payment_status, created_at, academic_fee:academic_fee_id(academic_year, year_of_study, category), application:application_id(admission_year), student:student_id(academic_year)'
           )
-          .eq('student_id', student.id)
-          .order('created_at', { ascending: false })
+
+        if (appId) {
+          // Fetch by Student ID OR Application ID
+          query = query.or(`student_id.eq.${student.id},application_id.eq.${appId}`)
+        } else {
+          query = query.eq('student_id', student.id)
+        }
+
+        const { data, error: fetchError } = await query.order('created_at', { ascending: false })
 
         if (fetchError) throw fetchError
         setPayments(data || [])
@@ -345,8 +371,8 @@ export default function StudentFeePayment() {
                   return (
                     <tr key={payment.id}>
                       <td>{formatDateTime(payment.created_at)}</td>
-                      <td>{payment.academic_fee?.academic_year || 'N/A'}</td>
-                      <td>{payment.academic_fee?.year_of_study || 'N/A'}</td>
+                      <td>{formatAcademicYear(payment.academic_fee?.academic_year || payment.student?.academic_year || payment.application?.admission_year || student?.academic_year || 'N/A')}</td>
+                      <td>{payment.academic_fee?.year_of_study || (payment.application ? 1 : 'N/A')}</td>
                       <td>{payment.fee_type || 'N/A'}</td>
                       <td>{payment.payment_type ? (payment.payment_type.toLowerCase() === 'full' ? 'Full' : payment.payment_type.toUpperCase()) : 'N/A'}</td>
                       <td>{payment.payment_mode ? (payment.payment_mode.toLowerCase() === 'upi' ? 'UPI' : payment.payment_mode.charAt(0).toUpperCase() + payment.payment_mode.slice(1).toLowerCase()) : 'N/A'}</td>

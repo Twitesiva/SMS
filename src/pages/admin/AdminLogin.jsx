@@ -36,7 +36,7 @@ export default function AdminLogin() {
     })
 
     setLoading(false)
-    nav('/admin-portal/applications')
+    nav('/admin-portal/main-dashboard')
   }
 
   return (
