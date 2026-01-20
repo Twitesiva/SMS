@@ -16,6 +16,11 @@ export default function ChargesAndPenalties() {
   const [deleting, setDeleting] = useState(false)
   const [editing, setEditing] = useState(false)
 
+  const [customCharges, setCustomCharges] = useState([])
+  const [newCharge, setNewCharge] = useState({ name: '', amount: '' })
+  const [loadingCustom, setLoadingCustom] = useState(false)
+  const [addingCustom, setAddingCustom] = useState(false)
+
   const parsed = {
     fine: Number(form.fineAmount || 0),
     deposit: Number(form.depositAmount || 0)
@@ -32,7 +37,6 @@ export default function ChargesAndPenalties() {
         .single()
 
       if (error) {
-        // If no row found, keep defaults without error noise
         if (error.code !== 'PGRST116') throw error
         setForm(initialForm)
         setSettingsId(null)
@@ -55,12 +59,73 @@ export default function ChargesAndPenalties() {
     }
   }
 
+  const loadCustomCharges = async () => {
+    setLoadingCustom(true)
+    try {
+      const { data, error } = await supabase
+        .from('library_charge_categories')
+        .select('*')
+        .order('created_at', { ascending: true })
+
+      if (error) throw error
+      setCustomCharges(data || [])
+    } catch (err) {
+      // Silent error if table doesn't exist yet to avoid UI breakage
+      console.log('Custom charges table might not exist yet:', err.message)
+    } finally {
+      setLoadingCustom(false)
+    }
+  }
+
   useEffect(() => {
     loadCharges()
+    loadCustomCharges()
   }, [])
 
   const handleChange = (key) => (event) => {
     setForm((prev) => ({ ...prev, [key]: event.target.value }))
+  }
+
+  const handleNewChargeChange = (key) => (event) => {
+    setNewCharge((prev) => ({ ...prev, [key]: event.target.value }))
+  }
+
+  const handleAddCharge = async (e) => {
+    e.preventDefault()
+    if (!newCharge.name.trim() || !newCharge.amount.trim()) {
+      showToast('Please enter both name and amount.', { type: 'warning' })
+      return
+    }
+    setAddingCustom(true)
+    try {
+      const { data, error } = await supabase
+        .from('library_charge_categories')
+        .insert([{ name: newCharge.name.trim(), amount: Number(newCharge.amount) }])
+        .select()
+        .single()
+
+      if (error) throw error
+      setCustomCharges((prev) => [...prev, data])
+      setNewCharge({ name: '', amount: '' })
+      showToast('Category added.', { type: 'success' })
+    } catch (err) {
+      console.error('Failed to add custom charge', err)
+      showToast('Unable to add category. Check database.', { type: 'danger' })
+    } finally {
+      setAddingCustom(false)
+    }
+  }
+
+  const handleDeleteCharge = async (id) => {
+    try {
+      const { error } = await supabase.from('library_charge_categories').delete().eq('id', id)
+      if (error) throw error
+      setCustomCharges((prev) => prev.filter((c) => c.id !== id))
+      showToast('Category removed.', { type: 'success' })
+    } catch (err) {
+      console.error('Failed to delete custom charge', err)
+      showToast('Unable to delete category.', { type: 'danger' })
+    }
   }
 
   const handleSave = async (event) => {
@@ -181,7 +246,7 @@ export default function ChargesAndPenalties() {
 
       <div className="row g-4 justify-content-center mx-0">
         <div className="col-12 col-lg-8">
-          <div className="card card-soft p-4">
+          <div className="card card-soft p-4 mb-4">
             <div className="d-flex justify-content-between align-items-center mb-2">
               <div>
                 <div className="text-muted text-uppercase small fw-bold">Charges & Penalties</div>
@@ -237,6 +302,80 @@ export default function ChargesAndPenalties() {
                     {saving ? 'Saving...' : 'Save Changes'}
                   </button>
                 )}
+              </div>
+            </form>
+          </div>
+
+          <div className="card card-soft p-4">
+            <div className="mb-3">
+              <h4 className="mb-1 fw-bold text-dark">Custom Charge Categories</h4>
+              <p className="text-muted mb-0 small">Define other fee types (e.g., Lost Card, Late Return).</p>
+            </div>
+            
+            <div className="table-responsive mb-3">
+              <table className="table table-sm table-hover align-middle">
+                <thead className="table-light">
+                  <tr>
+                    <th>Category Name</th>
+                    <th>Default Amount</th>
+                    <th className="text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loadingCustom ? (
+                    <tr><td colSpan="3" className="text-center text-muted">Loading...</td></tr>
+                  ) : customCharges.length === 0 ? (
+                    <tr><td colSpan="3" className="text-center text-muted fst-italic">No custom categories defined.</td></tr>
+                  ) : (
+                    customCharges.map((charge) => (
+                      <tr key={charge.id}>
+                        <td className="fw-semibold">{charge.name}</td>
+                        <td>Rs. {charge.amount}</td>
+                        <td className="text-end">
+                          <button 
+                            className="btn btn-link text-danger p-0 text-decoration-none small"
+                            onClick={() => handleDeleteCharge(charge.id)}
+                          >
+                            Remove
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <form className="row g-2 align-items-end" onSubmit={handleAddCharge}>
+              <div className="col-md-6">
+                <label className="form-label small fw-bold text-muted">New Category Name</label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  placeholder="e.g. Lost ID Card"
+                  value={newCharge.name}
+                  onChange={handleNewChargeChange('name')}
+                />
+              </div>
+              <div className="col-md-4">
+                <label className="form-label small fw-bold text-muted">Amount (Rs.)</label>
+                <input
+                  type="number"
+                  className="form-control form-control-sm"
+                  placeholder="0"
+                  min="0"
+                  value={newCharge.amount}
+                  onChange={handleNewChargeChange('amount')}
+                />
+              </div>
+              <div className="col-md-2">
+                <button 
+                  type="submit" 
+                  className="btn btn-sm btn-primary w-100"
+                  disabled={addingCustom}
+                >
+                  {addingCustom ? '...' : 'Add'}
+                </button>
               </div>
             </form>
           </div>

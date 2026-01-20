@@ -66,8 +66,29 @@ export default function Fines() {
   const [savingMissing, setSavingMissing] = useState(false)
   const [savingDamaged, setSavingDamaged] = useState(false)
   const [collecting, setCollecting] = useState(false)
+  
+  // States for Other Fines
+  const [otherChargeCategories, setOtherChargeCategories] = useState([])
+  const [savingOther, setSavingOther] = useState(false)
+  const [otherFineForm, setOtherFineForm] = useState({
+    studentId: '',
+    categoryId: '',
+    amount: '0'
+  })
 
   const today = useMemo(() => new Date(), [])
+
+  const loadOtherCategories = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('library_charge_categories')
+        .select('*')
+        .order('name', { ascending: true })
+      if (!error) setOtherChargeCategories(data || [])
+    } catch (err) {
+      console.error('Failed to load other categories', err)
+    }
+  }, [])
 
   const resolveFineAmount = useCallback(
     (reasonValue, conditionValue) => {
@@ -119,7 +140,8 @@ export default function Fines() {
 
   useEffect(() => {
     loadFineCharges()
-  }, [loadFineCharges])
+    loadOtherCategories()
+  }, [loadFineCharges, loadOtherCategories])
 
   // Update amounts when dependencies change
   useEffect(() => {
@@ -138,7 +160,7 @@ export default function Fines() {
       const { data, error } = await supabase
         .from('library_fines')
         .select(
-          'id, amount, status, created_at, paid_at, student_id, loan_id, students(full_name,student_id), library_loans(status, due_date, library_book_copies(book_id, library_books(title)))'
+          'id, amount, status, created_at, paid_at, student_id, loan_id, description, students(full_name,student_id), library_loans(status, due_date, library_book_copies(book_id, library_books(title)))'
         )
         .order('created_at', { ascending: false })
 
@@ -186,7 +208,7 @@ export default function Fines() {
       if (key === 'fineId') {
         const selected = studentFines.find(f => String(f.id) === String(value))
         if (selected) {
-          next.bookTitle = selected.library_loans?.library_book_copies?.library_books?.title || 'Unknown'
+          next.bookTitle = selected.library_loans?.library_book_copies?.library_books?.title || selected.description || 'Unknown'
           next.amount = String(selected.amount || 0)
         } else {
           next.bookTitle = ''
@@ -213,6 +235,7 @@ export default function Fines() {
           id, 
           amount, 
           status, 
+          description,
           library_loans (
             id,
             library_book_copies (
@@ -234,7 +257,7 @@ export default function Fines() {
           setFineForm(prev => ({
             ...prev,
             fineId: String(f.id),
-            bookTitle: f.library_loans?.library_book_copies?.library_books?.title || 'Unknown',
+            bookTitle: f.library_loans?.library_book_copies?.library_books?.title || f.description || 'Unknown',
             amount: String(f.amount || 0)
           }))
         }
@@ -282,6 +305,46 @@ export default function Fines() {
       showToast('Unable to process payment.', { type: 'danger' })
     } finally {
       setCollecting(false)
+    }
+  }
+
+  const handleOtherFormChange = (key) => (event) => {
+    const value = event.target.value
+    setOtherFineForm((prev) => {
+      const next = { ...prev, [key]: value }
+      if (key === 'categoryId') {
+        const cat = otherChargeCategories.find(c => String(c.id) === String(value))
+        if (cat) next.amount = String(cat.amount)
+      }
+      return next
+    })
+  }
+
+  const handleOtherFineSubmit = async (e) => {
+    e.preventDefault()
+    const trimmedStu = otherFineForm.studentId.trim()
+    if (!trimmedStu) return showToast('Enter Student ID.', { type: 'warning' })
+    if (!otherFineForm.categoryId) return showToast('Select a category.', { type: 'warning' })
+    
+    const category = otherChargeCategories.find(c => String(c.id) === String(otherFineForm.categoryId))
+    
+    setSavingOther(true)
+    try {
+      const { error } = await supabase.from('library_fines').insert([{
+        student_id: trimmedStu,
+        amount: Number(otherFineForm.amount),
+        description: category?.name || 'Other Charge',
+        status: 'PENDING'
+      }])
+      if (error) throw error
+      showToast('Fine recorded.', { type: 'success' })
+      setOtherFineForm({ studentId: '', categoryId: '', amount: '0' })
+      loadFines()
+    } catch (err) {
+      console.error('Failed to save other fine', err)
+      showToast('Unable to record fine.', { type: 'danger' })
+    } finally {
+      setSavingOther(false)
     }
   }
 
@@ -602,7 +665,7 @@ export default function Fines() {
                       const days = dueDate
                         ? Math.max(0, Math.floor((today - new Date(dueDate)) / (1000 * 60 * 60 * 24)))
                         : 0
-                      let reason = fine.reason || null
+                      let reason = fine.reason || fine.description || null
                       if (!reason) {
                         if (loanStatus === 'MISSING') reason = 'Missing'
                         else if (loanStatus === 'DAMAGED') reason = 'Damaged'
@@ -615,9 +678,9 @@ export default function Fines() {
                       return (
                         <tr key={fine.id}>
                           <td>{student?.full_name || 'Unknown'} ({student?.student_id || '--'})</td>
-                          <td>{book?.title || 'Unknown'}</td>
+                          <td>{book?.title || '--'}</td>
                           <td>{reason}</td>
-                          <td>{days}</td>
+                          <td>{days || '--'}</td>
                           <td className="text-end">Rs. {fine.amount || 0}</td>
                         </tr>
                       )
@@ -630,7 +693,7 @@ export default function Fines() {
         </div>
       </div>
 
-      <div className="row g-4 justify-content-center mx-0">
+      <div className="row g-4 justify-content-center mx-0 mb-4">
         <div className="col-12 col-lg-6">
           <div className="card card-soft p-4 h-100">
             <div className="d-flex justify-content-between align-items-center mb-3">
@@ -835,6 +898,61 @@ export default function Fines() {
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={savingDamaged}>
                   {savingDamaged ? 'Saving...' : 'Mark Damaged'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div className="row g-4 justify-content-center mx-0 mb-4">
+        <div className="col-12 col-lg-8">
+          <div className="card card-soft p-4 h-100">
+            <div>
+              <h4 className="mb-1">Other Fines & Charges</h4>
+              <p className="text-muted mb-3">Record miscellaneous library charges.</p>
+            </div>
+            <form className="row g-3" onSubmit={handleOtherFineSubmit}>
+              <div className="col-md-6">
+                <label className="form-label">Student ID</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="STU-1001"
+                  value={otherFineForm.studentId}
+                  onChange={(e) => setOtherFineForm(p => ({ ...p, studentId: e.target.value }))}
+                />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label">Category</label>
+                <select
+                  className="form-select"
+                  value={otherFineForm.categoryId}
+                  onChange={handleOtherFormChange('categoryId')}
+                >
+                  <option value="">Select Category</option>
+                  {otherChargeCategories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-md-6">
+                <label className="form-label">Fine Amount (Rs.)</label>
+                <input
+                  type="number"
+                  className="form-control"
+                  min="0"
+                  value={otherFineForm.amount}
+                  onChange={handleOtherFormChange('amount')}
+                />
+              </div>
+              <div className="col-md-6 d-flex align-items-end">
+                <button 
+                  type="submit" 
+                  className="btn btn-primary w-100"
+                  disabled={savingOther}
+                >
+                  {savingOther ? 'Saving...' : 'Record Other Fine'}
                 </button>
               </div>
             </form>
