@@ -1,9 +1,12 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../store/auth";
+import { supabase } from "../../supabaseClient";
+import { logActivity } from "../lib/logger";
 import logo from "../assets/media/images.png";
+import "./AdminShell.css";
 
-const navGroups = [
+const examPortalNavGroups = [
   {
     title: "Dashboard",
     static: true,
@@ -12,20 +15,20 @@ const navGroups = [
   {
     title: "Student Portal",
     items: [
-      { to: "/admin/applications", label: "Exam Applications", icon: "bi-inboxes" },
-      { to: "/admin/setup/years", label: "Create Academic Years", icon: "bi-calendar3" },
-      { to: "/admin/setup/groups", label: "Create Groups & Courses", icon: "bi-diagram-3" },
-      { to: "/admin/setup/subjects", label: "Create Subjects", icon: "bi-journal-text" },
+
+      { to: "/admin/setup/years", label: "Academic Years", icon: "bi-calendar3" },
+      { to: "/admin/setup/groups", label: "Groups & Courses", icon: "bi-diagram-3" },
+      { to: "/admin/setup/subjects", label: "Subjects", icon: "bi-journal-text" },
       { to: "/admin/students", label: "Students Details", icon: "bi-person-badge" },
-      { to: "/admin/departments", label: "Fees Generation", icon: "bi-mortarboard" },
+      { to: "/admin/fees-generation", label: "Fees Generation", icon: "bi-mortarboard" },
     ],
   },
   {
     title: "Pre-Exam Portal",
     items: [
       { to: "/admin/exam-name-creation", label: "Exam name creation", icon: "bi-pencil-square" },
-      { to: "/admin/payments", label: "Subject Mapping & Payments", icon: "bi-credit-card" },
-      { to: "/admin/exams", label: "Create Exam timetable", icon: "bi-journal-check" },
+      { to: "/admin/subject-mapping", label: "Subject Mapping & Payments", icon: "bi-credit-card" },
+      { to: "/admin/create-exam", label: "Create Exam timetable", icon: "bi-journal-check" },
       { to: "/admin/complete-registration", label: "Complete Registration & View Time table", icon: "bi-list-check" },
       { to: "/admin/hall-tickets", label: "Hall Ticket", icon: "bi-ticket-perforated" },
       { to: "/admin/practical", label: "Practical", icon: "bi-flask" },
@@ -36,8 +39,9 @@ const navGroups = [
   {
     title: "Post-Exam Portal",
     items: [
-      { to: "/admin/payments-overview", label: "Decoding", icon: "bi-bar-chart" },
-      { to: "/admin/results", label: "Marks Entry", icon: "bi-award" },
+      { to: "/admin/internal-marks", label: "Internal Marks Entry", icon: "bi-clipboard-check" },
+      { to: "/admin/decode", label: "Decoding", icon: "bi-bar-chart" },
+      { to: "/admin/marks-entry", label: "Marks Entry", icon: "bi-award" },
       { to: "/admin/result-publish", label: "Result Publish", icon: "bi-megaphone" },
       { to: "/admin/promote", label: "Promotion", icon: "bi-people" },
       { to: "/admin/revaluation", label: "Revaluation", icon: "bi-clipboard-check" },
@@ -50,21 +54,45 @@ const navGroups = [
       { to: "/admin/reports", label: "Reports", icon: "bi-file-earmark-text" },
     ],
   },
+  {
+    title: "Recent Activities",
+    items: [
+      { to: "/admin/history", label: "History", icon: "bi-clock-history" },
+    ],
+  },
 ];
 
 const SIDEBAR_SCROLL_KEY = "admin-shell-sidebar-scroll";
+const isUuid = (value = "") =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    String(value)
+  );
 
-export default function AdminShell({ children, onSignOut }) {
+export default function AdminShell({
+  children,
+  onSignOut,
+  navGroups,
+  brandTitle = "Exam Management System",
+  brandSubtitle = "Arts & Science·Chittoor",
+  footerTitle = "Exam Management Studio",
+  footerSubtitle = "Crafted for Vijayam College",
+  className = "",
+  customSidebarClass = "",
+  customShellClass = "",
+}) {
   const { pathname } = useLocation();
   const navTo = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState({});
   const sidebarRef = useRef(null);
 
+  // Determine which nav groups to use
+  const activeNavGroups = navGroups || examPortalNavGroups;
+
   // Automatically expand the group that contains the current active route
   useEffect(() => {
-    const activeGroupIndex = navGroups.findIndex(
+    const activeGroupIndex = activeNavGroups.findIndex(
       (group) => !group.static && group.items.some((item) => item.to === pathname)
     );
     if (activeGroupIndex !== -1) {
@@ -72,11 +100,43 @@ export default function AdminShell({ children, onSignOut }) {
         ...prev,
         [activeGroupIndex]: true,
       }));
+    } else {
+      // Handle static groups effectively
+      const staticGroupIndex = activeNavGroups.findIndex(
+        (group) => group.static && group.items.some((item) => item.to === pathname)
+      );
+      if (staticGroupIndex !== -1) {
+        setExpandedGroups((prev) => ({
+          ...prev,
+          [staticGroupIndex]: true,
+        }));
+      }
     }
-  }, [pathname]);
+
+    // Log page view
+    if (user?.id && isUuid(user.id)) {
+      // Find the human-readable label for the current page
+      let pageLabel = pathname;
+      for (const group of activeNavGroups) {
+        const found = group.items.find(item => item.to === pathname);
+        if (found) {
+          pageLabel = found.label;
+          break;
+        }
+      }
+
+      logActivity(supabase, {
+        user,
+        role: user.role,
+        action: 'VIEW',
+        page: pageLabel,
+        description: `${(user.role || 'User').charAt(0).toUpperCase() + (user.role || 'user').slice(1).toLowerCase()} viewed page ${pageLabel}`
+      });
+    }
+  }, [pathname, user, activeNavGroups]);
 
   const toggleGroup = (index) => {
-    if (navGroups[index]?.static) return;
+    if (activeNavGroups[index]?.static) return;
     setExpandedGroups((prev) => ({
       ...prev,
       [index]: !prev[index],
@@ -84,14 +144,13 @@ export default function AdminShell({ children, onSignOut }) {
   };
 
   const handleSignOut = () => {
-    if (typeof onSignOut === "function") {
-      onSignOut();
-    } else {
+    const handled = typeof onSignOut === "function" ? onSignOut() : false;
+    if (!handled) {
       try {
         signOut();
       } catch { }
+      navTo("/");
     }
-    navTo("/");
   };
 
   // Restore the sidebar scroll position after navigation changes.
@@ -136,11 +195,11 @@ export default function AdminShell({ children, onSignOut }) {
 
   return (
     <div
-      className="admin-shell d-grid"
+      className={`${customShellClass || 'admin-shell'} d-grid ${className}`.trim()}
       style={{ gridTemplateColumns: collapsed ? "92px 1fr" : "280px 1fr" }}
     >
       <aside
-        className={`sidebar-modern d-flex flex-column ${collapsed ? "collapsed" : ""
+        className={`${customSidebarClass || 'sidebar-modern'} d-flex flex-column ${collapsed ? "collapsed" : ""
           }`}
       >
         <div className="sidebar-header">
@@ -151,19 +210,21 @@ export default function AdminShell({ children, onSignOut }) {
               className="brand-logo shadow-sm"
               style={{ width: 80, height: 80, objectFit: "contain" }}
             />
-            <div className="sidebar-brand-info text-uppercase">
-              <div
-                className="heading-font fw-600"
-                style={{ letterSpacing: "0.2em", fontSize: "0.95rem" }}
-              >
-                Vijayam Arts & Science College
+            <div className="sidebar-brand-info">
+              <div className="sidebar-brand-title">
+                <span className="sidebar-brand-title__main">Vijayam</span>
+                <span className="sidebar-brand-title__sub">
+                  Arts & Science College
+                </span>
               </div>
-              <div
-                className="sidebar-brand-subtitle fw-semibold"
-                style={{ fontSize: "0.85rem", letterSpacing: "0.18em" }}
-              >
-                Arts & Science<span style={{ padding: "0 0.4rem" }}>&middot;</span>Chittoor
-              </div>
+              {brandSubtitle ? (
+                <div
+                  className="sidebar-brand-subtitle fw-semibold"
+                  style={{ fontSize: "0.85rem", letterSpacing: "0.18em" }}
+                >
+                  {brandSubtitle}
+                </div>
+              ) : null}
             </div>
           </div>
           <button
@@ -184,7 +245,7 @@ export default function AdminShell({ children, onSignOut }) {
           ref={sidebarRef}
           className="sidebar-nav flex-grow-1 d-flex flex-column gap-1"
         >
-          {navGroups.map((group, groupIndex) => {
+          {activeNavGroups.map((group, groupIndex) => {
             const isStatic = group.static;
             if (isStatic) {
               const item = group.items[0];
@@ -295,18 +356,16 @@ export default function AdminShell({ children, onSignOut }) {
           })}
         </nav>
 
-
-        <div className="sidebar-footer text-center small text-muted">
-          <div style={{ color: "#4c75f2", letterSpacing: "0.15em" }}>
-            Exam Management Studio
+        <div className="sidebar-footer text-center mt-auto pb-3">
+          <div style={{ color: "rgba(255,255,255,0.8)", fontSize: "1.1rem" }}>
+            Made by <a href="https://www.twite.ai" target="_blank" rel="noopener noreferrer" style={{ color: "#fff", textDecoration: "none", fontWeight: "bold" }}>Twite AI Technologies</a>
           </div>
-          <div style={{ color: "#a569bd" }}>Crafted for Vijayam College</div>
         </div>
       </aside>
 
       <main className="admin-main p-4">
         <div className="brandbar rounded px-3 py-2 mb-3 d-flex align-items-center justify-content-between header-shadow">
-          <div className="brandbar-title">Exam Management System</div>
+          <div className="brandbar-title">{brandTitle}</div>
           <button
             className="btn btn-outline-secondary modern-signout"
             onClick={handleSignOut}

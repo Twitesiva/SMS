@@ -1,0 +1,231 @@
+.role-selection-container {
+    min-height: 100vh;
+    width: 100vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    font-family: 'Space Grotesk', 'Cabinet Grotesk', sans-serif;
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.role-bg-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+    opacity: 0.1;
+    pointer-events: none;
+}
+
+.role-back-btn {
+    position: absolute;
+    top: 2rem;
+    left: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: white;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: 50px;
+    font-weight: 600;
+    color: #4a5568;
+    cursor: pointer;
+    z-index: 20;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    font-family: inherit;
+}
+
+.role-back-btn:hover {
+    transform: translateX(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    color: #2b32b2;
+}
+
+.role-content {
+    position: relative;
+    z-index: 10;
+    max-width: 1200px;
+    width: 100%;
+    text-align: center;
+}
+
+.role-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 3rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    animation: fadeInDown 1s ease-out;
+    background: linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%);
+    padding: 1rem 4rem;
+    border-radius: 50px;
+    display: inline-block;
+    box-shadow: 0 10px 20px rgba(44, 82, 130, 0.35);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.role-grid {
+    display: grid;
+    gap: 1rem;
+    justify-items: center;
+    align-items: center;
+    padding: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+@media (min-width: 1200px) {
+    .role-grid {
+        grid-template-columns: repeat(4, minmax(220px, 1fr));
+    }
+}
+
+.role-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 20px;
+    padding: 1rem 0.5rem;
+    width: 100%;
+    max-width: 220px;
+    height: 220px !important;
+    min-height: 220px !important;
+    max-height: 220px !important;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow:
+        0 8px 16px rgba(0, 0, 0, 0.05),
+        0 4px 6px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+}
+
+.role-card:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow:
+        0 20px 40px rgba(0, 0, 0, 0.1),
+        0 8px 12px rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(66, 153, 225, 0.3);
+}
+
+.role-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #e0e7ff 0%, #f0f4ff 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.4rem;
+    color: #4c51bf;
+    transition: all 0.3s ease;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+.role-card:hover .role-icon-wrapper {
+    background: linear-gradient(135deg, #4c51bf 0%, #667eea 100%);
+    color: #ffffff;
+    transform: rotateY(180deg);
+}
+
+.role-card:hover .role-icon-wrapper i {
+    transform: rotateY(-180deg);
+    display: inline-block;
+}
+
+.role-name {
+    font-family: 'Space Grotesk', 'Cabinet Grotesk', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #1f2a44;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    min-height: 2.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.role-description {
+    font-family: 'Space Grotesk', 'Cabinet Grotesk', sans-serif;
+    font-size: 0.82rem;
+    color: rgba(31, 42, 68, 0.72);
+    line-height: 1.5;
+    letter-spacing: 0.02em;
+    max-width: 180px;
+    min-height: 3.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Specific Colors for Cards */
+.role-card.exam-portal .role-icon-wrapper {
+    color: #ed8936;
+    background: linear-gradient(135deg, #fffaf0 0%, #fff5f5 100%);
+}
+
+.role-card.exam-portal:hover .role-icon-wrapper {
+    background: linear-gradient(135deg, #ed8936 0%, #f6ad55 100%);
+    color: white;
+}
+
+.role-card.admin .role-icon-wrapper {
+    color: #e53e3e;
+    background: linear-gradient(135deg, #fff5f5 0%, #fff0f0 100%);
+}
+
+.role-card.admin:hover .role-icon-wrapper {
+    background: linear-gradient(135deg, #e53e3e 0%, #fc8181 100%);
+    color: white;
+}
+
+.role-card.staff .role-icon-wrapper {
+    color: #38a169;
+    background: linear-gradient(135deg, #f0fff4 0%, #e6fffa 100%);
+}
+
+.role-card.staff:hover .role-icon-wrapper {
+    background: linear-gradient(135deg, #38a169 0%, #68d391 100%);
+    color: white;
+}
+
+.role-card.student .role-icon-wrapper {
+    color: #4299e1;
+    background: linear-gradient(135deg, #ebf8ff 0%, #e6fffa 100%);
+}
+
+.role-card.student:hover .role-icon-wrapper {
+    background: linear-gradient(135deg, #4299e1 0%, #63b3ed 100%);
+    color: white;
+}
+
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

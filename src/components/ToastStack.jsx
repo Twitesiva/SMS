@@ -1,5 +1,6 @@
 import { memo, useEffect } from 'react'
 import { useUiStore } from '../store/ui.js'
+import './ToastStack.css'
 
 const typeToAccent = {
   success: 'toast-card--success',

@@ -1,5 +1,5 @@
 import { Navigate } from 'react-router-dom'
-export default function GuardedRoute({ isAuthed, children }) {
-  if (!isAuthed) return <Navigate to="/admin/login" replace />
+export default function GuardedRoute({ isAuthed, children, redirectTo = "/admin/login" }) {
+  if (!isAuthed) return <Navigate to={redirectTo} replace />
   return children
 }

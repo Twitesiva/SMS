@@ -1,0 +1,498 @@
+.admission-portal {
+  min-height: 100vh;
+  padding: clamp(2rem, 5vw, 3.5rem);
+  --admission-maroon: #606c88;
+  --admission-border: #3f4c6b;
+  background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 45%, #ffffff 100%);
+  color: #2c3e50;
+  font-family: "Space Grotesk", "Cabinet Grotesk", system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
+    "Helvetica Neue", Arial, sans-serif;
+  font-size: 1.08rem;
+  line-height: 1.55;
+  letter-spacing: 0.01em;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.admission-portal::before,
+.admission-portal::after {
+  content: "";
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border-radius: 999px;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.admission-portal::before {
+  top: -140px;
+  right: -120px;
+  background: radial-gradient(circle, rgba(96, 108, 136, 0.35), rgba(96, 108, 136, 0));
+}
+
+.admission-portal::after {
+  bottom: -160px;
+  left: -120px;
+  background: radial-gradient(circle, rgba(63, 76, 107, 0.28), rgba(63, 76, 107, 0));
+}
+
+.admission-portal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: #ffffff;
+  border-radius: 18px;
+  border: 1px solid #e3e8f3;
+  box-shadow: 0 18px 32px rgba(35, 45, 72, 0.08);
+  position: relative;
+  z-index: 1;
+}
+
+.admission-portal__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: #4b5563;
+  font-weight: 600;
+  background: #f5f7fb;
+  padding: 0.65rem 1.25rem;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(31, 42, 68, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admission-portal__back:hover {
+  transform: translateX(-4px);
+  box-shadow: inset 0 0 0 1px rgba(31, 42, 68, 0.2), 0 10px 20px rgba(35, 45, 72, 0.12);
+}
+
+.admission-portal__back--hero {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+.admission-portal__back--hero:hover {
+  background: rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+.admission-portal__brand-block {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.admission-portal__brand {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 0.4rem;
+  border: 1px solid #e3e8f3;
+  box-shadow: 0 14px 28px rgba(35, 45, 72, 0.12);
+}
+
+.admission-portal__brand img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.admission-portal__brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.admission-portal__brand-title {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #1f2a44;
+}
+
+.admission-portal__brand-sub {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: rgba(31, 42, 68, 0.6);
+}
+
+.admission-portal__content {
+  max-width: 1100px;
+  margin: 0 auto;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.admission-portal__intro {
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.admission-portal__content h1 {
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  margin: 0;
+  letter-spacing: 0.02em;
+  color: #1f2a44;
+}
+
+.admission-portal__subtitle {
+  margin: 0 auto;
+  max-width: 560px;
+  color: rgba(31, 42, 68, 0.7);
+  font-size: 1rem;
+}
+
+.admission-portal__steps {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 1.75rem;
+  align-items: start;
+  margin-top: 0.5rem;
+}
+
+.admission-portal__steps-text {
+  text-align: left;
+  color: #1f2a44;
+  background: #ffffff;
+  border-radius: 18px;
+  border: 1px solid #e3e8f3;
+  padding: 1.6rem;
+  box-shadow: 0 16px 32px rgba(35, 45, 72, 0.08);
+}
+
+.admission-portal__steps-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #8e1f3d;
+  margin: 0 0 0.75rem;
+}
+
+.admission-portal__steps-heading {
+  margin: 0 0 1rem;
+  font-size: 1.4rem;
+  line-height: 1.35;
+  color: #1f2a44;
+}
+
+.admission-portal__steps-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.admission-portal__steps-list li {
+  position: relative;
+  padding-left: 1.4rem;
+  color: #3a4661;
+  font-size: 0.95rem;
+}
+
+.admission-portal__steps-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.45rem;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: #f59e0b;
+}
+
+.admission-portal__note {
+  margin-top: 1.2rem;
+  padding: 1rem;
+  border-radius: 16px;
+  background: rgba(255, 248, 229, 0.95);
+  border: 1px dashed rgba(234, 179, 8, 0.35);
+}
+
+.admission-portal__note-title {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #92400e;
+  margin-bottom: 0.5rem;
+}
+
+.admission-portal__note-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+  color: #7c4a12;
+  font-size: 0.9rem;
+}
+
+.admission-portal__note-list li {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+}
+
+.admission-portal__note-list li::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #f59e0b;
+  margin-top: 0.5rem;
+  flex-shrink: 0;
+}
+
+.admission-portal__steps-card {
+  background: #ffffff;
+  border-radius: 18px;
+  border: 1px solid #e3e8f3;
+  padding: 1.4rem;
+  box-shadow: 0 16px 32px rgba(35, 45, 72, 0.08);
+}
+
+.admission-portal__steps-card-title {
+  text-align: center;
+  font-weight: 700;
+  color: #f97316;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.admission-portal__steps-flow {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.admission-portal__step {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0.9rem 0.6rem 0.6rem;
+  background: #ffffff;
+  border-radius: 999px;
+  border: 1px solid #e3e8f3;
+}
+
+.admission-portal__step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 46px;
+  bottom: -14px;
+  width: 2px;
+  height: 14px;
+  background: #d7deeb;
+}
+
+.admission-portal__step-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #6a7287;
+  border: 1px solid #d9e0ee;
+  border-radius: 999px;
+  padding: 0.2rem 0.45rem;
+  min-width: 34px;
+  text-align: center;
+}
+
+.admission-portal__step-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 1rem;
+}
+
+.admission-portal__step-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #3c475a;
+}
+
+.admission-portal__step--green .admission-portal__step-icon {
+  background: #6fbf4b;
+}
+
+.admission-portal__step--amber .admission-portal__step-icon {
+  background: #f59e0b;
+}
+
+.admission-portal__step--coral .admission-portal__step-icon {
+  background: #f65a55;
+}
+
+.admission-portal__step--blue .admission-portal__step-icon {
+  background: #1da9f4;
+}
+
+.admission-portal__step--teal .admission-portal__step-icon {
+  background: #10b981;
+}
+
+.admission-portal__steps + .admission-portal__table-wrapper {
+  margin-top: 2.2rem;
+}
+
+.admission-portal__table-wrapper {
+  margin-top: 0.5rem;
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e3e8f3;
+  box-shadow: 0 18px 34px rgba(35, 45, 72, 0.08);
+  padding: 0;
+  overflow-x: auto;
+  overflow: hidden;
+}
+
+.admission-portal__table-title {
+  text-align: left;
+  font-weight: 600;
+  color: #1f2a44;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e3e8f3;
+  background: #f8fafc;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+}
+
+.admission-portal__status {
+  padding: 1rem;
+  font-weight: 600;
+  color: rgba(74, 54, 32, 0.85);
+}
+
+.admission-portal__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+  min-width: 720px;
+}
+
+.admission-portal__table thead th {
+  background: var(--admission-maroon);
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.85rem 0.75rem;
+  border: 1px solid #1d4ed8;
+}
+
+.admission-portal__table tbody td {
+  padding: 0.85rem 0.75rem;
+  border: 1px solid #e6ebf3;
+  color: #2f1d0d;
+  vertical-align: middle;
+}
+
+.admission-portal__table tbody tr:last-child td {
+  border-bottom: 1px solid #e6ebf3;
+}
+
+.admission-portal__table tbody tr:nth-child(even) td {
+  background: #f8fafd;
+}
+
+.admission-portal__empty {
+  text-align: center;
+  padding: 1.5rem;
+  color: rgba(74, 54, 32, 0.7);
+}
+
+.admission-portal__program {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.admission-portal__program-name {
+  font-weight: 600;
+}
+
+.admission-portal__program-meta {
+  font-size: 0.8rem;
+  color: rgba(74, 54, 32, 0.7);
+}
+
+.admission-portal__table-link {
+  color: #1a73e8;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+}
+
+.admission-portal__table-link i {
+  font-size: 0.85rem;
+}
+
+.admission-portal__table-link:hover {
+  text-decoration: underline;
+}
+
+.admission-portal__col-sno,
+.admission-portal__col-duration,
+.admission-portal__col-register {
+  text-align: center;
+}
+
+.admission-portal__col-sno {
+  width: 70px;
+}
+
+.admission-portal__col-duration {
+  width: 140px;
+}
+
+.admission-portal__col-register {
+  width: 160px;
+}
+
+@media (max-width: 900px) {
+  .admission-portal__steps {
+    grid-template-columns: 1fr;
+  }
+  .admission-portal__steps-card {
+    max-width: 420px;
+    margin: 0 auto;
+  }
+  .admission-portal__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

@@ -18,6 +18,11 @@ const TABLES = {
   feeCategories: "fee_categories",
   adminUsers: "admin_users",
   examSchedules: "exam_schedule",
+  applicationDocuments: "application_documents",
+  transportRoutes: "transport_routes",
+  transportBoardingPoints: "transport_route_boarding_points",
+  transportFares: "transport_route_fares",
+  transportVehicles: "transport_vehicles",
 };
 
 const runQuery = async (query, label) => {
@@ -64,6 +69,8 @@ const DUPLICATE_RULES = {
     composite: ["academic_year", "group", "course", "semester", "fee_cat"],
     pk: "id",
   },
+  [TABLES.transportRoutes]: { cols: ["route_no"], pk: "route_no" },
+  [TABLES.transportVehicles]: { cols: ["vehicle_no"], pk: "vehicle_no" },
 };
 
 const ensureNoDuplicate = async (table, row = {}, opts = {}) => {
@@ -381,58 +388,60 @@ const toSubjectRow = (subject = {}) => {
 
 const mapApplication = (row = {}) => ({
   id: row.id,
-  student_id: row.student_id,
-  admission_no: row.admission_no,
-  ht_no: row.ht_no,
-  academic_year: row.academic_year,
-  group: row.group_code || row.group,
-  course_id: row.course_code || row.course_id,
+  application_no: row.application_no,
+  admission_year: row.admission_year,
+  course_id: row.course_id,
+  group_id: row.group_id,
   full_name: row.full_name,
   gender: row.gender,
-  dob: row.dob,
+  date_of_birth: row.date_of_birth,
   father_name: row.father_name,
   mother_name: row.mother_name,
   nationality: row.nationality,
   state: row.state,
-  aadhar_no: row.aadhar_number,
-  postal_code: row.postal_code,
-  address: row.address,
-  mobile: row.mobile,
-  email: row.email,
   religion: row.religion,
   caste: row.caste,
-  sub_caste: row.sub_caste,
+  aadhar_number: row.aadhar_number,
+  address: row.address,
+  pincode: row.pincode,
+  phone_number: row.phone_number,
+  parent_no: row.parent_no,
+  tenth_register_no: row.tenth_register_no,
+  tenth_percentage: row.tenth_percentage,
+  twelth_register_no: row.twelth_register_no,
+  twelth_percentage: row.twelth_percentage,
   photo_url: row.photo_url,
   cert_url: row.cert_url,
-  status: row.status || "PENDING",
+  status: row.status || "DRAFT",
   created_at: row.created_at,
 });
 
 const toApplicationRow = (app = {}) => ({
-  student_id: app.student_id || null,
-  admission_no: app.admission_no || null,
-  ht_no: app.ht_no || null,
-  academic_year: app.academic_year || null,
-  group_code: app.group || app.group_code || null,
-  course_code: app.course_id || app.course_code || null,
+  application_no: app.application_no,
+  admission_year: app.admission_year ?? null,
+  course_id: app.course_id ?? null,
+  group_id: app.group_id ?? null,
   full_name: app.full_name || null,
   gender: app.gender || null,
-  dob: app.dob || null,
+  date_of_birth: app.date_of_birth || app.dob || null,
   father_name: app.father_name || null,
   mother_name: app.mother_name || null,
   nationality: app.nationality || null,
   state: app.state || null,
-  aadhar_number: app.aadhar_no || null,
-  postal_code: app.postal_code || null,
-  address: app.address || null,
-  mobile: app.mobile || null,
-  email: app.email || null,
   religion: app.religion || null,
   caste: app.caste || null,
-  sub_caste: app.sub_caste || null,
+  aadhar_number: app.aadhar_number || app.aadhar_no || null,
+  address: app.address || null,
+  pincode: app.pincode || app.postal_code || null,
+  phone_number: app.phone_number || app.mobile || null,
+  parent_no: app.parent_no || app.Parent_no || null,
+  tenth_register_no: app.tenth_register_no || null,
+  tenth_percentage: app.tenth_percentage ?? null,
+  twelth_register_no: app.twelth_register_no || null,
+  twelth_percentage: app.twelth_percentage ?? null,
   photo_url: app.photo_url || null,
   cert_url: app.cert_url || null,
-  status: app.status || "PENDING",
+  status: app.status || "DRAFT",
 });
 
 const mapStudent = (row = {}) => ({
@@ -616,11 +625,53 @@ const ADMIN_USERS = [
 
 export const api = {
   submitApplication: async (app) => {
-    await runQuery(
-      supabase.from(TABLES.applications).insert(toApplicationRow(app)),
+    const application = await runQuery(
+      supabase
+        .from(TABLES.applications)
+        .insert(toApplicationRow(app))
+        .select("id")
+        .single(),
       "Unable to submit application"
     );
-    return { ok: true };
+
+    const documents = [];
+    if (app.photo_url) {
+      documents.push({
+        application_id: application.id,
+        document_type: "PHOTO",
+        document_url: app.photo_url,
+      });
+    }
+    if (app.cert_url) {
+      documents.push({
+        application_id: application.id,
+        document_type: "TRANSFER_CERTIFICATE",
+        document_url: app.cert_url,
+      });
+    }
+    if (app.tenth_marksheet_url) {
+      documents.push({
+        application_id: application.id,
+        document_type: "MARKSHEET_10TH",
+        document_url: app.tenth_marksheet_url,
+      });
+    }
+    if (app.twelth_marksheet_url) {
+      documents.push({
+        application_id: application.id,
+        document_type: "MARKSHEET_12TH",
+        document_url: app.twelth_marksheet_url,
+      });
+    }
+
+    if (documents.length > 0) {
+      await runQuery(
+        supabase.from(TABLES.applicationDocuments).insert(documents),
+        "Unable to save application documents"
+      );
+    }
+
+    return { ok: true, id: application.id };
   },
 
   login: async (email, password) => {
@@ -1269,5 +1320,158 @@ export const api = {
     }
 
     return student;
+  },
+
+  listTransportRoutes: async () => {
+    const { data: rows, error } = await supabase
+      .from(TABLES.transportRoutes)
+      .select(`
+        *,
+        transport_route_boarding_points (*),
+        transport_route_fares (*)
+      `)
+      .order('route_no')
+    
+    if (error) {
+      console.error('Unable to fetch transport routes', error)
+      throw new Error(error.message)
+    }
+
+    return rows.map(row => ({
+      id: row.id,
+      routeNo: row.route_no,
+      routeName: row.route_name,
+      boardingPoints: (row.transport_route_boarding_points || [])
+        .sort((a, b) => (a.stop_order || 0) - (b.stop_order || 0))
+        .map(bp => bp.name),
+      amounts: (row.transport_route_fares || []).map(f => ({
+        academicYear: f.academic_year,
+        amount: f.amount
+      }))
+    }))
+  },
+
+  upsertTransportRoute: async (route) => {
+    // 1. Upsert Route
+    const routePayload = {
+      route_no: route.routeNo,
+      route_name: route.routeName
+    }
+    
+    // Check if exists to get ID (since route_no is unique but not PK)
+    let routeId
+    const { data: existing } = await supabase
+      .from(TABLES.transportRoutes)
+      .select('id')
+      .eq('route_no', route.routeNo)
+      .maybeSingle()
+      
+    if (existing) {
+      routeId = existing.id
+      await runQuery(
+        supabase.from(TABLES.transportRoutes).update(routePayload).eq('id', routeId),
+        'Unable to update route'
+      )
+    } else {
+      const { data: newRoute } = await runQuery(
+        supabase.from(TABLES.transportRoutes).insert(routePayload).select('id').single(),
+        'Unable to create route'
+      )
+      routeId = newRoute.id
+    }
+
+    // 2. Manage Boarding Points (Delete all and recreate for simplicity, or diff)
+    // For simplicity: delete existing for this route, insert new
+    await runQuery(
+      supabase.from(TABLES.transportBoardingPoints).delete().eq('route_id', routeId),
+      'Unable to clear old boarding points'
+    )
+    if (route.boardingPoints?.length) {
+      const bpPayload = route.boardingPoints.map((name, index) => ({
+        route_id: routeId,
+        name,
+        stop_order: index + 1
+      }))
+      await runQuery(
+        supabase.from(TABLES.transportBoardingPoints).insert(bpPayload),
+        'Unable to insert boarding points'
+      )
+    }
+
+    // 3. Manage Fares
+    await runQuery(
+      supabase.from(TABLES.transportFares).delete().eq('route_id', routeId),
+      'Unable to clear old fares'
+    )
+    if (route.amounts?.length) {
+      const farePayload = route.amounts.map(f => ({
+        route_id: routeId,
+        academic_year: f.academicYear,
+        amount: Number(f.amount)
+      }))
+      await runQuery(
+        supabase.from(TABLES.transportFares).insert(farePayload),
+        'Unable to insert fares'
+      )
+    }
+  },
+
+  deleteTransportRoute: async (routeNo) => {
+    await runQuery(
+      supabase.from(TABLES.transportRoutes).delete().eq('route_no', routeNo),
+      'Unable to delete route'
+    )
+  },
+
+  listTransportVehicles: async () => {
+    const { data: rows, error } = await supabase
+      .from(TABLES.transportVehicles)
+      .select(`
+        *,
+        transport_routes (
+          route_no,
+          route_name
+        )
+      `)
+      .order('vehicle_no')
+
+    if (error) {
+      console.error('Unable to fetch transport vehicles', error)
+      throw new Error(error.message)
+    }
+
+    return rows.map(row => ({
+      vehicleNo: row.vehicle_no,
+      routeNo: row.transport_routes?.route_no || '',
+      routeName: row.transport_routes?.route_name || ''
+    }))
+  },
+
+  upsertTransportVehicle: async (vehicle) => {
+    // Resolve routeNo to route_id
+    const { data: route } = await supabase
+      .from(TABLES.transportRoutes)
+      .select('id')
+      .eq('route_no', vehicle.routeNo)
+      .maybeSingle()
+    
+    if (!route) throw new Error('Invalid route number')
+
+    const payload = {
+      vehicle_no: vehicle.vehicleNo,
+      route_id: route.id
+    }
+    
+    await runQuery(
+      supabase.from(TABLES.transportVehicles).upsert(payload, { onConflict: 'vehicle_no' }),
+      'Unable to save vehicle'
+    )
+  },
+
+  deleteTransportVehicle: async (vehicleNo) => {
+    await runQuery(
+      supabase.from(TABLES.transportVehicles).delete().eq('vehicle_no', vehicleNo),
+      'Unable to delete vehicle'
+    )
   },
 };

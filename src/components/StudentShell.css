@@ -1,0 +1,346 @@
+/* =========================================
+   Student Portal
+   ========================================= */
+
+.student-portal {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f8f9fa;
+  color: #1f2d3d;
+  --student-header-height: 72px;
+  font-size: 1.08rem;
+  line-height: 1.55;
+  letter-spacing: 0.01em;
+  font-family: "Space Grotesk", "Cabinet Grotesk", system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
+    "Helvetica Neue", Arial, sans-serif;
+  background-color: #f0f7ff; /* Soft light blue background for the entire portal */
+}
+
+.student-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
+  background-color: #f0f7ff;
+}
+
+.student-content {
+  padding: 1.8rem;
+  position: relative;
+  z-index: 1;
+  background-color: #f0f7ff;
+}
+
+.student-sidebar {
+  width: 270px;
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 18px 30px rgba(96, 108, 136, 0.4);
+  position: sticky;
+  top: var(--student-header-height);
+  height: calc(100vh - var(--student-header-height));
+  overflow: hidden;
+}
+
+.student-sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  padding: 1.2rem 0.4rem 1rem;
+  gap: 0.25rem;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.student-sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.65rem 1rem 0.65rem 1.1rem;
+  margin: 0 0.8rem;
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 900;
+  font-size: 1rem;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  border-radius: 14px;
+  position: relative;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.student-sidebar__link i {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.student-sidebar__link::before {
+  content: "";
+  position: absolute;
+  left: 0.6rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: transparent;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.student-sidebar__link:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.student-sidebar__link:hover i {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.student-sidebar__link.active {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.student-sidebar__link.active i {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.student-sidebar__link.active::before {
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.25);
+}
+
+.student-sidebar__link-badge {
+  margin-left: auto;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.student-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 1.4rem;
+  background: linear-gradient(135deg, #0f2d66 0%, #1f4d99 60%, #3b82f6 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 14px 28px rgba(10, 25, 60, 0.35);
+  min-height: var(--student-header-height);
+}
+
+.student-header--global {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.student-header__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  justify-self: start;
+}
+
+.student-header__toggle {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.15);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  box-shadow: 0 10px 18px rgba(5, 14, 35, 0.25);
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.student-header__toggle--mobile {
+  display: none;
+}
+
+.student-header__toggle:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.student-header__logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  padding: 0.3rem;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 12px 22px rgba(8, 18, 40, 0.3);
+}
+
+.student-header__center {
+  text-align: center;
+  justify-self: center;
+}
+
+.student-header__portal {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 1.2rem;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.student-header__title {
+  font-family: "Space Grotesk", "Cabinet Grotesk", sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 1.5rem;
+  color: #ffffff;
+  margin: 0;
+}
+
+.student-header__right {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  justify-self: end;
+}
+
+.student-header__logout {
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.student-header__logout:hover {
+  background: rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.student-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #f8f9fa;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Collapsed State */
+.student-portal--collapsed .student-sidebar {
+  width: 88px;
+}
+
+.student-portal--collapsed .student-sidebar__nav {
+  padding: 1.1rem 0.3rem 1rem;
+}
+
+.student-portal--collapsed .student-sidebar__link {
+  justify-content: center;
+  padding: 0.6rem;
+  margin: 0.3rem 0.6rem;
+}
+
+.student-portal--collapsed .student-sidebar__link span {
+  display: none;
+}
+
+.student-portal--collapsed .student-sidebar__link::before {
+  display: none;
+}
+
+.student-portal--collapsed .student-sidebar__footer {
+  display: none;
+}
+
+/* Media Queries */
+@media (max-width: 992px) {
+  .student-portal {
+    flex-direction: column;
+  }
+
+  .student-body {
+    flex-direction: column;
+  }
+
+  .student-sidebar {
+    width: 100%;
+    position: static;
+    height: auto;
+    overflow: visible;
+  }
+
+  .student-sidebar__nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .student-sidebar__link {
+    width: calc(50% - 1.2rem);
+    border-bottom: 1px solid #e5e9f2;
+  }
+
+  .student-header {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 0.75rem;
+    text-align: center;
+  }
+
+  .student-header__brand,
+  .student-header__right {
+    justify-self: center;
+  }
+
+  .student-header__toggle--desktop {
+    display: none;
+  }
+
+  .student-header__toggle--mobile {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 576px) {
+  .student-sidebar__link {
+    width: calc(100% - 1.2rem);
+  }
+
+  .student-header__student {
+    display: none;
+  }
+}

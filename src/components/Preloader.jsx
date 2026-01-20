@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import { useUiStore } from '../store/ui.js'
 import vijayamLogo from '../assets/media/images.png'
+import './Preloader.css'
 
 const Preloader = () => {
   const isActive = useUiStore((state) => state.pendingRequests > 0)

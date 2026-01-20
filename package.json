@@ -10,9 +10,9 @@
     "test": "echo \"No tests configured\""
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.81.1",
+    "@supabase/supabase-js": "^2.89.0",
     "bootstrap": "^5.3.3",
-    "bootstrap-icons": "^1.11.3",
+    "bootstrap-icons": "^1.13.1",
     "chart.js": "^4.5.1",
     "chartjs-plugin-datalabels": "^2.2.0",
     "html2canvas": "^1.4.1",
@@ -25,6 +25,7 @@
     "react-router-dom": "^6.26.2",
     "react-time-picker": "^8.0.2",
     "react-toastify": "^11.0.5",
+    "uuid": "^13.0.0",
     "xlsx": "^0.18.5",
     "zustand": "^4.5.2"
   },
