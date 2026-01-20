@@ -141,16 +141,25 @@ export default function FeesCollection() {
     setPaymentForm((prev) => ({ ...prev, feeType: '' }))
   }, [paymentMode, fullFeeLabel])
 
-  const fetchPaymentSummary = async (studentRecordId, totalFeeValue, feeId) => {
+  const fetchPaymentSummary = async (studentRecordId, totalFeeValue, feeId, appId) => {
     let query = supabase
       .from('student_fee_payments')
-      .select('amount_paid, fee_type, payment_mode')
-      .eq('student_id', studentRecordId)
+      .select('amount_paid, fee_type, payment_mode, academic_fee_id')
       .eq('payment_status', 'success')
 
-    if (feeId) {
-      query = query.eq('academic_fee_id', feeId)
+    // Fetch by Student ID OR Application ID (to include admission fees)
+    if (appId) {
+      query = query.or(`student_id.eq.${studentRecordId},application_id.eq.${appId}`)
+    } else {
+      query = query.eq('student_id', studentRecordId)
     }
+
+    // NOTE: We intentionally do NOT filtering by 'feeId' here. 
+    // We want to show TOTAL paid by the student, covering all fees (tuition, hostel, admission, etc).
+
+    // Only fetch payments for the current Year/Session? 
+    // Ideally yes, but without a unified 'year' in payments, we assume all 'success' payments 
+    // for this student ID are relevant totals for the current view.
 
     const { data, error } = await query
 
@@ -183,40 +192,72 @@ export default function FeesCollection() {
     let courseId = student.course_id
     let categoryValue = student.Category || student.category || ''
 
-    if (!groupId && student.group_name) {
-      const { data: groupData, error: groupError } = await supabase
+    // 1. Robust Course Resolution
+    // Gather all possible keys that might hold the course info
+    const courseCandidates = [
+      student.course_name,
+      student.course,
+      student.Program, // Often '03' or similar code
+      student.course_code
+    ].filter(Boolean).map(s => String(s).trim())
+
+    if (!courseId && courseCandidates.length > 0) {
+      // Fetch all courses to perform a flexible match (Code vs Name)
+      const { data: allCourses } = await supabase
+        .from('courses')
+        .select('course_id, course_code, course_name, group_name')
+
+      if (allCourses?.length) {
+        for (const val of courseCandidates) {
+          const lower = val.toLowerCase()
+          const valInt = parseInt(val, 10)
+          const matched = allCourses.find(c =>
+            (c.course_code && c.course_code.toLowerCase() === lower) ||
+            (c.course_name && c.course_name.toLowerCase() === lower) ||
+            (String(c.course_id) === val) ||
+            (!isNaN(valInt) && c.course_id === valInt) // Handle "03" matching ID 3
+          )
+
+          if (matched) {
+            courseId = matched.course_id
+
+            // Infer Group from Course if missing
+            if (!groupId && !student.group_name && matched.group_name) {
+              student.inferred_group_name = matched.group_name
+            }
+            break
+          }
+        }
+      }
+    }
+
+    // 2. Robust Group Resolution
+    let targetGroupName = student.group_name || student.group || student.inferred_group_name
+
+    if (!groupId && targetGroupName) {
+      targetGroupName = targetGroupName.trim()
+      const { data: groupData } = await supabase
         .from('groups')
-        .select('group_id, Category')
-        .eq('group_name', student.group_name)
+        .select('group_id, Category, group_name')
+        .ilike('group_name', targetGroupName)
         .maybeSingle()
-      if (groupError) throw groupError
+
       if (groupData) {
         groupId = groupData.group_id
         categoryValue = categoryValue || groupData.Category || ''
       }
     }
 
-    if (!courseId && student.course_name) {
-      const { data: courseByName, error: courseError } = await supabase
-        .from('courses')
-        .select('course_id')
-        .eq('course_name', student.course_name)
-        .maybeSingle()
-      if (courseError) throw courseError
-      if (courseByName) {
-        courseId = courseByName.course_id
-      } else {
-        const { data: courseByCode, error: codeError } = await supabase
-          .from('courses')
-          .select('course_id')
-          .eq('course_code', student.course_name)
-          .maybeSingle()
-        if (codeError) throw codeError
-        if (courseByCode) courseId = courseByCode.course_id
-      }
+    let academicYear = (student.academic_year || '').toString().trim()
+
+    // Normalize Academic Year to YYYY-YYYY format
+    // e.g. "2023" -> "2023-2024", "2023-24" -> "2023-2024"
+    const yearMatch = academicYear.match(/^(\d{4})/)
+    if (yearMatch) {
+      const startYear = parseInt(yearMatch[1], 10)
+      academicYear = `${startYear}-${startYear + 1}`
     }
 
-    const academicYear = (student.academic_year || '').toString().trim()
     const yearOfStudy = deriveYearOfStudy(student)
     const normalizedCategory = normalizeCategoryValue(categoryValue)
 
@@ -229,26 +270,52 @@ export default function FeesCollection() {
     let breakdown = []
     let academicWarning = ''
 
-    if (groupId && courseId) {
-      let feeQuery = supabase
+    if (courseId) {
+      // Fetch BROADEST potential fees for this Course & Academic Year
+      // We purposefully omit Group & YearOfStudy in the query to allow flexible matching
+      const { data: broadFees, error: feeError } = await supabase
         .from('academic_fees')
-        .select('id, total_fee')
-        .eq('academic_year', academicYear)
-        .eq('group_id', groupId)
+        .select('id, total_fee, category, group_id, year_of_study')
+        .or(`academic_year.eq.${academicYear},academic_year.eq.${student.academic_year}`)
         .eq('course_id', courseId)
-        .eq('year_of_study', yearOfStudy)
-
-      if (normalizedCategory) {
-        feeQuery = feeQuery.eq('category', normalizedCategory)
-      }
-
-      const { data: feeData, error: feeError } = await feeQuery
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
 
       if (feeError) throw feeError
-      feeRow = feeData || null
+
+      if (broadFees && broadFees.length > 0) {
+        // Helper to match group safely
+        const matchGroup = (f) => !groupId || f.group_id === groupId
+
+        // Priority 1: Exact Match (Group + YearOfStudy + Category)
+        feeRow = broadFees.find(f =>
+          matchGroup(f) &&
+          f.year_of_study === yearOfStudy &&
+          (f.category || '').toLowerCase() === normalizedCategory.toLowerCase()
+        )
+
+        // Priority 2: Exact Group + YearOfStudy (Ignore Category)
+        if (!feeRow) {
+          const lowerFallback = ['general', 'open', 'common', 'regular', 'ug', 'pg']
+          feeRow = broadFees.find(f =>
+            matchGroup(f) &&
+            f.year_of_study === yearOfStudy &&
+            lowerFallback.includes((f.category || '').toLowerCase())
+          )
+          // If no 'General', just take the first for this Group/Year
+          if (!feeRow) {
+            feeRow = broadFees.find(f => matchGroup(f) && f.year_of_study === yearOfStudy)
+          }
+        }
+
+        // Priority 3: Exact Group (Ignore YearOfStudy)
+        if (!feeRow) {
+          feeRow = broadFees.find(f => matchGroup(f))
+        }
+
+        // Priority 4: Just Course Match (Ignore Group/Year)
+        if (!feeRow) {
+          feeRow = broadFees[0]
+        }
+      }
 
       if (feeRow) {
         const { data: breakdownData, error: breakdownError } = await supabase
@@ -264,7 +331,7 @@ export default function FeesCollection() {
         academicWarning = 'Academic fee structure not found for this student.'
       }
     } else {
-      academicWarning = 'Academic fee structure inputs are incomplete.'
+      academicWarning = 'Course details are incomplete for this student.'
     }
 
     if (student?.is_hostel) {
@@ -340,6 +407,19 @@ export default function FeesCollection() {
 
       setStudentInfo(student)
 
+      // Fetch Application ID to check for admission payments
+      let applicationId = null
+      try {
+        const { data: admData } = await supabase
+          .from('admissions')
+          .select('application_id')
+          .eq('student_id', student.id)
+          .maybeSingle()
+        if (admData) applicationId = admData.application_id
+      } catch (err) {
+        console.warn('Could not fetch admission record', err)
+      }
+
       let feeDetails = { totalFee: 0, breakdown: [], warning: '', feeId: null }
       let feeWarning = ''
       try {
@@ -357,7 +437,7 @@ export default function FeesCollection() {
       setFeeTotal(totalForSummary)
 
       try {
-        await fetchPaymentSummary(student.id, totalForSummary, feeDetails.feeId)
+        await fetchPaymentSummary(student.id, totalForSummary, feeDetails.feeId, applicationId)
       } catch (error) {
         console.error('Failed to load payment summary', error)
         setPaymentSummaryWarning('Unable to load payment summary.')

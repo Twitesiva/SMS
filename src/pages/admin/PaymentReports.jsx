@@ -42,6 +42,8 @@ export default function PaymentReports() {
     const [selectedPaymentStatus, setSelectedPaymentStatus] = useState(''); // 'Paid' | 'Pending' | ''
 
     // Main Data
+    // Main Data
+    const [allStudents, setAllStudents] = useState([]); // Master list for the year
     const [filteredStudents, setFilteredStudents] = useState([]);
 
     // --- Navigation Definition (Preserved) ---
@@ -51,11 +53,22 @@ export default function PaymentReports() {
         fetchInitialData();
     }, []);
 
+    // Trigger fetch only when Year changes
     useEffect(() => {
-        if (selectedYear || selectedGroup || selectedCourse || selectedSemester || selectedPaymentStatus) {
+        if (selectedYear) {
             fetchReportData();
         }
-    }, [selectedYear, selectedGroup, selectedCourse, selectedSemester, selectedPaymentStatus]);
+    }, [selectedYear]);
+
+    // Client-side filtering for Table
+    useEffect(() => {
+        let res = allStudents;
+        if (selectedGroup) res = res.filter(s => s.group_name === selectedGroup);
+        if (selectedCourse) res = res.filter(s => s.course_name === selectedCourse);
+        if (selectedSemester) res = res.filter(s => String(s.current_semester) === String(selectedSemester));
+        if (selectedPaymentStatus) res = res.filter(s => s.paymentStatus === selectedPaymentStatus);
+        setFilteredStudents(res);
+    }, [allStudents, selectedGroup, selectedCourse, selectedSemester, selectedPaymentStatus]);
 
     const fetchInitialData = async () => {
         try {
@@ -75,7 +88,7 @@ export default function PaymentReports() {
     const fetchReportData = async () => {
         setIsLoading(true);
         try {
-            // 1. Fetch Students with necessary fields for fee mapping
+            // 1. Fetch Students (active, for selected year)
             let query = supabase
                 .from('students')
                 .select(`
@@ -94,87 +107,64 @@ export default function PaymentReports() {
           year_of_study,
           Category
         `)
-                .eq('status', 'ACTIVE'); // Assuming we want active students
+                .eq('status', 'ACTIVE');
 
             if (selectedYear) query = query.eq('academic_year', selectedYear);
-            if (selectedGroup) query = query.eq('group_name', selectedGroup);
-            if (selectedCourse) query = query.eq('course_name', selectedCourse);
-            if (selectedSemester) query = query.eq('current_semester', selectedSemester);
+
+            // REMOVED: Server-side narrowing by Group/Course/Sem to allow charts to see full context
 
             const { data: studentsData, error } = await query;
             if (error) throw error;
 
-            if (studentsData.length === 0) {
-                setFilteredStudents([]);
+            if (!studentsData || studentsData.length === 0) {
+                setAllStudents([]);
                 return;
             }
 
             const studentIds = studentsData.map(s => s.id);
 
-            // 2. Fetch Fee Structures (Academic Fees) to know the target total
-            // We fetch all potential fees matching the selected filters (or all if filters are broad)
+            // 2. Fetch Fee Structures
             let feeQuery = supabase.from('academic_fees').select('*');
             if (selectedYear) feeQuery = feeQuery.eq('academic_year', selectedYear);
 
             const { data: feesData } = await feeQuery;
 
             // 3. Fetch Payments
-            let paymentQuery = supabase
+            // Note: In a large system, fetching ALL payments for a year might be heavy. 
+            // Optimizations: Filter by payment date or use a summary view.
+            // For now, fetching by studentIds in chunks is safer if list > 1000, but Supabase handles simple IN decently.
+            const { data: paymentsData } = await supabase
                 .from('student_fee_payments')
                 .select('student_id, amount_paid, payment_status, payment_mode')
-                .in('student_id', studentIds)
+                .in('student_id', studentIds) // Supabase limit is high for IN clause, usually safe for <10k IDs
                 .eq('payment_status', 'success');
-
-            const { data: paymentsData } = await paymentQuery;
 
             // 4. Calculate Status
             const processed = studentsData.map(student => {
-                // Find applicable fee
-                // Matching logic: academic_year, course_id, group_id, year_of_study.
-                // Check if 'category' in fees table matches student.Category (if applicable)
-
                 const applicableFee = feesData?.find(f =>
                     f.academic_year === student.academic_year &&
                     f.course_id === student.course_id &&
                     f.group_id === student.group_id &&
                     f.year_of_study === student.year_of_study &&
-                    // Strict match on category if present in student
                     (student.Category ? f.category?.toLowerCase() === student.Category?.toLowerCase() : true)
                 );
 
                 const totalFee = applicableFee ? Number(applicableFee.total_fee) : 0;
-
                 const studentPayments = paymentsData?.filter(p => p.student_id === student.id) || [];
                 const totalPaid = studentPayments.reduce((sum, p) => sum + Number(p.amount_paid), 0);
 
-                // Helper to check payment modes
                 const hasPartialPayment = studentPayments.some(p => p.payment_mode?.toLowerCase() === 'partial');
                 const hasFullPayment = studentPayments.some(p => p.payment_mode?.toLowerCase() === 'full');
 
                 let status = 'Pending';
-
                 if (totalPaid > 0) {
                     if (totalFee > 0) {
-                        // We have a known fee target
-                        if (totalPaid >= totalFee) {
-                            status = 'Paid';
-                        } else {
-                            status = 'Partial';
-                        }
+                        if (totalPaid >= totalFee) status = 'Paid';
+                        else status = 'Partial';
                     } else {
-                        // We do NOT know the fee target (missing fee structure)
-                        // Use payment_mode heuristics
-                        if (hasFullPayment) {
-                            status = 'Paid';
-                        } else if (hasPartialPayment) {
-                            status = 'Partial';
-                        } else {
-                            // Default to Paid if unknown to be optimistic, but likely Partial if amount is small?
-                            // Safest default for reporting is usually Paid if we don't know the fee, 
-                            // BUT given the user report, let's treat explicit 'partial' as Partial.
-                            // If ambiguous, default Paid.
-                            status = 'Paid';
-                        }
+                        if (hasFullPayment) status = 'Paid';
+                        else if (hasPartialPayment) status = 'Partial';
+                        else status = 'Paid';
                     }
                 }
 
@@ -186,12 +176,7 @@ export default function PaymentReports() {
                 };
             });
 
-            // Apply Payment Status Filter if selected
-            const finalFiltered = selectedPaymentStatus
-                ? processed.filter(s => s.paymentStatus === selectedPaymentStatus)
-                : processed;
-
-            setFilteredStudents(finalFiltered);
+            setAllStudents(processed);
 
         } catch (error) {
             console.error('Error fetching report data:', error);
@@ -202,39 +187,46 @@ export default function PaymentReports() {
     };
 
     // --- Charts Logic ---
-
     const chartData = useMemo(() => {
-        if (!filteredStudents.length) return null;
+        if (!allStudents.length) return null;
 
         const validGroupNames = new Set(groups.map(g => g.group_name));
         const validCourseNames = new Set(courses.map(c => c.course_name));
         const colors = ['#1f4e79', '#ed7d31', '#a5a5a5', '#ffc000', '#5b9bd5', '#70ad47', '#264478', '#9e480e', '#636363', '#997300'];
 
-        // 1. Group Chart Data
+        // 1. Group Chart Data (Show All Groups for the Year)
         const groupCounts = {};
-        filteredStudents.forEach(s => {
+        allStudents.forEach(s => {
             const g = s.group_name;
             if (g && validGroupNames.has(g)) {
                 groupCounts[g] = (groupCounts[g] || 0) + 1;
             }
         });
 
-        // Convert to individual datasets for Legend support
         const groupChart = {
-            labels: [''], // Single dummy label for the X-axis group
+            labels: [''],
             datasets: Object.keys(groupCounts).map((group, i) => ({
                 label: group,
                 data: [groupCounts[group]],
-                backgroundColor: colors[i % colors.length],
+                backgroundColor: selectedGroup === group ? '#1f4e79' : colors[i % colors.length], // consistent color or highlight? 
+                // Let's keep distinct colors but maybe reduce opacity if not selected?
+                // Actually user requested "Shows only filter with Highlights". 
+                // If we show ALL bars, but highlight the selected one, that's good.
+                // Or just keep colors distinct as before.
+                backgroundColor: (selectedGroup && selectedGroup !== group) ? '#e0e0e0' : colors[i % colors.length],
                 borderRadius: 4,
                 barPercentage: 0.8,
                 categoryPercentage: 0.9
             }))
         };
 
-        // 2. Course Chart Data
+        // 2. Course Chart Data (Show All Courses for Selected Group)
+        const coursesBase = selectedGroup
+            ? allStudents.filter(s => s.group_name === selectedGroup)
+            : allStudents;
+
         const courseCounts = {};
-        filteredStudents.forEach(s => {
+        coursesBase.forEach(s => {
             const c = s.course_name;
             if (c && validCourseNames.has(c)) {
                 courseCounts[c] = (courseCounts[c] || 0) + 1;
@@ -246,16 +238,20 @@ export default function PaymentReports() {
             datasets: Object.keys(courseCounts).map((course, i) => ({
                 label: course,
                 data: [courseCounts[course]],
-                backgroundColor: colors[(i + 2) % colors.length], // Offset colors slightly
+                backgroundColor: (selectedCourse && selectedCourse !== course) ? '#e0e0e0' : colors[(i + 2) % colors.length],
                 borderRadius: 4,
                 barPercentage: 0.8,
                 categoryPercentage: 0.9
             }))
         };
 
-        // 3. Semester Chart Data (Pie)
+        // 3. Semester Chart Data (Show Semesters for Selected Course)
+        const semBase = selectedCourse
+            ? coursesBase.filter(s => s.course_name === selectedCourse)
+            : coursesBase;
+
         const semCounts = {};
-        filteredStudents.forEach(s => {
+        semBase.forEach(s => {
             const sem = s.current_semester ? `Semester ${s.current_semester}` : 'Unknown';
             semCounts[sem] = (semCounts[sem] || 0) + 1;
         });
@@ -264,14 +260,22 @@ export default function PaymentReports() {
             labels: Object.keys(semCounts),
             datasets: [{
                 data: Object.values(semCounts),
-                backgroundColor: ['#1f4e79', '#2e75b6', '#9dc3e6', '#c9c9c9', '#e7e6e6', '#f2f2f2'],
+                backgroundColor: Object.keys(semCounts).map((label) => {
+                    const semNum = label.replace('Semester ', '');
+                    if (selectedSemester && String(semNum) !== String(selectedSemester)) return '#e0e0e0';
+                    return '#1f4e79'; // or specific color mapping
+                }),
                 borderWidth: 1
             }]
         };
 
-        // 4. Payment Chart All (Pie)
+        // 4. Payment Chart (Show Status for Selected Semester context)
+        const paymentBase = selectedSemester
+            ? semBase.filter(s => String(s.current_semester) === String(selectedSemester))
+            : semBase;
+
         const payCounts = { Paid: 0, Partial: 0, Pending: 0 };
-        filteredStudents.forEach(s => {
+        paymentBase.forEach(s => {
             if (s.paymentStatus === 'Paid') payCounts.Paid++;
             else if (s.paymentStatus === 'Partial') payCounts.Partial++;
             else payCounts.Pending++;
@@ -281,14 +285,19 @@ export default function PaymentReports() {
             labels: ['Paid', 'Partial', 'Pending'],
             datasets: [{
                 data: [payCounts.Paid, payCounts.Partial, payCounts.Pending],
-                backgroundColor: ['#28a745', '#ffc107', '#dc3545'], // Green, Yellow, Red
+                backgroundColor: ['Paid', 'Partial', 'Pending'].map(status => {
+                    if (selectedPaymentStatus && selectedPaymentStatus !== status) return '#e0e0e0';
+                    if (status === 'Paid') return '#28a745';
+                    if (status === 'Partial') return '#ffc107';
+                    return '#dc3545';
+                }),
                 borderWidth: 1
             }]
         };
 
         return { groupChart, courseChart, semesterChart, paymentChart };
 
-    }, [filteredStudents, groups, courses]);
+    }, [allStudents, groups, courses, selectedGroup, selectedCourse, selectedSemester, selectedPaymentStatus]);
 
     // Available Courses based on selected group
     const availableCourses = useMemo(() => {
@@ -407,6 +416,16 @@ export default function PaymentReports() {
                                             options={{
                                                 responsive: true,
                                                 maintainAspectRatio: false,
+                                                onClick: (event, elements, chart) => {
+                                                    if (elements && elements.length > 0) {
+                                                        const datasetIndex = elements[0].datasetIndex;
+                                                        const label = chart.data.datasets[datasetIndex].label;
+                                                        if (label) {
+                                                            setSelectedGroup(label);
+                                                            setSelectedCourse('');
+                                                        }
+                                                    }
+                                                },
                                                 plugins: {
                                                     legend: {
                                                         display: true,
@@ -440,6 +459,13 @@ export default function PaymentReports() {
                                             options={{
                                                 responsive: true,
                                                 maintainAspectRatio: false,
+                                                onClick: (event, elements, chart) => {
+                                                    if (elements && elements.length > 0) {
+                                                        const datasetIndex = elements[0].datasetIndex;
+                                                        const label = chart.data.datasets[datasetIndex].label;
+                                                        if (label) setSelectedCourse(label);
+                                                    }
+                                                },
                                                 plugins: {
                                                     legend: {
                                                         display: true,
@@ -473,6 +499,14 @@ export default function PaymentReports() {
                                             options={{
                                                 responsive: true,
                                                 maintainAspectRatio: false,
+                                                onClick: (event, elements, chart) => {
+                                                    if (elements && elements.length > 0) {
+                                                        const index = elements[0].index;
+                                                        const label = chart.data.labels[index];
+                                                        const semNum = label.replace('Semester ', '');
+                                                        setSelectedSemester(semNum);
+                                                    }
+                                                },
                                                 plugins: {
                                                     legend: {
                                                         display: true,
@@ -499,6 +533,13 @@ export default function PaymentReports() {
                                             options={{
                                                 responsive: true,
                                                 maintainAspectRatio: false,
+                                                onClick: (event, elements, chart) => {
+                                                    if (elements && elements.length > 0) {
+                                                        const index = elements[0].index;
+                                                        const label = chart.data.labels[index];
+                                                        setSelectedPaymentStatus(label);
+                                                    }
+                                                },
                                                 plugins: {
                                                     legend: {
                                                         display: true,

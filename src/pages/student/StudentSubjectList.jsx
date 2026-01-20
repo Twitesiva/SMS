@@ -159,7 +159,11 @@ export default function StudentSubjectList() {
             )
             .eq('course_name', courseValue)
           if (student.academic_year) {
-            subjectsQuery = subjectsQuery.eq('academic_year', student.academic_year)
+            let acYear = String(student.academic_year).trim()
+            if (acYear.match(/^\d{4}$/)) {
+              acYear = `${parseInt(acYear) - 1}-${acYear}`
+            }
+            subjectsQuery = subjectsQuery.eq('academic_year', acYear)
           }
           return subjectsQuery.order('semester_number', { ascending: true })
         }
@@ -216,20 +220,62 @@ export default function StudentSubjectList() {
         let resolvedCourseId = student?.course_id || null
         let resolvedGroupId = student?.group_id || null
 
-        if (!resolvedCourseId && (student?.course_name || student?.course)) {
-          const courseValue = student.course_name || student.course
-          const { data: courseRows } = await supabase
+        if (!resolvedCourseId) {
+          // Gather all possible course identifier strings from the student object
+          const candidates = [
+            student.course_name,
+            student.course,
+            student.Program, // Sometimes saved as 'Program'
+            student.course_code
+          ].filter(Boolean).map(s => String(s).trim());
+
+          if (candidates.length > 0) {
+            // Try to find a match in the courses table for ANY of these candidates
+            // We'll search by code OR name
+            const { data: courseRows } = await supabase
+              .from('courses')
+              .select('course_id, course_code, course_name, group_name')
+
+            if (courseRows?.length) {
+              // simple in-memory find due to potential multiple candidates
+              for (const val of candidates) {
+                const lower = val.toLowerCase();
+                const matched = courseRows.find(row =>
+                  (row.course_code && row.course_code.toLowerCase() === lower) ||
+                  (row.course_name && row.course_name.toLowerCase() === lower) ||
+                  // Check against ID if candidate is numeric
+                  (String(row.course_id) === val)
+                );
+                if (matched) {
+                  resolvedCourseId = matched.course_id;
+                  // If group_name is available in the course, and we don't have a group yet, store it for lookup
+                  if (!student.group_name && !student.group && matched.group_name) {
+                    student.inferred_group_name = matched.group_name;
+                  }
+                  break;
+                }
+              }
+            }
+          }
+        }
+
+        // If Group ID missing, try to infer from Course (via courses table)
+        if (!resolvedGroupId && resolvedCourseId) {
+          const { data: cRow } = await supabase
             .from('courses')
-            .select('course_id, course_code, course_name')
-            .or(`course_code.ilike.${courseValue},course_name.ilike.${courseValue}`)
-          if (courseRows?.length) {
-            const lower = String(courseValue).toLowerCase()
-            const matched = courseRows.find(
-              (row) =>
-                row.course_code?.toLowerCase() === lower ||
-                row.course_name?.toLowerCase() === lower
-            )
-            resolvedCourseId = matched?.course_id || courseRows[0]?.course_id || null
+            .select('group_name')
+            .eq('course_id', resolvedCourseId)
+            .maybeSingle();
+
+          const targetGroupName = cRow?.group_name || student.inferred_group_name;
+
+          if (targetGroupName) {
+            const { data: gRow } = await supabase
+              .from('groups')
+              .select('group_id')
+              .ilike('group_name', targetGroupName.trim())
+              .maybeSingle();
+            if (gRow) resolvedGroupId = gRow.group_id;
           }
         }
 
@@ -237,7 +283,7 @@ export default function StudentSubjectList() {
           const { data: groupRows } = await supabase
             .from('groups')
             .select('group_id, group_name')
-            .ilike('group_name', student.group_name)
+            .ilike('group_name', student.group_name.trim())
           if (groupRows?.length) {
             resolvedGroupId = groupRows[0]?.group_id || null
           }
@@ -249,12 +295,25 @@ export default function StudentSubjectList() {
           return
         }
 
+        // Parse semester to handle "I SEMESTER" or Roman numerals
+        let semesterVal = student.current_semester
+        if (typeof semesterVal === 'string') {
+          const romanMap = { 'I': 1, 'II': 2, 'III': 3, 'IV': 4, 'V': 5, 'VI': 6, 'VII': 7, 'VIII': 8 }
+          const firstWord = semesterVal.split(' ')[0].toUpperCase()
+          if (romanMap[firstWord]) {
+            semesterVal = romanMap[firstWord]
+          } else {
+            const parsed = parseInt(semesterVal)
+            if (!isNaN(parsed)) semesterVal = parsed
+          }
+        }
+
         const { data: mappingRows, error: mappingError } = await supabase
           .from('teacher_subject_mapping')
           .select('id, subject_id, course_id, group_id, semester, is_active')
           .eq('course_id', resolvedCourseId)
           .eq('group_id', resolvedGroupId)
-          .eq('semester', Number(student.current_semester))
+          .eq('semester', Number(semesterVal))
           .eq('is_active', true)
 
         if (mappingError) throw mappingError
@@ -275,9 +334,9 @@ export default function StudentSubjectList() {
         if (subjectError) throw subjectError
 
         const subjectMap = new Map()
-        ;(subjectRows || []).forEach((row) => {
-          subjectMap.set(row.subject_id, row)
-        })
+          ; (subjectRows || []).forEach((row) => {
+            subjectMap.set(row.subject_id, row)
+          })
 
         const { data: materialRows, error: materialError } = await supabase
           .from('learning_materials')

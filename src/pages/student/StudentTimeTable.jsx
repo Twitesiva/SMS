@@ -54,63 +54,87 @@ const resolveStudentDetails = async (student) => {
 const resolveGroupCourseIds = async (studentData) => {
   let groupId = studentData?.group_id
   let courseId = studentData?.course_id
-  let groupName = studentData?.group_name || studentData?.group || ''
-  let courseName = studentData?.course_name || studentData?.course || ''
+  let groupName = (studentData?.group_name || studentData?.group || '').trim()
 
+  // Resolve Group
   if (!groupId && groupName) {
     const { data: groupRow, error: groupError } = await supabase
       .from('groups')
       .select('group_id, group_name')
-      .eq('group_name', groupName)
+      .ilike('group_name', groupName)
       .maybeSingle()
-    if (groupError) throw groupError
-    if (groupRow) {
+    if (!groupError && groupRow) {
       groupId = groupRow.group_id
       groupName = groupRow.group_name || groupName
     }
-  }
-
-  if (groupId && !groupName) {
-    const { data: groupRow, error: groupError } = await supabase
+  } else if (groupId && !groupName) {
+    const { data: groupRow } = await supabase
       .from('groups')
-      .select('group_id, group_name')
+      .select('group_name')
       .eq('group_id', groupId)
       .maybeSingle()
-    if (groupError) throw groupError
-    if (groupRow?.group_name) groupName = groupRow.group_name
+    if (groupRow) groupName = groupRow.group_name
   }
 
-  if (!courseId && courseName) {
-    const { data: courseByName, error: courseByNameError } = await supabase
-      .from('courses')
-      .select('course_id, course_name, course_code')
-      .eq('course_name', courseName)
-      .maybeSingle()
-    if (courseByNameError) throw courseByNameError
-    let courseRow = courseByName
-    if (!courseRow) {
-      const { data: courseByCode, error: courseByCodeError } = await supabase
+  // Resolve Course
+  let courseName = (studentData?.course_name || studentData?.course || studentData?.Program || '').trim()
+
+  if (!courseId) {
+    const candidates = [
+      studentData?.course_name,
+      studentData?.course,
+      studentData?.Program,
+      studentData?.course_code
+    ].filter(Boolean).map(s => String(s).trim());
+
+    if (candidates.length > 0) {
+      // Fetch all courses (lightweight table usually) or search
+      const { data: courseRows } = await supabase
         .from('courses')
-        .select('course_id, course_name, course_code')
-        .eq('course_code', courseName)
-        .maybeSingle()
-      if (courseByCodeError) throw courseByCodeError
-      courseRow = courseByCode
+        .select('course_id, course_code, course_name, group_name')
+
+      if (courseRows?.length) {
+        for (const val of candidates) {
+          const lower = val.toLowerCase();
+          const matched = courseRows.find(row =>
+            (row.course_code && row.course_code.toLowerCase() === lower) ||
+            (row.course_name && row.course_name.toLowerCase() === lower) ||
+            // Handle "03" vs "BSC" edge case via explicit map if needed, 
+            // but usually course_code handles it if mapped correctly.
+            // Or fuzzy match? For now strict lower match.
+            (row.course_name && row.course_name.toLowerCase().includes(lower))
+          );
+          if (matched) {
+            courseId = matched.course_id;
+            courseName = matched.course_name || matched.course_code;
+            if (matched.group_name) studentData.inferred_group_name = matched.group_name;
+            break;
+          }
+        }
+      }
     }
-    if (courseRow) {
-      courseId = courseRow.course_id
-      courseName = courseRow.course_name || courseName
-    }
+  } else if (courseId && !courseName) {
+    const { data: cRow } = await supabase.from('courses').select('course_name').eq('course_id', courseId).maybeSingle()
+    if (cRow) courseName = cRow.course_name
   }
 
-  if (courseId && !courseName) {
-    const { data: courseRow, error: courseError } = await supabase
+  if (!groupId && courseId) {
+    const { data: cRow } = await supabase
       .from('courses')
-      .select('course_id, course_name')
+      .select('group_name')
       .eq('course_id', courseId)
-      .maybeSingle()
-    if (courseError) throw courseError
-    if (courseRow?.course_name) courseName = courseRow.course_name
+      .maybeSingle();
+
+    const targetGroupName = cRow?.group_name || studentData.inferred_group_name;
+
+    if (targetGroupName) {
+      const { data: gRow } = await supabase
+        .from('groups')
+        .select('group_id')
+        .ilike('group_name', targetGroupName.trim())
+        .maybeSingle();
+      if (gRow) groupId = gRow.group_id;
+    }
   }
 
   return { groupId, courseId, groupName, courseName }
@@ -155,8 +179,20 @@ export default function StudentTimeTable() {
 
       try {
         const studentData = await resolveStudentDetails(student)
-        const academicYear = (studentData?.academic_year || '').toString().trim()
-        const semesterValue = (studentData?.current_semester || studentData?.semester || '').toString().trim()
+        let academicYear = (studentData?.academic_year || '').toString().trim()
+        if (academicYear.match(/^\d{4}$/)) {
+          academicYear = `${parseInt(academicYear) - 1}-${academicYear}`
+        }
+        const rawSemester = (studentData?.current_semester || studentData?.semester || '').toString().trim()
+        let semesterValue = rawSemester
+        // Handle Roman Numerals or "I SEMESTER" format
+        const romanMap = { 'I': 1, 'II': 2, 'III': 3, 'IV': 4, 'V': 5, 'VI': 6, 'VII': 7, 'VIII': 8 }
+        const firstWord = rawSemester.split(' ')[0].toUpperCase()
+        if (romanMap[firstWord]) {
+          semesterValue = romanMap[firstWord]
+        } else if (!isNaN(parseInt(rawSemester))) {
+          semesterValue = parseInt(rawSemester)
+        }
         const { groupId, courseId, groupName, courseName } = await resolveGroupCourseIds(studentData)
 
         if (!academicYear || !semesterValue || !groupId || !courseId) {

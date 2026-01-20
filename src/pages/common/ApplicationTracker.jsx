@@ -92,7 +92,7 @@ export default function ApplicationTracker() {
             currency: 'INR',
             name: 'Vijayam College',
             description: 'Admission Fee Transaction',
-            image: crestPrimary,
+            image: 'https://placehold.co/200x200?text=Vijayam+College',
             handler: async function (response) {
                 // Payment Success
                 try {
@@ -100,12 +100,33 @@ export default function ApplicationTracker() {
                     const { error } = await supabase
                         .from('admissions')
                         .update({
-                            admission_fee_paid: true,
-
+                            admission_fee_paid: true
                         })
                         .eq('id', admission.id)
 
                     if (error) throw error
+
+                    // Also record in student_fee_payments
+                    // Note: This requires student_id to be nullable in the database if the student record doesn't exist yet.
+                    const { error: ledgerError } = await supabase
+                        .from('student_fee_payments')
+                        .insert([
+                            {
+                                student_id: admission.student_id || null, // Will be null if student not yet created
+                                application_id: application.id,
+                                amount_paid: 5000,
+                                payment_type: 'Online',
+                                fee_type: 'Academic Fee',
+                                payment_mode: 'Initial',
+                                payment_status: 'success'
+                            }
+                        ])
+
+                    if (ledgerError) {
+                        console.error('Error logging to fee ledger:', ledgerError)
+                        // Optional: Show warning or handle mismatch
+                        // throw ledgerError // Uncomment to enforce strict consistency
+                    }
 
                     setAdmission(prev => ({ ...prev, admission_fee_paid: true }))
                     showToast(`Payment Successful! Payment ID: ${response.razorpay_payment_id}`, { type: 'success' })
@@ -312,7 +333,7 @@ export default function ApplicationTracker() {
                                 {/* Profile Header - Centered and Clean */}
                                 <div className="text-center mb-5">
                                     {application.photo_url ? (
-                                        <img src={application.photo_url} alt="Profile" className="rounded-circle border p-1 shadow-sm mb-3 object-fit-cover" style={{ width: '120px', height: '120px' }} />
+                                        <img src={application.photo_url} alt="Profile" className="rounded-circle border p-1 shadow-sm mb-3 object-fit-cover" style={{ width: '120px', height: '120px', objectPosition: 'top' }} />
                                     ) : (
                                         <div className="rounded-circle border p-1 bg-light d-inline-flex align-items-center justify-content-center text-muted shadow-sm mb-3" style={{ width: '120px', height: '120px' }}>
                                             <i className="bi bi-person fs-1"></i>

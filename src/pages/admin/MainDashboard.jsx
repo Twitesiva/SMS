@@ -45,14 +45,15 @@ export default function MainDashboard() {
             // Define a vibrant color palette for all charts
             const palette = [
                 '#4c75f2', // Blue
-                '#42d29d', // Green
+                '#42d29d',
+                '#d63384', // Green
                 '#f3ba2f', // Yellow
                 '#ff7b7b', // Red
                 '#36a2eb', // Sky
                 '#fd7e14', // Orange
                 '#20c997', // Teal
                 '#6f42c1', // Purple
-                '#d63384', // Pink
+                // Pink
                 '#0dcaf0'  // Cyan
             ];
 
@@ -204,7 +205,7 @@ export default function MainDashboard() {
                     setStaffChartData({
                         labels: ['Staff'],
                         datasets: Object.keys(groupByDesig).map((key, i) => ({
-                            label: key,
+                            label: key.replace(/_/g, ' '),
                             data: [groupByDesig[key]],
                             backgroundColor: palette[i % palette.length],
                             borderRadius: 6,
@@ -265,7 +266,11 @@ export default function MainDashboard() {
             title: { display: false }
         },
         scales: {
-            y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+            y: {
+                beginAtZero: true,
+                grid: { color: 'rgba(0,0,0,0.05)' },
+                ticks: { stepSize: 1 }
+            },
             x: { display: false }
         },
         maintainAspectRatio: false
@@ -315,7 +320,7 @@ export default function MainDashboard() {
             value: courses.length,
             detail: "Active academic programs",
             icon: "bi-book-half",
-            path: "/admin-portal/subjects"
+            path: "/admin-portal/groups-courses"
         },
     ]
 
