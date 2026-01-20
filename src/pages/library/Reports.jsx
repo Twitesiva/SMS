@@ -24,7 +24,8 @@ export default function Reports() {
   const [circulationFilter, setCirculationFilter] = useState('all')
   const [overdueFilter, setOverdueFilter] = useState('all')
   const [topBorrowedLimit, setTopBorrowedLimit] = useState('20')
-  const [monthFilter, setMonthFilter] = useState('all')
+  const [monthStartFilter, setMonthStartFilter] = useState('all')
+  const [monthEndFilter, setMonthEndFilter] = useState('all')
   const [yearFilter, setYearFilter] = useState('all')
 
   const [summaryPreview, setSummaryPreview] = useState({ rows: [], loading: false })
@@ -56,8 +57,18 @@ export default function Reports() {
   const matchesMonthYear = (value) => {
     const key = String(value || '').slice(0, 7)
     const [year, month] = key.split('-')
+    const monthNumber = Number(month)
+    const startMonthNumber = monthStartFilter === 'all' ? null : Number(monthStartFilter)
+    const endMonthNumber = monthEndFilter === 'all' ? null : Number(monthEndFilter)
+    if (Number.isNaN(monthNumber)) return false
     if (yearFilter && yearFilter !== 'all' && year !== yearFilter) return false
-    if (monthFilter !== 'all' && month !== monthFilter) return false
+    if (startMonthNumber && endMonthNumber) {
+      const minMonth = Math.min(startMonthNumber, endMonthNumber)
+      const maxMonth = Math.max(startMonthNumber, endMonthNumber)
+      return monthNumber >= minMonth && monthNumber <= maxMonth
+    }
+    if (startMonthNumber) return monthNumber >= startMonthNumber
+    if (endMonthNumber) return monthNumber <= endMonthNumber
     return true
   }
   const monthLabels = useMemo(() => {
@@ -586,7 +597,7 @@ export default function Reports() {
     else if (activePreview === 'circulation') void previewCirculation()
     else if (activePreview === 'overdue') void previewOverdue()
     else if (activePreview === 'top') void previewTopBorrowed()
-  }, [activePreview, summaryFilter, circulationFilter, overdueFilter, topBorrowedLimit, monthFilter, yearFilter])
+  }, [activePreview, summaryFilter, circulationFilter, overdueFilter, topBorrowedLimit, monthStartFilter, monthEndFilter, yearFilter])
 
   useEffect(() => {
     const loadReports = async () => {
@@ -670,16 +681,27 @@ export default function Reports() {
               </select>
             </div>
             <div className="mb-2">
-              <label className="form-label small text-muted mb-1">Month</label>
-              <select
-                className="form-select form-select-sm"
-                value={monthFilter}
-                onChange={(e) => setMonthFilter(e.target.value)}
-              >
-                {monthOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
+              <label className="form-label small text-muted mb-1">Month range</label>
+              <div className="d-flex gap-2">
+                <select
+                  className="form-select form-select-sm"
+                  value={monthStartFilter}
+                  onChange={(e) => setMonthStartFilter(e.target.value)}
+                >
+                  {monthOptions.map((opt) => (
+                    <option key={`start-${opt.value}`} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <select
+                  className="form-select form-select-sm"
+                  value={monthEndFilter}
+                  onChange={(e) => setMonthEndFilter(e.target.value)}
+                >
+                  {monthOptions.map((opt) => (
+                    <option key={`end-${opt.value}`} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="mb-2">
               <label className="form-label small text-muted mb-1">Year</label>
@@ -721,16 +743,27 @@ export default function Reports() {
               </select>
             </div>
             <div className="mb-2">
-              <label className="form-label small text-muted mb-1">Month</label>
-              <select
-                className="form-select form-select-sm"
-                value={monthFilter}
-                onChange={(e) => setMonthFilter(e.target.value)}
-              >
-                {monthOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
+              <label className="form-label small text-muted mb-1">Month range</label>
+              <div className="d-flex gap-2">
+                <select
+                  className="form-select form-select-sm"
+                  value={monthStartFilter}
+                  onChange={(e) => setMonthStartFilter(e.target.value)}
+                >
+                  {monthOptions.map((opt) => (
+                    <option key={`start-${opt.value}`} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <select
+                  className="form-select form-select-sm"
+                  value={monthEndFilter}
+                  onChange={(e) => setMonthEndFilter(e.target.value)}
+                >
+                  {monthOptions.map((opt) => (
+                    <option key={`end-${opt.value}`} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="mb-2">
               <label className="form-label small text-muted mb-1">Year</label>
@@ -770,16 +803,27 @@ export default function Reports() {
               </select>
             </div>
             <div className="mb-2">
-              <label className="form-label small text-muted mb-1">Month</label>
-              <select
-                className="form-select form-select-sm"
-                value={monthFilter}
-                onChange={(e) => setMonthFilter(e.target.value)}
-              >
-                {monthOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
+              <label className="form-label small text-muted mb-1">Month range</label>
+              <div className="d-flex gap-2">
+                <select
+                  className="form-select form-select-sm"
+                  value={monthStartFilter}
+                  onChange={(e) => setMonthStartFilter(e.target.value)}
+                >
+                  {monthOptions.map((opt) => (
+                    <option key={`start-${opt.value}`} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <select
+                  className="form-select form-select-sm"
+                  value={monthEndFilter}
+                  onChange={(e) => setMonthEndFilter(e.target.value)}
+                >
+                  {monthOptions.map((opt) => (
+                    <option key={`end-${opt.value}`} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="mb-2">
               <label className="form-label small text-muted mb-1">Year</label>
@@ -820,16 +864,27 @@ export default function Reports() {
               </select>
             </div>
             <div className="mb-2">
-              <label className="form-label small text-muted mb-1">Month</label>
-              <select
-                className="form-select form-select-sm"
-                value={monthFilter}
-                onChange={(e) => setMonthFilter(e.target.value)}
-              >
-                {monthOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
+              <label className="form-label small text-muted mb-1">Month range</label>
+              <div className="d-flex gap-2">
+                <select
+                  className="form-select form-select-sm"
+                  value={monthStartFilter}
+                  onChange={(e) => setMonthStartFilter(e.target.value)}
+                >
+                  {monthOptions.map((opt) => (
+                    <option key={`start-${opt.value}`} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <select
+                  className="form-select form-select-sm"
+                  value={monthEndFilter}
+                  onChange={(e) => setMonthEndFilter(e.target.value)}
+                >
+                  {monthOptions.map((opt) => (
+                    <option key={`end-${opt.value}`} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="mb-2">
               <label className="form-label small text-muted mb-1">Year</label>
