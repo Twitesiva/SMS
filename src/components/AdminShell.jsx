@@ -15,10 +15,10 @@ const examPortalNavGroups = [
   {
     title: "Student Portal",
     items: [
-      { to: "/admin/applications", label: "Applications", icon: "bi-inboxes" },
-      { to: "/admin/setup/years", label: "Create Academic Years", icon: "bi-calendar3" },
-      { to: "/admin/setup/groups", label: "Create Groups & Courses", icon: "bi-diagram-3" },
-      { to: "/admin/setup/subjects", label: "Create Subjects", icon: "bi-journal-text" },
+
+      { to: "/admin/setup/years", label: "Academic Years", icon: "bi-calendar3" },
+      { to: "/admin/setup/groups", label: "Groups & Courses", icon: "bi-diagram-3" },
+      { to: "/admin/setup/subjects", label: "Subjects", icon: "bi-journal-text" },
       { to: "/admin/students", label: "Students Details", icon: "bi-person-badge" },
       { to: "/admin/fees-generation", label: "Fees Generation", icon: "bi-mortarboard" },
     ],
