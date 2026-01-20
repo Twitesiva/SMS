@@ -7,13 +7,31 @@ import './AdminShell.css'
 
 const navGroups = [
     {
-        title: 'Parent Portal',
+        title: 'Student Details',
         static: true,
         items: [
-            { to: '/parent/student-details', label: 'Student Details', icon: 'bi-person-badge' },
-            { to: '/parent/attendance', label: 'Attendance', icon: 'bi-calendar-check' },
-            { to: '/parent/marks', label: 'Marks', icon: 'bi-file-earmark-bar-graph' },
-            { to: '/parent/notifications', label: 'Notifications', icon: 'bi-bell' },
+            { to: '/parent/student-details', label: 'Student Details', icon: 'bi-person-badge' }
+        ]
+    },
+    {
+        title: 'Attendance',
+        static: true,
+        items: [
+            { to: '/parent/attendance', label: 'Attendance', icon: 'bi-calendar-check' }
+        ]
+    },
+    {
+        title: 'Marks',
+        static: true,
+        items: [
+            { to: '/parent/marks', label: 'Marks', icon: 'bi-file-earmark-bar-graph' }
+        ]
+    },
+    {
+        title: 'Notifications',
+        static: true,
+        items: [
+            { to: '/parent/notifications', label: 'Notifications', icon: 'bi-bell' }
         ]
     }
 ]

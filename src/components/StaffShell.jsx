@@ -16,33 +16,57 @@ export default function StaffShell({ children }) {
 
     const navGroups = useMemo(() => [
         {
-            title: 'Staff Portal',
+            title: 'My Profile',
             static: true,
-            items: [
-                { to: '/staff/dashboard', label: 'My Profile', icon: 'bi-speedometer2' },
-                { to: '/staff/attendance', label: 'Student Attendance', icon: 'bi-clipboard-check' },
-                { to: '/staff/students', label: 'Student Records', icon: 'bi-people' },
-                { to: '/staff/timetable', label: 'Academic Timetable', icon: 'bi-calendar-week' },
-                { to: '/staff/circulars', label: 'Circulars', icon: 'bi-megaphone-fill' },
-                { to: '/staff/materials', label: 'Learning Materials', icon: 'bi-folder2-open' },
-            ]
+            items: [{ to: '/staff/dashboard', label: 'My Profile', icon: 'bi-speedometer2' }]
         },
         {
-            title: 'Academic Management',
+            title: 'Student Attendance',
             static: true,
-            items: [
-                { to: '/staff/performance', label: 'Academic Performance Feedback', icon: 'bi-graph-up-arrow' },
-                { to: '/staff/my-attendance', label: 'My Attendance Overview', icon: 'bi-person-check' },
-            ]
+            items: [{ to: '/staff/attendance', label: 'Student Attendance', icon: 'bi-clipboard-check' }]
         },
-        ...(isHOD ? [{
-            title: 'Leave Management',
+        {
+            title: 'Student Records',
             static: true,
-            items: [
-                { to: '/staff/leave?view=students', label: 'Student Requests', icon: 'bi-person-lines-fill' },
-                { to: '/staff/leave?view=staff', label: 'Staff Requests', icon: 'bi-person-lines-fill' },
-            ]
-        }] : [])
+            items: [{ to: '/staff/students', label: 'Student Records', icon: 'bi-people' }]
+        },
+        {
+            title: 'Academic Timetable',
+            static: true,
+            items: [{ to: '/staff/timetable', label: 'Academic Timetable', icon: 'bi-calendar-week' }]
+        },
+        {
+            title: 'Circulars',
+            static: true,
+            items: [{ to: '/staff/circulars', label: 'Circulars', icon: 'bi-megaphone-fill' }]
+        },
+        {
+            title: 'Learning Materials',
+            static: true,
+            items: [{ to: '/staff/materials', label: 'Learning Materials', icon: 'bi-folder2-open' }]
+        },
+        {
+            title: 'Academic Performance',
+            static: true,
+            items: [{ to: '/staff/performance', label: 'Academic Performance', icon: 'bi-graph-up-arrow' }]
+        },
+        {
+            title: 'My Attendance',
+            static: true,
+            items: [{ to: '/staff/my-attendance', label: 'My Attendance', icon: 'bi-person-check' }]
+        },
+        ...(isHOD ? [
+            {
+                title: 'Leave: Student Requests',
+                static: true,
+                items: [{ to: '/staff/leave?view=students', label: 'Student Requests', icon: 'bi-person-lines-fill' }]
+            },
+            {
+                title: 'Leave: Staff Requests',
+                static: true,
+                items: [{ to: '/staff/leave?view=staff', label: 'Staff Requests', icon: 'bi-person-lines-fill' }]
+            }
+        ] : [])
     ], [isHOD])
 
     const handleLogout = () => {
