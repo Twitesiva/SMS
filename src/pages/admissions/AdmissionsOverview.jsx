@@ -157,15 +157,31 @@ export default function AdmissionsOverview() {
     >
       <div className="admissions-page">
 
-      <section className="setup-hero mb-4 text-center">
-        <div className="setup-hero-copywrap mx-auto text-center" style={{ maxWidth: '640px' }}>
-          <div className="admin-applications__crest mx-auto" aria-hidden="true">
-            <img src={crestPrimary} alt="Vijayam crest" />
+      <section className="setup-hero mb-4">
+        <div className="setup-hero__inner">
+          <div className="setup-hero__content">
+            <div className="setup-hero__crest" aria-hidden="true">
+              <img src={crestPrimary} alt="Vijayam crest" />
+            </div>
+            <div>
+              <div className="setup-hero__eyebrow">Admissions 2026</div>
+              <h1 className="setup-hero__title mb-1">Vijayam College of Arts & Science</h1>
+              <p className="setup-hero__location mb-2">Chittor</p>
+              <p className="setup-hero__subtitle mb-0">
+                Admission portal for group registration, student engagement and track application status.
+              </p>
+            </div>
           </div>
-          <h3 className="setup-hero-title mb-2">Admissions Overview</h3>
-          <p className="setup-hero-copy mb-0">
-            Track total applied admissions and filter by group or course.
-          </p>
+          <div className="setup-hero__actions">
+            <button type="button" className="btn setup-hero__track">
+              <i className="bi bi-binoculars-fill me-2"></i>
+              Track Application
+            </button>
+            <button type="button" className="btn setup-hero__back">
+              <i className="bi bi-arrow-left me-2"></i>
+              Back to Home
+            </button>
+          </div>
         </div>
       </section>
 

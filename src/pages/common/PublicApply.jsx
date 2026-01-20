@@ -5,6 +5,7 @@ import { validateRequiredFields } from '../../lib/validation'
 import { showToast } from '../../store/ui'
 import crestPrimary from '../../assets/media/images.png'
 import { supabase } from '../../../supabaseClient'
+import './PublicApply.css'
 
 export default function PublicApply() {
   const location = useLocation()
@@ -338,60 +339,88 @@ export default function PublicApply() {
 
   return (
     <div className="public-apply-page">
-      <div className="container py-5">
-        <div className="d-flex justify-content-end mb-3">
-          <Link to="/admission" className="btn btn-outline-secondary">
-            <i className="bi bi-arrow-left me-2"></i>Back
-          </Link>
-        </div>
-        <div className="public-apply-hero mb-4">
-          <div className="public-apply-hero-brand">
-            <img src={crestPrimary} className="brand-logo public-apply-logo" alt="Vijayam crest" />
+      <div className="public-apply-layout">
+        <div className="public-apply-hero">
+          <div className="public-apply-hero__content">
+            <div className="public-apply-hero__crest" aria-hidden="true">
+              <img src={crestPrimary} alt="Vijayam crest" />
+            </div>
             <div>
-              <div className="public-apply-eyebrow">Admissions {form.admission_year}</div>
-              <h2 className="public-apply-title">Vijayam College of Arts & Science</h2>
-              <div className="public-apply-subtitle">Chittor</div>
+              <div className="public-apply-hero__eyebrow">ADMISSIONS {form.admission_year}</div>
+              <h1 className="public-apply-hero__title">Vijayam College of Arts & Science</h1>
+              <p className="public-apply-hero__location">CHITTOR</p>
+              <p className="public-apply-hero__subtitle">
+                Manage catalogues, lending, and returns with confidence. Explore programmes, registration steps,
+                and real-time updates from the library control center while preparing your application.
+              </p>
             </div>
+          </div>
+          <div className="public-apply-hero__actions">
+            <Link to="/home" className="public-apply-hero__back">
+              <i className="bi bi-arrow-left me-2"></i>
+              Back to Home
+            </Link>
           </div>
         </div>
 
-        <div className="row g-4 justify-content-center">
-          <div className="col-12">
-            <div className="public-apply-intro mb-4">
-              <div className="public-apply-intro-grid">
-                <div>
-                  <div className="public-apply-intro-eyebrow">YOUR ONLINE APPLICATION</div>
-                  <h4 className="public-apply-intro-title">Follow these steps to complete your admission</h4>
-                  <ul className="public-apply-intro-list">
-                    <li>Register by filling the above details</li>
-                    <li>Fill the application form online.</li>
-                    <li>Upload required documents.</li>
-                    <li>Submit your application.</li>
-                  </ul>
-                  <div className="public-apply-note">
-                    <div className="public-apply-note-title">NOTE</div>
-                    <ul className="public-apply-note-list">
-                      <li>Upload clear photo in jpg or png format. Suggested size 135px x 175px (max 200KB).</li>
-                      <li>Upload transfer certificate and marksheets in jpg or png format (max 200KB each).</li>
-                    </ul>
-                  </div>
-                </div>
-                <div className="public-apply-steps">
-                  <div className="public-apply-steps-title">STEPS TO FOLLOW</div>
-                  <div className="public-apply-steps-grid">
-                    <div className="public-apply-step"><span className="public-apply-step-num">01</span><span className="public-apply-step-text">Register Yourself</span></div>
-                    <div className="public-apply-step"><span className="public-apply-step-num">02</span><span className="public-apply-step-text">Fill Application Form Online</span></div>
-                    <div className="public-apply-step"><span className="public-apply-step-num">03</span><span className="public-apply-step-text">Upload Required Documents</span></div>
-                    <div className="public-apply-step"><span className="public-apply-step-num">04</span><span className="public-apply-step-text">Submit Application</span></div>
-                  </div>
-                </div>
-              </div>
+        <div className="public-apply__steps mb-5" style={{ width: 'min(1500px, 100%)' }}>
+          <div className="public-apply__steps-text">
+            <p className="public-apply__steps-eyebrow">YOUR ONLINE APPLICATION</p>
+            <h2 className="public-apply__steps-heading">
+              Follow these steps to complete your admission
+            </h2>
+            <ul className="public-apply__steps-list">
+              <li>Register by filling the above details.</li>
+              <li>Fill the application form online.</li>
+              <li>Upload required documents.</li>
+              <li>Submit your application.</li>
+            </ul>
+            <div className="public-apply__note">
+              <div className="public-apply__note-title">NOTE</div>
+              <ul className="public-apply__note-list">
+                <li>Upload clear photo in jpg or png format. Suggested size 135px x 175px (max 200KB).</li>
+                <li>Upload transfer certificate and marksheets in jpg or png format (max 200KB each).</li>
+              </ul>
             </div>
+          </div>
+
+          <div className="public-apply__steps-card">
+            <div className="public-apply__steps-card-title">STEPS TO FOLLOW</div>
+            <ol className="public-apply__steps-flow">
+              <li className="public-apply__step public-apply__step--green">
+                <span className="public-apply__step-badge">01</span>
+                <span className="public-apply__step-icon">
+                  <i className="bi bi-person-plus"></i>
+                </span>
+                <span className="public-apply__step-text">Register Yourself</span>
+              </li>
+              <li className="public-apply__step public-apply__step--coral">
+                <span className="public-apply__step-badge">02</span>
+                <span className="public-apply__step-icon">
+                  <i className="bi bi-pencil-square"></i>
+                </span>
+                <span className="public-apply__step-text">Fill Application Form Online</span>
+              </li>
+              <li className="public-apply__step public-apply__step--blue">
+                <span className="public-apply__step-badge">03</span>
+                <span className="public-apply__step-icon">
+                  <i className="bi bi-upload"></i>
+                </span>
+                <span className="public-apply__step-text">Upload Required Documents</span>
+              </li>
+              <li className="public-apply__step public-apply__step--teal">
+                <span className="public-apply__step-badge">04</span>
+                <span className="public-apply__step-icon">
+                  <i className="bi bi-check2-circle"></i>
+                </span>
+                <span className="public-apply__step-text">Submit Application</span>
+              </li>
+            </ol>
           </div>
         </div>
 
-        <div className="row g-4 justify-content-center">
-          <div className="col-12">
+        <div className="public-apply-content">
+          <div className="public-apply-form-card" style={{ flex: '1 1 100%' }}>
             <div className="card card-soft public-apply-form">
               <div className="public-apply-form-header">
                 <div>
@@ -489,90 +518,26 @@ export default function PublicApply() {
                     <div className="col-md-4"><label className="form-label"><i className="bi bi-people"></i>Caste</label><select className={selectClass(form.caste)} value={form.caste} onChange={e => handle('caste', e.target.value)}><option value="">Select</option>{CASTES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
                     <div className="col-12"><label className="form-label">Address</label><textarea className="form-control" rows="2" value={form.address} onChange={e => handle('address', e.target.value)} required></textarea></div>
 
-                    <style>{`
-                  .modern-radio-group {
-                    display: flex;
-                    gap: 1rem;
-                  }
-                  .modern-radio-option {
-                    position: relative;
-                    cursor: pointer;
-                    width: 100%;
-                    max-width: 160px;
-                  }
-                  .modern-radio-input {
-                    position: absolute;
-                    opacity: 0;
-                    width: 0;
-                    height: 0;
-                  }
-                  .modern-radio-card {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 0.5rem 1rem;
-                    background-color: #fff;
-                    border: 1px solid #e1e1e1;
-                    border-radius: 8px;
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                    color: #6c757d;
-                    font-weight: 500;
-                    font-size: 0.9rem;
-                    gap: 0.5rem;
-                    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
-                  }
-                  .modern-radio-card i {
-                    font-size: 1.1rem;
-                    color: #adb5bd;
-                    transition: all 0.3s ease;
-                  }
-                  .modern-radio-option:hover .modern-radio-card {
-                    border-color: #b0b8c1;
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-                  }
-                  .modern-radio-input:checked + .modern-radio-card {
-                    background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
-                    border-color: transparent;
-                    color: white;
-                    box-shadow: 0 8px 16px rgba(79, 70, 229, 0.25);
-                  }
-                  .modern-radio-input:checked + .modern-radio-card i {
-                    color: #fbbf24; /* Golden accent for icon */
-                  }
-                  .modern-radio-input:disabled + .modern-radio-card {
-                    opacity: 0.6;
-                    cursor: not-allowed;
-                    background-color: #f8f9fa;
-                    border-color: #e9ecef;
-                    transform: none;
-                    box-shadow: none;
-                  }
-                `}</style>
                     <div className="col-12 mt-4">
-                      <div className="d-inline-block bg-primary text-white border border-primary px-3 py-1 rounded-pill small fw-bold mb-3 shadow-md">
+                      <div className="d-inline-block bg-primary text-white border border-primary px-3 py-1 rounded-pill small fw-bold mb-4 shadow-sm">
                         <i className="bi bi-house-door-fill me-2"></i>ACCOMMODATION DETAILS
                       </div>
                       <div className="row g-4">
                         <div className="col-md-6">
                           <label className="form-label mb-2 fw-bold text-dark">Student Type <span className="text-danger">*</span></label>
-                          <div className="modern-radio-group">
-                            <label className="modern-radio-option">
+                          <div className="accommodation-toggle-group">
+                            <label className={`accommodation-checkbox ${form.is_hostel === true ? 'active' : ''}`}>
                               <input
-                                className="modern-radio-input"
                                 type="radio"
                                 name="studentType"
                                 checked={form.is_hostel === true}
                                 onChange={() => handle('is_hostel', true)}
                               />
-                              <div className="modern-radio-card">
-                                <i className="bi bi-building"></i>
-                                <span>Hostel</span>
-                              </div>
+                              <i className="bi bi-building"></i>
+                              <span>Hostel Accommodation</span>
                             </label>
-                            <label className="modern-radio-option">
+                            <label className={`accommodation-checkbox ${form.is_hostel === false ? 'active' : ''}`}>
                               <input
-                                className="modern-radio-input"
                                 type="radio"
                                 name="studentType"
                                 checked={form.is_hostel === false}
@@ -581,44 +546,36 @@ export default function PublicApply() {
                                   handle('is_transport', null)
                                 }}
                               />
-                              <div className="modern-radio-card">
-                                <i className="bi bi-house"></i>
-                                <span>Day Scholar</span>
-                              </div>
+                              <i className="bi bi-house"></i>
+                              <span>Day Scholar</span>
                             </label>
                           </div>
                         </div>
 
                         <div className="col-md-6">
                           <label className="form-label mb-2 fw-bold text-dark">College Transport (if Day Scholar)</label>
-                          <div className="modern-radio-group">
-                            <label className="modern-radio-option">
+                          <div className="accommodation-toggle-group">
+                            <label className={`accommodation-checkbox ${form.is_hostel !== false ? 'disabled' : ''} ${form.is_hostel === false && form.is_transport === true ? 'active' : ''}`}>
                               <input
-                                className="modern-radio-input"
                                 type="radio"
                                 name="transport"
                                 disabled={form.is_hostel !== false}
                                 checked={form.is_hostel === false && form.is_transport === true}
                                 onChange={() => handle('is_transport', true)}
                               />
-                              <div className="modern-radio-card">
-                                <i className="bi bi-bus-front"></i>
-                                <span>Yes, Required</span>
-                              </div>
+                              <i className="bi bi-bus-front"></i>
+                              <span>Yes, Required</span>
                             </label>
-                            <label className="modern-radio-option">
+                            <label className={`accommodation-checkbox ${form.is_hostel !== false ? 'disabled' : ''} ${form.is_hostel === false && form.is_transport === false ? 'active' : ''}`}>
                               <input
-                                className="modern-radio-input"
                                 type="radio"
                                 name="transport"
                                 disabled={form.is_hostel !== false}
                                 checked={form.is_hostel === false && form.is_transport === false}
                                 onChange={() => handle('is_transport', false)}
                               />
-                              <div className="modern-radio-card">
-                                <i className="bi bi-x-circle"></i>
-                                <span>Not Required</span>
-                              </div>
+                              <i className="bi bi-x-circle"></i>
+                              <span>Not Required</span>
                             </label>
                           </div>
                         </div>

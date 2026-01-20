@@ -29,11 +29,114 @@
 
 
 .admin-shell--admissions .setup-hero {
-  background: linear-gradient(135deg, #10284f 0%, #1d4b82 55%, #2c6bb3 100%);
+  background: linear-gradient(120deg, #0f3c93 0%, #1c5bb8 40%, #2a74d6 100%);
+  border-radius: 30px;
+  color: #ffffff;
+  padding: 2rem;
+  box-shadow: 0 25px 45px rgba(15, 40, 94, 0.35);
+}
+
+.setup-hero__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.setup-hero__content {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  min-width: 0;
+}
+
+.setup-hero__crest {
+  width: 90px;
+  height: 90px;
   border-radius: 22px;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 18px 30px rgba(15, 40, 94, 0.25);
+}
+
+.setup-hero__crest img {
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+}
+
+.setup-hero__eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.5em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 0.35rem;
+}
+
+.setup-hero__title {
+  font-size: clamp(1.8rem, 2.3vw, 2.6rem);
+  margin: 0;
+  font-weight: 700;
+}
+
+.setup-hero__location {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.setup-hero__subtitle {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.76);
+  max-width: 540px;
+}
+
+.setup-hero__actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.setup-hero__track,
+.setup-hero__back {
+  border-radius: 999px;
+  padding: 0.55rem 1.4rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.setup-hero__track {
+  background: #ffffff;
+  color: #0f3c93;
+  border: none;
+  box-shadow: 0 10px 20px rgba(15, 40, 94, 0.25);
+}
+
+.setup-hero__back {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.7);
   color: #ffffff;
 }
 
-.admin-shell--admissions .setup-hero::before {
-  opacity: 0.35;
+.setup-hero__track:hover,
+.setup-hero__back:hover {
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .setup-hero__inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .setup-hero__actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
 }

@@ -60,21 +60,26 @@ export default function AdmissionPortal() {
 
   return (
     <div className="admission-portal">
-      <div className="admission-portal__header admission-portal__hero public-apply-hero">
-        <div className="public-apply-hero-brand">
-          <img src={crestPrimary} className="brand-logo public-apply-logo" alt="Vijayam crest" />
+      <div className="admission-portal__hero">
+        <div className="admission-portal__hero-content">
+          <div className="admission-portal__hero-crest" aria-hidden="true">
+            <img src={crestPrimary} alt="Vijayam crest" />
+          </div>
           <div>
-            <div className="public-apply-eyebrow">ADMISSIONS {admissionYear}</div>
-            <h2 className="public-apply-title">Vijayam College of Arts & Science</h2>
-            <div className="public-apply-subtitle">Chittor</div>
+            <div className="admission-portal__hero-eyebrow">ADMISSIONS {admissionYear}</div>
+            <h1 className="admission-portal__hero-title">Vijayam College of Arts & Science</h1>
+            <p className="admission-portal__hero-location">Chittor</p>
+            <p className="admission-portal__hero-text">Manage catalogues, lending, and returns with confidence.</p>
           </div>
         </div>
-        <div className="d-flex gap-3">
-          <Link to="/admission/login" className="btn btn-outline-light rounded-pill px-4">
-            <i className="bi bi-person-circle me-2"></i>Track Application
+        <div className="admission-portal__hero-actions">
+          <Link to="/admission/login" className="btn btn-light admission-portal__hero-track">
+            <i className="bi bi-binoculars-fill me-2"></i>
+            Track Application
           </Link>
           <Link to="/home" className="admission-portal__back admission-portal__back--hero">
-            <i className="bi bi-arrow-left"></i> Back to Home
+            <i className="bi bi-arrow-left"></i>
+            Back to Home
           </Link>
         </div>
       </div>

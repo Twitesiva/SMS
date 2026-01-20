@@ -1,10 +1,8 @@
 .admission-portal {
   min-height: 100vh;
   padding: clamp(2rem, 5vw, 3.5rem);
-  --admission-maroon: #606c88;
-  --admission-border: #3f4c6b;
-  background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 45%, #ffffff 100%);
-  color: #2c3e50;
+  background: linear-gradient(180deg, #f5f7fa 0%, #e8edfb 45%, #fdfdfd 100%);
+  color: #1b2440;
   font-family: "Space Grotesk", "Cabinet Grotesk", system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
     "Helvetica Neue", Arial, sans-serif;
@@ -22,37 +20,110 @@
 .admission-portal::after {
   content: "";
   position: absolute;
-  width: 420px;
-  height: 420px;
+  width: 480px;
+  height: 480px;
   border-radius: 999px;
   pointer-events: none;
-  opacity: 0.7;
+  opacity: 0.65;
 }
 
 .admission-portal::before {
-  top: -140px;
-  right: -120px;
-  background: radial-gradient(circle, rgba(96, 108, 136, 0.35), rgba(96, 108, 136, 0));
+  top: -160px;
+  right: -60px;
+  background: radial-gradient(circle, rgba(102, 18, 82, 0.4), rgba(102, 18, 82, 0));
 }
 
 .admission-portal::after {
-  bottom: -160px;
-  left: -120px;
-  background: radial-gradient(circle, rgba(63, 76, 107, 0.28), rgba(63, 76, 107, 0));
+  bottom: -200px;
+  left: -100px;
+  background: radial-gradient(circle, rgba(97, 40, 141, 0.35), rgba(97, 40, 141, 0));
+}
+
+.admission-portal__hero {
+  background: linear-gradient(135deg, #606c88 0%, #3f4c6b 100%);
+  border-radius: 30px;
+  padding: clamp(1.5rem, 4vw, 2.75rem);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2rem;
+  color: #ffffff;
+  box-shadow: 0 25px 45px rgba(8, 16, 38, 0.35);
+}
+
+.admission-portal__hero-content {
+  display: flex;
+  align-items: center;
+  gap: 1.75rem;
+  flex-wrap: wrap;
+}
+
+.admission-portal__hero-crest {
+  width: 86px;
+  height: 86px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.3rem;
+  box-shadow: 0 18px 36px rgba(4, 8, 20, 0.35);
+}
+
+.admission-portal__hero-crest img {
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+}
+
+.admission-portal__hero-eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.admission-portal__hero-title {
+  margin: 0;
+  font-size: clamp(1.9rem, 3vw, 2.8rem);
+  font-weight: 700;
+}
+
+.admission-portal__hero-location {
+  margin: 0.15rem 0 0.75rem;
+  letter-spacing: 0.5em;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.admission-portal__hero-text {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 420px;
+}
+
+.admission-portal__hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.admission-portal__hero-track {
+  border-radius: 999px;
+  padding: 0.65rem 1.5rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  box-shadow: 0 12px 26px rgba(10, 12, 40, 0.25);
+  background: #ffffff;
+  color: #3f4c6b;
 }
 
 .admission-portal__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1rem 1.25rem;
-  background: #ffffff;
-  border-radius: 18px;
-  border: 1px solid #e3e8f3;
-  box-shadow: 0 18px 32px rgba(35, 45, 72, 0.08);
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 
 .admission-portal__back {
@@ -60,30 +131,23 @@
   align-items: center;
   gap: 0.5rem;
   text-decoration: none;
-  color: #4b5563;
+  color: #ffffff;
   font-weight: 600;
-  background: #f5f7fb;
+  background: rgba(255, 255, 255, 0.15);
   padding: 0.65rem 1.25rem;
   border-radius: 999px;
-  box-shadow: inset 0 0 0 1px rgba(31, 42, 68, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.35);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .admission-portal__back:hover {
   transform: translateX(-4px);
-  box-shadow: inset 0 0 0 1px rgba(31, 42, 68, 0.2), 0 10px 20px rgba(35, 45, 72, 0.12);
+  box-shadow: 0 12px 24px rgba(5, 8, 16, 0.3);
 }
 
 .admission-portal__back--hero {
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.2);
   color: #ffffff;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
-}
-
-.admission-portal__back--hero:hover {
-  background: rgba(255, 255, 255, 0.28);
-  color: #ffffff;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
 }
 
 .admission-portal__brand-block {
@@ -379,13 +443,13 @@
 .admission-portal__table-title {
   text-align: left;
   font-weight: 600;
-  color: #1f2a44;
+  color: #ffffff;
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid #e3e8f3;
-  background: #f8fafc;
-  letter-spacing: 0.06em;
+  background: linear-gradient(135deg, #606c88 0%, #3f4c6b 100%);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   font-size: 0.75rem;
+  border-radius: 16px 16px 0 0;
 }
 
 .admission-portal__status {
@@ -402,13 +466,13 @@
 }
 
 .admission-portal__table thead th {
-  background: var(--admission-maroon);
-  color: #ffffff;
+  background: linear-gradient(135deg, #262d63, #1b2551);
+  color: rgba(255, 255, 255, 0.92);
   font-size: 0.85rem;
   font-weight: 600;
   text-align: left;
   padding: 0.85rem 0.75rem;
-  border: 1px solid #1d4ed8;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .admission-portal__table tbody td {
