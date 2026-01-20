@@ -6,10 +6,10 @@
 .sidebar-modern {
   min-height: 100vh;
   padding: 1.75rem;
-  background: linear-gradient(180deg, #0b1120 0%, #111a2e 55%, #16233d 100%);
+  background: linear-gradient(180deg, #2e2a6e 0%, #2563eb 100%);
   box-shadow: 0 30px 55px rgba(15, 23, 42, 0.4);
   border-right: none;
-  color: #f1f5f9;
+  color: #ffffff;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -29,7 +29,7 @@
 
 .sidebar-brand-info {
   line-height: 1.35;
-  color: #f8fafc;
+  color: #ffffff;
 }
 
 .sidebar-brand-title {
@@ -39,7 +39,7 @@
   letter-spacing: 0.16em;
   font-size: 0.82rem;
   line-height: 1.35;
-  color: #f8fafc;
+  color: #ffffff;
   text-shadow: 0 4px 12px rgba(3, 7, 18, 0.45);
 }
 
@@ -53,37 +53,37 @@
   display: block;
   font-size: 0.7rem;
   letter-spacing: 0.3em;
-  color: rgba(226, 232, 240, 0.8);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .sidebar-brand-info .heading-font {
   font-size: 1rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #f8fafc;
+  color: #ffffff;
 }
 
 .sidebar-brand-info small {
-  color: rgba(226, 232, 240, 0.9);
+  color: rgba(255, 255, 255, 0.95);
   letter-spacing: 0.08em;
 }
 
 .sidebar-brand-subtitle {
   display: block;
   font-size: 0.78rem;
-  color: rgba(226, 232, 240, 0.8);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .btn-ghost {
   border: none;
   background: transparent;
-  color: #cbd5f5;
+  color: #ffffff;
   padding: 0.25rem;
   transition: color 0.25s ease, transform 0.3s ease;
 }
 
 .btn-ghost:hover {
-  color: #7dd3fc;
+  color: #ffffff;
   transform: translateX(2px);
 }
 
@@ -91,17 +91,18 @@
   width: 36px;
   height: 36px;
   border-radius: 12px;
-  background: rgba(15, 23, 42, 0.35);
+  background: rgba(255, 255, 255, 0.15);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 1.2rem;
+  color: #ffffff;
 }
 
 .sidebar-divider {
   height: 1px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .sidebar-nav {
@@ -110,7 +111,7 @@
   overflow-y: auto;
   padding-right: 0.5rem;
   scrollbar-width: 8px;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
   -ms-overflow-style: auto;
 }
 
@@ -124,29 +125,29 @@
 }
 
 .sidebar-nav::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.25);
+  background-color: rgba(255, 255, 255, 0.35);
   border-radius: 4px;
   border-radius: 3px;
 }
 
 .sidebar-nav::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 0.45);
 }
 
 .sidebar-scroll-hint {
   text-transform: uppercase;
   font-size: 0.7rem;
   letter-spacing: 0.12em;
-  color: rgba(255, 255, 255, 0.8);
+  color: #ffffff;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.35rem;
   padding: 0.4rem 0.9rem;
   margin: 0 1.1rem 0.8rem;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   pointer-events: none;
 }
 
@@ -166,9 +167,9 @@
   gap: 0.85rem;
   padding: 0.5rem 1.1rem;
   border-radius: 0.9rem;
-  color: rgba(226, 232, 240, 0.82);
+  color: rgba(255, 255, 255, 0.85);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: 0.01em;
   transition: background 0.25s ease, color 0.25s ease;
 }
@@ -177,11 +178,12 @@
   width: 38px;
   height: 38px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.12);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 1.25rem;
+  color: #ffffff;
 }
 
 .nav-item-modern .label {
@@ -189,19 +191,19 @@
 }
 
 .nav-item-modern:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
   color: #ffffff;
 }
 
 .nav-item-modern.active {
-  background: rgba(59, 130, 246, 0.22);
+  background: rgba(255, 255, 255, 0.2);
   color: #ffffff;
-  box-shadow: inset 0 0 0 1px rgba(148, 197, 255, 0.2), 0 12px 30px rgba(2, 6, 23, 0.4);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25), 0 12px 30px rgba(2, 6, 23, 0.2);
 }
 
 .sidebar-footer {
   font-size: 0.78rem;
-  color: rgba(226, 232, 240, 0.7);
+  color: rgba(255, 255, 255, 0.8);
   line-height: 1.3;
 }
 

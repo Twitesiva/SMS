@@ -35,7 +35,7 @@
 
 .student-sidebar {
   width: 270px;
-  background: linear-gradient(180deg, #0f1f3d 0%, #14264b 60%, #1a325d 100%);
+  background: linear-gradient(180deg, #2e2a6e 0%, #2563eb 100%);
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   flex-direction: column;
@@ -62,7 +62,7 @@
   gap: 0.7rem;
   padding: 0.65rem 1rem 0.65rem 1.1rem;
   margin: 0 0.8rem;
-  color: rgba(226, 232, 240, 0.88);
+  color: rgba(255, 255, 255, 0.85);
   text-decoration: none;
   font-weight: 600;
   font-size: 0.95rem;
@@ -85,8 +85,8 @@
   align-items: center;
   justify-content: center;
   font-size: 1rem;
-  color: rgba(226, 232, 240, 0.75);
-  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .student-sidebar__link::before {
@@ -103,29 +103,29 @@
 }
 
 .student-sidebar__link:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.15);
   color: #ffffff;
 }
 
 .student-sidebar__link:hover i {
   color: #ffffff;
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .student-sidebar__link.active {
-  background: rgba(59, 130, 246, 0.22);
+  background: rgba(255, 255, 255, 0.2);
   color: #ffffff;
   font-weight: 600;
 }
 
 .student-sidebar__link.active i {
   color: #ffffff;
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .student-sidebar__link.active::before {
-  background: #93c5fd;
-  box-shadow: 0 0 0 4px rgba(147, 197, 253, 0.25);
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.25);
 }
 
 .student-sidebar__link-badge {

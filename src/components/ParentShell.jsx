@@ -60,6 +60,12 @@ export default function ParentShell({ children }) {
                             </Link>
                         ))}
                     </nav>
+
+                    <div className="student-sidebar__footer text-center mt-auto pb-3">
+                        <div style={{ color: "rgba(255,255,255,0.8)", fontSize: "1.1rem" }}>
+                            Made by <a href="https://www.twite.ai" target="_blank" rel="noopener noreferrer" style={{ color: "#fff", textDecoration: "none", fontWeight: "bold" }}>Twite AI Technologies</a>
+                        </div>
+                    </div>
                 </aside>
 
                 <div className="student-main">

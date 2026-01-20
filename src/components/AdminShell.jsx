@@ -349,11 +349,10 @@ export default function AdminShell({
           })}
         </nav>
 
-        <div className="sidebar-footer text-center small text-muted">
-          <div style={{ color: "#4c75f2", letterSpacing: "0.15em" }}>
-            {footerTitle}
+        <div className="sidebar-footer text-center mt-auto pb-3">
+          <div style={{ color: "rgba(255,255,255,0.8)", fontSize: "1.1rem" }}>
+            Made by <a href="https://www.twite.ai" target="_blank" rel="noopener noreferrer" style={{ color: "#fff", textDecoration: "none", fontWeight: "bold" }}>Twite AI Technologies</a>
           </div>
-          <div style={{ color: "#a569bd" }}>{footerSubtitle}</div>
         </div>
       </aside>
 

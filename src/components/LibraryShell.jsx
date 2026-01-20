@@ -15,8 +15,6 @@ export default function LibraryShell() {
       navGroups={libraryNavGroups}
       brandTitle="Library Management Console"
       brandSubtitle="Vijayam"
-      footerTitle="Library Management Studio"
-      footerSubtitle="Crafted for Vijayam College"
     >
       <Outlet />
     </AdminShell>
