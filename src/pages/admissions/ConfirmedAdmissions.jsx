@@ -64,22 +64,52 @@ export default function ConfirmedAdmissions() {
 
     const fetchConfirmedApplications = async () => {
         setLoading(true)
-        const { data, error } = await supabase
+        const { data: appsData, error } = await supabase
             .from('applications')
             .select(`
                 *,
-                documents:application_documents(*),
-                admission:admissions(
-                    *,
-                    student:students(*)
-                )
+                admission:admissions(*)
             `)
             .eq('status', 'CONFIRMED')
             .order('created_at', { ascending: false })
 
-        if (!error) {
-            setApplications(data || [])
+        if (error) {
+            console.error('Error fetching applications:', error)
+            setLoading(false)
+            return
         }
+
+        const apps = appsData || []
+
+        // Extract student UUIDs to fetch student display IDs
+        const studentUUIDs = apps
+            .map(app => {
+                const adm = Array.isArray(app.admission) ? app.admission[0] : app.admission
+                return adm?.student_id
+            })
+            .filter(Boolean)
+
+        if (studentUUIDs.length > 0) {
+            const { data: studentsData } = await supabase
+                .from('students')
+                .select('id, student_id')
+                .in('id', studentUUIDs)
+
+            if (studentsData) {
+                const studentsMap = {}
+                studentsData.forEach(s => { studentsMap[s.id] = s })
+
+                // Attach student object to admission for UI compatibility
+                apps.forEach(app => {
+                    const adm = Array.isArray(app.admission) ? app.admission[0] : app.admission
+                    if (adm && adm.student_id && studentsMap[adm.student_id]) {
+                        adm.student = studentsMap[adm.student_id]
+                    }
+                })
+            }
+        }
+
+        setApplications(apps)
         setLoading(false)
     }
 
