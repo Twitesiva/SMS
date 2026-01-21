@@ -53,21 +53,6 @@ export default function ParentStudentDetails() {
   return (
     <ParentShell>
       <div className="students-section-shell">
-        <div className="students-section-shell-header">
-          <h2 className="mb-2">Student Details</h2>
-          <p className="students-section-copy mb-3">
-            View your ward&apos;s academic profile and basic details.
-          </p>
-          {badges.length > 0 && (
-            <div className="d-flex flex-wrap gap-2">
-              {badges.map((badge) => (
-                <span key={badge} className="students-section-badge students-section-badge-course">
-                  {badge}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
 
         {loading && (
           <div className="student-details__loading" role="status" aria-live="polite">
@@ -88,7 +73,7 @@ export default function ParentStudentDetails() {
 
         {!loading && !error && studentRecord && (
           <div className="student-card">
-            <div className="student-card__header">Profile Summary</div>
+            <div className="student-card__header">Student Profile</div>
             <div className="student-card__body">
               <div className="student-profile__row" style={{ alignItems: 'center', marginBottom: '1rem' }}>
                 <div className="student-profile__label">Profile Photo</div>
