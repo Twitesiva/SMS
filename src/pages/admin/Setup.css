@@ -2,10 +2,10 @@
 
 .setup-hero {
   background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%);
-  border-radius: 26px;
-  padding: 2.5rem;
+  border-radius: 20px;
+  padding: 1.75rem;
   color: #ffffff !important;
-  box-shadow: 0 25px 55px rgba(17, 24, 39, 0.35);
+  box-shadow: 0 20px 45px rgba(17, 24, 39, 0.25);
   position: relative;
   overflow: hidden;
   font-family: "Space Grotesk", "Cabinet Grotesk", sans-serif;
@@ -40,7 +40,7 @@
 }
 
 .setup-hero-eyebrow {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   letter-spacing: 0.32em;
   color: #ffffff !important;
   font-weight: 800;
@@ -48,17 +48,21 @@
 }
 
 .setup-hero-title {
-  font-size: 2.2rem;
+  font-size: 1.75rem;
   font-weight: 800;
   color: #ffffff !important;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
 }
 
 .setup-hero-copy {
   color: rgba(255, 255, 255, 0.9) !important;
   font-weight: 600;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .setup-hero-chips {
@@ -524,21 +528,21 @@
 }
 
 .admin-applications__crest {
-  width: 64px;
-  height: 64px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.35);
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
 }
 
 .admin-applications__crest img {
-  width: 52px;
-  height: 52px;
+  width: 38px;
+  height: 38px;
   object-fit: cover;
   border-radius: 50%;
 }
