@@ -144,8 +144,6 @@ export default function AdShellAdmin({
     navGroups,
     brandTitle = "Admin Management Console",
     brandSubtitle = "Chittoor",
-    footerTitle = "Admin Management Studio",
-    footerSubtitle = "Crafted for Vijayam College",
     className = "",
 }) {
     const { pathname } = useLocation();
@@ -264,7 +262,7 @@ export default function AdShellAdmin({
     return (
         <div
             className={`admin-shell d-grid ${className}`.trim()}
-            style={{ gridTemplateColumns: collapsed ? "92px 1fr" : "280px 1fr" }}
+            style={{ gridTemplateColumns: collapsed ? "92px 1fr" : "320px 1fr" }}
         >
             <aside
                 className={`sidebar-modern d-flex flex-column ${collapsed ? "collapsed" : ""
@@ -424,11 +422,10 @@ export default function AdShellAdmin({
                     })}
                 </nav>
 
-                <div className="sidebar-footer text-center small text-muted">
-                    <div style={{ color: "#4c75f2", letterSpacing: "0.15em" }}>
-                        {footerTitle}
+                <div className="sidebar-footer text-center mt-auto pb-3">
+                    <div style={{ color: "rgba(255,255,255,0.8)", fontSize: "1.1rem" }}>
+                        Made by <a href="https://www.twite.ai" target="_blank" rel="noopener noreferrer" style={{ color: "#fff", textDecoration: "none", fontWeight: "bold" }}>Twite AI Technologies</a>
                     </div>
-                    <div style={{ color: "#a569bd" }}>{footerSubtitle}</div>
                 </div>
             </aside>
 

@@ -74,8 +74,6 @@ export default function AdminShell({
   navGroups,
   brandTitle = "Exam Management System",
   brandSubtitle = "Arts & Science·Chittoor",
-  footerTitle = "Exam Management Studio",
-  footerSubtitle = "Crafted for Vijayam College",
   className = "",
   customSidebarClass = "",
   customShellClass = "",
@@ -195,8 +193,7 @@ export default function AdminShell({
 
   return (
     <div
-      className={`${customShellClass || 'admin-shell'} d-grid ${className}`.trim()}
-      style={{ gridTemplateColumns: collapsed ? "92px 1fr" : "280px 1fr" }}
+      className={`${customShellClass || 'admin-shell'} d-grid ${className} ${collapsed ? 'collapsed' : ''}`.trim()}
     >
       <aside
         className={`${customSidebarClass || 'sidebar-modern'} d-flex flex-column ${collapsed ? "collapsed" : ""
