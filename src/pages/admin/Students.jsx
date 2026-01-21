@@ -8,6 +8,7 @@ import { toast } from "react-toastify";
 import { validateRequiredFields } from "../../lib/validation";
 import { api } from "../../lib/mockApi";
 import "../admin/Setup.css";
+import "./AdminContent.css";
 import crestPrimary from "../../assets/media/images.png";
 
 export default function Students() {
@@ -1353,11 +1354,11 @@ export default function Students() {
           <div className="d-flex flex-wrap justify-content-between gap-3 mb-4">
             <div>
               <h5 className="fw-bold mb-1">Filters</h5>
-              <p className="text-muted mb-0">
+              <p className="mb-0">
                 Use the hall ticket field or filters to quickly locate a student.
               </p>
             </div>
-            <div className="text-end small text-muted">
+            <div className="text-end fw-bold text-dark">
               <div>
                 Showing <strong>{filteredStudents.length}</strong> of {students.length}
               </div>
@@ -1534,7 +1535,7 @@ export default function Students() {
                             />
                           ) : (
                             <span
-                              className="text-secondary fw-bold"
+                              className="text-dark fw-bold"
                               style={{ fontSize: "0.85em" }}
                             >
                               {getStudentInitials(student.full_name)}
@@ -1624,10 +1625,10 @@ export default function Students() {
                   <p className="students-modal-header-eyebrow text-uppercase mb-1">
                     Student overview
                   </p>
-                  <h5 className="students-modal-header-title fw-semibold mb-1">
+                  <h5 className="students-modal-header-title fw-bold mb-1">
                     {viewingStudent.full_name || "Student Details"}
                   </h5>
-                  <div className="students-modal-header-meta text-white-50 small">
+                  <div className="students-modal-header-meta text-white fw-bold">
                     <span>{viewingStudent.student_id || "-"}</span>
                     {(viewingStudent.course?.course_name ||
                       viewingStudent.course_name ||
@@ -1669,7 +1670,7 @@ export default function Students() {
                                   style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                                 />
                               ) : (
-                                <div className="d-flex align-items-center justify-content-center h-100 text-secondary display-6 fw-bold">
+                                <div className="d-flex align-items-center justify-content-center h-100 text-dark display-6 fw-bold">
                                   {viewingMedia.initials}
                                 </div>
                               )}
@@ -1688,32 +1689,32 @@ export default function Students() {
 
                         {/* Details Section */}
                         <div className="flex-grow-1 w-100">
-                          <h5 className="border-bottom pb-2 mb-3 text-uppercase text-muted fs-6 fw-bold letter-spacing-1">
+                          <h5 className="border-bottom pb-2 mb-3 text-uppercase text-dark fs-6 fw-bold letter-spacing-1">
                             Academic Profile
                           </h5>
                           <div className="row row-cols-1 row-cols-lg-2 g-x-5 g-y-2 mb-4">
                             <div className="col d-flex">
-                              <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Student ID :</span>
+                              <span className="text-dark fw-bold text-uppercase" style={{ width: '120px' }}>Student ID :</span>
                               <span className="fw-medium text-dark">{viewingStudent.student_id}</span>
                             </div>
                             <div className="col d-flex">
-                              <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Academic Year :</span>
+                              <span className="text-dark fw-bold text-uppercase" style={{ width: '120px' }}>Academic Year :</span>
                               <span className="fw-medium text-dark">{viewingStudent.academic_year}</span>
                             </div>
                             <div className="col d-flex">
-                              <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Semester :</span>
+                              <span className="text-dark fw-bold text-uppercase" style={{ width: '120px' }}>Semester :</span>
                               <span className="fw-medium text-dark">{formatDerivedSemesterLabel(viewingStudent.academic_year)}</span>
                             </div>
                             <div className="col d-flex">
-                              <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Course :</span>
+                              <span className="text-dark fw-bold text-uppercase" style={{ width: '120px' }}>Course :</span>
                               <span className="fw-medium text-dark">{viewingStudent.course?.course_name || viewingStudent.course_name}</span>
                             </div>
                             <div className="col d-flex">
-                              <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Group :</span>
+                              <span className="text-dark fw-bold text-uppercase" style={{ width: '120px' }}>Group :</span>
                               <span className="fw-medium text-dark">{viewingStudent.group?.group_name || viewingStudent.group_name}</span>
                             </div>
                             <div className="col d-flex">
-                              <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Category :</span>
+                              <span className="text-dark fw-bold text-uppercase" style={{ width: '120px' }}>Category :</span>
                               <span className="fw-medium text-dark">{viewingStudent.Category || viewingStudent.category}</span>
                             </div>
                           </div>
@@ -1799,7 +1800,7 @@ export default function Students() {
                         {viewingPaymentRecords.error}
                       </div>
                     ) : viewingPaymentRecords.data.length === 0 ? (
-                      <div className="text-muted small">
+                      <div className="text-dark fw-bold">
                         No payments recorded yet.
                       </div>
                     ) : (
@@ -1834,7 +1835,7 @@ export default function Students() {
                                   <div className="fw-bold text-dark" style={{ fontSize: '0.9rem' }}>
                                     Total Fee: {totalFee ? formatCurrency(totalFee) : "-"}
                                   </div>
-                                  <div className="small text-muted">
+                                  <div className="text-dark fw-bold">
                                     Paid: {formatCurrency(paidTotal)}
                                     {outstanding > 0 && <span className="text-danger ms-1">(Bal: {formatCurrency(outstanding)})</span>}
                                     {excessAmount > 0 && <span className="text-danger ms-1">(includes Fine: {formatCurrency(excessAmount)})</span>}
@@ -1879,7 +1880,7 @@ export default function Students() {
                                   </table>
                                 </div>
                               ) : (
-                                <div className="p-3 text-center text-muted small bg-light">
+                                <div className="p-3 text-center text-dark fw-bold bg-light">
                                   No payment records specific to this semester.
                                 </div>
                               )}
@@ -1904,16 +1905,15 @@ export default function Students() {
         >
           <div className="modal-dialog modal-dialog-centered">
             <div className="modal-content">
-              <div className="modal-header bg-light">
-                <h5 className="modal-title">
-                  Edit Student: {editingStudent.student_id} ·{" "}
-                  {editingStudent.full_name}
+              <div className="students-modal-header">
+                <h5 className="students-modal-header-title fw-bold mb-0">
+                  Edit Student: {editingStudent.student_id}
                 </h5>
                 <button
                   type="button"
-                  className="btn-close"
+                  className="students-modal-close btn btn-sm"
                   onClick={handleCancelEdit}
-                ></button>
+                >Close</button>
               </div>
               <div
                 className="modal-body"
@@ -2284,9 +2284,9 @@ export default function Students() {
           <div className="modal d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
             <div className="modal-dialog modal-dialog-centered">
               <div className="modal-content">
-                <div className="modal-header">
-                  <h5 className="modal-title">Update Student Status</h5>
-                  <button type="button" className="btn-close" onClick={closeStatusModal}></button>
+                <div className="students-modal-header">
+                  <h5 className="students-modal-header-title fw-bold mb-0">Update Student Status</h5>
+                  <button type="button" className="students-modal-close btn btn-sm" onClick={closeStatusModal}>Close</button>
                 </div>
                 <div className="modal-body">
                   <div className="mb-3">
@@ -2367,18 +2367,15 @@ export default function Students() {
           >
             <div className="modal-dialog modal-dialog-centered modal-lg">
               <div className="modal-content">
-                <div className="modal-header">
-                  <h5 className="modal-title">
-                    Payment history for{" "}
-                    {paymentHistoryModal.student?.full_name ||
-                      paymentHistoryModal.student?.student_id ||
-                      "Student"}
+                <div className="students-modal-header">
+                  <h5 className="students-modal-header-title fw-bold mb-0">
+                    Payment history: {paymentHistoryModal.student?.full_name || "Student"}
                   </h5>
                   <button
                     type="button"
-                    className="btn-close"
+                    className="students-modal-close btn btn-sm"
                     onClick={closePaymentHistoryModal}
-                  ></button>
+                  >Close</button>
                 </div>
                 <div className="modal-body">
                   <p className="text-muted mb-3">

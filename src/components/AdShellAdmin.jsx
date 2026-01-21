@@ -5,6 +5,7 @@ import { supabase } from "../../supabaseClient";
 import { logActivity } from "../lib/logger";
 import logo from "../assets/media/images.png";
 import "./AdminShell.css";
+import "../pages/admin/AdminContent.css";
 
 const adminPortalNavGroups = [
     {
@@ -262,7 +263,7 @@ export default function AdShellAdmin({
     return (
         <div
             className={`admin-shell d-grid ${className}`.trim()}
-            style={{ gridTemplateColumns: collapsed ? "92px 1fr" : "320px 1fr" }}
+            style={{ gridTemplateColumns: collapsed ? "92px 1fr" : "330px 1fr" }}
         >
             <aside
                 className={`sidebar-modern d-flex flex-column ${collapsed ? "collapsed" : ""
@@ -440,7 +441,7 @@ export default function AdShellAdmin({
                         <i className="bi bi-box-arrow-right me-2"></i>Sign out
                     </button>
                 </div>
-                <div className="admin-main-scroll">{children}</div>
+                <div className="admin-main-scroll admin-content">{children}</div>
             </main>
         </div>
     );

@@ -240,7 +240,7 @@ export default function Circulars() {
                                             viewMode === 'create' ? 'Create New Circular' :
                                                 viewMode === 'edit' ? 'Edit Circular' : 'View Circular'}
                                     </h4>
-                                    <p className="text-muted mb-0">
+                                    <p className="mb-0">
                                         {viewMode === 'list' ? 'Create, edit, and manage circulars.' :
                                             viewMode === 'view' ? 'Circular details.' : 'Fill in the details below.'}
                                     </p>
@@ -278,16 +278,16 @@ export default function Circulars() {
                                                             <div className="d-flex flex-column align-items-start gap-1">
                                                                 <span className="badge bg-light text-dark border">{c.target_audience}</span>
                                                                 {c.group_id && groups.length > 0 && (
-                                                                    <small className="text-muted" style={{ fontSize: '0.75rem' }}>
+                                                                    <div className="text-dark fw-bold" style={{ fontSize: '0.9rem' }}>
                                                                         <i className="bi bi-diagram-3 me-1"></i>
                                                                         {groups.find(g => g.group_id == c.group_id)?.group_name || 'Group'}
-                                                                    </small>
+                                                                    </div>
                                                                 )}
                                                                 {c.course_id && courses.length > 0 && (
-                                                                    <small className="text-muted" style={{ fontSize: '0.75rem' }}>
+                                                                    <div className="text-dark fw-bold" style={{ fontSize: '0.9rem' }}>
                                                                         <i className="bi bi-journal-text me-1"></i>
                                                                         {courses.find(cItem => cItem.course_id == c.course_id)?.course_name || 'Course'}
-                                                                    </small>
+                                                                    </div>
                                                                 )}
                                                             </div>
                                                         </td>
@@ -321,7 +321,7 @@ export default function Circulars() {
                                                 <i className="bi bi-megaphone display-4 text-muted"></i>
                                             </div>
                                             <h5>No Circulars Found</h5>
-                                            <p className="text-muted">Start by creating a new circular announcement.</p>
+                                            <p className="text-dark">Start by creating a new circular announcement.</p>
                                         </div>
                                     )}
                                 </div>
@@ -334,7 +334,7 @@ export default function Circulars() {
                                             <div className="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
                                                 <div>
                                                     <h3 className="h4 mb-1 text-primary">{viewData.title}</h3>
-                                                    <div className="d-flex gap-2 align-items-center text-muted small">
+                                                    <div className="d-flex gap-2 align-items-center text-dark fw-bold">
                                                         <span><i className="bi bi-calendar-event me-1"></i>Published: {new Date(viewData.publish_date).toLocaleString()}</span>
                                                         {viewData.expiry_date && (
                                                             <span><i className="bi bi-hourglass-split me-1"></i>Expires: {new Date(viewData.expiry_date).toLocaleString()}</span>
@@ -362,7 +362,7 @@ export default function Circulars() {
                                             </div>
 
                                             <div className="bg-light p-4 rounded border">
-                                                <h6 className="text-uppercase text-muted small fw-bold mb-3">Description / Content</h6>
+                                                <h6 className="text-uppercase text-dark fw-bold mb-3">Description / Content</h6>
                                                 <p className="mb-0" style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>
                                                     {viewData.description}
                                                 </p>

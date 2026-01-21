@@ -111,7 +111,7 @@ export default function GroupsCoursesSection({
           <div className="students-section-shell-header mb-3">
             <div>
               <h5 className="section-title mb-1">Groups</h5>
-              <p className="students-section-copy small mb-0">
+              <p className="students-section-copy mb-0">
                 Create and manage cohorts with their academic category, duration, and semesters.
               </p>
             </div>
@@ -146,7 +146,7 @@ export default function GroupsCoursesSection({
                   })
                 }
               />
-              {duplicateErrors.groupCode && <div className="text-danger small mt-1">Already Exists</div>}
+              {duplicateErrors.groupCode && <div className="text-danger fw-bold mt-1">Already Exists</div>}
             </div>
             <div className="col-md-3">
               <label className="form-label fw-bold mb-1">Group Name</label>
@@ -230,7 +230,7 @@ export default function GroupsCoursesSection({
             <div className="students-section-list mt-4">
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <span
-                  className="text-muted text-uppercase fw-semibold small"
+                  className="text-dark text-uppercase fw-bold"
                   style={{ letterSpacing: "0.08em" }}
                 >
                   Showing {groups.length} group{groups.length === 1 ? "" : "s"}
@@ -243,11 +243,11 @@ export default function GroupsCoursesSection({
                       <div className="card-body d-flex flex-column">
                         <div className="d-flex justify-content-between align-items-start mb-2">
                           <div>
-                            <div className="text-uppercase text-muted small mb-1">
+                            <div className="text-uppercase text-dark fw-bold mb-1">
                               Group Name
                             </div>
                             <div className="fs-5 fw-bold">{g.name || "-"}</div>
-                            <div className="text-muted small">
+                            <div className="text-dark fw-bold">
                               {g.code || "-"}
                             </div>
                           </div>
@@ -259,7 +259,7 @@ export default function GroupsCoursesSection({
                             ) : null}
                           </div>
                         </div>
-                        <div className="d-flex flex-wrap gap-4 mb-4 text-muted">
+                        <div className="d-flex flex-wrap gap-4 mb-4 text-dark fw-bold">
                           <div>
                             <div className="text-uppercase small">Duration</div>
                             <div className="fw-semibold text-dark">
@@ -304,7 +304,7 @@ export default function GroupsCoursesSection({
           <div className="students-section-shell-header mb-3">
             <div>
               <h5 className="section-title mb-1">Courses</h5>
-              <p className="students-section-copy small mb-0">
+              <p className="students-section-copy mb-0">
                 Assign course codes and group mappings so academic programs stay organized.
               </p>
             </div>
@@ -420,7 +420,7 @@ export default function GroupsCoursesSection({
             <div className="students-section-list mt-4">
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <span
-                  className="text-muted text-uppercase fw-semibold small"
+                  className="text-dark text-uppercase fw-bold"
                   style={{ letterSpacing: "0.08em" }}
                 >
                   Showing {courses.length} course{courses.length === 1 ? "" : "s"}
@@ -433,7 +433,7 @@ export default function GroupsCoursesSection({
                       <div className="card-body d-flex flex-column">
                         <div className="d-flex justify-content-between align-items-start mb-2">
                           <div>
-                            <div className="text-uppercase text-muted small mb-1">
+                            <div className="text-uppercase text-dark fw-bold mb-1">
                               Course Name
                             </div>
                             <div className="fs-5 fw-bold">{c.courseName}</div>

@@ -4,6 +4,8 @@ import { useEffect, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../../lib/mockApi'
 import { supabase } from '../../../supabaseClient'
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 import '../exam/Dashboard.css'
 import './Setup.css'
 import './AdminContent.css'
@@ -750,7 +752,7 @@ export default function FeesCreation() {
                             <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                                 <div>
                                     <h4 className="mb-1">Student Fees creation</h4>
-                                    <p className="text-muted mb-0">Manage and create fee structures.</p>
+                                    <p className="mb-0">Manage and create fee structures.</p>
                                 </div>
                                 <button type="button" className="btn btn-outline-secondary" onClick={handleReset}>Reset</button>
                             </div>

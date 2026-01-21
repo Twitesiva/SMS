@@ -361,14 +361,14 @@ export default function SubjectsSection({
           <div className="students-section-shell-header mb-3">
             <div>
               <h5 className="section-title mb-1">Sub-categories</h5>
-              <p className="students-section-copy small mb-0">
+              <p className="students-section-copy mb-0">
                 Organise subjects into meaningful buckets to keep assignments consistent.
               </p>
             </div>
           </div>
           <div className="students-section-form row g-3 align-items-start">
             <div className="col-md-8">
-              <p className="text-uppercase text-muted small mb-2">
+              <p className="text-uppercase text-dark fw-bold mb-2">
                 {editingCategory ? 'Update existing sub-category' : 'Add a new sub-category'}
               </p>
               <div className="d-flex gap-2 align-items-end">
@@ -443,7 +443,7 @@ export default function SubjectsSection({
                   <div className="card-body d-flex flex-column gap-3">
                     <div>
                       <p className="fw-bold mb-1">{cat}</p>
-                      <p className="small text-muted mb-0">Credits: {categoryCreditsMap[cat] || 0}</p>
+                      <p className="fw-bold text-dark mb-0">Credits: {categoryCreditsMap[cat] || 0}</p>
                     </div>
                   </div>
                   <div className="mt-auto d-flex gap-2 flex-wrap">
@@ -477,7 +477,7 @@ export default function SubjectsSection({
           <div className="students-section-shell-header mb-3">
             <div>
               <h5 className="section-title mb-1">Subjects</h5>
-              <p className="students-section-copy small mb-0">
+              <p className="students-section-copy mb-0">
                 Flow from academic category and group to individual subject entries.
               </p>
             </div>
@@ -540,7 +540,7 @@ export default function SubjectsSection({
                     ))}
                   </select>
                   {!loading && academicYears.length === 0 && (
-                    <div className="form-text text-muted">No academic years available</div>
+                    <div className="form-text text-dark fw-bold">No academic years available</div>
                   )}
                 </>
               )}
@@ -641,7 +641,7 @@ export default function SubjectsSection({
                           />
                           <label className="form-check-label" htmlFor={id}>{item.name}</label>
                         </div>
-                        <span className="text-muted small">{item.subjectCode || ''}</span>
+                        <span className="text-dark fw-bold">{item.subjectCode || ''}</span>
                       </div>
                     )
                   })}
@@ -735,7 +735,7 @@ export default function SubjectsSection({
                                 <div>
                                   <strong>{combo.academicYear}</strong>
                                 </div>
-                                <div className="text-muted small">
+                                <div className="text-dark fw-bold">
                                   {displayGroupName(combo.groupCode)} · {combo.courseName || combo.courseCode || '-'} · Sem {combo.semester}
                                 </div>
                               </div>
@@ -748,8 +748,8 @@ export default function SubjectsSection({
                                       <button type="button" className="btn btn-sm btn-outline-danger students-button students-button-sm" onClick={() => setConfirmModalState({ isOpen: true, type: 'PENDING_SUBJECT', payload: cat.source })}>Remove</button>
                                     </div>
                                   </div>
-                                  <div className="subjects-combo-subjects text-muted small">
-                                    <span className="text-uppercase small me-1">Subjects:</span>
+                                  <div className="subjects-combo-subjects text-dark fw-bold">
+                                    <span className="text-uppercase me-1">Subjects:</span>
                                     <span>{cat.subjects.filter(Boolean).join(', ') || '-'}</span>
                                   </div>
                                 </div>
@@ -767,7 +767,7 @@ export default function SubjectsSection({
                   <div className="students-table-panel-header mb-3">
                     <div>
                       <p className="students-table-panel-title mb-1 text-white">Saved Subjects</p>
-                      <p className="students-table-panel-copy small mb-0">
+                      <p className="students-table-panel-copy mb-0">
                         Review and manage the saved subject allocations for each academic group.
                       </p>
                     </div>
@@ -839,7 +839,7 @@ export default function SubjectsSection({
                                     }}
                                   >
                                     <span className="fw-semibold">{category}</span>
-                                    <span className="text-muted small d-block">
+                                    <span className="text-dark fw-bold d-block">
                                       Click to view
                                     </span>
                                   </button>

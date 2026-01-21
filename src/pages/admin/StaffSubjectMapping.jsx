@@ -4,6 +4,7 @@ import AdShellAdmin from '../../components/AdShellAdmin'
 import crestPrimary from '../../assets/media/images.png'
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
+import './AdminContent.css'
 
 // --- Navigation Definition ---
 
@@ -352,7 +353,7 @@ export default function StaffSubjectMapping() {
                                 <tbody>
                                     {subjects.map((subject, index) => (
                                         <tr key={subject.id || subject.subject_id || index}>
-                                            <td className="fw-bold text-muted">{index + 1}</td>
+                                            <td className="fw-bold text-dark">{index + 1}</td>
                                             <td>
                                                 <div className="d-flex flex-column">
                                                     <span className="fw-bold text-dark">
@@ -360,7 +361,7 @@ export default function StaffSubjectMapping() {
                                                     </span>
                                                     {/* Display sub-category if available */}
                                                     {getCategoryName(subject.category_id) !== '-' && (
-                                                        <span className="small text-muted">
+                                                        <span className="text-dark fw-bold">
                                                             {getCategoryName(subject.category_id)}
                                                         </span>
                                                     )}

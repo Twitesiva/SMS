@@ -358,7 +358,7 @@ export default function MainDashboard() {
                                 <div>
                                     <div className="dashboard-card-value">{metric.value}</div>
                                     <div className="dashboard-card-label">{metric.label}</div>
-                                    <p className="text-muted mb-0 small">{metric.detail}</p>
+                                    <p className="mb-0 fw-bold">{metric.detail}</p>
                                 </div>
                             </Link>
                         ))}
@@ -366,79 +366,85 @@ export default function MainDashboard() {
                 </section>
 
                 <section className="px-4 mb-5">
-                    <div className="dashboard-chart-row">
+                    <div className="row g-4 overflow-hidden">
                         {/* Students Chart */}
-                        <article className="dashboard-chart-card card-shadow" style={{ minHeight: '400px' }}>
-                            <div className="dashboard-chart-header">
-                                <div className="d-flex justify-content-between align-items-center w-100">
-                                    <div>
-                                        <h3>Student Classification</h3>
-                                        <p className="text-muted mb-0">Enrolled students status</p>
-                                    </div>
-                                    <div className="btn-group btn-group-sm">
-                                        <button
-                                            className={`btn ${studentView === 'group' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                            onClick={() => setStudentView('group')}
-                                        >
-                                            Group
-                                        </button>
-                                        <button
-                                            className={`btn ${studentView === 'course' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                            onClick={() => setStudentView('course')}
-                                        >
-                                            Course
-                                        </button>
+                        <div className="col-lg-4">
+                            <article className="dashboard-chart-card card-shadow h-100" style={{ minHeight: '400px' }}>
+                                <div className="dashboard-chart-header">
+                                    <div className="d-flex justify-content-between align-items-center w-100">
+                                        <div>
+                                            <h3>Student Classification</h3>
+                                            <p className="mb-0 fw-bold">Enrolled students status</p>
+                                        </div>
+                                        <div className="btn-group btn-group-sm">
+                                            <button
+                                                className={`btn ${studentView === 'group' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                                onClick={() => setStudentView('group')}
+                                            >
+                                                Group
+                                            </button>
+                                            <button
+                                                className={`btn ${studentView === 'course' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                                onClick={() => setStudentView('course')}
+                                            >
+                                                Course
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="dashboard-chart-wrapper">
-                                {studentChartData && studentChartData[studentView] ? (
-                                    <Bar
-                                        key={studentView}
-                                        data={studentChartData[studentView]}
-                                        options={barOptions}
-                                    />
-                                ) : (
-                                    <div className="d-flex align-items-center justify-content-center h-100 text-muted">Loading...</div>
-                                )}
-                            </div>
-                        </article>
+                                <div className="dashboard-chart-wrapper">
+                                    {studentChartData && studentChartData[studentView] ? (
+                                        <Bar
+                                            key={studentView}
+                                            data={studentChartData[studentView]}
+                                            options={barOptions}
+                                        />
+                                    ) : (
+                                        <div className="d-flex align-items-center justify-content-center h-100 text-dark fw-bold">Loading...</div>
+                                    )}
+                                </div>
+                            </article>
+                        </div>
 
                         {/* Staff Chart */}
-                        <article className="dashboard-chart-card card-shadow" style={{ minHeight: '400px' }}>
-                            <div className="dashboard-chart-header">
-                                <div>
-                                    <h3>Staff Classification</h3>
-                                    <p className="text-muted mb-0">Teachers by designation</p>
+                        <div className="col-lg-4">
+                            <article className="dashboard-chart-card card-shadow h-100" style={{ minHeight: '400px' }}>
+                                <div className="dashboard-chart-header">
+                                    <div>
+                                        <h3>Staff Classification</h3>
+                                        <p className="mb-0 fw-bold">Teachers by designation</p>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="dashboard-chart-wrapper">
-                                {staffChartData ? (
-                                    <Bar data={staffChartData} options={barOptions} />
-                                ) : (
-                                    <div className="d-flex align-items-center justify-content-center h-100 text-muted">Loading...</div>
-                                )}
-                            </div>
-                        </article>
+                                <div className="dashboard-chart-wrapper">
+                                    {staffChartData ? (
+                                        <Bar data={staffChartData} options={barOptions} />
+                                    ) : (
+                                        <div className="d-flex align-items-center justify-content-center h-100 text-dark fw-bold">Loading...</div>
+                                    )}
+                                </div>
+                            </article>
+                        </div>
 
                         {/* Payment Chart */}
-                        <article className="dashboard-chart-card card-shadow" style={{ minHeight: '400px' }}>
-                            <div className="dashboard-chart-header">
-                                <div>
-                                    <h3>Fee Payment Status</h3>
-                                    <p className="text-muted mb-0">Academic fee collection overview</p>
-                                </div>
-                            </div>
-                            <div className="dashboard-chart-wrapper">
-                                {paymentChartData ? (
-                                    <div style={{ maxWidth: '300px', margin: '0 auto', height: '100%' }}>
-                                        <Doughnut data={paymentChartData} options={doughnutOptions} />
+                        <div className="col-lg-4">
+                            <article className="dashboard-chart-card card-shadow h-100" style={{ minHeight: '400px' }}>
+                                <div className="dashboard-chart-header">
+                                    <div>
+                                        <h3>Fee Payment Status</h3>
+                                        <p className="mb-0 fw-bold">Academic fee collection overview</p>
                                     </div>
-                                ) : (
-                                    <div className="d-flex align-items-center justify-content-center h-100 text-muted">Loading...</div>
-                                )}
-                            </div>
-                        </article>
+                                </div>
+                                <div className="dashboard-chart-wrapper">
+                                    {paymentChartData ? (
+                                        <div style={{ maxWidth: '300px', margin: '0 auto', height: '100%' }}>
+                                            <Doughnut data={paymentChartData} options={doughnutOptions} />
+                                        </div>
+                                    ) : (
+                                        <div className="d-flex align-items-center justify-content-center h-100 text-dark fw-bold">Loading...</div>
+                                    )}
+                                </div>
+                            </article>
+                        </div>
                     </div>
                 </section>
             </div>

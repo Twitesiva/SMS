@@ -123,7 +123,7 @@ function AcademicYears() {
               <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                 <div>
                   <h4 className="mb-1">Academic Years</h4>
-                  <p className="text-muted mb-0">Manage academic year definitions and categories.</p>
+                  <p className="mb-0">Manage academic year definitions and categories.</p>
                 </div>
               </div>
 

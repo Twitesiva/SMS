@@ -4,6 +4,7 @@ import crestPrimary from '../../assets/media/images.png'
 import SubjectsSection from '../exam/Subjects'
 import { api } from '../../lib/mockApi'
 import { showToast } from '../../store/ui'
+import './AdminContent.css'
 
 
 

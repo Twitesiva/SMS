@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { api } from '../../lib/mockApi';
 import { supabase } from '../../../supabaseClient';
 import AdShellAdmin from '../../components/AdShellAdmin';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import crestPrimary from '../../assets/media/images.png';
 import '../exam/Dashboard.css';
 import './Setup.css';

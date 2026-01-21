@@ -526,14 +526,14 @@ export default function AdminApplications() {
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <div>
                   <h4 className="mb-1">Student Application</h4>
-                  <p className="text-muted mb-0">Programme selection, personal profile, and uploads.</p>
+                  <p className="mb-0">Programme selection, personal profile, and uploads.</p>
                 </div>
                 <button type="button" className="btn btn-outline-secondary" onClick={resetAll}>Reset Form</button>
               </div>
 
               <form onSubmit={submit}>
                 <div className="application-section mb-4">
-                  <h6 className="text-uppercase text-muted fw-bold small">Programme Selection</h6>
+                  <h6 className="text-uppercase fw-bold">Programme Selection</h6>
                   <div className="row g-3 mt-1">
                     <div className="col-md-2">
                       <label className="form-label">Category</label>
@@ -644,7 +644,7 @@ export default function AdminApplications() {
                 </div>
 
                 <div className="application-section mb-4">
-                  <h6 className="text-uppercase text-muted fw-bold small">Identity & Guardians</h6>
+                  <h6 className="text-uppercase fw-bold">Identity & Guardians</h6>
                   <div className="row g-3 mt-1">
                     <div className="col-md-6">
                       <label className="form-label">Student ID</label>
@@ -695,7 +695,7 @@ export default function AdminApplications() {
                 </div>
 
                 <div className="application-section mb-4">
-                  <h6 className="text-uppercase text-muted fw-bold small">Contact & Address</h6>
+                  <h6 className="text-uppercase fw-bold">Contact & Address</h6>
                   <div className="row g-3 mt-1">
                     <div className="col-md-4">
                       <label className="form-label">Mobile Number</label>

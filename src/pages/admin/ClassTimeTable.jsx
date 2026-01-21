@@ -3,6 +3,8 @@ import crestPrimary from '../../assets/media/images.png'
 import { useEffect, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../../lib/mockApi'
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 import { supabase } from '../../../supabaseClient'
 import '../exam/Dashboard.css'
 import './Setup.css'
@@ -777,7 +779,7 @@ export default function ClassTimeTable() {
               <i className="bi bi-calendar2-range fs-2"></i>
             </div>
             <h5 className="mb-1">No timetable yet</h5>
-            <p className="mb-0 small">
+            <p className="mb-0">
               {hasFilters ? 'No subjects found for this selection.' : 'Select filters to build the timetable.'}
             </p>
           </div>

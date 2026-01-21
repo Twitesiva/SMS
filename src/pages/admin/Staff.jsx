@@ -6,6 +6,7 @@ import { trackPromise, showToast } from "../../store/ui";
 import { toast } from "react-toastify";
 import { validateRequiredFields } from "../../lib/validation";
 import "../admin/Setup.css";
+import "./AdminContent.css";
 
 export default function Staff() {
     const [teachers, setTeachers] = useState([]);
@@ -440,20 +441,20 @@ export default function Staff() {
 
                                                 {/* Details Section */}
                                                 <div className="flex-grow-1 w-100">
-                                                    <h5 className="border-bottom pb-2 mb-3 text-uppercase text-muted fs-6 fw-bold letter-spacing-1">
+                                                    <h5 className="border-bottom pb-2 mb-3 text-uppercase text-dark fs-6 fw-bold letter-spacing-1">
                                                         Professional Information
                                                     </h5>
                                                     <div className="row row-cols-1 row-cols-lg-2 g-x-5 g-y-2 mb-4">
                                                         <div className="col d-flex">
-                                                            <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Staff ID :</span>
+                                                            <span className="text-dark fw-bold text-uppercase" style={{ width: '120px' }}>Staff ID :</span>
                                                             <span className="fw-medium text-dark">{viewingTeacher.staff_id}</span>
                                                         </div>
                                                         <div className="col d-flex">
-                                                            <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Qualification :</span>
+                                                            <span className="text-dark fw-bold text-uppercase" style={{ width: '120px' }}>Qualification :</span>
                                                             <span className="fw-medium text-dark">{viewingTeacher.qualification || "-"}</span>
                                                         </div>
                                                         <div className="col d-flex">
-                                                            <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Designation :</span>
+                                                            <span className="text-dark fw-bold text-uppercase" style={{ width: '120px' }}>Designation :</span>
                                                             <span className="fw-medium text-dark">{viewingTeacher.designation || "-"}</span>
                                                         </div>
                                                         <div className="col d-flex">

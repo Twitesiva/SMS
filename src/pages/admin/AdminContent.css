@@ -1,4 +1,4 @@
-/* Admin Content - Same styling as Student main content */
+/* Admin Content - Same styling as Student main content - HIGH CONTRAST / BOLD */
 
 .admin-content {
   font-family: "Space Grotesk", "Cabinet Grotesk", system-ui, -apple-system,
@@ -8,63 +8,91 @@
   line-height: 1.55;
   letter-spacing: 0.01em;
   color: #000000;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 /* Common admin page elements - BOLD like Student */
 .admin-content h1,
-.admin-content h2,
+.admin-content h2 {
+  font-family: "Space Grotesk", "Cabinet Grotesk", system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 1.5rem;
+  color: #000000;
+  margin-bottom: 1.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .admin-content h3,
 .admin-content h4,
 .admin-content h5,
 .admin-content h6 {
-  font-family: "Space Grotesk", "Cabinet Grotesk", system-ui, -apple-system,
-    BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
-    "Helvetica Neue", Arial, sans-serif;
+  font-family: "Space Grotesk", "Cabinet Grotesk", system-ui, sans-serif;
   font-weight: 800;
-  color: #2c3e50;
+  font-size: 1.25rem;
+  color: #000000;
   margin-bottom: 1rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-.admin-content p {
-  font-family: "Space Grotesk", "Cabinet Grotesk", system-ui, -apple-system,
-    BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
-    "Helvetica Neue", Arial, sans-serif;
+.admin-content p,
+.admin-content li,
+.admin-content span:not(.badge) {
+  font-family: inherit;
   font-size: 1.08rem;
   line-height: 1.55;
-  letter-spacing: 0.01em;
   color: #000000;
-  margin-bottom: 0.5rem;
+  font-weight: 600;
 }
 
 .admin-content .card {
-  font-family: "Space Grotesk", "Cabinet Grotesk", system-ui, -apple-system,
-    BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
-    "Helvetica Neue", Arial, sans-serif;
-  font-size: 1.08rem;
-  line-height: 1.55;
-  letter-spacing: 0.01em;
+  font-family: inherit;
+  font-size: 1.05rem;
+  background: #ffffff;
+  border: 1px solid #e1e8f5;
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.08);
+}
+
+.admin-content .card-header {
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #000000;
+  letter-spacing: 0.5px;
 }
 
 .admin-content .table {
-  font-family: "Space Grotesk", "Cabinet Grotesk", system-ui, -apple-system,
-    BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
-    "Helvetica Neue", Arial, sans-serif;
-  font-size: 1.08rem;
-  line-height: 1.55;
-  letter-spacing: 0.01em;
+  font-family: inherit;
+  font-size: 1.05rem;
+  color: #000000;
 }
 
-.admin-content .form-label,
-.admin-content .form-control {
-  font-family: "Space Grotesk", "Cabinet Grotesk", system-ui, -apple-system,
-    BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
-    "Helvetica Neue", Arial, sans-serif;
-  font-size: 1.08rem;
-  line-height: 1.55;
-  letter-spacing: 0.01em;
+.admin-content .table thead th {
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #000000;
+  background: #f1f5f9;
+  letter-spacing: 0.05em;
+}
+
+.admin-content .table tbody td {
+  font-weight: 600;
+}
+
+.admin-content .form-label {
+  font-weight: 700;
+  color: #000000;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.admin-content .form-control,
+.admin-content .form-select {
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #000000;
+  border: 1.5px solid #d1d5db;
 }
 
 /* Bold text styling */
@@ -74,10 +102,27 @@
 .admin-content .card-title,
 .admin-content .dashboard-card-value,
 .admin-content .metric-value {
-  font-family: "Space Grotesk", "Cabinet Grotesk", system-ui, -apple-system,
-    BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
-    "Helvetica Neue", Arial, sans-serif;
-  font-weight: 800;
-  text-transform: uppercase;
+  font-weight: 800 !important;
+  color: #000000 !important;
   letter-spacing: 0.5px;
+}
+
+.admin-content .text-muted,
+.admin-content .text-secondary,
+.admin-content .small,
+.admin-content small {
+  color: #000000 !important;
+  font-weight: 700 !important;
+  opacity: 1 !important;
+  font-size: 0.95rem !important;
+}
+
+.admin-content .fw-semibold {
+  font-weight: 800 !important;
+}
+
+.admin-content .text-white-50 {
+  color: #ffffff !important;
+  opacity: 0.9 !important;
+  font-weight: 700 !important;
 }

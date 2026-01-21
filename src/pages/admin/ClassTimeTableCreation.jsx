@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../../lib/mockApi'
 import { supabase } from '../../../supabaseClient'
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 import '../exam/Dashboard.css'
 import './Setup.css'
 import './AdminContent.css'
@@ -129,7 +131,7 @@ export default function ClassTimeTableCreation() {
                             <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                                 <div>
                                     <h4 className="mb-1">Class Time Table Creation</h4>
-                                    <p className="text-muted mb-0">Create new class time tables and schedules.</p>
+                                    <p className="mb-0">Create new class time tables and schedules.</p>
                                 </div>
                                 <button type="button" className="btn btn-outline-secondary" onClick={handleReset}>Reset</button>
                             </div>

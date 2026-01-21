@@ -566,7 +566,7 @@ export default function FeesCollection() {
               <div className="students-section-shell-header mb-3">
                 <div>
                   <h5 className="section-title mb-1">Find Student</h5>
-                  <p className="students-section-copy small mb-0">
+                  <p className="students-section-copy mb-0">
                     Enter the student ID to load payment details.
                   </p>
                 </div>
@@ -580,7 +580,7 @@ export default function FeesCollection() {
                     value={studentId}
                     onChange={(event) => setStudentId(event.target.value)}
                   />
-                  {loadError && <div className="text-danger small mt-2">{loadError}</div>}
+                  {loadError && <div className="text-danger fw-bold mt-2">{loadError}</div>}
                 </div>
                 <div className="col-12 d-flex justify-content-end">
                   <button
@@ -601,7 +601,7 @@ export default function FeesCollection() {
               <div className="students-table-panel-header mb-3">
                 <div>
                   <p className="students-table-panel-title mb-1 text-white">Payment Summary</p>
-                  <p className="students-table-panel-copy small mb-0">
+                  <p className="students-table-panel-copy mb-0">
                     Review student details before recording payments.
                   </p>
                 </div>
