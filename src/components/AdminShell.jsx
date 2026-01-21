@@ -15,10 +15,10 @@ const examPortalNavGroups = [
   {
     title: "Student Portal",
     items: [
-      { to: "/admin/applications", label: "Applications", icon: "bi-inboxes" },
-      { to: "/admin/setup/years", label: "Create Academic Years", icon: "bi-calendar3" },
-      { to: "/admin/setup/groups", label: "Create Groups & Courses", icon: "bi-diagram-3" },
-      { to: "/admin/setup/subjects", label: "Create Subjects", icon: "bi-journal-text" },
+
+      { to: "/admin/setup/years", label: "Academic Years", icon: "bi-calendar3" },
+      { to: "/admin/setup/groups", label: "Groups & Courses", icon: "bi-diagram-3" },
+      { to: "/admin/setup/subjects", label: "Subjects", icon: "bi-journal-text" },
       { to: "/admin/students", label: "Students Details", icon: "bi-person-badge" },
       { to: "/admin/fees-generation", label: "Fees Generation", icon: "bi-mortarboard" },
     ],
@@ -31,6 +31,8 @@ const examPortalNavGroups = [
       { to: "/admin/create-exam", label: "Create Exam timetable", icon: "bi-journal-check" },
       { to: "/admin/complete-registration", label: "Complete Registration & View Time table", icon: "bi-list-check" },
       { to: "/admin/hall-tickets", label: "Hall Ticket", icon: "bi-ticket-perforated" },
+      { to: "/admin/practical", label: "Practical", icon: "bi-flask" },
+      { to: "/admin/internal-marks", label: "Internal Marks Entry", icon: "bi-clipboard-check" },
       { to: "/admin/seat-allocation", label: "Seat Allocation", icon: "bi-grid-3x3-gap" },
     ],
   },

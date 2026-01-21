@@ -113,6 +113,7 @@ import TransportLogin from "./pages/transport/TransportLogin.jsx";
 import TransportDashboard from "./pages/transport/TransportDashboard.jsx";
 import TransportRoutes from "./pages/transport/TransportRoutes.jsx";
 import TransportVehicles from "./pages/transport/TransportVehicles.jsx";
+import Practical from "./pages/exam/Practical.jsx";
 
 
 export default function App() {
@@ -506,6 +507,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isAuthed}>
               <HallTickets />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/admin/practical"
+          element={
+            <GuardedRoute isAuthed={isAuthed}>
+              <Practical />
             </GuardedRoute>
           }
         />
