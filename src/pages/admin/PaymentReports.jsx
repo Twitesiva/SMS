@@ -208,12 +208,9 @@ export default function PaymentReports() {
             datasets: Object.keys(groupCounts).map((group, i) => ({
                 label: group,
                 data: [groupCounts[group]],
-                backgroundColor: selectedGroup === group ? '#1f4e79' : colors[i % colors.length], // consistent color or highlight? 
-                // Let's keep distinct colors but maybe reduce opacity if not selected?
-                // Actually user requested "Shows only filter with Highlights". 
                 // If we show ALL bars, but highlight the selected one, that's good.
                 // Or just keep colors distinct as before.
-                backgroundColor: (selectedGroup && selectedGroup !== group) ? '#e0e0e0' : colors[i % colors.length],
+                backgroundColor: selectedGroup && selectedGroup !== group ? '#e0e0e0' : colors[i % colors.length],
                 borderRadius: 4,
                 barPercentage: 0.8,
                 categoryPercentage: 0.9
