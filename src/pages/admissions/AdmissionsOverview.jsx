@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../../supabaseClient'
 import { api } from '../../lib/mockApi'
 import crestPrimary from '../../assets/media/images.png'
-import AdminShell from '../../components/AdminShell'
+import AdmissionShell from '../../components/AdmissionShell'
 import './Admissions.css'
 
 const formatDate = (value) => {
@@ -147,7 +147,7 @@ export default function AdmissionsOverview() {
   const clearFilters = () => setFilters({ group_id: '', course_id: '' })
 
   return (
-    <AdminShell
+    <AdmissionShell
       navGroups={navGroups}
       brandTitle="Admissions Portal"
       brandSubtitle=""
@@ -320,6 +320,6 @@ export default function AdmissionsOverview() {
           )}
         </div>
       </div>
-    </AdminShell>
+    </AdmissionShell>
   )
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import AdminShell from '../../components/AdminShell'
+import AdmissionShell from '../../components/AdmissionShell'
 import ConfirmationModal from '../../components/ConfirmationModal'
 import { supabase } from '../../../supabaseClient'
 
@@ -196,7 +196,7 @@ export default function ApplicationReview() {
     }
 
     return (
-        <AdminShell
+        <AdmissionShell
             navGroups={navGroups}
             brandTitle="Admissions Portal"
             brandSubtitle=""
@@ -648,6 +648,6 @@ export default function ApplicationReview() {
 
                 {/* Image Viewer Modal removed in favor of direct tab opening */}
             </div>
-        </AdminShell>
+        </AdmissionShell>
     )
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import AdminShell from '../../components/AdminShell'
+import AdmissionShell from '../../components/AdmissionShell'
 import ConfirmationModal from '../../components/ConfirmationModal'
 import { supabase } from '../../../supabaseClient'
 
@@ -183,7 +183,7 @@ export default function ConfirmedAdmissions() {
     }
 
     return (
-        <AdminShell
+        <AdmissionShell
             navGroups={navGroups}
             brandTitle="Admissions Portal"
             brandSubtitle=""
@@ -351,6 +351,6 @@ export default function ConfirmedAdmissions() {
                     isLoading={loading}
                 />
             </div>
-        </AdminShell>
+        </AdmissionShell>
     )
 }

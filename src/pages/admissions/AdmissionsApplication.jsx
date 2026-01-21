@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { api } from '../../lib/mockApi'
 import { supabase } from '../../../supabaseClient'
-import AdminShell from '../../components/AdminShell'
+import AdmissionShell from '../../components/AdmissionShell'
 import ConfirmationModal from '../../components/ConfirmationModal'
 import crestPrimary from '../../assets/media/images.png'
 import { validateRequiredFields } from '../../lib/validation'
@@ -535,7 +535,7 @@ export default function AdmissionsApplication() {
     }
 
     return (
-        <AdminShell navGroups={navGroups} brandTitle="Admissions Portal" brandSubtitle="" className="admin-shell--admissions">
+        <AdmissionShell navGroups={navGroups} brandTitle="Admissions Portal" brandSubtitle="" className="admin-shell--admissions">
             <div className="admissions-page">
                 <div className="desktop-container" style={{ overflowX: 'hidden' }}>
                     <section className="setup-hero mb-4 text-center">
@@ -846,6 +846,6 @@ export default function AdmissionsApplication() {
                     isLoading={loading}
                 />
             </div>
-        </AdminShell>
+        </AdmissionShell>
     )
 }
