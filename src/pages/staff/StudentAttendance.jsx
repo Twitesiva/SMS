@@ -181,7 +181,7 @@ export default function StudentAttendance() {
                 .from('attendance_records')
                 .select('student_id, status')
                 .eq('attendance_session_id', session.id)
-              
+
               if (existingRecords) {
                 const loadedAttendance = {}
                 existingRecords.forEach(r => {
@@ -197,9 +197,9 @@ export default function StudentAttendance() {
 
       if (!alreadySubmitted) {
         const defaults = {}
-        ;(data || []).forEach(s => {
-          defaults[s.id] = leaveSet.has(s.id) ? 'ABSENT' : 'PRESENT'
-        })
+          ; (data || []).forEach(s => {
+            defaults[s.id] = leaveSet.has(s.id) ? 'ABSENT' : 'PRESENT'
+          })
         setAttendance(defaults)
       }
     } catch (err) {
@@ -327,9 +327,9 @@ export default function StudentAttendance() {
     setShowSummary(false)
     setShowSuccess(false)
   }
-const goBackToAttendance = () => {
-  setShowSummary(false)
-}
+  const goBackToAttendance = () => {
+    setShowSummary(false)
+  }
 
   return (
     <StaffShell title="Student Attendance">
@@ -440,10 +440,10 @@ const goBackToAttendance = () => {
               <table className="table table-bordered">
                 <thead>
                   <tr>
-                    <th>S.No</th>
-                    <th>Student ID</th>
-                    <th>Full Name</th>
-                    <th>Attendance</th>
+                    <th className="text-center" style={{ width: '80px' }}>S.No</th>
+                    <th className="text-center" style={{ width: '15%' }}>Student ID</th>
+                    <th style={{ width: '35%' }}>Full Name</th>
+                    <th className="text-center" style={{ width: '40%' }}>Attendance</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -509,7 +509,7 @@ const goBackToAttendance = () => {
         {showSummary && (
           <div className="card card-soft p-4">
             <h4 className="fw-bold text-dark mb-4 text-center">Attendance Summary</h4>
-            
+
             <div className="attendance-summary-grid">
               <div className="attendance-summary-item attendance-summary-item--total">
                 <span className="attendance-summary-label">Total Strength</span>
@@ -559,20 +559,20 @@ const goBackToAttendance = () => {
         )}
 
         {/* SUCCESS SCREEN */}
-{showSuccess && (
-  <div className="card card-soft p-4 text-center">
-    <h4 className="mb-3">Attendance submitted successfully ✅</h4>
+        {showSuccess && (
+          <div className="card card-soft p-4 text-center">
+            <h4 className="mb-3">Attendance submitted successfully ✅</h4>
 
-    <div className="d-flex justify-content-center">
-      <button
-        className="btn btn-secondary px-4"
-        onClick={resetScreen}
-      >
-        OK
-      </button>
-    </div>
-  </div>
-)}
+            <div className="d-flex justify-content-center">
+              <button
+                className="btn btn-secondary px-4"
+                onClick={resetScreen}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        )}
 
 
       </div>

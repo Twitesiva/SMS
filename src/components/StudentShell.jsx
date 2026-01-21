@@ -141,84 +141,88 @@ export default function StudentShell({ children }) {
   return (
     <div className={`student-portal ${collapsed ? 'student-portal--collapsed' : ''} ${mobileOpen ? 'student-portal--mobile-open' : ''}`}>
       {/* Mobile Backdrop */}
-      <div 
-        className="student-portal__backdrop" 
+      <div
+        className="student-portal__backdrop"
         onClick={() => setMobileOpen(false)}
         aria-hidden="true"
       ></div>
 
-      <header className="student-header student-header--global">
-        <div className="student-header__brand">
-          {/* Desktop Toggle */}
+      <aside className="student-sidebar">
+        <div className={`student-sidebar__header d-flex align-items-center ${collapsed ? 'flex-column justify-content-center py-4 gap-3' : 'px-4 py-4'}`}>
+          <img src={crest} alt="Vijayam crest" className="student-header__logo" />
+          <div className={`student-sidebar__brand ms-3 ${collapsed ? 'd-none' : ''}`}>
+            <div className="fw-bold text-white text-uppercase" style={{ fontSize: '1rem', letterSpacing: '0.05em', lineHeight: '1.2' }}>Vijayam</div>
+            <div className="text-white-50 small text-uppercase" style={{ fontSize: '0.75rem', letterSpacing: '0.1em' }}>Arts & Science College</div>
+          </div>
+
           <button
             type="button"
-            className="student-header__toggle student-header__toggle--desktop"
+            className={`student-sidebar__toggle ${collapsed ? '' : 'ms-auto'}`}
             onClick={() => setCollapsed((prev) => !prev)}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
-            <i className={`bi ${collapsed ? 'bi-chevron-double-right' : 'bi-list'}`}></i>
+            <i className={`bi ${collapsed ? 'bi-chevron-double-right' : 'bi-chevron-double-left'}`} style={{ color: 'white' }}></i>
           </button>
-          
-          {/* Mobile Toggle */}
-          <button
-            type="button"
-            className="student-header__toggle student-header__toggle--mobile"
-            onClick={() => setMobileOpen((prev) => !prev)}
-            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
-          >
-            <i className={`bi ${mobileOpen ? 'bi-x-lg' : 'bi-list'}`}></i>
-          </button>
+        </div>
 
-          <img src={crest} alt="Vijayam crest" className="student-header__logo" />
-          <div className="student-header__portal">Student Portal</div>
-        </div>
-        <div className="student-header__center">
-          <div className="student-header__title">Vijayam Arts & Science College</div>
-        </div>
-        <div className="student-header__right">
-          <div className="d-flex align-items-center gap-3 me-3 text-white border-end pe-3">
-            <div className="text-end" style={{ lineHeight: '1.2' }}>
-              <div className="fw-bold small">{student?.full_name || 'Student'}</div>
-              <div className="small opacity-75">{student?.student_id || '—'}</div>
-            </div>
-            <div className="text-end small d-none d-md-block" style={{ lineHeight: '1.2', borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '1rem' }}>
-              <div>{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
-              <div className="opacity-75">{new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
-            </div>
+        <nav className="student-sidebar__nav">
+          {navItems.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className={`student-sidebar__link ${pathname === item.to ? 'active' : ''}`}
+            >
+              <i className={`bi ${item.icon}`}></i>
+              <span>{item.label}</span>
+              {item.to === '/student/notifications' && unreadCount > 0 && (
+                <span className="student-sidebar__link-badge">{unreadCount}</span>
+              )}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="student-sidebar__footer text-center mt-auto pb-3">
+          <div style={{ color: "rgba(255,255,255,0.8)", fontSize: "1.1rem" }}>
+            Made by <a href="https://www.twite.ai" target="_blank" rel="noopener noreferrer" style={{ color: "#fff", textDecoration: "none", fontWeight: "bold" }}>Twite AI Technologies</a>
           </div>
-          <button className="student-header__logout" type="button" onClick={handleLogout}>
-            <i className="bi bi-box-arrow-right"></i> Logout
-          </button>
         </div>
-      </header>
+      </aside>
 
-      <div className="student-body">
-        <aside className="student-sidebar">
-          <nav className="student-sidebar__nav">
-            {navItems.map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={`student-sidebar__link ${pathname === item.to ? 'active' : ''}`}
-              >
-                <i className={`bi ${item.icon}`}></i>
-                <span>{item.label}</span>
-                {item.to === '/student/notifications' && unreadCount > 0 && (
-                  <span className="student-sidebar__link-badge">{unreadCount}</span>
-                )}
-              </Link>
-            ))}
-          </nav>
-          
-          <div className="student-sidebar__footer text-center mt-auto pb-3">
-            <div style={{ color: "rgba(255,255,255,0.8)", fontSize: "1.1rem" }}>
-              Made by <a href="https://www.twite.ai" target="_blank" rel="noopener noreferrer" style={{ color: "#fff", textDecoration: "none", fontWeight: "bold" }}>Twite AI Technologies</a>
-            </div>
+      <div className="student-main-wrapper">
+        <header className="student-header student-header--global">
+          <div className="student-header__brand">
+            <button
+              type="button"
+              className="student-header__toggle student-header__toggle--mobile"
+              onClick={() => setMobileOpen((prev) => !prev)}
+              aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+            >
+              <i className={`bi ${mobileOpen ? 'bi-x-lg' : 'bi-list'}`}></i>
+            </button>
+            <div className="student-header__portal">Student Portal</div>
           </div>
-        </aside>
 
-        <div className="student-main">
-          <div className="student-content">{children}</div>
+          <div className="student-header__right">
+            <div className="d-flex align-items-center gap-3 me-3 text-white border-end pe-3">
+              <div className="text-end" style={{ lineHeight: '1.2' }}>
+                <div className="fw-bold small">{student?.full_name || 'Student'}</div>
+                <div className="small opacity-75">{student?.student_id || '—'}</div>
+              </div>
+              <div className="text-end small d-none d-md-block" style={{ lineHeight: '1.2', borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '1rem' }}>
+                <div>{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                <div className="opacity-75">{new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
+              </div>
+            </div>
+            <button className="student-header__logout" type="button" onClick={handleLogout}>
+              <i className="bi bi-box-arrow-right"></i> Logout
+            </button>
+          </div>
+        </header>
+
+        <div className="student-body">
+          <div className="student-main">
+            <div className="student-content">{children}</div>
+          </div>
         </div>
       </div>
     </div>

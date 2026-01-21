@@ -430,7 +430,6 @@ export default function StudentSubjectList() {
       <div className="student-details">
         <div className="student-details__header">
           <h2>Subjects & Learning Materials</h2>
-          <p>Browse your subjects and access shared resources.</p>
         </div>
 
         <div className="student-details__grid">
