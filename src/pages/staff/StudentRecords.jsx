@@ -98,6 +98,7 @@ export default function StudentRecords() {
                 .from('students')
                 .select(`
                     student_id,
+                    hall_ticket_no,
                     full_name,
                     group_name,
                     course_name,
@@ -291,23 +292,13 @@ export default function StudentRecords() {
                                 <table className="table table-bordered mb-0">
                                     <thead>
                                         <tr>
-                                            <th className="text-center">S.No</th>
-                                            <th className="text-center">Student ID</th>
-                                            <th>Full Name</th>
-                                            <th>Group</th>
-                                            <th>Course</th>
-                                            <th>Gender</th>
-                                            <th>DOB</th>
-                                            <th>Father</th>
-                                            <th>Mother</th>
-                                            <th>Nationality</th>
-                                            <th>State</th>
-                                            <th>Aadhar</th>
-                                            <th>Address</th>
-                                            <th>Phone</th>
-                                            <th>Religion</th>
-                                            <th>Parent No</th>
-                                            <th className="text-center">Admission Year</th>
+                                            <th className="text-center" style={{ width: '60px' }}>S.No</th>
+                                            <th className="text-center" style={{ width: '12%' }}>Student ID</th>
+                                            <th className="text-center" style={{ width: '12%' }}>Hall Ticket</th>
+                                            <th style={{ width: '30%' }}>Full Name</th>
+                                            <th style={{ width: '10%' }}>Gender</th>
+                                            <th style={{ width: '12%' }}>DOB</th>
+                                            <th style={{ width: '12%' }}>Parent No</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -317,22 +308,12 @@ export default function StudentRecords() {
                                             .map((s, i) => (
                                                 <tr key={s.student_id}>
                                                     <td className="text-center">{i + 1}</td>
-                                                    <td className="text-center">{s.student_id}</td>
+                                                    <td className="text-center" style={{ fontVariantNumeric: 'tabular-nums' }}>{s.student_id}</td>
+                                                    <td className="text-center" style={{ fontVariantNumeric: 'tabular-nums' }}>{s.hall_ticket_no || '-'}</td>
                                                     <td>{s.full_name}</td>
-                                                    <td>{s.group_name}</td>
-                                                    <td>{s.course_name}</td>
                                                     <td>{s.gender}</td>
-                                                    <td>{s.date_of_birth}</td>
-                                                    <td>{s.father_name}</td>
-                                                    <td>{s.mother_name}</td>
-                                                    <td>{s.nationality}</td>
-                                                    <td>{s.state}</td>
-                                                    <td>{s.aadhar_number}</td>
-                                                    <td className="address-cell">{s.address}</td>
-                                                    <td>{s.phone_number}</td>
-                                                    <td>{s.religion}</td>
+                                                    <td>{s.date_of_birth ? s.date_of_birth.split('-').reverse().join('-') : '-'}</td>
                                                     <td>{s.Parent_no}</td>
-                                                    <td className="text-center">{s.admission_year}</td>
                                                 </tr>
                                             ))}
                                     </tbody>

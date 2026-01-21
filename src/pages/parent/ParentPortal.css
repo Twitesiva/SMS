@@ -1,0 +1,309 @@
+/* =========================================
+   Parent Portal Shell Layout
+   (Mirrors Student Portal Design)
+   ========================================= */
+
+.parent-portal {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: row;
+    background: #f8f9fa;
+    color: #1f2d3d;
+    --parent-header-height: 72px;
+    font-size: 1.08rem;
+    line-height: 1.55;
+    letter-spacing: 0.01em;
+    font-family: "Space Grotesk", "Cabinet Grotesk", system-ui, -apple-system,
+        BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
+        "Helvetica Neue", Arial, sans-serif;
+    background-color: #f0f7ff;
+}
+
+.parent-sidebar {
+    width: 280px;
+    background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 18px 30px rgba(96, 108, 136, 0.4);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow: hidden;
+    flex-shrink: 0;
+    z-index: 30;
+}
+
+.parent-main-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background-color: #f0f7ff;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+.parent-sidebar__header {
+    flex-shrink: 0;
+}
+
+.parent-sidebar__brand {
+    display: flex;
+    flex-direction: column;
+}
+
+.parent-sidebar__toggle {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-left: auto;
+    margin-right: 1rem;
+    transition: background 0.2s;
+}
+
+.parent-sidebar__toggle:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.parent-sidebar__nav {
+    display: flex;
+    flex-direction: column;
+    padding: 1.2rem 0.4rem 1rem;
+    gap: 0.25rem;
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.parent-sidebar__link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 12px 16px;
+    margin: 10px 12px 4px;
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 900;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    width: auto;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+    border-radius: 12px;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.parent-sidebar__link span {
+    font-size: 0.9rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+}
+
+.parent-sidebar__link i {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    transition: all 0.2s ease;
+}
+
+.parent-sidebar__link:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+}
+
+.parent-sidebar__link:hover i {
+    color: #ffffff;
+    opacity: 1;
+}
+
+.parent-sidebar__link.active {
+    background: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    font-weight: 900;
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25), 0 12px 30px rgba(2, 6, 23, 0.2);
+}
+
+.parent-sidebar__link.active i {
+    color: #ffffff;
+    opacity: 1;
+}
+
+.parent-sidebar__footer {
+    margin-top: auto;
+    padding-bottom: 1rem;
+}
+
+.parent-header {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.7rem 1.4rem;
+    background: #606c88 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+    box-shadow: none !important;
+    min-height: var(--parent-header-height);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.parent-header__brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.parent-header__logo {
+    width: 58px;
+    height: 58px;
+    border-radius: 12px;
+    padding: 0.3rem;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 12px 22px rgba(8, 18, 40, 0.3);
+    object-fit: contain;
+}
+
+.parent-header__portal {
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 1.2rem;
+    color: #ffffff;
+    line-height: 1;
+}
+
+.parent-header__right {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    margin-left: auto;
+}
+
+.parent-header__logout {
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 1rem;
+    border-radius: 999px;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.parent-header__logout:hover {
+    background: rgba(255, 255, 255, 0.28);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.parent-header__toggle--mobile {
+    display: none;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    margin-right: 0.5rem;
+}
+
+.parent-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.parent-main {
+    flex: 1;
+    padding: 1.8rem;
+}
+
+.parent-portal--collapsed .parent-sidebar {
+    width: 88px;
+}
+
+.parent-portal--collapsed .parent-sidebar__nav {
+    padding: 1.1rem 0.3rem 1rem;
+}
+
+.parent-portal--collapsed .parent-sidebar__link {
+    justify-content: center;
+    padding: 0.6rem;
+    margin: 0.3rem 0.6rem;
+}
+
+.parent-portal--collapsed .parent-sidebar__link span {
+    display: none;
+}
+
+.parent-portal--collapsed .parent-sidebar__footer {
+    display: none;
+}
+
+@media (max-width: 992px) {
+    .parent-portal {
+        flex-direction: column;
+    }
+
+    .parent-sidebar {
+        display: none;
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        z-index: 1000;
+        width: 280px;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+    }
+
+    .parent-portal--mobile-open .parent-sidebar {
+        transform: translateX(0);
+        display: flex;
+    }
+
+    .parent-portal__backdrop {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 900;
+    }
+
+    .parent-portal--mobile-open .parent-portal__backdrop {
+        display: block;
+    }
+
+    .parent-main-wrapper {
+        height: auto;
+        overflow-y: visible;
+    }
+
+    .parent-header__toggle--mobile {
+        display: inline-flex;
+    }
+
+    .parent-sidebar__toggle {
+        display: none;
+    }
+}

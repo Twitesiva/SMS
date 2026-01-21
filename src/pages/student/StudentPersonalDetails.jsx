@@ -97,7 +97,6 @@ export default function StudentPersonalDetails() {
       <div className="student-details">
         <div className="student-details__header">
           <h2>Personal Details</h2>
-          <p>Review your profile and personal information.</p>
         </div>
 
         {loading && (

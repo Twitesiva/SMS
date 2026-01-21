@@ -3,16 +3,17 @@ import StaffShell from '../../components/StaffShell'
 import { useStaffAuth } from '../../store/staffAuth'
 import { supabase } from '../../../supabaseClient'
 import '../student/Student.css'
+import './StaffPortal.css'
 
 const buildProfileRows = (staff) => [
     { label: 'Staff Name', value: staff?.full_name },
     { label: 'Staff ID', value: staff?.staff_id },
-    { label: 'Designation', value: staff?.designation },
+    { label: 'Designation', value: staff?.designation ? staff.designation.replace(/_/g, ' ') : '' },
     { label: 'Qualification', value: staff?.qualification },
     { label: 'Mobile Number', value: staff?.phone_number },
     { label: 'Email', value: staff?.email },
     { label: 'Experience (Years)', value: staff?.experience_years },
-    { label: 'Joining Date', value: staff?.joining_date },
+    { label: 'Joining Date', value: staff?.joining_date ? staff.joining_date.split('-').reverse().join('-') : '-' },
     { label: 'Address', value: staff?.address },
 ]
 
@@ -26,7 +27,7 @@ export default function StaffDashboard() {
         statusRaw.trim().toLowerCase() === 'continue' ? 'active' : statusRaw
     const statusLabel = normalizedStatus
         ? normalizedStatus.charAt(0).toUpperCase() +
-          normalizedStatus.slice(1).toLowerCase()
+        normalizedStatus.slice(1).toLowerCase()
         : 'Active'
 
     const photoSrc = ''
@@ -148,44 +149,45 @@ export default function StaffDashboard() {
                                 Course and Group Details
                             </div>
 
-                                                <div className="student-card__body">
-                                                    <table className="table table-bordered table-sm">
-                                                        <thead>
-                                                            <tr>
-                                                                <th className="text-dark fw-bold" style={{ width: '60px' }}>S.No</th>
-                                                                <th className="text-dark fw-bold">Course</th>
-                                                                <th className="text-dark fw-bold">Group</th>
-                                                                <th className="text-dark fw-bold">Subject</th>
-                                                                <th className="text-dark fw-bold">Semester</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody className="text-dark">
-                                                            {assignments.length === 0 ? (
-                                                                <tr>
-                                                                    <td
-                                                                        colSpan="5"
-                                                                        className="text-center text-muted"
-                                                                    >
-                                                                        No course and group details found
-                                                                    </td>
-                                                                </tr>
-                                                            ) : (
-                                                                assignments.map((row, index) => (
-                                                                    <tr key={index}>
-                                                                        <td className="fw-bold">{index + 1}</td>
-                                                                        <td className="fw-bold">{row.courses?.course_name}</td>
-                                                                        <td className="fw-bold">{row.groups?.group_name}</td>
-                                                                        <td className="fw-bold">
-                                                                            {row.subjects?.subject_code} –{' '}
-                                                                            {row.subjects?.subject_name}
-                                                                        </td>
-                                                                        <td className="fw-bold">Semester {row.semester}</td>
-                                                                    </tr>
-                                                                ))
-                                                            )}
-                                                        </tbody>
-                                                    </table>
-                                                </div>                        </div>
+                            <div className="student-card__body records-page p-0">
+                                <table className="table mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th className="text-center" style={{ width: '60px' }}>S.NO</th>
+                                            <th>COURSE</th>
+                                            <th>GROUP</th>
+                                            <th>SUBJECT</th>
+                                            <th>SEMESTER</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {assignments.length === 0 ? (
+                                            <tr>
+                                                <td
+                                                    colSpan="5"
+                                                    className="text-center text-muted py-4"
+                                                >
+                                                    No course and group details found
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            assignments.map((row, index) => (
+                                                <tr key={index}>
+                                                    <td className="text-center">{index + 1}</td>
+                                                    <td>{row.courses?.course_name}</td>
+                                                    <td>{row.groups?.group_name}</td>
+                                                    <td>
+                                                        {row.subjects?.subject_code} –{' '}
+                                                        {row.subjects?.subject_name}
+                                                    </td>
+                                                    <td>Semester {row.semester}</td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </>
                 )}
             </div>
