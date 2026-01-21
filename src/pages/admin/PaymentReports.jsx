@@ -320,12 +320,20 @@ export default function PaymentReports() {
             <div className="container-fluid p-4">
 
                 {/* Header */}
-                <div className="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
-                    <div>
-                        <h4 className="fw-bold text-dark mb-1">Payment Reports</h4>
-                        <div className="text-muted small">Generate and view student fee payment status reports</div>
+                <section className="setup-hero mb-4 text-center">
+                    <div className="setup-hero-copywrap mx-auto text-center" style={{ maxWidth: '700px' }}>
+                        <div className="admin-applications__crest mx-auto" aria-hidden="true">
+                            <img src={crestPrimary} alt="Vijayam crest" />
+                        </div>
+                        <h3 className="setup-hero-title mb-2">Payment Visualization & Reports</h3>
+                        <p className="setup-hero-copy mb-3">Analyze fee collections, track pending payments, and generate detailed student financial reports.</p>
+                        <div className="setup-hero-chips d-flex flex-wrap gap-2 justify-content-center">
+                            <span className="setup-hero-chip text-uppercase">FINANCIAL ANALYTICS</span>
+                            <span className="setup-hero-chip text-uppercase">FEE COLLECTION</span>
+                            <span className="setup-hero-chip text-uppercase">LIVE TRACKING</span>
+                        </div>
                     </div>
-                </div>
+                </section>
 
                 {/* Filters Bar */}
                 <div className="card shadow-sm border-0 mb-4">

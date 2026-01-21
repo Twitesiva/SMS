@@ -65,7 +65,11 @@
   gap: 0.5rem;
 }
 
-.setup-hero-chip {
+
+/* High specificity override to beat .admin-content .text-uppercase */
+.setup-hero .setup-hero-chip,
+.setup-hero .setup-hero-chip.text-uppercase,
+.admin-content .setup-hero .setup-hero-chip {
   font-size: 0.78rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
