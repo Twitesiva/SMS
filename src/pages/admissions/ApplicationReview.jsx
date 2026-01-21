@@ -199,7 +199,7 @@ export default function ApplicationReview() {
         <AdminShell
             navGroups={navGroups}
             brandTitle="Admissions Portal"
-            brandSubtitle="Application Review"
+            brandSubtitle=""
             footerTitle="Admission Management"
             footerSubtitle="Administrator Access"
             className="admin-shell--admissions"

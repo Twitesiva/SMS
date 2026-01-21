@@ -144,7 +144,7 @@ export default function AdShellAdmin({
     onSignOut,
     navGroups,
     brandTitle = "Admin Management Console",
-    brandSubtitle = "Chittoor",
+    brandSubtitle = "",
     className = "",
 }) {
     const { pathname } = useLocation();

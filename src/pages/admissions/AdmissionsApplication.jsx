@@ -535,316 +535,316 @@ export default function AdmissionsApplication() {
     }
 
     return (
-        <AdminShell navGroups={navGroups} className="admin-shell--admissions">
+        <AdminShell navGroups={navGroups} brandTitle="Admissions Portal" brandSubtitle="" className="admin-shell--admissions">
             <div className="admissions-page">
-            <div className="desktop-container" style={{ overflowX: 'hidden' }}>
-                <section className="setup-hero mb-4 text-center">
-                    <div className="setup-hero-copywrap mx-auto text-center" style={{ maxWidth: '640px' }}>
-                        <div className="admin-applications__crest mx-auto" aria-hidden="true">
-                            <img src={crestPrimary} alt="Vijayam crest" />
-                        </div>
-                        <h3 className="setup-hero-title mb-2">Vijayam Arts & Science College</h3>
-                        <p className="setup-hero-copy mb-3">Collect, verify, and onboard applicants with confidence.</p>
-                        <div className="setup-hero-chips d-flex flex-wrap gap-2 justify-content-center">
-                            <span className="setup-hero-chip text-uppercase">SMART EXAMINATION PLATFORM</span>
-                            <span className="setup-hero-chip text-uppercase">ADMISSIONS CONTROL</span>
-                            <span className="setup-hero-chip text-uppercase">APPLICATIONS ADMIN CONSOLE</span>
-                        </div>
-                    </div>
-                </section>
-
-                <div className="row g-4 justify-content-center mx-0">
-                    <div className="col-12 col-lg-11 col-xl-10">
-                        <div className="card card-soft p-4 mb-4">
-                            <div className="d-flex justify-content-between align-items-center mb-3">
-                                <div>
-                                    <h4 className="mb-1">Student Application</h4>
-                                    <p className="text-muted mb-0">Programme selection, personal profile, and uploads.</p>
-                                </div>
-                                <button type="button" className="btn btn-outline-secondary" onClick={resetAll}>Reset Form</button>
+                <div className="desktop-container" style={{ overflowX: 'hidden' }}>
+                    <section className="setup-hero mb-4 text-center">
+                        <div className="setup-hero-copywrap mx-auto text-center" style={{ maxWidth: '640px' }}>
+                            <div className="admin-applications__crest mx-auto" aria-hidden="true">
+                                <img src={crestPrimary} alt="Vijayam crest" />
                             </div>
+                            <h3 className="setup-hero-title mb-2">Vijayam Arts & Science College</h3>
+                            <p className="setup-hero-copy mb-3">Collect, verify, and onboard applicants with confidence.</p>
+                            <div className="setup-hero-chips d-flex flex-wrap gap-2 justify-content-center">
+                                <span className="setup-hero-chip text-uppercase">SMART EXAMINATION PLATFORM</span>
+                                <span className="setup-hero-chip text-uppercase">ADMISSIONS CONTROL</span>
+                                <span className="setup-hero-chip text-uppercase">APPLICATIONS ADMIN CONSOLE</span>
+                            </div>
+                        </div>
+                    </section>
 
-                            <form onSubmit={submit}>
-                                <div className="application-section mb-4">
-                                    <h6 className="text-uppercase text-muted fw-bold small">Programme Selection</h6>
-                                    <div className="row g-3 mt-1">
-                                        <div className="col-md-2">
-                                            <label className="form-label">Category</label>
-                                            <select
-                                                className="form-select"
-                                                value={category}
-                                                onChange={(e) => setCategory(e.target.value)}
-                                                required
-                                            >
-                                                <option value="">Select</option>
-                                                <option value="UG">UG</option>
-                                                <option value="PG">PG</option>
-                                            </select>
-                                        </div>
-                                        <div className="col-md-2">
-                                            <label className="form-label">Academic Year</label>
-                                            <select
-                                                className="form-select"
-                                                value={form.academic_year}
-                                                onChange={(e) => handle('academic_year', e.target.value)}
-                                                required
-                                                disabled={!category}
-                                            >
-                                                <option value="">Select Year</option>
-                                                {filteredYears.map((year) => (
-                                                    <option key={year.id} value={year.academic_year || year.name}>
-                                                        {year.academic_year || year.name}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div className="col-md-2">
-                                            <label className="form-label">Admission Year</label>
-                                            <select
-                                                className="form-select"
-                                                value={form.admission_year}
-                                                onChange={(e) => handle('admission_year', e.target.value)}
-                                                required
-                                            >
-                                                <option value="">Select Year</option>
-                                                {admissionYearOptions.map((year) => (
-                                                    <option key={year} value={year}>
-                                                        {year}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div className="col-md-2">
-                                            <label className="form-label">Group</label>
-                                            <select
-                                                className="form-select"
-                                                value={form.group_code || form.group}
-                                                onChange={(e) => {
-                                                    const value = e.target.value
-                                                    const selected = filteredGroups.find(group => group.code === value || group.group_code === value)
-                                                    handle('group', selected?.name || selected?.group_name || selected?.code || value)
-                                                    setForm(prev => ({ ...prev, group_code: value }))
-                                                }}
-                                                required
-                                                disabled={!category}
-                                            >
-                                                <option value="">Select</option>
-                                                {filteredGroups.map((group) => (
-                                                    <option key={group.id || group.group_id} value={group.code || group.group_code}>
-                                                        {group.name || group.group_name || 'Group'}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div className="col-md-2">
-                                            <label className="form-label">Course</label>
-                                            <select
-                                                className="form-select"
-                                                value={form.course_id}
-                                                onChange={(e) => {
-                                                    const selected = filteredCourses.find(course => String(course.id || course.course_id) === String(e.target.value))
-                                                    setForm(prev => ({
-                                                        ...prev,
-                                                        course_id: e.target.value,
-                                                        course_name: selected?.courseName || selected?.course_name || selected?.name || ''
-                                                    }))
-                                                }}
-                                                required
-                                                disabled={!form.group_code}
-                                            >
-                                                <option value="">Select</option>
-                                                {filteredCourses.map((course) => (
-                                                    <option key={course.id || course.course_id} value={course.id || course.course_id}>
-                                                        {course.name || course.courseName || course.course_name}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div className="col-md-2">
-                                            <label className="form-label">Semester</label>
-                                            <input
-                                                type="number"
-                                                className="form-control"
-                                                value={form.current_semester}
-                                                onChange={(e) => handle('current_semester', e.target.value)}
-                                                placeholder="Sem No"
-                                                min="1"
-                                                max="8"
-                                                required
-                                            />
-                                        </div>
+                    <div className="row g-4 justify-content-center mx-0">
+                        <div className="col-12 col-lg-11 col-xl-10">
+                            <div className="card card-soft p-4 mb-4">
+                                <div className="d-flex justify-content-between align-items-center mb-3">
+                                    <div>
+                                        <h4 className="mb-1">Student Application</h4>
+                                        <p className="text-muted mb-0">Programme selection, personal profile, and uploads.</p>
                                     </div>
+                                    <button type="button" className="btn btn-outline-secondary" onClick={resetAll}>Reset Form</button>
                                 </div>
 
-                                <div className="application-section mb-4">
-                                    <h6 className="text-uppercase text-muted fw-bold small">Identity & Guardians</h6>
-                                    <div className="row g-3 mt-1">
-                                        <div className="col-md-6">
-                                            <label className="form-label">Student ID</label>
-                                            <input
-                                                className={`form-control ${duplicateErrors.student_id ? 'is-invalid' : ''}`}
-                                                value={form.student_id}
-                                                onChange={(e) => handle('student_id', e.target.value)}
-                                                placeholder="Enter Student ID"
-                                            />
-                                            {duplicateErrors.student_id && <div className="invalid-feedback">Already Exists</div>}
-                                        </div>
-                                        <div className="col-md-6">
-                                            <label className="form-label">Hall Ticket No</label>
-                                            <input
-                                                className={`form-control ${duplicateErrors.ht_no ? 'is-invalid' : ''}`}
-                                                value={form.ht_no}
-                                                onChange={(e) => handle('ht_no', e.target.value)}
-                                                placeholder="Enter Hall Ticket No"
-                                            />
-                                            {duplicateErrors.ht_no && <div className="invalid-feedback">Already Exists</div>}
-                                        </div>
-                                        <div className="col-md-8">
-                                            <label className="form-label">Student Full Name</label>
-                                            <input className="form-control" value={form.full_name} onChange={(e) => handle('full_name', e.target.value)} required />
-                                        </div>
-                                        <div className="col-md-2">
-                                            <label className="form-label">Gender</label>
-                                            <select className="form-select" value={form.gender} onChange={(e) => handle('gender', e.target.value)} required>
-                                                <option value="">Select</option>
-                                                {GENDERS.map((gender) => (
-                                                    <option key={gender} value={gender}>{gender}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div className="col-md-2">
-                                            <label className="form-label">DOB</label>
-                                            <input type="date" className="form-control" value={form.dob} onChange={(e) => handle('dob', e.target.value)} required />
-                                        </div>
-                                        <div className="col-md-6">
-                                            <label className="form-label">Father's Name</label>
-                                            <input className="form-control" value={form.father_name} onChange={(e) => handle('father_name', e.target.value)} />
-                                        </div>
-                                        <div className="col-md-6">
-                                            <label className="form-label">Mother's Name</label>
-                                            <input className="form-control" value={form.mother_name} onChange={(e) => handle('mother_name', e.target.value)} />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="application-section mb-4">
-                                    <h6 className="text-uppercase text-muted fw-bold small">Contact & Address</h6>
-                                    <div className="row g-3 mt-1">
-                                        <div className="col-md-4">
-                                            <label className="form-label">Mobile Number</label>
-                                            <input type="tel" className="form-control" value={form.mobile} onChange={onNumericChange('mobile', 10)} required maxLength={10} placeholder="10-digit mobile number" />
-                                        </div>
-                                        <div className="col-md-4">
-                                            <label className="form-label">Parent Mobile</label>
-                                            <input type="tel" className="form-control" value={form.Parent_no} onChange={onNumericChange('Parent_no', 10)} required maxLength={10} placeholder="Parent's 10-digit mobile" />
-                                        </div>
-
-                                        <div className="col-md-4">
-                                            <label className="form-label">Nationality</label>
-                                            <input className="form-control" value={form.nationality} onChange={(e) => handle('nationality', e.target.value)} placeholder="Indian" />
-                                        </div>
-                                        <div className="col-md-4">
-                                            <label className="form-label">State</label>
-                                            <select className="form-select" value={form.state} onChange={(e) => handle('state', e.target.value)}>
-                                                <option value="">Select</option>
-                                                {STATES.map((st) => (
-                                                    <option key={st} value={st}>{st}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div className="col-md-4">
-                                            <label className="form-label">Postal Code</label>
-                                            <input type="text" className="form-control" value={form.postal_code} onChange={onNumericChange('postal_code', 6)} required maxLength={6} placeholder="6-digit pin" />
-                                        </div>
-                                        <div className="col-md-4">
-                                            <label className="form-label">Aadhaar</label>
-                                            <input type="text" className="form-control" value={form.aadhar_no} onChange={onNumericChange('aadhar_no', 12)} maxLength={12} placeholder="12-digit number" />
-                                        </div>
-                                        <div className="col-12">
-                                            <label className="form-label">Address</label>
-                                            <textarea className="form-control" rows="2" value={form.address} onChange={(e) => handle('address', e.target.value)} required></textarea>
-                                        </div>
-
-                                        <div className="col-md-4">
-                                            <label className="form-label">Religion</label>
-                                            <select className="form-select" value={form.religion} onChange={(e) => handle('religion', e.target.value)}>
-                                                <option value="">Select</option>
-                                                {RELIGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
-                                            </select>
-                                        </div>
-                                        <div className="col-md-4">
-                                            <label className="form-label">Caste</label>
-                                            <select className="form-select" value={form.caste} onChange={(e) => handle('caste', e.target.value)}>
-                                                <option value="">Select</option>
-                                                {CASTES.map((c) => <option key={c} value={c}>{c}</option>)}
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="application-section mb-4">
-                                    <h6 className="text-uppercase text-muted fw-bold small">Accomodation</h6>
-                                    <div className="row g-3 mt-1">
-                                        <div className="col-md-3">
-                                            <label className="form-label d-block">Student Type *</label>
-                                            <div className="form-check form-check-inline">
-                                                <input className="form-check-input" type="radio" name="is_hostel" id="hostelYes"
-                                                    checked={form.is_hostel === true}
-                                                    onChange={() => handle('is_hostel', true)}
-                                                />
-                                                <label className="form-check-label" htmlFor="hostelYes">Hostel</label>
+                                <form onSubmit={submit}>
+                                    <div className="application-section mb-4">
+                                        <h6 className="text-uppercase text-muted fw-bold small">Programme Selection</h6>
+                                        <div className="row g-3 mt-1">
+                                            <div className="col-md-2">
+                                                <label className="form-label">Category</label>
+                                                <select
+                                                    className="form-select"
+                                                    value={category}
+                                                    onChange={(e) => setCategory(e.target.value)}
+                                                    required
+                                                >
+                                                    <option value="">Select</option>
+                                                    <option value="UG">UG</option>
+                                                    <option value="PG">PG</option>
+                                                </select>
                                             </div>
-                                            <div className="form-check form-check-inline">
-                                                <input className="form-check-input" type="radio" name="is_hostel" id="hostelNo"
-                                                    checked={form.is_hostel === false}
-                                                    onChange={() => handle('is_hostel', false)}
-                                                />
-                                                <label className="form-check-label" htmlFor="hostelNo">Day Scholar</label>
+                                            <div className="col-md-2">
+                                                <label className="form-label">Academic Year</label>
+                                                <select
+                                                    className="form-select"
+                                                    value={form.academic_year}
+                                                    onChange={(e) => handle('academic_year', e.target.value)}
+                                                    required
+                                                    disabled={!category}
+                                                >
+                                                    <option value="">Select Year</option>
+                                                    {filteredYears.map((year) => (
+                                                        <option key={year.id} value={year.academic_year || year.name}>
+                                                            {year.academic_year || year.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
                                             </div>
-                                        </div>
-                                        <div className="col-md-4">
-                                            <label className="form-label d-block text-muted">College Transport (if Day Scholar)</label>
-                                            <div className="form-check form-check-inline">
-                                                <input className="form-check-input" type="radio" name="is_transport" id="transportYes"
-                                                    checked={form.is_transport === true}
-                                                    onChange={() => handle('is_transport', true)}
-                                                    disabled={form.is_hostel === true}
-                                                />
-                                                <label className="form-check-label" htmlFor="transportYes">Yes</label>
+                                            <div className="col-md-2">
+                                                <label className="form-label">Admission Year</label>
+                                                <select
+                                                    className="form-select"
+                                                    value={form.admission_year}
+                                                    onChange={(e) => handle('admission_year', e.target.value)}
+                                                    required
+                                                >
+                                                    <option value="">Select Year</option>
+                                                    {admissionYearOptions.map((year) => (
+                                                        <option key={year} value={year}>
+                                                            {year}
+                                                        </option>
+                                                    ))}
+                                                </select>
                                             </div>
-                                            <div className="form-check form-check-inline">
-                                                <input className="form-check-input" type="radio" name="is_transport" id="transportNo"
-                                                    checked={form.is_transport === false}
-                                                    onChange={() => handle('is_transport', false)}
-                                                    disabled={form.is_hostel === true}
+                                            <div className="col-md-2">
+                                                <label className="form-label">Group</label>
+                                                <select
+                                                    className="form-select"
+                                                    value={form.group_code || form.group}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value
+                                                        const selected = filteredGroups.find(group => group.code === value || group.group_code === value)
+                                                        handle('group', selected?.name || selected?.group_name || selected?.code || value)
+                                                        setForm(prev => ({ ...prev, group_code: value }))
+                                                    }}
+                                                    required
+                                                    disabled={!category}
+                                                >
+                                                    <option value="">Select</option>
+                                                    {filteredGroups.map((group) => (
+                                                        <option key={group.id || group.group_id} value={group.code || group.group_code}>
+                                                            {group.name || group.group_name || 'Group'}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div className="col-md-2">
+                                                <label className="form-label">Course</label>
+                                                <select
+                                                    className="form-select"
+                                                    value={form.course_id}
+                                                    onChange={(e) => {
+                                                        const selected = filteredCourses.find(course => String(course.id || course.course_id) === String(e.target.value))
+                                                        setForm(prev => ({
+                                                            ...prev,
+                                                            course_id: e.target.value,
+                                                            course_name: selected?.courseName || selected?.course_name || selected?.name || ''
+                                                        }))
+                                                    }}
+                                                    required
+                                                    disabled={!form.group_code}
+                                                >
+                                                    <option value="">Select</option>
+                                                    {filteredCourses.map((course) => (
+                                                        <option key={course.id || course.course_id} value={course.id || course.course_id}>
+                                                            {course.name || course.courseName || course.course_name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div className="col-md-2">
+                                                <label className="form-label">Semester</label>
+                                                <input
+                                                    type="number"
+                                                    className="form-control"
+                                                    value={form.current_semester}
+                                                    onChange={(e) => handle('current_semester', e.target.value)}
+                                                    placeholder="Sem No"
+                                                    min="1"
+                                                    max="8"
+                                                    required
                                                 />
-                                                <label className="form-check-label" htmlFor="transportNo">No</label>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className="d-flex justify-content-end gap-2">
-                                    <button type="button" className="btn btn-light" onClick={resetAll}>Cancel</button>
-                                    <button type="submit" className="btn btn-primary" disabled={loading}>
-                                        {loading ? 'Submitting...' : 'Submit Application'}
-                                    </button>
-                                </div>
-                            </form>
+                                    <div className="application-section mb-4">
+                                        <h6 className="text-uppercase text-muted fw-bold small">Identity & Guardians</h6>
+                                        <div className="row g-3 mt-1">
+                                            <div className="col-md-6">
+                                                <label className="form-label">Student ID</label>
+                                                <input
+                                                    className={`form-control ${duplicateErrors.student_id ? 'is-invalid' : ''}`}
+                                                    value={form.student_id}
+                                                    onChange={(e) => handle('student_id', e.target.value)}
+                                                    placeholder="Enter Student ID"
+                                                />
+                                                {duplicateErrors.student_id && <div className="invalid-feedback">Already Exists</div>}
+                                            </div>
+                                            <div className="col-md-6">
+                                                <label className="form-label">Hall Ticket No</label>
+                                                <input
+                                                    className={`form-control ${duplicateErrors.ht_no ? 'is-invalid' : ''}`}
+                                                    value={form.ht_no}
+                                                    onChange={(e) => handle('ht_no', e.target.value)}
+                                                    placeholder="Enter Hall Ticket No"
+                                                />
+                                                {duplicateErrors.ht_no && <div className="invalid-feedback">Already Exists</div>}
+                                            </div>
+                                            <div className="col-md-8">
+                                                <label className="form-label">Student Full Name</label>
+                                                <input className="form-control" value={form.full_name} onChange={(e) => handle('full_name', e.target.value)} required />
+                                            </div>
+                                            <div className="col-md-2">
+                                                <label className="form-label">Gender</label>
+                                                <select className="form-select" value={form.gender} onChange={(e) => handle('gender', e.target.value)} required>
+                                                    <option value="">Select</option>
+                                                    {GENDERS.map((gender) => (
+                                                        <option key={gender} value={gender}>{gender}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div className="col-md-2">
+                                                <label className="form-label">DOB</label>
+                                                <input type="date" className="form-control" value={form.dob} onChange={(e) => handle('dob', e.target.value)} required />
+                                            </div>
+                                            <div className="col-md-6">
+                                                <label className="form-label">Father's Name</label>
+                                                <input className="form-control" value={form.father_name} onChange={(e) => handle('father_name', e.target.value)} />
+                                            </div>
+                                            <div className="col-md-6">
+                                                <label className="form-label">Mother's Name</label>
+                                                <input className="form-control" value={form.mother_name} onChange={(e) => handle('mother_name', e.target.value)} />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="application-section mb-4">
+                                        <h6 className="text-uppercase text-muted fw-bold small">Contact & Address</h6>
+                                        <div className="row g-3 mt-1">
+                                            <div className="col-md-4">
+                                                <label className="form-label">Mobile Number</label>
+                                                <input type="tel" className="form-control" value={form.mobile} onChange={onNumericChange('mobile', 10)} required maxLength={10} placeholder="10-digit mobile number" />
+                                            </div>
+                                            <div className="col-md-4">
+                                                <label className="form-label">Parent Mobile</label>
+                                                <input type="tel" className="form-control" value={form.Parent_no} onChange={onNumericChange('Parent_no', 10)} required maxLength={10} placeholder="Parent's 10-digit mobile" />
+                                            </div>
+
+                                            <div className="col-md-4">
+                                                <label className="form-label">Nationality</label>
+                                                <input className="form-control" value={form.nationality} onChange={(e) => handle('nationality', e.target.value)} placeholder="Indian" />
+                                            </div>
+                                            <div className="col-md-4">
+                                                <label className="form-label">State</label>
+                                                <select className="form-select" value={form.state} onChange={(e) => handle('state', e.target.value)}>
+                                                    <option value="">Select</option>
+                                                    {STATES.map((st) => (
+                                                        <option key={st} value={st}>{st}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div className="col-md-4">
+                                                <label className="form-label">Postal Code</label>
+                                                <input type="text" className="form-control" value={form.postal_code} onChange={onNumericChange('postal_code', 6)} required maxLength={6} placeholder="6-digit pin" />
+                                            </div>
+                                            <div className="col-md-4">
+                                                <label className="form-label">Aadhaar</label>
+                                                <input type="text" className="form-control" value={form.aadhar_no} onChange={onNumericChange('aadhar_no', 12)} maxLength={12} placeholder="12-digit number" />
+                                            </div>
+                                            <div className="col-12">
+                                                <label className="form-label">Address</label>
+                                                <textarea className="form-control" rows="2" value={form.address} onChange={(e) => handle('address', e.target.value)} required></textarea>
+                                            </div>
+
+                                            <div className="col-md-4">
+                                                <label className="form-label">Religion</label>
+                                                <select className="form-select" value={form.religion} onChange={(e) => handle('religion', e.target.value)}>
+                                                    <option value="">Select</option>
+                                                    {RELIGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="col-md-4">
+                                                <label className="form-label">Caste</label>
+                                                <select className="form-select" value={form.caste} onChange={(e) => handle('caste', e.target.value)}>
+                                                    <option value="">Select</option>
+                                                    {CASTES.map((c) => <option key={c} value={c}>{c}</option>)}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="application-section mb-4">
+                                        <h6 className="text-uppercase text-muted fw-bold small">Accomodation</h6>
+                                        <div className="row g-3 mt-1">
+                                            <div className="col-md-3">
+                                                <label className="form-label d-block">Student Type *</label>
+                                                <div className="form-check form-check-inline">
+                                                    <input className="form-check-input" type="radio" name="is_hostel" id="hostelYes"
+                                                        checked={form.is_hostel === true}
+                                                        onChange={() => handle('is_hostel', true)}
+                                                    />
+                                                    <label className="form-check-label" htmlFor="hostelYes">Hostel</label>
+                                                </div>
+                                                <div className="form-check form-check-inline">
+                                                    <input className="form-check-input" type="radio" name="is_hostel" id="hostelNo"
+                                                        checked={form.is_hostel === false}
+                                                        onChange={() => handle('is_hostel', false)}
+                                                    />
+                                                    <label className="form-check-label" htmlFor="hostelNo">Day Scholar</label>
+                                                </div>
+                                            </div>
+                                            <div className="col-md-4">
+                                                <label className="form-label d-block text-muted">College Transport (if Day Scholar)</label>
+                                                <div className="form-check form-check-inline">
+                                                    <input className="form-check-input" type="radio" name="is_transport" id="transportYes"
+                                                        checked={form.is_transport === true}
+                                                        onChange={() => handle('is_transport', true)}
+                                                        disabled={form.is_hostel === true}
+                                                    />
+                                                    <label className="form-check-label" htmlFor="transportYes">Yes</label>
+                                                </div>
+                                                <div className="form-check form-check-inline">
+                                                    <input className="form-check-input" type="radio" name="is_transport" id="transportNo"
+                                                        checked={form.is_transport === false}
+                                                        onChange={() => handle('is_transport', false)}
+                                                        disabled={form.is_hostel === true}
+                                                    />
+                                                    <label className="form-check-label" htmlFor="transportNo">No</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="d-flex justify-content-end gap-2">
+                                        <button type="button" className="btn btn-light" onClick={resetAll}>Cancel</button>
+                                        <button type="submit" className="btn btn-primary" disabled={loading}>
+                                            {loading ? 'Submitting...' : 'Submit Application'}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <ConfirmationModal
-                isOpen={showConfirmModal}
-                onClose={() => setShowConfirmModal(false)}
-                onConfirm={confirmSubmit}
-                title="Confirm Application"
-                message={`Are you sure you want to submit the application for ${form.full_name}?`}
-                confirmText="Submit Application"
-                confirmButtonClass="btn-primary"
-                isLoading={loading}
-            />
+                <ConfirmationModal
+                    isOpen={showConfirmModal}
+                    onClose={() => setShowConfirmModal(false)}
+                    onConfirm={confirmSubmit}
+                    title="Confirm Application"
+                    message={`Are you sure you want to submit the application for ${form.full_name}?`}
+                    confirmText="Submit Application"
+                    confirmButtonClass="btn-primary"
+                    isLoading={loading}
+                />
             </div>
         </AdminShell>
     )

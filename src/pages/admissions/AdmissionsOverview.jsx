@@ -150,175 +150,175 @@ export default function AdmissionsOverview() {
     <AdminShell
       navGroups={navGroups}
       brandTitle="Admissions Portal"
-      brandSubtitle="Vijayam College"
+      brandSubtitle=""
       footerTitle="Admission Management"
       footerSubtitle="Administrator Access"
       className="admin-shell--admissions"
     >
       <div className="admissions-page">
 
-      <section className="setup-hero mb-4">
-        <div className="setup-hero__inner">
-          <div className="setup-hero__content">
-            <div className="setup-hero__crest" aria-hidden="true">
-              <img src={crestPrimary} alt="Vijayam crest" />
-            </div>
-            <div>
-              <div className="setup-hero__eyebrow">Admissions 2026</div>
-              <h1 className="setup-hero__title mb-1">Vijayam College of Arts & Science</h1>
-              <p className="setup-hero__location mb-2">Chittor</p>
-              <p className="setup-hero__subtitle mb-0">
-                Admission portal for group registration, student engagement and track application status.
-              </p>
-            </div>
-          </div>
-          <div className="setup-hero__actions">
-            <button type="button" className="btn setup-hero__track">
-              <i className="bi bi-binoculars-fill me-2"></i>
-              Track Application
-            </button>
-            <button type="button" className="btn setup-hero__back">
-              <i className="bi bi-arrow-left me-2"></i>
-              Back to Home
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <div className="row g-4 align-items-stretch">
-        <div className="col-12 col-xl-4">
-          <div className="card card-soft p-4 h-100">
-            <div className="d-flex justify-content-between align-items-start">
+        <section className="setup-hero mb-4">
+          <div className="setup-hero__inner">
+            <div className="setup-hero__content">
+              <div className="setup-hero__crest" aria-hidden="true">
+                <img src={crestPrimary} alt="Vijayam crest" />
+              </div>
               <div>
-                <div className="text-uppercase text-muted small">Applied Admissions</div>
-                <div className="display-6 fw-bold">{applications.length}</div>
-                <div className="text-muted small">
-                  Showing {filteredApplications.length} after filters
-                </div>
-              </div>
-              <div className="display-6 text-muted">
-                <i className="bi bi-people"></i>
+                <div className="setup-hero__eyebrow">Admissions 2026</div>
+                <h1 className="setup-hero__title mb-1">Vijayam College of Arts & Science</h1>
+                <p className="setup-hero__location mb-2">Chittor</p>
+                <p className="setup-hero__subtitle mb-0">
+                  Admission portal for group registration, student engagement and track application status.
+                </p>
               </div>
             </div>
-          </div>
-        </div>
-
-        <div className="col-12 col-xl-8">
-          <div className="card card-soft p-4 h-100">
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <div>
-                <h5 className="mb-1">Filters</h5>
-                <p className="text-muted mb-0">Narrow down admissions by group and course.</p>
-              </div>
-              <button type="button" className="btn btn-outline-secondary" onClick={clearFilters}>
-                Clear
+            <div className="setup-hero__actions">
+              <button type="button" className="btn setup-hero__track">
+                <i className="bi bi-binoculars-fill me-2"></i>
+                Track Application
+              </button>
+              <button type="button" className="btn setup-hero__back">
+                <i className="bi bi-arrow-left me-2"></i>
+                Back to Home
               </button>
             </div>
-            <div className="row g-3">
-              <div className="col-md-6">
-                <label className="form-label">Group</label>
-                <select className="form-select" value={filters.group_id} onChange={handleGroupChange}>
-                  <option value="">All groups</option>
-                  {groups.map((group) => (
-                    <option key={group.id} value={group.id}>
-                      {group.name || group.group_name || group.code}
-                    </option>
-                  ))}
-                </select>
+          </div>
+        </section>
+
+        <div className="row g-4 align-items-stretch">
+          <div className="col-12 col-xl-4">
+            <div className="card card-soft p-4 h-100">
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <div className="text-uppercase text-muted small">Applied Admissions</div>
+                  <div className="display-6 fw-bold">{applications.length}</div>
+                  <div className="text-muted small">
+                    Showing {filteredApplications.length} after filters
+                  </div>
+                </div>
+                <div className="display-6 text-muted">
+                  <i className="bi bi-people"></i>
+                </div>
               </div>
-              <div className="col-md-6">
-                <label className="form-label">Course</label>
-                <select
-                  className="form-select"
-                  value={filters.course_id}
-                  onChange={handleCourseChange}
-                  disabled={!filteredCourseOptions.length}
-                >
-                  <option value="">All courses</option>
-                  {filteredCourseOptions.map((course) => (
-                    <option key={course.id} value={course.id}>
-                      {course.code ? `${course.code} - ` : ''}
-                      {course.name || course.course_name}
-                    </option>
-                  ))}
-                </select>
+            </div>
+          </div>
+
+          <div className="col-12 col-xl-8">
+            <div className="card card-soft p-4 h-100">
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                  <h5 className="mb-1">Filters</h5>
+                  <p className="text-muted mb-0">Narrow down admissions by group and course.</p>
+                </div>
+                <button type="button" className="btn btn-outline-secondary" onClick={clearFilters}>
+                  Clear
+                </button>
+              </div>
+              <div className="row g-3">
+                <div className="col-md-6">
+                  <label className="form-label">Group</label>
+                  <select className="form-select" value={filters.group_id} onChange={handleGroupChange}>
+                    <option value="">All groups</option>
+                    {groups.map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name || group.group_name || group.code}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label">Course</label>
+                  <select
+                    className="form-select"
+                    value={filters.course_id}
+                    onChange={handleCourseChange}
+                    disabled={!filteredCourseOptions.length}
+                  >
+                    <option value="">All courses</option>
+                    {filteredCourseOptions.map((course) => (
+                      <option key={course.id} value={course.id}>
+                        {course.code ? `${course.code} - ` : ''}
+                        {course.name || course.course_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="card card-soft p-4 mt-4">
-        <div className="d-flex align-items-center justify-content-between mb-3">
-          <div>
-            <h5 className="mb-1">Applied Admissions</h5>
-            <p className="text-muted mb-0">Latest applications from the admission portal.</p>
+        <div className="card card-soft p-4 mt-4">
+          <div className="d-flex align-items-center justify-content-between mb-3">
+            <div>
+              <h5 className="mb-1">Applied Admissions</h5>
+              <p className="text-muted mb-0">Latest applications from the admission portal.</p>
+            </div>
           </div>
-        </div>
 
-        {loading && <div className="text-muted">Loading admissions...</div>}
-        {!loading && error && <div className="alert alert-warning mb-0">{error}</div>}
-        {!loading && !error && (
-          <div className="table-responsive">
-            <table className="table table-striped align-middle">
-              <thead>
-                <tr>
-                  <th>Application No</th>
-                  <th>Applicant</th>
-                  <th>Admission Year</th>
-                  <th>Group</th>
-                  <th>Course</th>
-                  <th>Submitted</th>
-                  <th>Doc Verification</th>
-                  <th>Fee Status</th>
-                  <th>Admission Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredApplications.length === 0 && (
+          {loading && <div className="text-muted">Loading admissions...</div>}
+          {!loading && error && <div className="alert alert-warning mb-0">{error}</div>}
+          {!loading && !error && (
+            <div className="table-responsive">
+              <table className="table table-striped align-middle">
+                <thead>
                   <tr>
-                    <td colSpan={9} className="text-center text-muted py-4">
-                      No admissions found for the selected filters.
-                    </td>
+                    <th>Application No</th>
+                    <th>Applicant</th>
+                    <th>Admission Year</th>
+                    <th>Group</th>
+                    <th>Course</th>
+                    <th>Submitted</th>
+                    <th>Doc Verification</th>
+                    <th>Fee Status</th>
+                    <th>Admission Status</th>
                   </tr>
-                )}
-                {filteredApplications.map((app) => {
-                  const adm = Array.isArray(app.admission) ? app.admission[0] : app.admission
-                  const docStatus = adm?.document_verification_status || 'Pending'
-                  const feeStatus = adm?.admission_fee_paid ? 'Paid' : 'Pending'
-                  const admissionStatus = adm?.admission_status || 'Pending'
-
-                  return (
-                    <tr key={app.id || app.application_no}>
-                      <td>{app.application_no || '-'}</td>
-                      <td>{app.full_name || '-'}</td>
-                      <td>{app.admission_year || '-'}</td>
-                      <td>{groupLabelFor(app.group_id)}</td>
-                      <td>{courseLabelFor(app.course_id)}</td>
-                      <td>{formatDate(app.created_at)}</td>
-                      <td>
-                        <span className={`badge ${docStatus === 'VERIFIED' ? 'bg-success' : 'bg-warning text-dark'}`}>
-                          {docStatus}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`badge ${feeStatus === 'Paid' ? 'bg-success' : 'bg-danger'}`}>
-                          {feeStatus}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`badge ${admissionStatus === 'APPROVED' ? 'bg-success' : 'bg-secondary'}`}>
-                          {admissionStatus}
-                        </span>
+                </thead>
+                <tbody>
+                  {filteredApplications.length === 0 && (
+                    <tr>
+                      <td colSpan={9} className="text-center text-muted py-4">
+                        No admissions found for the selected filters.
                       </td>
                     </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                  )}
+                  {filteredApplications.map((app) => {
+                    const adm = Array.isArray(app.admission) ? app.admission[0] : app.admission
+                    const docStatus = adm?.document_verification_status || 'Pending'
+                    const feeStatus = adm?.admission_fee_paid ? 'Paid' : 'Pending'
+                    const admissionStatus = adm?.admission_status || 'Pending'
+
+                    return (
+                      <tr key={app.id || app.application_no}>
+                        <td>{app.application_no || '-'}</td>
+                        <td>{app.full_name || '-'}</td>
+                        <td>{app.admission_year || '-'}</td>
+                        <td>{groupLabelFor(app.group_id)}</td>
+                        <td>{courseLabelFor(app.course_id)}</td>
+                        <td>{formatDate(app.created_at)}</td>
+                        <td>
+                          <span className={`badge ${docStatus === 'VERIFIED' ? 'bg-success' : 'bg-warning text-dark'}`}>
+                            {docStatus}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`badge ${feeStatus === 'Paid' ? 'bg-success' : 'bg-danger'}`}>
+                            {feeStatus}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`badge ${admissionStatus === 'APPROVED' ? 'bg-success' : 'bg-secondary'}`}>
+                            {admissionStatus}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
     </AdminShell>
   )

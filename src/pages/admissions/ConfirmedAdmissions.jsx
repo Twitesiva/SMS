@@ -186,7 +186,7 @@ export default function ConfirmedAdmissions() {
         <AdminShell
             navGroups={navGroups}
             brandTitle="Admissions Portal"
-            brandSubtitle="Admissions Enrolled"
+            brandSubtitle=""
             footerTitle="Admission Management"
             footerSubtitle="Administrator Access"
             className="admin-shell--admissions"
