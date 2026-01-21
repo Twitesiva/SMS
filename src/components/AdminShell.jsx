@@ -193,7 +193,7 @@ export default function AdminShell({
 
   return (
     <div
-      className={`${customShellClass || 'admin-shell'} d-grid ${className} ${collapsed ? 'collapsed' : ''}`.trim()}
+      className={`admin-shell ${customShellClass} d-grid ${className} ${collapsed ? 'collapsed' : ''}`.trim()}
     >
       <aside
         className={`${customSidebarClass || 'sidebar-modern'} d-flex flex-column ${collapsed ? "collapsed" : ""
@@ -247,7 +247,7 @@ export default function AdminShell({
             if (isStatic) {
               const item = group.items[0];
               return (
-                <div key={`static-${groupIndex}`} className="nav-group">
+                <div key={`static-${groupIndex}`} className="nav-group static">
                   {!collapsed && (
                     <Link
                       to={item.to}

@@ -3,6 +3,7 @@ import { useTransportAuth } from "../store/transportAuth";
 import logo from "../assets/media/images.png";
 import AdminShell from "./AdminShell";
 import "./AdminShell.css";
+import "./TransportShell.css";
 
 const defaultNavGroups = [
   {
@@ -46,8 +47,8 @@ export default function TransportShell({ children, navGroups = defaultNavGroups,
     <AdminShell
       navGroups={navGroups}
       brandTitle={brandTitle}
-      brandSubtitle="Vijayam College"
-      customSidebarClass="transport-sidebar-modern"
+      brandSubtitle=""
+      customSidebarClass="sidebar-modern transport-sidebar-modern"
       customShellClass="transport-shell"
       onSignOut={handleSignOut}
     >
