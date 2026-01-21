@@ -1,17 +1,15 @@
 /* Setup hero + tabs */
 
 .setup-hero {
-  background: linear-gradient(140deg,
-      #0b0f19 0%,
-      #1a1f3b 40%,
-      #4c2f70 72%,
-      #c69c3b 100%);
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%);
   border-radius: 26px;
   padding: 2.5rem;
-  color: #f8fafc;
+  color: #ffffff !important;
   box-shadow: 0 25px 55px rgba(17, 24, 39, 0.35);
   position: relative;
   overflow: hidden;
+  font-family: "Space Grotesk", "Cabinet Grotesk", sans-serif;
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .setup-hero::before {
@@ -44,7 +42,7 @@
 .setup-hero-eyebrow {
   font-size: 0.85rem;
   letter-spacing: 0.32em;
-  color: #ffffff;
+  color: #ffffff !important;
   font-weight: 800;
   text-transform: uppercase;
 }
@@ -52,13 +50,13 @@
 .setup-hero-title {
   font-size: 2.2rem;
   font-weight: 800;
-  color: #ffffff;
+  color: #ffffff !important;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
 .setup-hero-copy {
-  color: #ffffff;
+  color: rgba(255, 255, 255, 0.9) !important;
   font-weight: 600;
   font-size: 1.1rem;
 }
@@ -71,11 +69,12 @@
   font-size: 0.78rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 999px;
   padding: 0.35rem 0.85rem;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.1);
+  font-weight: 800;
 }
 
 .setup-stat-card {
