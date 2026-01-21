@@ -201,7 +201,7 @@ export default function ConfirmedAdmissions() {
                     {selectedApp ? (
                         <div className="card shadow-sm border-0 mb-4 overflow-hidden">
                             {/* Header Banner */}
-                            <div className="bg-primary text-white p-4 d-flex justify-content-between align-items-center">
+                            <div className="text-white p-4 d-flex justify-content-between align-items-center" style={{ background: '#3f4c6b' }}>
                                 <div>
                                     <h3 className="mb-1 fw-bold">{selectedApp.full_name}</h3>
                                     <div className="d-flex align-items-center gap-2 opacity-75">

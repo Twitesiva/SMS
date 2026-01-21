@@ -1,39 +1,63 @@
 .admissions-page {
-  font-family: "Space Grotesk", "Cabinet Grotesk", system-ui, -apple-system,
+  font-family: "Space Grotesk", "Manrope", system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
     "Helvetica Neue", Arial, sans-serif;
   font-size: 1.08rem;
   line-height: 1.55;
   letter-spacing: 0.01em;
+  color: #000000;
+  font-weight: 800;
 }
 
 .admissions-page .table thead th {
-  background: #93c5fd;
-  color: #000000;
+  background: #3f4c6b !important;
+  color: #ffffff !important;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-size: 0.78rem;
-  border-bottom: 2px solid #2563eb;
+  font-size: 0.85rem;
+  border-bottom: none !important;
+  font-weight: 800;
+  padding: 1rem;
 }
 
 .admissions-page .text-muted {
   color: #000000 !important;
+  font-weight: 800 !important;
+  opacity: 1 !important;
 }
 
 .admissions-page,
 .admissions-page .table tbody td,
 .admissions-page .table tbody th {
   color: #000000;
-  font-weight: 700;
+  font-weight: 800;
+}
+
+.admissions-page .card {
+  border: none;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  border-radius: 20px;
+}
+
+.admissions-page .card-soft {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.admissions-page h5 {
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  color: #000000;
 }
 
 
 .admin-shell--admissions .setup-hero {
-  background: linear-gradient(120deg, #0f3c93 0%, #1c5bb8 40%, #2a74d6 100%);
+  background: #3f4c6b;
   border-radius: 30px;
   color: #ffffff;
-  padding: 2rem;
-  box-shadow: 0 25px 45px rgba(15, 40, 94, 0.35);
+  padding: 2.5rem;
+  box-shadow: 0 30px 55px rgba(96, 108, 136, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .setup-hero__inner {
@@ -74,12 +98,16 @@
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.8);
   margin-bottom: 0.35rem;
+  font-weight: 800;
+  opacity: 0.8;
 }
 
 .setup-hero__title {
-  font-size: clamp(1.8rem, 2.3vw, 2.6rem);
+  font-size: clamp(2rem, 2.5vw, 3rem);
   margin: 0;
-  font-weight: 700;
+  font-weight: 950;
+  letter-spacing: -0.02em;
+  color: #ffffff;
 }
 
 .setup-hero__location {
@@ -92,8 +120,11 @@
 
 .setup-hero__subtitle {
   margin: 0;
-  color: rgba(255, 255, 255, 0.76);
-  max-width: 540px;
+  color: rgba(255, 255, 255, 0.95);
+  max-width: 600px;
+  font-weight: 700;
+  font-size: 1.15rem;
+  opacity: 0.9;
 }
 
 .setup-hero__actions {
@@ -112,21 +143,73 @@
 }
 
 .setup-hero__track {
-  background: #ffffff;
-  color: #0f3c93;
-  border: none;
-  box-shadow: 0 10px 20px rgba(15, 40, 94, 0.25);
+  background: #ffffff !important;
+  color: #3f4c6b !important;
+  border: none !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
 }
 
 .setup-hero__back {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  color: #ffffff;
+  background: #ffffff !important;
+  color: #3f4c6b !important;
+  border: none !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
 }
 
 .setup-hero__track:hover,
 .setup-hero__back:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  background: #f8f9fa !important;
+  color: #2c3e50 !important;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2) !important;
+}
+
+
+/* Shared hero variants for AdmissionsApplication.jsx */
+/* Shared hero variants for AdmissionsApplication.jsx */
+.setup-hero-title {
+  font-size: clamp(2rem, 2.5vw, 3rem);
+  font-weight: 950;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+}
+
+.setup-hero-copy {
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 700;
+  font-size: 1.15rem;
+  opacity: 0.9;
+}
+
+.setup-hero-chip {
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 999px;
+  padding: 0.4rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  font-weight: 800;
+}
+
+.admin-applications__crest {
+  width: 90px;
+  height: 90px;
+  border-radius: 22px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+}
+
+.admin-applications__crest img {
+  width: 65px;
+  height: 65px;
+  object-fit: contain;
 }
 
 @media (max-width: 768px) {

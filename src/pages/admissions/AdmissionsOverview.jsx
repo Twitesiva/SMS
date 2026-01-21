@@ -166,7 +166,7 @@ export default function AdmissionsOverview() {
               <div>
                 <div className="setup-hero__eyebrow">Admissions 2026</div>
                 <h1 className="setup-hero__title mb-1">Vijayam College of Arts & Science</h1>
-                <p className="setup-hero__location mb-2">Chittor</p>
+
                 <p className="setup-hero__subtitle mb-0">
                   Admission portal for group registration, student engagement and track application status.
                 </p>
