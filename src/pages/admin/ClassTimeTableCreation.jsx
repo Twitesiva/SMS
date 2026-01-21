@@ -1,10 +1,12 @@
 import AdShellAdmin from '../../components/AdShellAdmin'
 import crestPrimary from '../../assets/media/images.png'
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { api } from '../../lib/mockApi'
 import { supabase } from '../../../supabaseClient'
-import { toast, ToastContainer } from 'react-toastify'
-import 'react-toastify/dist/ReactToastify.css'
-
+import '../exam/Dashboard.css'
+import './Setup.css'
+import './AdminContent.css'
 
 
 export default function ClassTimeTableCreation() {
@@ -202,5 +204,4 @@ export default function ClassTimeTableCreation() {
         </AdShellAdmin>
     )
 }
-
 

@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import { api } from '../../lib/mockApi'
+import { supabase } from '../../../supabaseClient'
 import AdShellAdmin from '../../components/AdShellAdmin'
 import crestPrimary from '../../assets/media/images.png'
-import AcademicYearsSection from '../exam/AcademicYears'
-import { api } from '../../lib/mockApi'
+import '../exam/Dashboard.css'
+import './Setup.css'
+import './AdminContent.css'
 import { showToast } from '../../store/ui'
 import { validateRequiredFields } from '../../lib/validation'
-
 
 
 function AcademicYears() {
@@ -116,16 +119,102 @@ function AcademicYears() {
 
         <div className="row g-4 justify-content-center mx-0">
           <div className="col-12">
-            <AcademicYearsSection
-              yearForm={yearForm}
-              setYearForm={setYearForm}
-              academicYears={academicYears}
-              editingYearId={editingYearId}
-              addYear={addYear}
-              editYear={editYear}
-              deleteYear={deleteYear}
-              onCancelEdit={cancelYearEdit}
-            />
+            <div className="card card-soft p-4">
+              <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <div>
+                  <h4 className="mb-1">Academic Years</h4>
+                  <p className="text-muted mb-0">Manage academic year definitions and categories.</p>
+                </div>
+              </div>
+
+              <form className="row g-3 mb-4" onSubmit={(e) => { e.preventDefault(); addYear(); }}>
+                <div className="col-md-4">
+                  <label className="form-label">Academic Year Name *</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="e.g., 2024-2025"
+                    value={yearForm.name}
+                    onChange={(e) => setYearForm({ ...yearForm, name: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="col-md-4">
+                  <label className="form-label">Category</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="e.g., Regular, Supplementary"
+                    value={yearForm.category}
+                    onChange={(e) => setYearForm({ ...yearForm, category: e.target.value })}
+                  />
+                </div>
+                <div className="col-md-4">
+                  <label className="form-label">Status</label>
+                  <div className="form-check form-switch mt-2">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      checked={yearForm.active}
+                      onChange={(e) => setYearForm({ ...yearForm, active: e.target.checked })}
+                    />
+                    <label className="form-check-label">Active</label>
+                  </div>
+                </div>
+                <div className="col-12 d-flex gap-2">
+                  <button type="submit" className="btn btn-primary">
+                    {editingYearId ? 'Update Year' : 'Add Year'}
+                  </button>
+                  {editingYearId && (
+                    <button type="button" className="btn btn-secondary" onClick={cancelYearEdit}>
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </form>
+
+              <div className="table-responsive">
+                <table className="table table-hover align-middle">
+                  <thead className="table-light">
+                    <tr>
+                      <th>Academic Year</th>
+                      <th>Category</th>
+                      <th>Status</th>
+                      <th className="text-end">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {academicYears.map((year) => (
+                      <tr key={year.id}>
+                        <td className="fw-bold">{year.name || year.academic_year}</td>
+                        <td>{year.category || '-'}</td>
+                        <td>
+                          <span className={`badge ${year.active ? 'bg-success' : 'bg-secondary'}`}>
+                            {year.active ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td className="text-end">
+                          <div className="d-flex justify-content-end gap-2">
+                            <button
+                              className="btn btn-sm btn-outline-primary"
+                              onClick={() => editYear(year)}
+                            >
+                              <i className="bi bi-pencil"></i>
+                            </button>
+                            <button
+                              className="btn btn-sm btn-outline-danger"
+                              onClick={() => deleteYear(year.id)}
+                            >
+                              <i className="bi bi-trash"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
       </div>

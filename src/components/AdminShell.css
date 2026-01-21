@@ -16,16 +16,34 @@
   grid-template-columns: 88px 1fr;
 }
 
-.sidebar-modern {
-  width: 320px;
-  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+/* Apply font to main content area */
+.admin-main {
+  height: 100vh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 18px 30px rgba(96, 108, 136, 0.4);
-  position: sticky;
-  top: 0;
-  height: 100vh;
+  font-family: "Space Grotesk", "Cabinet Grotesk", system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
+    "Helvetica Neue", Arial, sans-serif;
+  font-size: 1.08rem;
+  line-height: 1.55;
+  letter-spacing: 0.01em;
+  color: #000000;
+  font-weight: 700;
+}
+
+/* Original admin sidebar design */
+.sidebar-modern {
+  min-height: 100vh;
+  padding: 1.75rem;
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%);
+  box-shadow: 0 30px 55px rgba(96, 108, 136, 0.4);
+  border-right: none;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transition: width 0.3s ease, padding 0.3s ease, box-shadow 0.3s ease;
   overflow: hidden;
   font-family: "Space Grotesk", "Cabinet Grotesk", system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
@@ -33,6 +51,11 @@
   font-size: 1.08rem;
   line-height: 1.55;
   letter-spacing: 0.01em;
+}
+
+.sidebar-modern.collapsed {
+  padding: 1.25rem 0.75rem;
+  box-shadow: 0 24px 45px rgba(15, 23, 42, 0.5);
 }
 
 .transport-shell {
