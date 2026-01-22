@@ -1,5 +1,5 @@
 import { Outlet, useNavigate } from 'react-router-dom'
-import AdminShell from './AdminShell'
+import LibraryPortalShell from './LibraryPortalShell'
 import { libraryNavGroups } from '../pages/library/nav'
 import './LibraryShell.css'
 
@@ -7,7 +7,7 @@ export default function LibraryShell() {
   const nav = useNavigate()
   
   return (
-    <AdminShell
+    <LibraryPortalShell
       onSignOut={() => {
         nav('/roles')
         return true
@@ -19,6 +19,6 @@ export default function LibraryShell() {
       customShellClass="library-shell admin-shell--library"
     >
       <Outlet />
-    </AdminShell>
+    </LibraryPortalShell>
   )
 }

@@ -4,7 +4,7 @@ import { useAuth } from "../store/auth";
 import { supabase } from "../../supabaseClient";
 import { logActivity } from "../lib/logger";
 import logo from "../assets/media/images.png";
-import "./AdmissionShell.css";
+import "./AdmissionsPortalShell.css";
 
 const admissionPortalNavGroups = [
     {
