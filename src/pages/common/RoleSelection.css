@@ -135,14 +135,18 @@
 }
 
 .role-card:hover .role-icon-wrapper {
-    background: #000000;
-    color: #ffffff;
+    background: #000000 !important;
+    color: #ffffff !important;
     transform: scale(1.1);
 }
 
-.role-card:hover .role-icon-wrapper i {
-    transform: none;
+.role-icon-wrapper i {
+    transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
     display: inline-block;
+}
+
+.role-card:hover .role-icon-wrapper i {
+    transform: rotate(360deg);
 }
 
 .role-name {
