@@ -98,10 +98,10 @@
   font-size: 0.75rem;
   letter-spacing: 0.5em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.8);
+  color: #ffffff;
   margin-bottom: 0.35rem;
   font-weight: 800;
-  opacity: 0.8;
+  opacity: 1;
 }
 
 .setup-hero__title {

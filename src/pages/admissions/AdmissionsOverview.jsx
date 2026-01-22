@@ -168,19 +168,9 @@ export default function AdmissionsOverview() {
                 <h1 className="setup-hero__title mb-1">Vijayam College of Arts & Science</h1>
 
                 <p className="setup-hero__subtitle mb-0">
-                  Admission portal for group registration, student engagement and track application status.
+                  Admission portal for group registration and student engagement.
                 </p>
               </div>
-            </div>
-            <div className="setup-hero__actions">
-              <button type="button" className="btn setup-hero__track">
-                <i className="bi bi-binoculars-fill me-2"></i>
-                Track Application
-              </button>
-              <button type="button" className="btn setup-hero__back">
-                <i className="bi bi-arrow-left me-2"></i>
-                Back to Home
-              </button>
             </div>
           </div>
         </section>
