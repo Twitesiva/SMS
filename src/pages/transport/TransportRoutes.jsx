@@ -1,423 +1,343 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import TransportShell from '../../components/TransportShell'
-import { api } from '../../lib/mockApi'
+import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
 
 const initialForm = {
   routeNo: '',
   routeName: '',
   academicYear: '',
-  amount: '',
-  boardingPointInput: '',
-  boardingPoints: []
+  boardingPoints: [] // Array of { name: '', time: '' }
 }
 
 export default function TransportRoutes() {
-  const [routes, setRoutes] = useState([])
   const [form, setForm] = useState(initialForm)
-  const [editingRoute, setEditingRoute] = useState('')
   const [academicYears, setAcademicYears] = useState([])
-  const [yearFilter, setYearFilter] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const fetchRoutes = async () => {
-    try {
-      const rows = await api.listTransportRoutes()
-      setRoutes(rows || [])
-    } catch (error) {
-      console.error('Failed to load transport routes', error)
-      showToast('Unable to load routes', { type: 'danger' })
-    }
-  }
+  // Boarding point input state
+  const [bpName, setBpName] = useState('')
+  const [bpTime, setBpTime] = useState('')
+  const [editingBpIndex, setEditingBpIndex] = useState(-1)
 
   useEffect(() => {
-    const fetchYears = async () => {
-      try {
-        const rows = await api.listAcademicYears?.()
-        if (rows?.length) {
-          setAcademicYears(rows)
-          // default the form to the latest year
-          const latestYear = rows[rows.length - 1]
-          if (!form.academicYear && latestYear?.academic_year) {
-            setForm((prev) => ({ ...prev, academicYear: latestYear.academic_year }))
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch academic years', error)
-        showToast(error?.message || 'Unable to load academic years', { type: 'danger' })
-      }
-    }
+    fetchAcademicYears()
+  }, [])
 
-    fetchYears()
-    fetchRoutes()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const totalBoardingPoints = useMemo(
-    () => routes.reduce((sum, route) => sum + (route.boardingPoints?.length || 0), 0),
-    [routes]
-  )
-
-  const upsertRoute = async (event) => {
-    event.preventDefault()
-    const routeNo = form.routeNo.trim()
-    const routeName = form.routeName.trim()
-    const academicYear = form.academicYear.trim()
-    const boardingPoints = form.boardingPoints.map((point) => point.trim()).filter(Boolean)
-    const amountValue = Number(form.amount)
-
-    if (!routeNo || !routeName || !academicYear) {
-      showToast('Route number, name, and academic year are required', { type: 'warning' })
-      return
-    }
-    if (!boardingPoints.length) {
-      showToast('Add at least one boarding point', { type: 'warning' })
-      return
-    }
-    if (!amountValue || Number.isNaN(amountValue) || amountValue <= 0) {
-      showToast('Enter a valid route amount greater than zero', { type: 'warning' })
-      return
-    }
-
-    setLoading(true)
+  const fetchAcademicYears = async () => {
     try {
-      // Logic for managing multiple years for same route (if backend supports complex object)
-      // For now, we fetch existing route to merge amounts array if possible, 
-      // or we assume the backend handles merging based on the implementation in mockApi.
-      // Based on mockApi logic: we send the full object. So we need to construct it carefully.
-      
-      let updatedAmounts = []
-      const existing = routes.find((r) => r.routeNo === routeNo)
-      
-      if (existing) {
-        updatedAmounts = [...(existing.amounts || [])]
-        const amountIndex = updatedAmounts.findIndex((entry) => entry.academicYear === academicYear)
-        if (amountIndex !== -1) {
-          updatedAmounts[amountIndex] = { academicYear, amount: amountValue }
-        } else {
-          updatedAmounts.push({ academicYear, amount: amountValue })
-        }
-      } else {
-        updatedAmounts = [{ academicYear, amount: amountValue }]
-      }
+      const { data, error } = await supabase
+        .from('academic_year')
+        .select('academic_year')
+        .order('academic_year', { ascending: false })
 
-      await api.upsertTransportRoute({
-        routeNo,
-        routeName,
-        boardingPoints,
-        amounts: updatedAmounts
+      if (error) throw error
+      setAcademicYears(data || [])
+
+    } catch (error) {
+      console.error('Error fetching academic years:', error)
+      showToast('Failed to load academic years', 'error')
+    }
+  }
+
+  const handleAddBoardingPoint = () => {
+    if (!bpName.trim() || !bpTime) {
+      showToast('Please enter both stop name and departure time', 'warning')
+      return
+    }
+
+    // Check for duplicate name only if adding new or changing name
+    const isDuplicate = form.boardingPoints.some((bp, idx) =>
+      idx !== editingBpIndex && bp.name.toLowerCase() === bpName.trim().toLowerCase()
+    )
+
+    if (isDuplicate) {
+      showToast('This stop name already exists in the list', 'warning')
+      return
+    }
+
+    if (editingBpIndex > -1) {
+      // Update existing
+      setForm(prev => {
+        const updated = [...prev.boardingPoints]
+        updated[editingBpIndex] = { name: bpName.trim(), time: bpTime }
+        return { ...prev, boardingPoints: updated }
       })
+      setEditingBpIndex(-1)
+      showToast('Boarding point updated', 'success')
+    } else {
+      // Add new
+      setForm(prev => ({
+        ...prev,
+        boardingPoints: [...prev.boardingPoints, { name: bpName.trim(), time: bpTime }]
+      }))
+    }
 
-      showToast(
-        editingRoute ? 'Route updated successfully' : 'Route added successfully',
-        { type: 'success' }
-      )
-      setForm(initialForm)
-      setEditingRoute('')
-      fetchRoutes()
-    } catch (error) {
-      console.error('Failed to save route', error)
-      showToast('Failed to save route', { type: 'danger' })
-    } finally {
-      setLoading(false)
+    setBpName('')
+    setBpTime('')
+  }
+
+  const handleEditBoardingPoint = (index) => {
+    const bp = form.boardingPoints[index]
+    setBpName(bp.name)
+    setBpTime(bp.time)
+    setEditingBpIndex(index)
+  }
+
+  const handleRemoveBoardingPoint = (index) => {
+    setForm(prev => ({
+      ...prev,
+      boardingPoints: prev.boardingPoints.filter((_, i) => i !== index)
+    }))
+    if (editingBpIndex === index) {
+      setEditingBpIndex(-1)
+      setBpName('')
+      setBpTime('')
     }
   }
 
-  const startEdit = (route) => {
-    setEditingRoute(route.routeNo)
-    setForm({
-      routeNo: route.routeNo,
-      routeName: route.routeName,
-      academicYear:
-        route.amounts?.[route.amounts.length - 1]?.academicYear || academicYears[0]?.academic_year || '',
-      amount: route.amounts?.[route.amounts.length - 1]?.amount || '',
-      boardingPointInput: '',
-      boardingPoints: route.boardingPoints || []
-    })
-  }
+  const handleSubmit = async (e) => {
+    e.preventDefault()
 
-  const removeRoute = async (routeNo) => {
-    if (!window.confirm('Are you sure you want to delete this route?')) return
-    
-    setLoading(true)
-    try {
-      await api.deleteTransportRoute(routeNo)
-      showToast('Route removed successfully', { type: 'success' })
-      if (editingRoute === routeNo) {
-        setForm(initialForm)
-        setEditingRoute('')
-      }
-      fetchRoutes()
-    } catch (error) {
-      console.error('Failed to delete route', error)
-      showToast('Failed to delete route', { type: 'danger' })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const addBoardingPoint = () => {
-    const value = form.boardingPointInput.trim()
-    if (!value) return
-    if (form.boardingPoints.some((point) => point.toLowerCase() === value.toLowerCase())) {
-      showToast('Boarding point already added', { type: 'info' })
+    if (!form.routeNo || !form.routeName || !form.academicYear) {
+      showToast('Please fill in all required route details', 'warning')
       return
     }
-    setForm((prev) => ({
-      ...prev,
-      boardingPoints: [...prev.boardingPoints, value],
-      boardingPointInput: ''
-    }))
+
+    if (form.boardingPoints.length === 0) {
+      showToast('Please add at least one boarding point', 'warning')
+      return
+    }
+
+    setLoading(true)
+    try {
+      // 1. Insert Route
+      const { data: routeData, error: routeError } = await supabase
+        .from('transport_routes')
+        .insert({
+          route_no: form.routeNo,
+          route_name: form.routeName,
+          academic_year: form.academicYear,
+          is_active: true
+        })
+        .select()
+        .single()
+
+      if (routeError) throw routeError
+
+      // 2. Insert Boarding Points
+      const pointsToInsert = form.boardingPoints.map((bp, index) => ({
+        route_id: routeData.id,
+        name: bp.name,
+        departure_time: bp.time,
+        stop_order: index + 1
+      }))
+
+      const { error: bpError } = await supabase
+        .from('transport_route_boarding_points')
+        .insert(pointsToInsert)
+
+      if (bpError) {
+        // Rollback route creation if points fail (optional cleanup)
+        await supabase.from('transport_routes').delete().eq('id', routeData.id)
+        throw bpError
+      }
+
+      showToast(`Route ${form.routeNo} created successfully!`, 'success')
+      setForm({ ...initialForm, academicYear: form.academicYear }) // Reset form but keep selected year
+
+    } catch (error) {
+      console.error('Error creating route:', error)
+      if (error.code === '23505') { // Unique constraint violation code
+        showToast('A route with this number already exists', 'error')
+      } else {
+        showToast('Failed to create route: ' + error.message, 'error')
+      }
+    } finally {
+      setLoading(false)
+    }
   }
-
-  const removeBoardingPoint = (point) => {
-    setForm((prev) => ({
-      ...prev,
-      boardingPoints: prev.boardingPoints.filter((bp) => bp !== point)
-    }))
-  }
-
-  const filteredRoutes = useMemo(() => {
-    if (!yearFilter) return routes
-    return routes.filter((route) => route.amounts?.some((entry) => entry.academicYear === yearFilter))
-  }, [routes, yearFilter])
-
-  const activeAcademicYears =
-    academicYears.length > 0
-      ? academicYears.map((y) => y.academic_year)
-      : Array.from(
-          new Set(routes.flatMap((route) => route.amounts?.map((a) => a.academicYear) || []))
-        )
-  const hasYearOptions = activeAcademicYears.length > 0
 
   return (
-    <TransportShell brandTitle="Transport Management" brandSubtitle="Admin routes & fares">
+    <TransportShell brandTitle="Transport Management" brandSubtitle="Create & Manage Routes">
       <div className="container-fluid px-0">
-        <div className="row g-4">
-          <div className="col-12 col-xl-4">
-            <div className="card shadow-sm h-100">
-              <div className="card-body">
-                <div className="d-flex align-items-start justify-content-between">
-                  <div>
-                    <h5 className="card-title mb-1">
-                      {editingRoute ? `Update Route ${editingRoute}` : 'Add a Route'}
-                    </h5>
-                    <p className="text-muted small mb-3">
-                      Route amount is shared by every boarding point for the selected academic year.
-                    </p>
-                  </div>
-                  {editingRoute && (
-                    <button
-                      className="btn btn-sm btn-outline-secondary"
-                      onClick={() => {
-                        setForm(initialForm)
-                        setEditingRoute('')
-                      }}
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
-                <form className="d-grid gap-3" onSubmit={upsertRoute}>
-                  <div className="row g-3">
-                    <div className="col-12 col-md-4">
-                      <label className="form-label fw-semibold">Route No</label>
+        <div className="row justify-content-center">
+          <div className="col-12">
+            <div className="transport-card shadow-sm border-0">
+              <div className="transport-card__header py-3">
+                <h5 className="mb-0 fw-bold text-white">Add New Transport Route</h5>
+              </div>
+              <div className="card-body p-4">
+                <form onSubmit={handleSubmit}>
+                  {/* Route Details Section */}
+                  <h6 className="text-uppercase text-muted fw-bold small mb-3 letter-spacing-1">Route Details</h6>
+                  <div className="row g-3 mb-4">
+                    <div className="col-md-4">
+                      <label className="form-label fw-semibold text-secondary small">Academic Year <span className="text-danger">*</span></label>
+                      <select
+                        className="form-select"
+                        value={form.academicYear}
+                        onChange={e => setForm({ ...form, academicYear: e.target.value })}
+                        disabled={loading}
+                      >
+                        <option value="">Select Year</option>
+                        {academicYears.map(ay => (
+                          <option key={ay.academic_year} value={ay.academic_year}>{ay.academic_year}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label fw-semibold text-secondary small">Route No <span className="text-danger">*</span></label>
                       <input
                         type="text"
                         className="form-control"
+                        placeholder="e.g. 10A"
                         value={form.routeNo}
-                        onChange={(event) => setForm((prev) => ({ ...prev, routeNo: event.target.value }))}
-                        placeholder="e.g. 7A"
-                        required
+                        onChange={e => setForm({ ...form, routeNo: e.target.value })}
                         disabled={loading}
                       />
                     </div>
-                    <div className="col-12 col-md-8">
-                      <label className="form-label fw-semibold">Route Name</label>
+                    <div className="col-md-4">
+                      <label className="form-label fw-semibold text-secondary small">Route Name <span className="text-danger">*</span></label>
                       <input
                         type="text"
                         className="form-control"
+                        placeholder="e.g. Central Station to Campus"
                         value={form.routeName}
-                        onChange={(event) => setForm((prev) => ({ ...prev, routeName: event.target.value }))}
-                        placeholder="Chittoor to Campus"
-                        required
+                        onChange={e => setForm({ ...form, routeName: e.target.value })}
                         disabled={loading}
                       />
                     </div>
                   </div>
 
-                  <div className="row g-3">
-                    <div className="col-12 col-md-6">
-                      <label className="form-label fw-semibold">Academic Year</label>
-                      {hasYearOptions ? (
-                        <select
-                          className="form-select"
-                          value={form.academicYear}
-                          onChange={(event) => setForm((prev) => ({ ...prev, academicYear: event.target.value }))}
-                          required
-                          disabled={loading}
-                        >
-                          <option value="">Select academic year</option>
-                          {activeAcademicYears.map((year) => (
-                            <option key={year} value={year}>
-                              {year}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
+                  <hr className="my-4 text-muted opacity-25" />
+
+                  {/* Boarding Points Section */}
+                  <h6 className="text-uppercase text-muted fw-bold small mb-3 letter-spacing-1">Boarding Points Configuration</h6>
+
+                  <div className="bg-light p-3 rounded-3 mb-3 border">
+                    <div className="row g-2 align-items-end">
+                      <div className="col-md-5">
+                        <label className="form-label fw-semibold text-secondary small mb-1">Stop Name</label>
                         <input
                           type="text"
                           className="form-control"
-                          placeholder="e.g. 2025-2026"
-                          value={form.academicYear}
-                          onChange={(event) => setForm((prev) => ({ ...prev, academicYear: event.target.value }))}
-                          required
+                          placeholder="e.g. Main Bus Stand"
+                          value={bpName}
+                          onChange={e => setBpName(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddBoardingPoint())}
                           disabled={loading}
                         />
-                      )}
-                    </div>
-                    <div className="col-12 col-md-6">
-                      <label className="form-label fw-semibold">Route Amount</label>
-                      <div className="input-group">
-                        <span className="input-group-text">
-                          <i className="bi bi-currency-rupee" aria-hidden="true"></i>
-                        </span>
+                      </div>
+                      <div className="col-md-4">
+                        <label className="form-label fw-semibold text-secondary small mb-1">Departure Time</label>
                         <input
-                          type="number"
-                          min="0"
+                          type="time"
                           className="form-control"
-                          value={form.amount}
-                          onChange={(event) => setForm((prev) => ({ ...prev, amount: event.target.value }))}
-                          placeholder="12000"
-                          required
+                          value={bpTime}
+                          onChange={e => setBpTime(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddBoardingPoint())}
                           disabled={loading}
                         />
                       </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="form-label fw-semibold">Boarding Points</label>
-                    <div className="d-flex gap-2 mb-2">
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={form.boardingPointInput}
-                        placeholder="Add a stop"
-                        onChange={(event) =>
-                          setForm((prev) => ({ ...prev, boardingPointInput: event.target.value }))
-                        }
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter') {
-                            event.preventDefault()
-                            addBoardingPoint()
-                          }
-                        }}
-                        disabled={loading}
-                      />
-                      <button type="button" className="btn btn-primary" onClick={addBoardingPoint} disabled={loading}>
-                        Add
-                      </button>
-                    </div>
-                    {form.boardingPoints.length > 0 ? (
-                      <div className="d-flex flex-wrap gap-2">
-                        {form.boardingPoints.map((point) => (
-                          <span key={point} className="badge bg-light text-dark border px-3 py-2 d-flex align-items-center gap-2">
-                            {point}
-                            <button
-                              type="button"
-                              className="btn-close btn-close-white"
-                              aria-label={`Remove ${point}`}
-                              onClick={() => removeBoardingPoint(point)}
-                              disabled={loading}
-                            />
-                          </span>
-                        ))}
+                      <div className="col-md-3">
+                        <button
+                          type="button"
+                          className={`btn ${editingBpIndex > -1 ? 'btn-warning' : 'btn-dark'} w-100`}
+                          onClick={handleAddBoardingPoint}
+                          disabled={loading}
+                        >
+                          <i className={`bi ${editingBpIndex > -1 ? 'bi-pencil-square' : 'bi-plus-lg'} me-2`}></i>
+                          {editingBpIndex > -1 ? 'Update Stop' : 'Add Stop'}
+                        </button>
                       </div>
-                    ) : (
-                      <p className="text-muted small mb-0">No boarding points added yet.</p>
-                    )}
+                    </div>
                   </div>
 
-                  <button type="submit" className="btn btn-success" disabled={loading}>
-                    {loading ? 'Saving...' : (editingRoute ? 'Update Route' : 'Save Route')}
-                  </button>
+                  {/* Added Points List */}
+                  {form.boardingPoints.length > 0 ? (
+                    <div className="table-responsive border rounded-3 mb-4">
+                      <table className="table table-hover mb-0 align-middle">
+                        <thead className="table-light text-secondary">
+                          <tr>
+                            <th className="ps-3 py-2 small text-uppercase">S NO:</th>
+                            <th className="py-2 small text-uppercase">Boarding Point</th>
+                            <th className="py-2 small text-uppercase">Departure Time</th>
+                            <th className="pe-3 py-2 small text-uppercase text-end">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {form.boardingPoints.map((bp, idx) => (
+                            <tr key={idx} className={editingBpIndex === idx ? 'table-active' : ''}>
+                              <td className="ps-3 fw-bold text-muted" style={{ width: '80px' }}>
+                                {String(idx + 1).padStart(2, '0')}
+                              </td>
+                              <td className="fw-medium text-dark">{bp.name}</td>
+                              <td className="text-secondary font-monospace">{bp.time}</td>
+                              <td className="pe-3 text-end">
+                                <div className="d-flex justify-content-end gap-2">
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-outline-primary border-0"
+                                    onClick={() => handleEditBoardingPoint(idx)}
+                                    title="Edit stop"
+                                    disabled={loading}
+                                  >
+                                    <i className="bi bi-pencil"></i>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-outline-danger border-0"
+                                    onClick={() => handleRemoveBoardingPoint(idx)}
+                                    title="Remove stop"
+                                    disabled={loading}
+                                  >
+                                    <i className="bi bi-trash"></i>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 border border-dashed rounded-3 text-muted mb-4">
+                      <i className="bi bi-signpost-split fs-4 d-block mb-2 text-secondary opacity-50"></i>
+                      <p className="mb-0 small">No boarding points added yet.<br />Add stops in the order they will be visited.</p>
+                    </div>
+                  )}
+
+                  <div className="d-flex justify-content-end gap-3 mt-4">
+                    <button
+                      type="button"
+                      className="btn btn-light border px-4"
+                      onClick={() => setForm(initialForm)}
+                      disabled={loading}
+                    >
+                      Reset Form
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn btn-primary px-5 fw-bold shadow-sm"
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <>
+                          <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <i className="bi bi-check-lg me-2"></i>
+                          Create Route
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </form>
               </div>
             </div>
-          </div>
-
-          <div className="col-12 col-xl-8">
-            <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
-              <div>
-                <h5 className="mb-1">Route Catalogue</h5>
-                <p className="text-muted small mb-0">
-                  {routes.length} active routes · {totalBoardingPoints} total boarding points
-                </p>
-              </div>
-              <div className="d-flex align-items-center gap-2">
-                <label className="text-muted small mb-0">Filter by academic year</label>
-                <select
-                  className="form-select form-select-sm"
-                  style={{ minWidth: 180 }}
-                  value={yearFilter}
-                  onChange={(event) => setYearFilter(event.target.value)}
-                >
-                  <option value="">All years</option>
-                  {activeAcademicYears.map((year) => (
-                    <option key={year} value={year}>
-                      {year}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {filteredRoutes.length === 0 ? (
-              <div className="alert alert-info">
-                {routes.length === 0 ? 'No routes found. Add a route to get started.' : 'No routes to display for the selected filter.'}
-              </div>
-            ) : (
-              <div className="d-grid gap-3">
-                {filteredRoutes.map((route) => (
-                  <div key={route.routeNo} className="card shadow-sm border-0">
-                    <div className="card-body">
-                      <div className="d-flex align-items-start justify-content-between flex-wrap gap-3">
-                        <div>
-                          <div className="text-uppercase text-muted fw-semibold small">Route {route.routeNo}</div>
-                          <h6 className="mb-1">{route.routeName}</h6>
-                          <div className="d-flex flex-wrap gap-2 mt-2">
-                            {route.amounts?.map((entry) => (
-                              <span key={entry.academicYear} className="badge rounded-pill text-bg-light border">
-                                {entry.academicYear}: ₹{entry.amount?.toLocaleString?.() || entry.amount}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="d-flex gap-2">
-                          <button className="btn btn-outline-primary btn-sm" onClick={() => startEdit(route)} disabled={loading}>
-                            Edit
-                          </button>
-                          <button className="btn btn-outline-danger btn-sm" onClick={() => removeRoute(route.routeNo)} disabled={loading}>
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="mt-3">
-                        <div className="text-muted small mb-1">Boarding points (same fare per route)</div>
-                        <div className="d-flex flex-wrap gap-2">
-                          {route.boardingPoints?.map((point) => (
-                            <span key={point} className="badge bg-primary-subtle text-primary px-3 py-2">
-                              {point}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       </div>

@@ -243,8 +243,29 @@
   padding: 1.8rem;
 }
 
-/* .transport-content - No special styles needed */
+/* Card Styles */
+.transport-card {
+  background: #ffffff;
+  border: 1px solid #e1e8f5;
+  border-radius: 16px;
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
 
+.transport-card__header {
+  background: #606c88;
+  color: #ffffff;
+  padding: 0.85rem 1.1rem;
+  font-weight: 800;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.transport-card__body {
+  padding: 1rem 1.1rem;
+}
 
 /* Collapsed State */
 .transport-portal--collapsed .transport-sidebar {
