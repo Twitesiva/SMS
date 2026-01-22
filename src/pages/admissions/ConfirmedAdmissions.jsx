@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import AdmissionShell from '../../components/AdmissionShell'
 import ConfirmationModal from '../../components/ConfirmationModal'
 import { supabase } from '../../../supabaseClient'
+import crestPrimary from '../../assets/media/images.png'
 
 import { showToast } from '../../store/ui'
 import './Admissions.css'
@@ -192,6 +193,23 @@ export default function ConfirmedAdmissions() {
             className="admin-shell--admissions"
         >
             <div className="admissions-page">
+                <section className="setup-hero mb-4">
+                  <div className="setup-hero__inner">
+                    <div className="setup-hero__content">
+                      <div className="setup-hero__crest" aria-hidden="true">
+                        <img src={crestPrimary} alt="Vijayam crest" />
+                      </div>
+                      <div>
+                        <div className="setup-hero__eyebrow">Admissions 2026</div>
+                        <h1 className="setup-hero__title mb-1">Vijayam College of Arts & Science</h1>
+
+                        <p className="setup-hero__subtitle mb-0">
+                          Admission portal for group registration and student engagement.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
                 <div className="container-fluid p-0">
                     <div className="d-flex justify-content-between align-items-center mb-4">
                         <h4 className="mb-0">Admissions Enrolled</h4>
