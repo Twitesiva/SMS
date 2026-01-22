@@ -581,18 +581,18 @@ export default function PaymentReports() {
                     </div>
                     <div className="card-body p-0">
                         <div className="table-responsive">
-                            <table className="table table-striped table-hover mb-0 align-middle user-select-none">
+                            <table className="table table-striped table-hover mb-0 align-middle user-select-none payment-reports-table">
                                 <thead className="bg-light">
                                     <tr>
-                                        <th className="py-3 px-3 text-uppercase small fw-bolder text-dark border-bottom">Student ID</th>
-                                        <th className="py-3 px-3 text-uppercase small fw-bolder text-dark border-bottom">Name</th>
-                                        <th className="py-3 px-3 text-uppercase small fw-bolder text-dark border-bottom">Hall Ticket</th>
-                                        <th className="py-3 px-3 text-uppercase small fw-bolder text-dark border-bottom">Group</th>
-                                        <th className="py-3 px-3 text-uppercase small fw-bolder text-dark border-bottom">Course</th>
-                                        <th className="py-3 px-3 text-uppercase small fw-bolder text-dark border-bottom">Year</th>
-                                        <th className="py-3 px-3 text-uppercase small fw-bolder text-dark border-bottom">Sem</th>
-                                        <th className="py-3 px-3 text-uppercase small fw-bolder text-dark border-bottom text-center">Payment</th>
-                                        <th className="py-3 px-3 text-uppercase small fw-bolder text-dark border-bottom text-center">Status</th>
+                                        <th className="py-3 px-3 text-uppercase fw-bolder border-bottom">Student ID</th>
+                                        <th className="py-3 px-3 text-uppercase fw-bolder border-bottom">Name</th>
+                                        <th className="py-3 px-3 text-uppercase fw-bolder border-bottom">Hall Ticket</th>
+                                        <th className="py-3 px-3 text-uppercase fw-bolder border-bottom">Group</th>
+                                        <th className="py-3 px-3 text-uppercase fw-bolder border-bottom">Course</th>
+                                        <th className="py-3 px-3 text-uppercase fw-bolder border-bottom">Year</th>
+                                        <th className="py-3 px-3 text-uppercase fw-bolder border-bottom">Sem</th>
+                                        <th className="py-3 px-3 text-uppercase fw-bolder border-bottom text-center">Payment</th>
+                                        <th className="py-3 px-3 text-uppercase fw-bolder border-bottom text-center">Status</th>
                                     </tr>
                                 </thead>
                                 <tbody>
