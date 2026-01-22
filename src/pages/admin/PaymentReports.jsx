@@ -316,7 +316,7 @@ export default function PaymentReports() {
             footerTitle="Admin Management Studio"
             footerSubtitle="Crafted for Vijayam College"
         >
-            <div className="container-fluid p-4">
+            <div className="desktop-container" style={{ overflowX: 'hidden' }}>
 
                 {/* Header */}
                 <section className="setup-hero mb-4">

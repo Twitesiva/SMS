@@ -224,3 +224,13 @@
 .admin-content .setup-hero__eyebrow {
   color: #ffffff !important;
 }
+
+/* Admin header background styling */
+.admin-content .setup-hero {
+  background: #3f4c6b;
+  border-radius: 30px;
+  color: #ffffff;
+  padding: 2rem;
+  box-shadow: 0 30px 55px rgba(96, 108, 136, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
