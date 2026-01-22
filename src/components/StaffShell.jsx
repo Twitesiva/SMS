@@ -34,6 +34,10 @@ export default function StaffShell({ children }) {
         return items
     }, [isHOD])
 
+    const isRouteActive = (pathname, to) => {
+        return pathname === to || pathname.startsWith(`${to}/`)
+    }
+
     const handleLogout = () => {
         signOut()
         navTo('/staff/login')
@@ -76,7 +80,7 @@ export default function StaffShell({ children }) {
                         <Link
                             key={item.to}
                             to={item.to}
-                            className={`staff-sidebar__link ${pathname === item.to ? 'active' : ''}`}
+                            className={`staff-sidebar__link ${isRouteActive(pathname, item.to) ? 'active' : ''}`}
                         >
                             <i className={`bi ${item.icon}`}></i>
                             <span>{item.label}</span>

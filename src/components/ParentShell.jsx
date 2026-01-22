@@ -11,6 +11,10 @@ const navItems = [
     { to: '/parent/notifications', label: 'Notifications', icon: 'bi-bell' }
 ]
 
+const isRouteActive = (pathname, to) => {
+    return pathname === to || pathname.startsWith(`${to}/`)
+}
+
 export default function ParentShell({ children }) {
     const { pathname } = useLocation()
     const navTo = useNavigate()
@@ -60,7 +64,7 @@ export default function ParentShell({ children }) {
                         <Link
                             key={item.to}
                             to={item.to}
-                            className={`parent-sidebar__link ${pathname === item.to ? 'active' : ''}`}
+                            className={`parent-sidebar__link ${isRouteActive(pathname, item.to) ? 'active' : ''}`}
                         >
                             <i className={`bi ${item.icon}`}></i>
                             <span>{item.label}</span>

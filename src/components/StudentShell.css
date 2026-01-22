@@ -137,11 +137,26 @@
 }
 
 .student-sidebar__link.active {
-  background: rgba(255, 255, 255, 0.2);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 100%);
   color: #ffffff;
   font-weight: 900;
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25), 0 12px 30px rgba(2, 6, 23, 0.2);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: visible;
+  /* Changed from hidden to prevent clipping */
+  padding-left: 20px;
+  /* Increase from 16px to 20px to offset the 4px border */
+}
+
+.student-sidebar__link.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #ffffff;
+  border-radius: 4px 0 0 4px;
 }
 
 .student-sidebar__link.active i {
@@ -254,10 +269,6 @@
 .student-main {
   flex: 1;
   padding: 1.8rem;
-}
-
-.student-content {
-  /* No special styles needed */
 }
 
 /* Collapsed State */

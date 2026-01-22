@@ -22,6 +22,10 @@ const navItems = [
   { to: '/student/transport', label: 'Transport', icon: 'bi-bus-front' },
 ]
 
+const isRouteActive = (pathname, to) => {
+  return pathname === to || pathname.startsWith(`${to}/`)
+}
+
 export default function StudentShell({ children }) {
   const { pathname } = useLocation()
   const navTo = useNavigate()
@@ -170,7 +174,7 @@ export default function StudentShell({ children }) {
             <Link
               key={item.to}
               to={item.to}
-              className={`student-sidebar__link ${pathname === item.to ? 'active' : ''}`}
+              className={`student-sidebar__link ${isRouteActive(pathname, item.to) ? 'active' : ''}`}
             >
               <i className={`bi ${item.icon}`}></i>
               <span>{item.label}</span>

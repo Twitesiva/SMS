@@ -43,6 +43,10 @@ const isUuid = (value = "") =>
         String(value)
     );
 
+const isRouteActive = (pathname, to) => {
+    return pathname === to || pathname.startsWith(`${to}/`)
+}
+
 export default function AdmissionShell({
     children,
     onSignOut,
@@ -228,7 +232,7 @@ export default function AdmissionShell({
                                         <Link
                                             to={item.to}
                                             title={item.label}
-                                            className={`nav-group-header item-box fw-bold d-flex align-items-center user-select-none nav-item-modern ${pathname === item.to ? "active" : ""}`}
+                                            className={`nav-group-header item-box fw-bold d-flex align-items-center user-select-none nav-item-modern ${isRouteActive(pathname, item.to) ? "active" : ""}`}
                                             style={{
                                                 margin: "10px 12px 4px",
                                                 padding: "12px 16px",
@@ -253,7 +257,7 @@ export default function AdmissionShell({
                                         <Link
                                             to={item.to}
                                             title={item.label}
-                                            className={`nav-item-modern ${pathname === item.to ? "active" : ""}`}
+                                            className={`nav-item-modern ${isRouteActive(pathname, item.to) ? "active" : ""}`}
                                         >
                                             <span className="icon">
                                                 <i className={`bi ${item.icon}`}></i>
@@ -265,7 +269,7 @@ export default function AdmissionShell({
                             );
                         }
 
-                        const isActiveGroup = group.items.some((item) => item.to === pathname);
+                        const isActiveGroup = group.items.some((item) => isRouteActive(pathname, item.to));
                         const isExpanded = expandedGroups[groupIndex];
 
                         return (
