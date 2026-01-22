@@ -252,18 +252,24 @@ export default function StaffSubjectMapping() {
     return (
         <AdShellAdmin
             brandTitle="Admin Management Console"
-            brandSubtitle="Chittoor"
             footerTitle="Admin Management Studio"
             footerSubtitle="Crafted for Vijayam College"
         >
             <div className="desktop-container">
-                <section className="setup-hero mb-4 text-center">
-                    <div className="setup-hero-copywrap mx-auto text-center" style={{ maxWidth: '640px' }}>
-                        <div className="admin-applications__crest mx-auto" aria-hidden="true">
-                            <img src={crestPrimary} alt="Vijayam crest" />
+                <section className="setup-hero mb-4">
+                    <div className="setup-hero__inner">
+                        <div className="setup-hero__content">
+                            <div className="setup-hero__crest" aria-hidden="true">
+                                <img src={crestPrimary} alt="Vijayam crest" />
+                            </div>
+                            <div>
+                                <div className="setup-hero__eyebrow">Staff Management</div>
+                                <h1 className="setup-hero__title mb-1">Vijayam College of Arts & Science</h1>
+                                <p className="setup-hero__subtitle mb-0">
+                                    Assign staff members to subjects.
+                                </p>
+                            </div>
                         </div>
-                        <h3 className="setup-hero-title mb-2">Vijayam Arts & Science College</h3>
-                        <p className="setup-hero-copy mb-3">Assign staff members to subjects.</p>
                     </div>
                 </section>
 

@@ -97,22 +97,23 @@ function AcademicYears() {
   return (
     <AdShellAdmin
       brandTitle="Admin Management Console"
-      brandSubtitle="Chittoor"
       footerTitle="Admin Management Studio"
       footerSubtitle="Crafted for Vijayam College"
     >
       <div className="desktop-container" style={{ overflowX: 'hidden' }}>
-        <section className="setup-hero mb-4 text-center">
-          <div className="setup-hero-copywrap mx-auto text-center" style={{ maxWidth: '640px' }}>
-            <div className="admin-applications__crest mx-auto" aria-hidden="true">
-              <img src={crestPrimary} alt="Vijayam crest" />
-            </div>
-            <h3 className="setup-hero-title mb-2">Vijayam Arts & Science College</h3>
-            <p className="setup-hero-copy mb-3">Define academic years to organize fee structures and batches.</p>
-            <div className="setup-hero-chips d-flex flex-wrap gap-2 justify-content-center">
-              <span className="setup-hero-chip text-uppercase">SMART EXAMINATION PLATFORM</span>
-              <span className="setup-hero-chip text-uppercase">ADMISSIONS CONTROL</span>
-              <span className="setup-hero-chip text-uppercase">APPLICATIONS ADMIN CONSOLE</span>
+        <section className="setup-hero mb-4">
+          <div className="setup-hero__inner">
+            <div className="setup-hero__content">
+              <div className="setup-hero__crest" aria-hidden="true">
+                <img src={crestPrimary} alt="Vijayam crest" />
+              </div>
+              <div>
+                <div className="setup-hero__eyebrow">Academic Years</div>
+                <h1 className="setup-hero__title mb-1">Vijayam College of Arts & Science</h1>
+                <p className="setup-hero__subtitle mb-0">
+                  Define academic years to organize fee structures and batches.
+                </p>
+              </div>
             </div>
           </div>
         </section>

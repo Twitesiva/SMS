@@ -633,7 +633,7 @@ export default function ClassTimeTable() {
   return (
     <AdShellAdmin
       brandTitle="Admin Management Console"
-      brandSubtitle="Chittoor"
+      brandSubtitle=""
       footerTitle="Admin Management Studio"
       footerSubtitle="Crafted for Vijayam College"
     >
@@ -653,17 +653,19 @@ export default function ClassTimeTable() {
       `}</style>
 
       <div className="desktop-container" style={{ overflowX: 'hidden' }}>
-        <section className="setup-hero mb-4 text-center">
-          <div className="setup-hero-copywrap mx-auto text-center" style={{ maxWidth: '640px' }}>
-            <div className="admin-applications__crest mx-auto" aria-hidden="true">
-              <img src={crestPrimary} alt="Vijayam crest" />
-            </div>
-            <h3 className="setup-hero-title mb-2">Vijayam Arts & Science College</h3>
-            <p className="setup-hero-copy mb-3">Plan weekly class schedules and keep teaching slots organized.</p>
-            <div className="setup-hero-chips d-flex flex-wrap gap-2 justify-content-center">
-              <span className="setup-hero-chip text-uppercase">SMART EXAMINATION PLATFORM</span>
-              <span className="setup-hero-chip text-uppercase">ACADEMIC OPERATIONS</span>
-              <span className="setup-hero-chip text-uppercase">TIMETABLE CONTROL</span>
+        <section className="setup-hero mb-4">
+          <div className="setup-hero__inner">
+            <div className="setup-hero__content">
+              <div className="setup-hero__crest" aria-hidden="true">
+                <img src={crestPrimary} alt="Vijayam crest" />
+              </div>
+              <div>
+                <div className="setup-hero__eyebrow">Class Timetable</div>
+                <h1 className="setup-hero__title mb-1">Vijayam College of Arts & Science</h1>
+                <p className="setup-hero__subtitle mb-0">
+                  Plan weekly class schedules and keep teaching slots organized.
+                </p>
+              </div>
             </div>
           </div>
         </section>

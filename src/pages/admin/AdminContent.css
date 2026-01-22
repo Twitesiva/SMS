@@ -211,3 +211,16 @@
   opacity: 0.9 !important;
   font-weight: 700 !important;
 }
+
+/* Header elements - ensure white color */
+.admin-content .setup-hero__title {
+  color: #ffffff !important;
+}
+
+.admin-content .setup-hero__subtitle {
+  color: #ffffff !important;
+}
+
+.admin-content .setup-hero__eyebrow {
+  color: #ffffff !important;
+}

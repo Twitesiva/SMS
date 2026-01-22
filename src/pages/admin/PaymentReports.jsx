@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../../lib/mockApi';
 import { supabase } from '../../../supabaseClient';
 import AdShellAdmin from '../../components/AdShellAdmin';
-import { ToastContainer } from 'react-toastify';
+import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import crestPrimary from '../../assets/media/images.png';
 import '../exam/Dashboard.css';
@@ -313,24 +313,25 @@ export default function PaymentReports() {
     return (
         <AdShellAdmin
             brandTitle="Admin Management Console"
-            brandSubtitle="Chittoor"
             footerTitle="Admin Management Studio"
             footerSubtitle="Crafted for Vijayam College"
         >
             <div className="container-fluid p-4">
 
                 {/* Header */}
-                <section className="setup-hero mb-4 text-center">
-                    <div className="setup-hero-copywrap mx-auto text-center" style={{ maxWidth: '700px' }}>
-                        <div className="admin-applications__crest mx-auto" aria-hidden="true">
-                            <img src={crestPrimary} alt="Vijayam crest" />
-                        </div>
-                        <h3 className="setup-hero-title mb-2">Payment Visualization & Reports</h3>
-                        <p className="setup-hero-copy mb-3">Analyze fee collections, track pending payments, and generate detailed student financial reports.</p>
-                        <div className="setup-hero-chips d-flex flex-wrap gap-2 justify-content-center">
-                            <span className="setup-hero-chip text-uppercase">FINANCIAL ANALYTICS</span>
-                            <span className="setup-hero-chip text-uppercase">FEE COLLECTION</span>
-                            <span className="setup-hero-chip text-uppercase">LIVE TRACKING</span>
+                <section className="setup-hero mb-4">
+                    <div className="setup-hero__inner">
+                        <div className="setup-hero__content">
+                            <div className="setup-hero__crest" aria-hidden="true">
+                                <img src={crestPrimary} alt="Vijayam crest" />
+                            </div>
+                            <div>
+                                <div className="setup-hero__eyebrow">Payment Reports</div>
+                                <h1 className="setup-hero__title mb-1">Vijayam College of Arts & Science</h1>
+                                <p className="setup-hero__subtitle mb-0">
+                                    Analyze fee collections, track pending payments, and generate detailed student financial reports.
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </section>

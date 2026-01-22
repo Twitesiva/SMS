@@ -1329,17 +1329,19 @@ export default function Students() {
   return (
     <AdShellAdmin>
       <div className="students-page-shell">
-        <section className="setup-hero mb-4 text-center">
-          <div className="setup-hero-copywrap mx-auto text-center" style={{ maxWidth: '640px' }}>
-            <div className="mx-auto mb-3" aria-hidden="true" style={{ width: '80px' }}>
-              <img src={crestPrimary} alt="Vijayam crest" style={{ width: '100%', height: 'auto' }} />
-            </div>
-            <h3 className="setup-hero-title mb-2">Vijayam Arts & Science College</h3>
-            <p className="setup-hero-copy mb-3">Manage student profiles, academic records and fees.</p>
-            <div className="setup-hero-chips d-flex flex-wrap gap-2 justify-content-center">
-              <span className="setup-hero-chip text-uppercase">SMART EXAMINATION PLATFORM</span>
-              <span className="setup-hero-chip text-uppercase">ADMISSIONS CONTROL</span>
-              <span className="setup-hero-chip text-uppercase">STUDENT DETAILS</span>
+        <section className="setup-hero mb-4">
+          <div className="setup-hero__inner">
+            <div className="setup-hero__content">
+              <div className="setup-hero__crest" aria-hidden="true">
+                <img src={crestPrimary} alt="Vijayam crest" />
+              </div>
+              <div>
+                <div className="setup-hero__eyebrow">Student Management</div>
+                <h1 className="setup-hero__title mb-1">Vijayam College of Arts & Science</h1>
+                <p className="setup-hero__subtitle mb-0">
+                  Manage student profiles, academic records and fees.
+                </p>
+              </div>
             </div>
           </div>
         </section>
