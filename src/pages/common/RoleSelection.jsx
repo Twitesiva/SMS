@@ -40,63 +40,63 @@ export default function RoleSelection() {
     const roles = [
         {
             id: 'admission-portal',
-            label: 'Admission Portal',
+            label: 'ADMISSION PORTAL',
             icon: 'bi-journal-text',
             desc: 'Admissions, Applications & Enquiries',
             className: 'admission-card'
         },
         {
             id: 'admin',
-            label: 'Admin',
+            label: 'ADMIN',
             icon: 'bi-person-gear',
             desc: 'User Management',
             className: 'admin'
         },
         {
             id: 'staff',
-            label: 'Staff',
+            label: 'STAFF',
             icon: 'bi-person-workspace',
             desc: 'Access Staff Portal, Manage Students',
             className: 'staff'
         },
         {
             id: 'exam-portal',
-            label: 'Exam Portal',
+            label: 'EXAM PORTAL',
             icon: 'bi-laptop',
             desc: 'Controller of Examinations Login',
             className: 'exam-portal'
         },
         {
             id: 'student',
-            label: 'Student',
+            label: 'STUDENT',
             icon: 'bi-mortarboard-fill',
             desc: 'Access Student Portal, Results & Timetables',
             className: 'student'
         },
         {
             id: 'library',
-            label: 'Library',
+            label: 'LIBRARY',
             icon: 'bi-journal-bookmark',
             desc: 'Library Catalog & Issue Desk',
             className: 'library'
         },
         {
             id: 'parent',
-            label: 'Parent',
+            label: 'PARENT',
             icon: 'bi-people-fill',
             desc: 'Access Parent Portal, Monitor Student Progress',
             className: 'parent'
         },
         {
             id: 'hostel',
-            label: 'Hostel',
+            label: 'HOSTEL',
             icon: 'bi-house-door',
             desc: 'Hostel Management & Allocation',
             className: 'hostel'
         },
         {
             id: 'transport',
-            label: 'Transport',
+            label: 'TRANSPORT',
             icon: 'bi-bus-front',
             desc: 'Transport Routes & Passes',
             className: 'transport'
@@ -116,7 +116,7 @@ export default function RoleSelection() {
             </button>
 
             <div className="role-content">
-                <h1 className="role-title">Select Your Portal</h1>
+                <h1 className="role-title">SELECT YOUR PORTAL</h1>
 
                 <div className="role-grid">
                     {roles.map((role) => (
