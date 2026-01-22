@@ -170,6 +170,7 @@
   .admin-login-shell {
     padding: 1.5rem;
   }
+
   .admin-login-card {
     padding: 1.75rem;
   }
@@ -246,8 +247,12 @@
 .admin-login-card--portal .admin-login-field span {
   text-transform: uppercase;
   letter-spacing: 0.16em;
-  font-size: 0.7rem;
-  color: #64748b;
+  font-size: 0.85rem;
+  /* Increased from 0.7rem */
+  color: #000000;
+  /* Changed to black for better visibility */
+  font-weight: 700;
+  /* Made bolder */
 }
 
 .admin-login-card--portal .admin-login-input {

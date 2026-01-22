@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../../../supabaseClient'
 import { useParentAuth } from '../../store/parentAuth'
 import crest from '../../assets/media/images.png'
+import '../common/Auth.css'
+import '../common/AdmissionPortal.css'
 
 export default function ParentLogin() {
     const nav = useNavigate()
@@ -49,54 +51,67 @@ export default function ParentLogin() {
     }
 
     return (
-        <main className="student-login">
-            <div className="student-login__card">
-                <div className="student-login__brand">
-                    <img src={crest} alt="Vijayam crest" />
-                    <div>
-                        <div className="student-login__title">Parent Portal</div>
-                        <div className="student-login__subtitle">Vijayam Arts & Science College</div>
+        <main className="admission-portal admin-login-portal">
+            <div className="admission-portal__header">
+                <div className="admission-portal__brand-block">
+                    <div className="admission-portal__brand">
+                        <img src={crest} alt="Vijayam crest" />
+                    </div>
+                    <div className="admission-portal__brand-text">
+                        <div className="admission-portal__brand-title">Vijayam Arts & Science College</div>
+                        <div className="admission-portal__brand-sub">Parent Portal</div>
                     </div>
                 </div>
-
-                <h2 className="student-login__heading">Parent Login</h2>
-                <p className="student-login__copy">Enter Student ID and Registered Student Mobile Number.</p>
-
-                <form className="student-login__form" onSubmit={onLogin} autoComplete="off">
-                    <label className="student-login__field">
-                        <span>Student ID</span>
-                        <input
-                            type="text"
-                            value={studentId}
-                            onChange={(event) => setStudentId(event.target.value)}
-                            placeholder="Enter Student ID"
-                            required
-                            autoComplete="off"
-                        />
-                    </label>
-
-                    <label className="student-login__field">
-                        <span>Student Mobile Number</span>
-                        <input
-                            type="tel"
-                            value={studentMobile}
-                            onChange={(event) => setStudentMobile(event.target.value)}
-                            placeholder="Enter Student Mobile Number"
-                            required
-                            autoComplete="new-password"
-                        />
-                    </label>
-
-                    {error && <div className="student-login__error">{error}</div>}
-
-                    <button type="submit" className="student-login__submit" disabled={loading}>
-                        {loading ? 'Signing in...' : 'Sign in'}
-                    </button>
-                </form>
-
-                <Link to="/roles" className="student-login__back">
+                <Link to="/roles" className="admission-portal__back">
                     <i className="bi bi-arrow-left"></i> Back to Roles
                 </Link>
+            </div>
+
+            <div className="admin-login-portal__content">
+                <div className="admin-login-portal__intro">
+                    <h1>Parent portal login</h1>
+                    <p>Enter Student ID and Registered Student Mobile Number.</p>
+                </div>
+
+                <section className="admin-login-card admin-login-card--portal" aria-live="polite">
+                    <div className="admin-login-card-header">
+                        <h2>Welcome back</h2>
+                        <p>Use your student credentials to continue.</p>
+                    </div>
+                    <form className="admin-login-form" onSubmit={onLogin} autoComplete="off">
+                        <label className="admin-login-field">
+                            <span>Student ID</span>
+                            <input
+                                type="text"
+                                className="admin-login-input"
+                                value={studentId}
+                                onChange={(event) => setStudentId(event.target.value)}
+                                placeholder="Enter Student ID"
+                                required
+                                autoComplete="off"
+                            />
+                        </label>
+
+                        <label className="admin-login-field">
+                            <span>Student Mobile Number</span>
+                            <input
+                                type="tel"
+                                className="admin-login-input"
+                                value={studentMobile}
+                                onChange={(event) => setStudentMobile(event.target.value)}
+                                placeholder="Enter Student Mobile Number"
+                                required
+                                autoComplete="new-password"
+                            />
+                        </label>
+
+                        {error && <p className="admin-login-error">{error}</p>}
+
+                        <button type="submit" className="admin-login-submit" disabled={loading}>
+                            {loading ? 'Signing in...' : 'Sign in'}
+                        </button>
+                    </form>
+                </section>
             </div>
         </main>
     )
