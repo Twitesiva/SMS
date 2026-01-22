@@ -361,7 +361,7 @@ export default function AdShellAdmin({
                             <div key={groupIndex} className="nav-group">
                                 {!collapsed && (
                                     <div
-                                        className={`nav-group-header item-box fw-bold d-flex justify-content-between align-items-center user-select-none ${isActiveGroup ? "active" : ""}`}
+                                        className={`nav-group-header item-box fw-bold d-flex justify-content-between align-items-center user-select-none ${isActiveGroup ? "active-group" : ""}`}
                                         onClick={() => toggleGroup(groupIndex)}
                                     >
                                         <div className="d-flex align-items-center gap-2">

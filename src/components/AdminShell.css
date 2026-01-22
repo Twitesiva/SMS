@@ -571,19 +571,58 @@
   color: #ffffff;
 }
 
+
+/* Active Styling for Parent Groups (Context only) */
+.sidebar-modern .nav-group-header.active-group {
+  background: rgba(255, 255, 255, 0.1);
+  /* Subtle background */
+  color: #ffffff;
+  /* High contrast text */
+  font-weight: 900;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Ensure pseudo-element border IS visible for groups, as requested */
+.sidebar-modern .nav-group-header.active-group {
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-modern .nav-group-header.active-group::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #ffffff;
+  border-radius: 4px 0 0 4px;
+  display: block;
+  /* Ensure it is visible */
+}
+
 /* Active styling for nav group headers (Main Paths) */
-.nav-group-header.active {
+.sidebar-modern .nav-group-header.active {
   background: linear-gradient(90deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 100%);
   color: #ffffff;
   font-weight: 900;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  border-left: 4px solid #ffffff;
-  padding-left: 12px;
-  /* Reset padding to align with border if needed, or keep consistent */
-  border-top: none;
-  /* Reset individual borders if needed, but linear-gradient might cover */
-  border-right: none;
-  border-bottom: none;
+  position: relative;
+  /* For pseudo-element positioning */
+  overflow: hidden;
+  /* Ensure glowing effect stays inside */
+}
+
+.sidebar-modern .nav-group-header.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #ffffff;
+  border-radius: 4px 0 0 4px;
+  /* Slight curve on outside only */
 }
 
 /* Active styling for sub-items */
@@ -592,8 +631,19 @@
   color: #ffffff;
   font-weight: 900;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  border-left: 4px solid #ffffff;
-  padding-left: calc(1.1rem - 4px);
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-modern .nav-item-modern.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #ffffff;
+  border-radius: 4px 0 0 4px;
 }
 
 .sidebar-footer {
