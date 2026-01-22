@@ -139,6 +139,10 @@ const isUuid = (value = "") =>
         String(value)
     );
 
+const isRouteActive = (pathname, to) => {
+    return pathname === to || pathname.startsWith(`${to}/`);
+};
+
 export default function AdShellAdmin({
     children,
     onSignOut,
@@ -160,7 +164,7 @@ export default function AdShellAdmin({
     // Automatically expand the group that contains the current active route
     useEffect(() => {
         const activeGroupIndex = activeNavGroups.findIndex(
-            (group) => !group.static && group.items.some((item) => item.to === pathname)
+            (group) => !group.static && group.items.some((item) => isRouteActive(pathname, item.to))
         );
         if (activeGroupIndex !== -1) {
             setExpandedGroups((prev) => ({
@@ -170,7 +174,7 @@ export default function AdShellAdmin({
         } else {
             // Handle static groups effectively
             const staticGroupIndex = activeNavGroups.findIndex(
-                (group) => group.static && group.items.some((item) => item.to === pathname)
+                (group) => group.static && group.items.some((item) => isRouteActive(pathname, item.to))
             );
             if (staticGroupIndex !== -1) {
                 setExpandedGroups((prev) => ({
@@ -185,7 +189,7 @@ export default function AdShellAdmin({
             // Find the human-readable label for the current page
             let pageLabel = pathname;
             for (const group of activeNavGroups) {
-                const found = group.items.find(item => item.to === pathname);
+                const found = group.items.find(item => isRouteActive(pathname, item.to));
                 if (found) {
                     pageLabel = found.label;
                     break;
@@ -316,23 +320,14 @@ export default function AdShellAdmin({
                         const isStatic = group.static;
                         if (isStatic) {
                             const item = group.items[0];
+                            const isActive = isRouteActive(pathname, item.to);
                             return (
                                 <div key={`static-${groupIndex}`} className="nav-group">
                                     {!collapsed && (
                                         <Link
                                             to={item.to}
                                             title={item.label}
-                                            className={`nav-group-header item-box fw-bold d-flex align-items-center user-select-none nav-item-modern ${pathname === item.to ? "active" : ""}`}
-                                            style={{
-                                                margin: "10px 12px 4px",
-                                                padding: "12px 16px",
-                                                borderRadius: "12px",
-                                                background: "rgba(255, 255, 255, 0.08)",
-                                                border: "1px solid rgba(255, 255, 255, 0.05)",
-                                                fontSize: "0.9rem",
-                                                textTransform: "uppercase",
-                                                letterSpacing: "0.05em",
-                                            }}
+                                            className={`nav-group-header item-box fw-bold d-flex align-items-center user-select-none ${isActive ? "active" : ""}`}
                                         >
                                             <div className="d-flex align-items-center gap-2">
                                                 <i
@@ -347,7 +342,7 @@ export default function AdShellAdmin({
                                         <Link
                                             to={item.to}
                                             title={item.label}
-                                            className={`nav-item-modern ${pathname === item.to ? "active" : ""}`}
+                                            className={`nav-item-modern ${isActive ? "active" : ""}`}
                                         >
                                             <span className="icon">
                                                 <i className={`bi ${item.icon}`}></i>
@@ -359,36 +354,15 @@ export default function AdShellAdmin({
                             );
                         }
 
-                        const isActiveGroup = group.items.some((item) => item.to === pathname);
+                        const isActiveGroup = group.items.some((item) => isRouteActive(pathname, item.to));
                         const isExpanded = expandedGroups[groupIndex];
 
                         return (
                             <div key={groupIndex} className="nav-group">
                                 {!collapsed && (
                                     <div
-                                        className="nav-group-header item-box fw-bold d-flex justify-content-between align-items-center user-select-none"
-                                        style={{
-                                            margin: "10px 12px 4px",
-                                            padding: "12px 16px",
-                                            borderRadius: "12px",
-                                            background: "rgba(255, 255, 255, 0.08)",
-                                            border: "1px solid rgba(255, 255, 255, 0.05)",
-                                            fontSize: "0.9rem",
-                                            textTransform: "uppercase",
-                                            letterSpacing: "0.05em",
-                                            cursor: "pointer",
-                                            transition: "all 0.2s ease",
-                                            color: isActiveGroup ? "#fff" : "rgba(255,255,255,0.75)",
-                                        }}
+                                        className={`nav-group-header item-box fw-bold d-flex justify-content-between align-items-center user-select-none ${isActiveGroup ? "active" : ""}`}
                                         onClick={() => toggleGroup(groupIndex)}
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.style.background = "rgba(255, 255, 255, 0.15)";
-                                            e.currentTarget.style.color = "#fff";
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
-                                            e.currentTarget.style.color = isActiveGroup ? "#fff" : "rgba(255,255,255,0.75)";
-                                        }}
                                     >
                                         <div className="d-flex align-items-center gap-2">
                                             <i className="bi bi-grid-fill" style={{ fontSize: "0.9rem", opacity: 0.8 }}></i>
@@ -409,7 +383,7 @@ export default function AdShellAdmin({
                                             key={item.to}
                                             to={item.to}
                                             title={item.label}
-                                            className={`nav-item-modern ${pathname === item.to ? "active" : ""}`}
+                                            className={`nav-item-modern ${isRouteActive(pathname, item.to) ? "active" : ""}`}
                                         >
                                             <span className="icon">
                                                 <i className={`bi ${item.icon}`}></i>

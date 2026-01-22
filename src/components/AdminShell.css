@@ -262,11 +262,31 @@
   color: #ffffff;
 }
 
+
 .sidebar-modern .nav-item-modern.active {
-  background: rgba(255, 255, 255, 0.2);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 100%);
   color: #ffffff;
   font-weight: 900;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid #ffffff;
+  padding-left: calc(1.1rem - 4px);
+  /* Adjust padding to account for border */
 }
+
+/* Add a subtle glow/shine effect */
+.sidebar-modern .nav-item-modern.active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  opacity: 0.3;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
 
 /* Base nav group title styling for all portals */
 .sidebar-modern .nav-group-title {
@@ -527,18 +547,53 @@
   color: #ffffff;
 }
 
-/* Active styling for main navigation items (static groups) */
-.nav-group-header.active {
-  background: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25), 0 12px 30px rgba(2, 6, 23, 0.2);
+
+/* Nav Group Header (Static & Dynamic) - Replaces inline styles */
+.nav-group-header {
+  margin: 10px 12px 4px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: rgba(255, 255, 255, 0.75);
+  display: flex;
+  align-items: center;
+  text-decoration: none;
 }
 
-.nav-item-modern.active {
-  background: none;
+.nav-group-header:hover {
+  background: rgba(255, 255, 255, 0.15);
   color: #ffffff;
-  box-shadow: none;
+}
+
+/* Active styling for nav group headers (Main Paths) */
+.nav-group-header.active {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 100%);
+  color: #ffffff;
+  font-weight: 900;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid #ffffff;
+  padding-left: 12px;
+  /* Reset padding to align with border if needed, or keep consistent */
+  border-top: none;
+  /* Reset individual borders if needed, but linear-gradient might cover */
+  border-right: none;
+  border-bottom: none;
+}
+
+/* Active styling for sub-items */
+.sidebar-modern .nav-item-modern.active {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 100%);
+  color: #ffffff;
+  font-weight: 900;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid #ffffff;
+  padding-left: calc(1.1rem - 4px);
 }
 
 .sidebar-footer {
