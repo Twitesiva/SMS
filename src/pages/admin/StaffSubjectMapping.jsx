@@ -341,7 +341,7 @@ export default function StaffSubjectMapping() {
                         </div>
 
                         <div className="table-responsive">
-                            <table className="table table-hover align-middle">
+                            <table className="table table-hover align-middle staff-subject-mapping-table">
                                 <thead>
                                     <tr>
                                         <th>S.No</th>

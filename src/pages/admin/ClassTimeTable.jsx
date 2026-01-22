@@ -790,7 +790,7 @@ export default function ClassTimeTable() {
           <div className="card card-soft p-4">
             <h5 className="mb-4">Saved Class Timetables</h5>
             <div className="table-responsive">
-              <table className="table table-hover align-middle">
+              <table className="table table-hover align-middle class-timetable-list-table">
                 <thead className="table-light">
                   <tr>
                     <th>Academic Year</th>

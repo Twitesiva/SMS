@@ -590,16 +590,18 @@
 .students-section-shell-header {
   padding: 1rem 1.2rem;
   border-radius: 16px;
-  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%);
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%) !important;
   border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 18px 30px rgba(15, 23, 42, 0.15);
+  box-shadow: 0 30px 55px rgba(96, 108, 136, 0.4);
   margin-bottom: 1.5rem;
-  color: #ffffff;
+  color: #ffffff !important;
 }
 
-.students-section-shell-header h2 {
+.students-section-shell-header h2,
+.students-section-shell-header h5,
+.students-section-shell-header .section-title {
   margin: 0 0 0.35rem;
-  color: #ffffff;
+  color: #ffffff !important;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-weight: 800;
@@ -607,7 +609,7 @@
 }
 
 .students-section-copy {
-  color: #ffffff;
+  color: #ffffff !important;
   line-height: 1.5;
   font-weight: 600;
 }

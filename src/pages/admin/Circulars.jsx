@@ -260,7 +260,7 @@ export default function Circulars() {
                             {viewMode === 'list' && (
                                 <div className="table-responsive">
                                     {circulars.length > 0 ? (
-                                        <table className="table table-hover align-middle">
+                                        <table className="table table-hover align-middle circulars-table">
                                             <thead className="table-light">
                                                 <tr>
                                                     <th>Title</th>

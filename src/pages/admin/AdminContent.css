@@ -75,6 +75,55 @@
   letter-spacing: 0.05em;
 }
 
+/* Staff Subject Mapping table header - sidebar gradient */
+.staff-subject-mapping-table thead th {
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-weight: 800;
+  font-size: 1.1rem !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1rem !important;
+}
+
+/* No Timetable Section - sidebar gradient */
+.no-timetable-section {
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+}
+
+.no-timetable-section h5,
+.no-timetable-section p,
+.no-timetable-section i {
+  color: #ffffff !important;
+}
+
+/* Class Timetable List table header - sidebar gradient */
+.class-timetable-list-table thead th {
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-weight: 800;
+  font-size: 1.1rem !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1rem !important;
+}
+
+/* Circulars table header - sidebar gradient */
+.circulars-table thead th {
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-weight: 800;
+  font-size: 1.1rem !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1rem !important;
+}
+
 .admin-content .table tbody td {
   font-weight: 600;
 }
