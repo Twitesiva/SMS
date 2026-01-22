@@ -1047,3 +1047,42 @@
 .dashboard-chart-row {
   grid-template-columns: repeat(3, 1fr) !important;
 }
+
+/* Table Header Gradient */
+.table-header-gradient {
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%);
+}
+
+.table-header-gradient th {
+  background: transparent !important; /* Allow the gradient to show */
+  color: #ffffff !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 1.15rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1.25rem 1rem !important;
+}
+
+.table-large-text {
+  font-size: 1.15rem !important;
+}
+
+.table-large-text td {
+  padding: 1rem !important;
+}
+
+.form-large-text .form-label {
+  font-size: 1.1rem !important;
+}
+
+.form-large-text .form-control,
+.form-large-text .form-select {
+  font-size: 1.1rem !important;
+  padding: 0.75rem 1rem !important;
+}
+
+.form-large-text .btn {
+  font-size: 1.1rem !important;
+  padding: 0.65rem 1.5rem !important;
+}

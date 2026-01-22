@@ -127,7 +127,7 @@ function AcademicYears() {
                 </div>
               </div>
 
-              <form className="row g-3 mb-4" onSubmit={(e) => { e.preventDefault(); addYear(); }}>
+              <form className="row g-3 mb-4 form-large-text" onSubmit={(e) => { e.preventDefault(); addYear(); }}>
                 <div className="col-md-4">
                   <label className="form-label">Academic Year Name *</label>
                   <input
@@ -174,8 +174,8 @@ function AcademicYears() {
               </form>
 
               <div className="table-responsive">
-                <table className="table table-hover align-middle">
-                  <thead className="table-light">
+                <table className="table table-hover align-middle table-large-text">
+                  <thead className="table-header-gradient">
                     <tr>
                       <th>Academic Year</th>
                       <th>Category</th>
