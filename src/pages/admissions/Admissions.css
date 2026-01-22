@@ -57,7 +57,7 @@
   background: #3f4c6b;
   border-radius: 30px;
   color: #ffffff;
-  padding: 2.5rem;
+  padding: 2rem;
   box-shadow: 0 30px 55px rgba(96, 108, 136, 0.35);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -122,11 +122,11 @@
 
 .setup-hero__subtitle {
   margin: 0;
-  color: rgba(255, 255, 255, 0.95);
+  color: #ffffff;
   max-width: 600px;
   font-weight: 700;
   font-size: 1.15rem;
-  opacity: 0.9;
+  opacity: 1;
 }
 
 .setup-hero__actions {
@@ -166,11 +166,9 @@
   box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2) !important;
 }
 
-
-/* Shared hero variants for AdmissionsApplication.jsx */
 /* Shared hero variants for AdmissionsApplication.jsx */
 .setup-hero-title {
-  font-size: clamp(2rem, 2.5vw, 3rem);
+  font-size: clamp(1.5rem, 2vw, 2.2rem);
   font-weight: 950;
   color: #ffffff;
   text-transform: uppercase;
@@ -180,37 +178,37 @@
 .setup-hero-copy {
   color: rgba(255, 255, 255, 0.95);
   font-weight: 700;
-  font-size: 1.15rem;
+  font-size: 0.95rem;
   opacity: 0.9;
 }
 
 .setup-hero-chip {
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 999px;
-  padding: 0.4rem 1rem;
+  padding: 0.3rem 0.8rem;
   background: rgba(255, 255, 255, 0.1);
   font-weight: 800;
 }
 
 .admin-applications__crest {
-  width: 90px;
-  height: 90px;
-  border-radius: 22px;
+  width: 70px;
+  height: 70px;
+  border-radius: 18px;
   background: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
 }
 
 .admin-applications__crest img {
-  width: 65px;
-  height: 65px;
+  width: 50px;
+  height: 50px;
   object-fit: contain;
 }
 
