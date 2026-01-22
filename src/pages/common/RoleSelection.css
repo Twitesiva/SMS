@@ -167,16 +167,21 @@
     max-width: 90%;
 }
 
-/* Simplify Specific Colors to keep it professional and black-focused */
-.role-card .role-icon-wrapper {
-    background: #f5f5f5;
-    color: #000;
-}
+/* Professional Icon Colors */
+.role-card.admission-card .role-icon-wrapper { color: #2b6cb0; background: #ebf8ff; }
+.role-card.admin .role-icon-wrapper { color: #c53030; background: #fff5f5; }
+.role-card.staff .role-icon-wrapper { color: #2f855a; background: #f0fff4; }
+.role-card.exam-portal .role-icon-wrapper { color: #744210; background: #fffff0; }
+.role-card.student .role-icon-wrapper { color: #2c5282; background: #ebf8ff; }
+.role-card.library .role-icon-wrapper { color: #553c9a; background: #faf5ff; }
+.role-card.parent .role-icon-wrapper { color: #805ad5; background: #faf5ff; }
+.role-card.hostel .role-icon-wrapper { color: #9c4221; background: #fffaf0; }
+.role-card.transport .role-icon-wrapper { color: #285e61; background: #e6fffa; }
 
-/* Hover states can keep a subtle hint of color or just go black */
+/* Simplified Hover states - keep the distinct color or go solid */
 .role-card:hover .role-icon-wrapper {
-    background: #000;
-    color: #fff;
+    background: #000000 !important;
+    color: #ffffff !important;
 }
 
 
