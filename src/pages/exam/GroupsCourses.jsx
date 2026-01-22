@@ -110,7 +110,7 @@ export default function GroupsCoursesSection({
         <div className="students-section-shell card card-soft mb-4">
           <div className="students-section-shell-header mb-3">
             <div>
-              <h5 className="section-title mb-1">Groups</h5>
+              <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>Groups</h5>
               <p className="students-section-copy mb-0">
                 Create and manage cohorts with their academic category, duration, and semesters.
               </p>
@@ -303,7 +303,7 @@ export default function GroupsCoursesSection({
         <div className="students-section-shell card card-soft mb-4">
           <div className="students-section-shell-header mb-3">
             <div>
-              <h5 className="section-title mb-1">Courses</h5>
+              <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>Courses</h5>
               <p className="students-section-copy mb-0">
                 Assign course codes and group mappings so academic programs stay organized.
               </p>

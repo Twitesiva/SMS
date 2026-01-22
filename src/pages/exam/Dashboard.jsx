@@ -791,37 +791,7 @@ export default function Dashboard() {
   return (
     <AdminShell>
       <div className="dashboard-page">
-        <section className="setup-hero">
-          <div className="setup-hero-grid">
-            <div className="setup-hero-copywrap">
-              <div className="setup-hero-crest">
-                <img src={crestPrimary} alt="Vijayam crest" />
-              </div>
-
-              <h3 className="setup-hero-title mb-2">Vijayam Arts & Science College</h3>
-
-              <p className="setup-hero-copy mb-3">{heroTagline}</p>
-
-              <div className="setup-hero-chips d-flex flex-wrap gap-2">
-                <span className="setup-hero-chip">SMART EXAMINATION PLATFORM</span>
-              </div>
-
-              <p className="setup-hero-eyebrow text-uppercase mt-3">
-                Administration Setup Console
-              </p>
-            </div>
-
-            <div className="setup-stat-grid">
-              {heroStats.map((stat) => (
-                <Link key={stat.key} to={stat.route} className="setup-stat-card">
-                  <div className="setup-stat-label">{stat.label}</div>
-                  <div className="setup-stat-value">{stat.value}</div>
-                  <div className="setup-stat-meta">{stat.meta}</div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
+        <h4 className="mb-4">Exam Dashboard</h4>
 
         <div className="dashboard-cards">
           {metrics.map((metric) => (

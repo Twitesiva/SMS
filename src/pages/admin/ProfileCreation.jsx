@@ -3,7 +3,7 @@ import AdShellAdmin from '../../components/AdShellAdmin'
 import { supabase } from '../../../supabaseClient'
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
-import crestPrimary from '../../assets/media/images.png'
+
 
 
 export default function ProfileCreation() {
@@ -155,54 +155,41 @@ export default function ProfileCreation() {
 
   return (
     <AdShellAdmin
-      brandTitle="Admin Management Console"
+      brandTitle="ADMIN PORTAL"
       footerTitle="Admin Management Studio"
       footerSubtitle="Crafted for Vijayam College"
     >
       <div className="desktop-container" style={{ overflowX: 'hidden' }}>
-        <section className="setup-hero mb-4">
-          <div className="setup-hero__inner">
-            <div className="setup-hero__content">
-              <div className="setup-hero__crest" aria-hidden="true">
-                <img src={crestPrimary} alt="Vijayam crest" />
-              </div>
-              <div>
-                <div className="setup-hero__eyebrow">Profile Creation</div>
-                <h1 className="setup-hero__title mb-1">Vijayam College of Arts & Science</h1>
-                <p className="setup-hero__subtitle mb-0">
-                  Collect, verify, and onboard applicants with confidence.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
+        <h4 className="mb-4">Profile Creation</h4>
 
         <div className="row g-4 justify-content-center mx-0">
           <div className="col-12">
-            <div className="card card-soft p-4">
-              <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                <div>
-                  <h4 className="mb-1">Staff Profile creation</h4>
-                  <p className="text-muted mb-0">Create new staff profiles with academic, contact, and employment details.</p>
+            <div className="students-section-shell card card-soft mb-4">
+              <div className="students-section-shell-header mb-3">
+                <div className="d-flex justify-content-between align-items-center w-100">
+                  <div>
+                    <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>Staff Profile Creation</h5>
+                    <p className="students-section-copy mb-0">Create new staff profiles with academic, contact, and employment details.</p>
+                  </div>
+                  <button type="button" className="btn btn-outline-light btn-sm" onClick={() => {
+                    setFormData({
+                      staff_id: '',
+                      full_name: '',
+                      gender: '',
+                      dob: '',
+                      phone: '',
+                      aadhar: '',
+                      email: '',
+                      address: '',
+                      designation: '',
+                      qualification: '',
+                      experience: '',
+                      joining_date: '',
+                      status: ''
+                    })
+                    setErrors({})
+                  }}>Reset</button>
                 </div>
-                <button type="button" className="btn btn-outline-secondary" onClick={() => {
-                  setFormData({
-                    staff_id: '',
-                    full_name: '',
-                    gender: '',
-                    dob: '',
-                    phone: '',
-                    aadhar: '',
-                    email: '',
-                    address: '',
-                    designation: '',
-                    qualification: '',
-                    experience: '',
-                    joining_date: '',
-                    status: ''
-                  })
-                  setErrors({})
-                }}>Reset</button>
               </div>
 
               <form className="row g-3" onSubmit={handleSubmit}>

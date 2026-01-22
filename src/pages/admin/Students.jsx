@@ -9,7 +9,7 @@ import { validateRequiredFields } from "../../lib/validation";
 import { api } from "../../lib/mockApi";
 import "../admin/Setup.css";
 import "./AdminContent.css";
-import crestPrimary from "../../assets/media/images.png";
+
 
 export default function Students() {
   const [students, setStudents] = useState([]);
@@ -1329,28 +1329,9 @@ export default function Students() {
   return (
     <AdShellAdmin>
       <div className="students-page-shell">
-        <section className="setup-hero mb-4">
-          <div className="setup-hero__inner">
-            <div className="setup-hero__content">
-              <div className="setup-hero__crest" aria-hidden="true">
-                <img src={crestPrimary} alt="Vijayam crest" />
-              </div>
-              <div>
-                <div className="setup-hero__eyebrow">Student Management</div>
-                <h1 className="setup-hero__title mb-1">Vijayam College of Arts & Science</h1>
-                <p className="setup-hero__subtitle mb-0">
-                  Manage student profiles, academic records and fees.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
+        <h4 className="mb-4">Student Management</h4>
 
-        <div className="students-hero mb-4">
-          <div className="px-3 pt-3 pb-3">
-            <h2 className="students-hero-title mb-0">Student Management</h2>
-          </div>
-        </div>
+
 
         <div className="students-filter-panel card card-soft mb-4 p-4">
           <div className="d-flex flex-wrap justify-content-between gap-3 mb-4">
@@ -1361,14 +1342,6 @@ export default function Students() {
               </p>
             </div>
             <div className="text-end fw-bold text-dark">
-              <div>
-                Showing <strong>{filteredStudents.length}</strong> of {students.length}
-              </div>
-              <div>
-                {filters.current_semester
-                  ? `Payment semester: ${filters.current_semester}`
-                  : "Select semester for payment insights"}
-              </div>
             </div>
           </div>
           <div className="row g-3">
@@ -1468,14 +1441,14 @@ export default function Students() {
         <div className="students-table-panel card card-soft p-4">
           <div className="students-table-panel-header mb-3">
             <div>
-              <h5 className="students-table-panel-title fw-bold mb-1">
+              <h5 className="students-table-panel-title mb-1" style={{ color: '#ffffff' }}>
                 Students
               </h5>
-              <p className="students-table-panel-copy mb-0">
+              <p className="students-table-panel-copy mb-0" style={{ color: '#ffffff' }}>
                 Tap any row to review details, edit records or inspect payments.
               </p>
             </div>
-            <div className="students-table-panel-meta text-end">
+            <div className="students-table-panel-meta text-end" style={{ color: '#ffffff' }}>
               {loading ? "Refreshing data..." : `${filteredStudents.length} students listed`}
             </div>
           </div>
@@ -1483,7 +1456,7 @@ export default function Students() {
             <table className="table table-borderless table-hover align-middle mb-0">
               <thead className="table-light">
                 <tr>
-                  <th style={{ width: "70px" }}></th>
+                  <th style={{ width: "70px" }}>Photo</th>
                   <th>Student ID</th>
                   <th>Name</th>
                   <th>Hall Ticket</th>

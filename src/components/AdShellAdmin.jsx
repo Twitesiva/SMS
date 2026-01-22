@@ -1,11 +1,9 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../store/auth";
-import { supabase } from "../../supabaseClient";
-import { logActivity } from "../lib/logger";
 import logo from "../assets/media/images.png";
-import "./AdminPortalShell.css";
-import "../pages/admin/AdminContent.css";
+import './AdminPortalShell.css'; // Will reuse Staff Portal Styles essentially through updated CSS
+import '../pages/staff/StaffPortal.css'; // Explicitly inherit Staff styles for layout
 
 const adminPortalNavGroups = [
     {
@@ -82,7 +80,7 @@ const adminPortalNavGroups = [
         items: [
             {
                 to: '/admin-portal/subject-mapping',
-                label: 'Subject Mapping',
+                label: 'Subject Mapping for Staff',
                 icon: 'bi-person-lines-fill'
             }
         ]
@@ -133,33 +131,37 @@ const adminPortalNavGroups = [
     },
 ];
 
-const SIDEBAR_SCROLL_KEY = "admin-shell-sidebar-scroll";
-const isUuid = (value = "") =>
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-        String(value)
-    );
-
-const isRouteActive = (pathname, to) => {
-    return pathname === to || pathname.startsWith(`${to}/`);
-};
-
 export default function AdShellAdmin({
     children,
-    onSignOut,
     navGroups,
-    brandTitle = "Admin Management Console",
-    brandSubtitle = "",
-    className = "",
+    brandTitle = "ADMIN PORTAL",
 }) {
     const { pathname } = useLocation();
     const navTo = useNavigate();
     const { signOut, user } = useAuth();
     const [collapsed, setCollapsed] = useState(false);
+    const [mobileOpen, setMobileOpen] = useState(false);
     const [expandedGroups, setExpandedGroups] = useState({});
-    const sidebarRef = useRef(null);
 
     // Determine which nav groups to use
     const activeNavGroups = navGroups || adminPortalNavGroups;
+
+    const isRouteActive = (pathname, to) => {
+        return pathname === to || pathname.startsWith(`${to}/`);
+    };
+
+    const toggleGroup = (index) => {
+        if (activeNavGroups[index]?.static) return;
+        setExpandedGroups((prev) => ({
+            ...prev,
+            [index]: !prev[index],
+        }));
+    };
+
+    const handleLogout = () => {
+        signOut();
+        navTo("/");
+    };
 
     // Automatically expand the group that contains the current active route
     useEffect(() => {
@@ -171,253 +173,139 @@ export default function AdShellAdmin({
                 ...prev,
                 [activeGroupIndex]: true,
             }));
-        } else {
-            // Handle static groups effectively
-            const staticGroupIndex = activeNavGroups.findIndex(
-                (group) => group.static && group.items.some((item) => isRouteActive(pathname, item.to))
-            );
-            if (staticGroupIndex !== -1) {
-                setExpandedGroups((prev) => ({
-                    ...prev,
-                    [staticGroupIndex]: true,
-                }));
-            }
         }
+    }, [pathname, activeNavGroups]);
 
-        // Log page view
-        if (user?.id && isUuid(user.id)) {
-            // Find the human-readable label for the current page
-            let pageLabel = pathname;
-            for (const group of activeNavGroups) {
-                const found = group.items.find(item => isRouteActive(pathname, item.to));
-                if (found) {
-                    pageLabel = found.label;
-                    break;
-                }
-            }
-
-            logActivity(supabase, {
-                user,
-                role: user.role,
-                action: 'VIEW',
-                page: pageLabel,
-                description: `${(user.role || 'User').charAt(0).toUpperCase() + (user.role || 'user').slice(1).toLowerCase()} viewed page ${pageLabel}`
-            });
-        }
-    }, [pathname, user, activeNavGroups]);
-
-    const toggleGroup = (index) => {
-        if (activeNavGroups[index]?.static) return;
-        setExpandedGroups((prev) => ({
-            ...prev,
-            [index]: !prev[index],
-        }));
-    };
-
-    const handleSignOut = () => {
-        const handled = typeof onSignOut === "function" ? onSignOut() : false;
-        if (!handled) {
-            try {
-                signOut();
-            } catch { }
-            navTo("/");
-        }
-    };
-
-    // Restore the sidebar scroll position after navigation changes.
-    useEffect(() => {
-        const navElement = sidebarRef.current;
-        if (!navElement) {
-            return;
-        }
-        if (typeof window === "undefined" || !window.sessionStorage) {
-            return;
-        }
-        const storedValue = window.sessionStorage.getItem(SIDEBAR_SCROLL_KEY);
-        if (storedValue !== null) {
-            const scrollTop = Number(storedValue);
-            if (!Number.isNaN(scrollTop)) {
-                navElement.scrollTop = scrollTop;
-            }
-        }
-    }, []);
-
-    // Save the scroll offsets so the same section stays visible on the next page.
-    useEffect(() => {
-        const navElement = sidebarRef.current;
-        if (!navElement) {
-            return;
-        }
-
-        const handleScroll = () => {
-            if (typeof window !== "undefined" && window.sessionStorage) {
-                window.sessionStorage.setItem(
-                    SIDEBAR_SCROLL_KEY,
-                    String(navElement.scrollTop)
-                );
-            }
-        };
-
-        navElement.addEventListener("scroll", handleScroll);
-        return () => {
-            navElement.removeEventListener("scroll", handleScroll);
-        };
-    }, [collapsed]);
 
     return (
-        <div
-            className={`admin-shell d-grid ${className}`.trim()}
-            style={{ gridTemplateColumns: collapsed ? "92px 1fr" : "330px 1fr" }}
-        >
-            <aside
-                className={`sidebar-modern d-flex flex-column ${collapsed ? "collapsed" : ""
-                    }`}
-            >
-                <div className="sidebar-header">
-                    <div className="sidebar-brand d-flex align-items-center gap-3">
-                        <img
-                            src={logo}
-                            alt="Vijayam Logo"
-                            className="brand-logo shadow-sm"
-                            style={{ width: 80, height: 80, objectFit: "contain" }}
-                        />
-                        <div className="sidebar-brand-info">
-                            <div className="sidebar-brand-title">
-                                <span className="sidebar-brand-title__main">Vijayam</span>
-                                <span className="sidebar-brand-title__sub">
-                                    Arts & Science College
-                                </span>
-                            </div>
-                            {brandSubtitle ? (
-                                <div
-                                    className="sidebar-brand-subtitle fw-semibold"
-                                    style={{ fontSize: "0.85rem", letterSpacing: "0.18em" }}
-                                >
-                                    {brandSubtitle}
-                                </div>
-                            ) : null}
-                        </div>
+        <div className={`staff-portal ${collapsed ? 'staff-portal--collapsed' : ''} ${mobileOpen ? 'staff-portal--mobile-open' : ''}`}>
+            {/* Mobile Backdrop */}
+            <div
+                className="staff-portal__backdrop"
+                onClick={() => setMobileOpen(false)}
+                aria-hidden="true"
+            ></div>
+
+            <aside className="staff-sidebar">
+                <div className={`staff-sidebar__header d-flex align-items-center ${collapsed ? 'flex-column justify-content-center py-4 gap-3' : 'px-4 py-4'}`}>
+                    <img src={logo} alt="Vijayam crest" className="staff-header__logo" />
+                    <div className={`staff-sidebar__brand ms-3 ${collapsed ? 'd-none' : ''}`}>
+                        <div className="fw-bold text-white text-uppercase" style={{ fontSize: '1rem', letterSpacing: '0.05em', lineHeight: '1.2' }}>Vijayam</div>
+                        <div className="text-white-50 small text-uppercase" style={{ fontSize: '0.75rem', letterSpacing: '0.1em' }}>Arts & Science College</div>
                     </div>
+
                     <button
-                        className="btn btn-sm btn-toggle"
-                        onClick={() => setCollapsed(!collapsed)}
-                        title={collapsed ? "Expand navigation" : "Collapse navigation"}
+                        type="button"
+                        className={`staff-sidebar__toggle ${collapsed ? '' : 'ms-auto'}`}
+                        onClick={() => setCollapsed((prev) => !prev)}
+                        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                     >
-                        <i
-                            className={`bi ${collapsed ? "bi-chevron-double-right" : "bi-chevron-double-left"
-                                }`}
-                        ></i>
+                        <i className={`bi ${collapsed ? 'bi-chevron-double-right' : 'bi-chevron-double-left'}`} style={{ color: 'white' }}></i>
                     </button>
                 </div>
 
-                <div className="sidebar-divider" />
-
-                <nav
-                    ref={sidebarRef}
-                    className="sidebar-nav flex-grow-1 d-flex flex-column gap-1"
-                >
+                <nav className="staff-sidebar__nav">
                     {activeNavGroups.map((group, groupIndex) => {
                         const isStatic = group.static;
-                        if (isStatic) {
-                            const item = group.items[0];
-                            const isActive = isRouteActive(pathname, item.to);
-                            return (
-                                <div key={`static-${groupIndex}`} className="nav-group">
-                                    {!collapsed && (
-                                        <Link
-                                            to={item.to}
-                                            title={item.label}
-                                            className={`nav-group-header item-box fw-bold d-flex align-items-center user-select-none ${isActive ? "active" : ""}`}
-                                        >
-                                            <div className="d-flex align-items-center gap-2">
-                                                <i
-                                                    className={`bi ${item.icon}`}
-                                                    style={{ fontSize: "0.9rem", opacity: 0.8 }}
-                                                ></i>
-                                                <span className="nav-group-title">{group.title}</span>
-                                            </div>
-                                        </Link>
-                                    )}
-                                    {collapsed && (
-                                        <Link
-                                            to={item.to}
-                                            title={item.label}
-                                            className={`nav-item-modern ${isActive ? "active" : ""}`}
-                                        >
-                                            <span className="icon">
-                                                <i className={`bi ${item.icon}`}></i>
-                                            </span>
-                                            <span className="label">{item.label}</span>
-                                        </Link>
-                                    )}
-                                </div>
-                            );
-                        }
-
                         const isActiveGroup = group.items.some((item) => isRouteActive(pathname, item.to));
                         const isExpanded = expandedGroups[groupIndex];
 
+                        if (isStatic) {
+                            const item = group.items[0];
+                            return (
+                                <Link
+                                    key={item.to}
+                                    to={item.to}
+                                    className={`staff-sidebar__link ${isRouteActive(pathname, item.to) ? 'active' : ''}`}
+                                >
+                                    <i className={`bi ${item.icon}`}></i>
+                                    <span>{item.label}</span>
+                                </Link>
+                            )
+                        }
+
+                        // Collapsible Groups
                         return (
-                            <div key={groupIndex} className="nav-group">
-                                {!collapsed && (
-                                    <div
-                                        className={`nav-group-header item-box fw-bold d-flex justify-content-between align-items-center user-select-none ${isActiveGroup ? "active-group" : ""}`}
-                                        onClick={() => toggleGroup(groupIndex)}
-                                    >
-                                        <div className="d-flex align-items-center gap-2">
-                                            <i className="bi bi-grid-fill" style={{ fontSize: "0.9rem", opacity: 0.8 }}></i>
-                                            <span className="nav-group-title">{group.title}</span>
-                                        </div>
-                                        <i
-                                            className={`bi bi-chevron-${isExpanded ? "up" : "down"}`}
-                                            style={{ fontSize: "0.85rem", opacity: 0.7 }}
-                                        ></i>
+                            <div key={groupIndex} className="nav-group-wrapper">
+                                <div
+                                    className={`staff-sidebar__link ${isActiveGroup ? 'group-active' : ''}`}
+                                    onClick={() => toggleGroup(groupIndex)}
+                                    style={{ cursor: 'pointer', justifyContent: 'space-between' }}
+                                >
+                                    <div className="d-flex align-items-center gap-2">
+                                        <i className={`bi ${group.icon || 'bi-grid-fill'}`} style={{ fontSize: "0.9rem", opacity: 0.8 }}></i>
+                                        <span>{group.title}</span>
+                                    </div>
+                                    <i
+                                        className={`bi bi-chevron-${isExpanded ? "up" : "down"} ms-auto`}
+                                        style={{ fontSize: "0.8rem", opacity: 0.7 }}
+                                    ></i>
+                                </div>
+
+                                {isExpanded && !collapsed && (
+                                    <div className="ps-3 pe-2 pb-2">
+                                        {group.items.map((item) => (
+                                            <Link
+                                                key={item.to}
+                                                to={item.to}
+                                                className={`staff-sidebar__link ${isRouteActive(pathname, item.to) ? 'active' : ''}`}
+                                                style={{ padding: '8px 12px', fontSize: '0.9rem', marginBottom: '2px', background: isRouteActive(pathname, item.to) ? 'rgba(255,255,255,0.15)' : 'transparent', border: 'none' }}
+                                            >
+                                                <i className={`bi ${item.icon}`} style={{ fontSize: '0.85rem' }}></i>
+                                                <span style={{ fontSize: '0.85rem' }}>{item.label}</span>
+                                            </Link>
+                                        ))}
                                     </div>
                                 )}
-                                {collapsed && (
-                                    <div className="nav-group-divider my-2 border-top mx-3 opacity-25"></div>
-                                )}
-                                <div className={!collapsed && !isExpanded ? "d-none" : ""}>
-                                    {group.items.map((item) => (
-                                        <Link
-                                            key={item.to}
-                                            to={item.to}
-                                            title={item.label}
-                                            className={`nav-item-modern ${isRouteActive(pathname, item.to) ? "active" : ""}`}
-                                        >
-                                            <span className="icon">
-                                                <i className={`bi ${item.icon}`}></i>
-                                            </span>
-                                            <span className="label">{item.label}</span>
-                                        </Link>
-                                    ))}
-                                </div>
                             </div>
-                        );
+                        )
                     })}
                 </nav>
 
-                <div className="sidebar-footer text-center mt-auto pb-3">
+                <div className="staff-sidebar__footer text-center mt-auto pb-3">
                     <div style={{ color: "rgba(255,255,255,0.8)", fontSize: "1.1rem" }}>
                         Made by <a href="https://www.twite.ai" target="_blank" rel="noopener noreferrer" style={{ color: "#fff", textDecoration: "none", fontWeight: "bold" }}>Twite AI Technologies</a>
                     </div>
                 </div>
             </aside>
 
-            <main className="admin-main p-4">
-                <div className="brandbar rounded px-3 py-2 mb-3 d-flex align-items-center justify-content-between header-shadow">
-                    <div className="brandbar-title">{brandTitle}</div>
-                    <button
-                        className="btn btn-outline-secondary modern-signout"
-                        onClick={handleSignOut}
-                        title="Sign out"
-                    >
-                        <i className="bi bi-box-arrow-right me-2"></i>Sign out
-                    </button>
-                </div>
-                <div className="admin-main-scroll admin-content">{children}</div>
-            </main>
-        </div>
-    );
-}
+            <div className="staff-main-wrapper">
+                <header className="staff-header staff-header--global">
+                    <div className="staff-header__brand">
+                        <button
+                            type="button"
+                            className="staff-header__toggle staff-header__toggle--mobile"
+                            onClick={() => setMobileOpen((prev) => !prev)}
+                            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+                        >
+                            <i className={`bi ${mobileOpen ? 'bi-x-lg' : 'bi-list'}`}></i>
+                        </button>
+                        <div className="staff-header__portal">{brandTitle}</div>
+                    </div>
 
+                    <div className="staff-header__right">
+                        <div className="d-flex align-items-center gap-3 me-3 text-white border-end pe-3">
+                            <div className="text-end" style={{ lineHeight: '1.2', display: 'none' }}>
+                                <div className="fw-bold small">{user?.user_metadata?.full_name || user?.email || 'Admin User'}</div>
+                                <div className="small opacity-75">{user?.role ? (user.role.charAt(0).toUpperCase() + user.role.slice(1)) : 'Admin'}</div>
+                            </div>
+                            <div className="text-end small d-none d-md-block" style={{ lineHeight: '1.2', borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '1rem' }}>
+                                <div>{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                                <div className="opacity-75">{new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
+                            </div>
+                        </div>
+                        <button className="staff-header__logout" type="button" onClick={handleLogout}>
+                            <i className="bi bi-box-arrow-right"></i> Logout
+                        </button>
+                    </div>
+                </header>
+
+                <div className="staff-body">
+                    <div className="staff-main admin-content">
+                        {children}
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}

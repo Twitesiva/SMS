@@ -157,26 +157,18 @@ export default function AdmissionsOverview() {
     >
       <div className="admissions-page">
 
-        <section className="setup-hero mb-4">
-          <div className="setup-hero__inner">
-            <div className="setup-hero__content">
-              <div className="setup-hero__crest" aria-hidden="true">
-                <img src={crestPrimary} alt="Vijayam crest" />
-              </div>
-              <div>
-                <div className="setup-hero__eyebrow">Admissions 2026</div>
-                <h1 className="setup-hero__title mb-1">Vijayam College of Arts & Science</h1>
 
-                <p className="setup-hero__subtitle mb-0">
-                  Admission portal for group registration and student engagement.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
 
-        <div className="row g-4 align-items-stretch">
-          <div className="col-12 col-xl-4">
+
+        {/* Page Header */}
+        <div className="d-flex align-items-center justify-content-between mb-4">
+          <h3 className="fw-bold mb-0">Admission Overview</h3>
+        </div>
+
+        {/* Stats Row */}
+        <div className="row g-4 align-items-stretch mb-4">
+          {/* Applied Admissions */}
+          <div className="col-12 col-md-4">
             <div className="card card-soft p-4 h-100">
               <div className="d-flex justify-content-between align-items-start">
                 <div>
@@ -193,47 +185,99 @@ export default function AdmissionsOverview() {
             </div>
           </div>
 
-          <div className="col-12 col-xl-8">
+          {/* Pending Admissions */}
+          <div className="col-12 col-md-4">
             <div className="card card-soft p-4 h-100">
-              <div className="d-flex justify-content-between align-items-center mb-3">
+              <div className="d-flex justify-content-between align-items-start">
                 <div>
-                  <h5 className="mb-1">Filters</h5>
-                  <p className="text-muted mb-0">Narrow down admissions by group and course.</p>
+                  <div className="text-uppercase text-muted small">Pending Admissions</div>
+                  <div className="display-6 fw-bold">
+                    {applications.filter(app => {
+                      const adm = Array.isArray(app.admission) ? app.admission[0] : app.admission
+                      return (adm?.admission_status || 'Pending') !== 'APPROVED'
+                    }).length}
+                  </div>
+                  <div className="text-muted small">
+                    Showing {filteredApplications.filter(app => {
+                      const adm = Array.isArray(app.admission) ? app.admission[0] : app.admission
+                      return (adm?.admission_status || 'Pending') !== 'APPROVED'
+                    }).length} after filters
+                  </div>
                 </div>
-                <button type="button" className="btn btn-outline-secondary" onClick={clearFilters}>
-                  Clear
-                </button>
-              </div>
-              <div className="row g-3">
-                <div className="col-md-6">
-                  <label className="form-label">Group</label>
-                  <select className="form-select" value={filters.group_id} onChange={handleGroupChange}>
-                    <option value="">All groups</option>
-                    {groups.map((group) => (
-                      <option key={group.id} value={group.id}>
-                        {group.name || group.group_name || group.code}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-md-6">
-                  <label className="form-label">Course</label>
-                  <select
-                    className="form-select"
-                    value={filters.course_id}
-                    onChange={handleCourseChange}
-                    disabled={!filteredCourseOptions.length}
-                  >
-                    <option value="">All courses</option>
-                    {filteredCourseOptions.map((course) => (
-                      <option key={course.id} value={course.id}>
-                        {course.code ? `${course.code} - ` : ''}
-                        {course.name || course.course_name}
-                      </option>
-                    ))}
-                  </select>
+                <div className="display-6 text-muted">
+                  <i className="bi bi-clock-history"></i>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Approved Admissions */}
+          <div className="col-12 col-md-4">
+            <div className="card card-soft p-4 h-100">
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <div className="text-uppercase text-muted small">Approved Admissions</div>
+                  <div className="display-6 fw-bold">
+                    {applications.filter(app => {
+                      const adm = Array.isArray(app.admission) ? app.admission[0] : app.admission
+                      return (adm?.admission_status || 'Pending') === 'APPROVED'
+                    }).length}
+                  </div>
+                  <div className="text-muted small">
+                    Showing {filteredApplications.filter(app => {
+                      const adm = Array.isArray(app.admission) ? app.admission[0] : app.admission
+                      return (adm?.admission_status || 'Pending') === 'APPROVED'
+                    }).length} after filters
+                  </div>
+                </div>
+                <div className="display-6 text-muted">
+                  <i className="bi bi-person-check"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Filters Row */}
+        <div className="card card-soft p-4 mb-4">
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <h5 className="mb-1">Filters</h5>
+              <p className="text-muted mb-0">Narrow down admissions by group and course.</p>
+            </div>
+            <button type="button" className="btn btn-outline-secondary" onClick={clearFilters}>
+              Clear
+            </button>
+          </div>
+          <div className="row g-3">
+            <div className="col-md-6">
+              <label className="form-label">Group</label>
+              <select className="form-select" value={filters.group_id} onChange={handleGroupChange}>
+                <option value="">All groups</option>
+                {groups.map((group) => (
+                  <option key={group.id} value={group.id}>
+                    {group.name || group.group_name || group.code}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">Course</label>
+              <select
+                className="form-select"
+                value={filters.course_id}
+                onChange={handleCourseChange}
+                disabled={!filteredCourseOptions.length}
+              >
+                <option value="">All courses</option>
+                {filteredCourseOptions.map((course) => (
+                  <option key={course.id} value={course.id}>
+                    {course.code ? `${course.code} - ` : ''}
+                    {course.name || course.course_name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>

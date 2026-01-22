@@ -1251,64 +1251,7 @@ export default function FeesGeneration() {
 
   return (
     <AdminShell>
-      <section className="setup-hero mb-4">
-        <div className="setup-hero-grid">
-          <div className="setup-hero-copywrap">
-            <div className="setup-hero-crest">
-              <img src={crestPrimary} alt="Vijayam crest" />
-            </div>
-
-            <h3 className="setup-hero-title mb-2">Vijayam Arts & Science College</h3>
-
-            <p className="setup-hero-copy mb-3">{heroTagline}</p>
-
-            <div className="setup-hero-chips d-flex flex-wrap gap-2">
-              <span className="setup-hero-chip">SMART EXAMINATION PLATFORM</span>
-            </div>
-
-            <p className="setup-hero-eyebrow text-uppercase mt-3">
-              Administration Setup Console
-            </p>
-          </div>
-
-          <div className="setup-stat-grid">
-            {setupHeroStats.map((stat) => (
-              <Link key={stat.key} to={stat.route} className="setup-stat-card">
-                <div className="setup-stat-label">{stat.label}</div>
-                <div className="setup-stat-value">{stat.value}</div>
-                <div className="setup-stat-meta">{stat.meta}</div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <div className="students-hero mb-4">
-        <div className="px-3 pt-3">
-          <p className="students-hero-eyebrow text-uppercase mb-1">Departments</p>
-          <h2 className="students-hero-title">Fees Management</h2>
-          <p className="students-hero-copy mb-0">
-            Manage fee categories, structures, and supplements with the same payments-style surface.
-          </p>
-        </div>
-        <div className="students-stats-grid row g-3 px-3 pb-3">
-          {departmentHeroStats.map((stat) => (
-            <div className="col-6 col-md-3" key={stat.label}>
-              <div className="students-hero-card h-100 p-3">
-                <div className="students-hero-stat-label small mb-1 text-white">
-                  {stat.label}
-                </div>
-                <div className="fs-3 fw-bold students-hero-stat-value text-white">
-                  {stat.value ?? 0}
-                </div>
-                <div className="students-hero-stat-meta small text-white">
-                  {stat.meta}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <h4 className="mb-4">Exam Fees Management</h4>
 
       {/* ---------------- MAIN FILTER PANEL ---------------- */}
       <div
@@ -1320,9 +1263,6 @@ export default function FeesGeneration() {
           <div className="students-table-panel-header mb-3">
             <div>
               <p className="students-table-panel-title mb-1" style={{ color: 'white' }}>Fee Categories</p>
-              <p className="students-table-panel-copy small mb-0">
-                Manage the categories that can be applied to any fee structure.
-              </p>
             </div>
           </div>
           <div className="card-body">
@@ -1422,9 +1362,6 @@ export default function FeesGeneration() {
           <div className="students-table-panel-header mb-3">
             <div>
               <p className="students-table-panel-title mb-1" style={{ color: 'white' }}>Fee Structure</p>
-              <p className="students-table-panel-copy small mb-0">
-                Review the current fee structure and assign categories to academic groups.
-              </p>
             </div>
           </div>
           <div className="card-body">
@@ -1752,9 +1689,6 @@ export default function FeesGeneration() {
               <div className="students-table-panel-header mb-3">
                 <div>
                   <p className="students-table-panel-title mb-1" style={{ color: 'white' }}>Exam Deadlines</p>
-                  <p className="students-table-panel-copy small mb-0">
-                    Manage last dates for exam registrations.
-                  </p>
                 </div>
               </div>
 
@@ -1904,9 +1838,6 @@ export default function FeesGeneration() {
               <div className="students-table-panel-header mb-3">
                 <div>
                   <p className="students-table-panel-title mb-1" style={{ color: 'white' }}>Fine Amount</p>
-                  <p className="students-table-panel-copy small mb-0">
-                    Configure the fine amount for late fee payments.
-                  </p>
                 </div>
               </div>
 
@@ -2063,9 +1994,6 @@ export default function FeesGeneration() {
               <div className="students-table-panel-header mb-3">
                 <div>
                   <p className="students-table-panel-title mb-1" style={{ color: 'white' }}>Supplementary Fees</p>
-                  <p className="students-table-panel-copy small mb-0">
-                    Configure fees for supplementary examinations by paper count.
-                  </p>
                 </div>
               </div>
 

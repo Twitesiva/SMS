@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../../supabaseClient'
 import AdShellAdmin from '../../components/AdShellAdmin'
-import crestPrimary from '../../assets/media/images.png'
+
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import './AdminContent.css'
@@ -251,27 +251,12 @@ export default function StaffSubjectMapping() {
 
     return (
         <AdShellAdmin
-            brandTitle="Admin Management Console"
+            brandTitle="ADMIN PORTAL"
             footerTitle="Admin Management Studio"
             footerSubtitle="Crafted for Vijayam College"
         >
             <div className="desktop-container">
-                <section className="setup-hero mb-4">
-                    <div className="setup-hero__inner">
-                        <div className="setup-hero__content">
-                            <div className="setup-hero__crest" aria-hidden="true">
-                                <img src={crestPrimary} alt="Vijayam crest" />
-                            </div>
-                            <div>
-                                <div className="setup-hero__eyebrow">Staff Management</div>
-                                <h1 className="setup-hero__title mb-1">Vijayam College of Arts & Science</h1>
-                                <p className="setup-hero__subtitle mb-0">
-                                    Assign staff members to subjects.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                <h4 className="mb-4">Subject Mapping for Staff</h4>
 
                 <div className="card card-soft p-4 mb-4">
                     <div className="row g-3">

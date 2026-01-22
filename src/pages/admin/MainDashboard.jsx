@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { api } from '../../lib/mockApi'
 import { supabase } from '../../../supabaseClient'
 import AdShellAdmin from '../../components/AdShellAdmin'
-import crestPrimary from '../../assets/media/images.png'
+
 import '../exam/Dashboard.css'
 import './Setup.css'
 import './AdminContent.css'
@@ -235,7 +235,7 @@ export default function MainDashboard() {
                     setPaymentChartData({
                         labels: ['Paid', 'Unpaid'],
                         datasets: [{
-                            label: 'Academic Fees',
+                            label: 'College Fees',
                             data: [uniquePaidStudents, unpaidCount],
                             backgroundColor: ['#42d29d', '#ff7b7b'],
                             borderRadius: 6,
@@ -285,12 +285,17 @@ export default function MainDashboard() {
                 labels: {
                     color: '#000000',
                     font: { weight: 'bold', size: 11 },
-                    padding: 20,
+                    padding: 10,
                     usePointStyle: true,
-                    pointStyle: 'circle'
+                    pointStyle: 'circle',
+                    boxWidth: 8
                 }
             }
         },
+        layout: {
+            padding: 0
+        },
+        cutout: '60%',
         maintainAspectRatio: false
     }
 
@@ -328,22 +333,7 @@ export default function MainDashboard() {
     return (
         <AdShellAdmin>
             <div className="desktop-container admin-content" style={{ overflowX: 'hidden' }}>
-                <section className="setup-hero mb-4">
-                    <div className="setup-hero__inner">
-                        <div className="setup-hero__content">
-                            <div className="setup-hero__crest" aria-hidden="true">
-                                <img src={crestPrimary} alt="Vijayam crest" />
-                            </div>
-                            <div>
-                                <div className="setup-hero__eyebrow">Admin Dashboard</div>
-                                <h1 className="setup-hero__title mb-1">Vijayam College of Arts & Science</h1>
-                                <p className="setup-hero__subtitle mb-0">
-                                    Collect, verify, and onboard applicants with confidence.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                <h4 className="mb-4">Admin Dashboard</h4>
 
                 <section className="px-4 mb-5">
                     <div className="dashboard-cards">
@@ -429,16 +419,16 @@ export default function MainDashboard() {
 
                         {/* Payment Chart */}
                         <div className="col-lg-4">
-                            <article className="dashboard-chart-card card-shadow h-100" style={{ minHeight: '400px' }}>
+                            <article className="dashboard-chart-card card-shadow h-100" style={{ minHeight: '400px', display: 'flex', flexDirection: 'column' }}>
                                 <div className="dashboard-chart-header">
                                     <div>
-                                        <h3>Fee Payment Status</h3>
-                                        <p className="mb-0 fw-bold">Academic fee collection overview</p>
+                                        <h3>College Fees</h3>
+                                        <p className="mb-0 fw-bold">College fee collection overview</p>
                                     </div>
                                 </div>
-                                <div className="dashboard-chart-wrapper">
+                                <div className="dashboard-chart-wrapper" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     {paymentChartData ? (
-                                        <div style={{ maxWidth: '300px', margin: '0 auto', height: '100%' }}>
+                                        <div style={{ width: '100%', height: '100%' }}>
                                             <Doughnut data={paymentChartData} options={doughnutOptions} />
                                         </div>
                                     ) : (

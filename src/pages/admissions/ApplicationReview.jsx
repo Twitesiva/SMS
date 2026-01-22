@@ -206,23 +206,7 @@ export default function ApplicationReview() {
             className="admin-shell--admissions"
         >
             <div className="admissions-page">
-                <section className="setup-hero mb-4">
-                  <div className="setup-hero__inner">
-                    <div className="setup-hero__content">
-                      <div className="setup-hero__crest" aria-hidden="true">
-                        <img src={crestPrimary} alt="Vijayam crest" />
-                      </div>
-                      <div>
-                        <div className="setup-hero__eyebrow">Admissions 2026</div>
-                        <h1 className="setup-hero__title mb-1">Vijayam College of Arts & Science</h1>
 
-                        <p className="setup-hero__subtitle mb-0">
-                          Admission portal for group registration and student engagement.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </section>
                 <div className="container-fluid p-0">
                     <h4 className="mb-4">Application Review</h4>
 

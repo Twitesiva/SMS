@@ -360,7 +360,7 @@ export default function SubjectsSection({
         <div className="students-section-shell card card-soft mb-4">
           <div className="students-section-shell-header mb-3">
             <div>
-              <h5 className="section-title mb-1">Sub-categories</h5>
+              <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>Sub-categories</h5>
               <p className="students-section-copy mb-0">
                 Organise subjects into meaningful buckets to keep assignments consistent.
               </p>
@@ -476,7 +476,7 @@ export default function SubjectsSection({
         <div className="students-section-shell card card-soft mb-4">
           <div className="students-section-shell-header mb-3">
             <div>
-              <h5 className="section-title mb-1">Subjects</h5>
+              <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>Subjects</h5>
               <p className="students-section-copy mb-0">
                 Flow from academic category and group to individual subject entries.
               </p>

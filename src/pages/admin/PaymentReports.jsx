@@ -5,7 +5,7 @@ import { supabase } from '../../../supabaseClient';
 import AdShellAdmin from '../../components/AdShellAdmin';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import crestPrimary from '../../assets/media/images.png';
+
 import '../exam/Dashboard.css';
 import './Setup.css';
 import './AdminContent.css';
@@ -312,29 +312,14 @@ export default function PaymentReports() {
 
     return (
         <AdShellAdmin
-            brandTitle="Admin Management Console"
+            brandTitle="ADMIN PORTAL"
             footerTitle="Admin Management Studio"
             footerSubtitle="Crafted for Vijayam College"
         >
             <div className="desktop-container" style={{ overflowX: 'hidden' }}>
 
                 {/* Header */}
-                <section className="setup-hero mb-4">
-                    <div className="setup-hero__inner">
-                        <div className="setup-hero__content">
-                            <div className="setup-hero__crest" aria-hidden="true">
-                                <img src={crestPrimary} alt="Vijayam crest" />
-                            </div>
-                            <div>
-                                <div className="setup-hero__eyebrow">Payment Reports</div>
-                                <h1 className="setup-hero__title mb-1">Vijayam College of Arts & Science</h1>
-                                <p className="setup-hero__subtitle mb-0">
-                                    Analyze fee collections, track pending payments, and generate detailed student financial reports.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                <h4 className="mb-4">Payment Reports</h4>
 
                 {/* Filters Bar */}
                 <div className="card shadow-sm border-0 mb-4">

@@ -205,7 +205,6 @@ export default function Staff() {
                 <div className="d-flex justify-content-between align-items-center mb-4">
                     <div>
                         <h2 className="fw-bold text-dark mb-1">Staff Management</h2>
-                        <p className="text-muted mb-0">Manage and view teaching staff details</p>
                     </div>
                     <div className="d-flex gap-2">
                         {/* Add button to create new teacher could go here if needed, linking to profile creation */}
@@ -234,14 +233,14 @@ export default function Staff() {
                 <div className="students-table-panel card card-soft p-4">
                     <div className="students-table-panel-header mb-3">
                         <div>
-                            <h5 className="students-table-panel-title fw-bold mb-1">
+                            <h5 className="students-table-panel-title mb-1" style={{ color: '#ffffff' }}>
                                 Staff Directory
                             </h5>
-                            <p className="students-table-panel-copy mb-0">
+                            <p className="students-table-panel-copy mb-0" style={{ color: '#ffffff' }}>
                                 Tap any row to review details or edit staff records.
                             </p>
                         </div>
-                        <div className="students-table-panel-meta text-end">
+                        <div className="students-table-panel-meta text-end" style={{ color: '#ffffff' }}>
                             {loading ? "Refreshing data..." : `${filteredTeachers.length} staff members listed`}
                         </div>
                     </div>
@@ -249,7 +248,7 @@ export default function Staff() {
                         <table className="table table-borderless table-hover align-middle mb-0">
                             <thead className="table-light">
                                 <tr>
-                                    <th style={{ width: "70px" }}></th>
+                                    <th style={{ width: "70px" }}>Photo</th>
                                     <th>Staff ID</th>
                                     <th>Name</th>
                                     <th>Designation</th>

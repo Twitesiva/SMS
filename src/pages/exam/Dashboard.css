@@ -3,21 +3,6 @@
   display: flex;
   flex-direction: column;
   gap: 1.75rem;
-  background: linear-gradient(180deg, rgba(5, 18, 39, 0.85), rgba(16, 60, 120, 0.65));
-  padding: 2rem;
-  border-radius: 32px;
-  overflow: hidden;
-  animation: gradientShift 20s ease infinite;
-}
-
-.dashboard-page::after {
-  content: "";
-  position: absolute;
-  inset: 1.5rem;
-  border-radius: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  pointer-events: none;
-  box-shadow: inset 0 0 30px rgba(255, 255, 255, 0.05);
 }
 
 .dashboard-hero {

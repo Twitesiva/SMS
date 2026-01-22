@@ -538,29 +538,14 @@ export default function AdmissionsApplication() {
         <AdmissionShell navGroups={navGroups} brandTitle="Admissions Portal" brandSubtitle="" className="admin-shell--admissions">
             <div className="admissions-page">
                 <div className="desktop-container" style={{ overflowX: 'hidden' }}>
-                    <section className="setup-hero mb-4">
-                        <div className="setup-hero__inner">
-                            <div className="setup-hero__content">
-                                <div className="setup-hero__crest" aria-hidden="true">
-                                    <img src={crestPrimary} alt="Vijayam crest" />
-                                </div>
-                                <div>
-                                    <div className="setup-hero__eyebrow">Admissions 2026</div>
-                                    <h1 className="setup-hero__title mb-1">Vijayam College of Arts & Science</h1>
-                                    <p className="setup-hero__subtitle mb-0">
-                                        Collect, verify, and onboard applicants with confidence.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
+
 
                     <div className="row g-4 justify-content-center mx-0">
-                        <div className="col-12 col-lg-11 col-xl-10">
+                        <div className="col-12">
                             <div className="card card-soft p-4 mb-4">
                                 <div className="d-flex justify-content-between align-items-center mb-3">
                                     <div>
-                                        <h4 className="mb-1">Student Application</h4>
+                                        <h4 className="mb-1">Student Application Final Review</h4>
                                         <p className="text-muted mb-0">Programme selection, personal profile, and uploads.</p>
                                     </div>
                                     <button type="button" className="btn btn-outline-secondary" onClick={resetAll}>Reset Form</button>

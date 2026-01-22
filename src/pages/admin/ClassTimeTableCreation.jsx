@@ -1,5 +1,5 @@
 import AdShellAdmin from '../../components/AdShellAdmin'
-import crestPrimary from '../../assets/media/images.png'
+
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../../lib/mockApi'
@@ -104,27 +104,12 @@ export default function ClassTimeTableCreation() {
 
     return (
         <AdShellAdmin
-            brandTitle="Admin Management Console"
+            brandTitle="ADMIN PORTAL"
             footerTitle="Admin Management Studio"
             footerSubtitle="Crafted for Vijayam College"
         >
             <div className="desktop-container" style={{ overflowX: 'hidden' }}>
-                <section className="setup-hero mb-4">
-                    <div className="setup-hero__inner">
-                        <div className="setup-hero__content">
-                            <div className="setup-hero__crest" aria-hidden="true">
-                                <img src={crestPrimary} alt="Vijayam crest" />
-                            </div>
-                            <div>
-                                <div className="setup-hero__eyebrow">Timetable Creation</div>
-                                <h1 className="setup-hero__title mb-1">Vijayam College of Arts & Science</h1>
-                                <p className="setup-hero__subtitle mb-0">
-                                    Collect, verify, and onboard applicants with confidence.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                <h4 className="mb-4">Class Time Table Creation</h4>
 
                 <div className="row g-4 justify-content-center mx-0">
                     <div className="col-12">

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import AdShellAdmin from '../../components/AdShellAdmin'
-import crestPrimary from '../../assets/media/images.png'
+
 import SubjectsSection from '../exam/Subjects'
 import { api } from '../../lib/mockApi'
 import { showToast } from '../../store/ui'
@@ -1045,27 +1045,12 @@ export default function Subjects() {
 
   return (
     <AdShellAdmin
-      brandTitle="Admin Management Console"
+      brandTitle="ADMIN PORTAL"
       footerTitle="Admin Management Studio"
       footerSubtitle="Crafted for Vijayam College"
     >
       <div className="desktop-container" style={{ overflowX: 'hidden' }}>
-        <section className="setup-hero mb-4">
-          <div className="setup-hero__inner">
-            <div className="setup-hero__content">
-              <div className="setup-hero__crest" aria-hidden="true">
-                <img src={crestPrimary} alt="Vijayam crest" />
-              </div>
-              <div>
-                <div className="setup-hero__eyebrow">Admin Management Console</div>
-                <h1 className="setup-hero__title mb-1">Vijayam College of Arts & Science</h1>
-                <p className="setup-hero__subtitle mb-0">
-                  Build and maintain subject structures for each program.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
+        <h4 className="mb-4">Subject Creation</h4>
 
         <div className="row g-4 justify-content-center mx-0">
           <div className="col-12">

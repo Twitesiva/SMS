@@ -1,5 +1,5 @@
 import AdShellAdmin from '../../components/AdShellAdmin'
-import crestPrimary from '../../assets/media/images.png'
+
 import { useEffect, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../../lib/mockApi'
@@ -656,34 +656,23 @@ export default function FeesCreation() {
 
     return (
         <AdShellAdmin
-            brandTitle="Admin Management Console"
+            brandTitle="ADMIN PORTAL"
             footerTitle="Admin Management Studio"
             footerSubtitle="Crafted for Vijayam College"
         >
             <div className="desktop-container fees-creation-page" style={{ overflowX: 'hidden' }}>
-                <section className="setup-hero mb-4">
-                    <div className="setup-hero__inner">
-                        <div className="setup-hero__content">
-                            <div className="setup-hero__crest" aria-hidden="true">
-                                <img src={crestPrimary} alt="Vijayam crest" />
-                            </div>
-                            <div>
-                                <div className="setup-hero__eyebrow">Fees Creation</div>
-                                <h1 className="setup-hero__title mb-1">Vijayam College of Arts & Science</h1>
-                                <p className="setup-hero__subtitle mb-0">
-                                    Collect, verify, and onboard applicants with confidence.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                <h4 className="mb-4">Fees Creation</h4>
 
                 <div className="row g-4 justify-content-center mx-0">
                     {/* Fee Categories Section */}
                     <div className="col-12">
-                        <div className="card card-soft p-4">
-                            <h4 className="mb-1">Fee Categories</h4>
-                            <p className="text-muted mb-3">Manage the categories that can be any fee structure.</p>
+                        <div className="students-section-shell card card-soft mb-4">
+                            <div className="students-section-shell-header mb-3">
+                                <div>
+                                    <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>Fee Categories</h5>
+                                    <p className="students-section-copy mb-0">Manage the categories that can be any fee structure.</p>
+                                </div>
+                            </div>
 
                             <div className="row align-items-end g-3">
                                 <div className="col-md-6">
@@ -749,13 +738,16 @@ export default function FeesCreation() {
 
                     <div className="col-12">
                         {/* Fee Structure Creation Card */}
-                        <div className="card card-soft p-4">
-                            <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                                <div>
-                                    <h4 className="mb-1">Student Fees creation</h4>
-                                    <p className="mb-0">Manage and create fee structures.</p>
+                        {/* Fee Structure Creation Card */}
+                        <div className="students-section-shell card card-soft mb-4">
+                            <div className="students-section-shell-header mb-3">
+                                <div className="d-flex justify-content-between align-items-center w-100">
+                                    <div>
+                                        <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>Student Fees Creation</h5>
+                                        <p className="students-section-copy mb-0">Manage and create fee structures.</p>
+                                    </div>
+                                    <button type="button" className="btn btn-outline-light btn-sm" onClick={handleReset}>Reset</button>
                                 </div>
-                                <button type="button" className="btn btn-outline-secondary" onClick={handleReset}>Reset</button>
                             </div>
 
                             {isLoading ? (
@@ -966,17 +958,19 @@ export default function FeesCreation() {
                     </div>
 
                     <div className="col-12">
-                        <div className="card card-soft p-4">
-                            <div className="d-flex justify-content-between align-items-center mb-3">
-                                <h4 className="mb-0">Saved Fee Structures</h4>
-                                {savedFeeStructures.length > 2 && (
-                                    <button
-                                        className="btn btn-sm btn-outline-primary"
-                                        onClick={() => setShowAllFeesModal(true)}
-                                    >
-                                        View All
-                                    </button>
-                                )}
+                        <div className="students-section-shell card card-soft mb-4">
+                            <div className="students-section-shell-header mb-3">
+                                <div className="d-flex justify-content-between align-items-center w-100">
+                                    <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>Saved Fee Structures</h5>
+                                    {savedFeeStructures.length > 2 && (
+                                        <button
+                                            className="btn btn-sm btn-outline-light"
+                                            onClick={() => setShowAllFeesModal(true)}
+                                        >
+                                            View All
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                             <div className="table-responsive">
                                 <table className="table table-hover align-middle fees-creation-table">

@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { api } from '../../lib/mockApi'
 import { supabase } from '../../../supabaseClient'
 import AdShellAdmin from '../../components/AdShellAdmin'
-import crestPrimary from '../../assets/media/images.png'
+
 import '../exam/Dashboard.css'
 import './Setup.css'
 import './AdminContent.css'
@@ -503,22 +503,7 @@ export default function AdminApplications() {
   return (
     <AdShellAdmin>
       <div className="desktop-container" style={{ overflowX: 'hidden' }}>
-        <section className="setup-hero mb-4">
-          <div className="setup-hero__inner">
-            <div className="setup-hero__content">
-              <div className="setup-hero__crest" aria-hidden="true">
-                <img src={crestPrimary} alt="Vijayam crest" />
-              </div>
-              <div>
-                <div className="setup-hero__eyebrow">Admin Applications</div>
-                <h1 className="setup-hero__title mb-1">Vijayam College of Arts & Science</h1>
-                <p className="setup-hero__subtitle mb-0">
-                  Collect, verify, and onboard applicants with confidence.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
+        <h4 className="mb-4">Student Application</h4>
 
 
 

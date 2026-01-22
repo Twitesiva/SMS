@@ -1304,64 +1304,7 @@ export default function Students() {
   return (
     <AdminShell>
       <div className="students-page-shell">
-        <section className="setup-hero mb-4">
-          <div className="setup-hero-grid">
-            <div className="setup-hero-copywrap">
-              <div className="setup-hero-crest">
-                <img src={crestPrimary} alt="Vijayam crest" />
-              </div>
-
-              <h3 className="setup-hero-title mb-2">Vijayam Arts & Science College</h3>
-
-              <p className="setup-hero-copy mb-3">{heroTagline}</p>
-
-              <div className="setup-hero-chips d-flex flex-wrap gap-2">
-                <span className="setup-hero-chip">SMART EXAMINATION PLATFORM</span>
-              </div>
-
-              <p className="setup-hero-eyebrow text-uppercase mt-3">
-                Administration Setup Console
-              </p>
-            </div>
-
-            <div className="setup-stat-grid">
-              {setupHeroStats.map((stat) => (
-                <Link key={stat.key} to={stat.route} className="setup-stat-card">
-                  <div className="setup-stat-label">{stat.label}</div>
-                  <div className="setup-stat-value">{stat.value}</div>
-                  <div className="setup-stat-meta">{stat.meta}</div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <div className="students-hero mb-4">
-          <div className="px-3 pt-3">
-            <p className="students-hero-eyebrow text-uppercase mb-1">Students</p>
-            <h2 className="students-hero-title">Student Management</h2>
-            <p className="students-hero-copy mb-0">
-              Monitor academic statuses and payments in one polished workspace.
-            </p>
-          </div>
-          <div className="students-stats-grid row g-3 px-3 pb-3">
-            {studentHeroStats.map((stat) => (
-              <div className="col-6 col-md-3" key={stat.label}>
-                <div className="students-hero-card h-100 p-3">
-                  <div className="students-hero-stat-label small mb-1 text-white">
-                    {stat.label}
-                  </div>
-                  <div className="fs-3 fw-bold students-hero-stat-value text-white">
-                    {stat.value}
-                  </div>
-                  <div className="students-hero-stat-meta small text-white">
-                    {stat.meta}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <h4 className="mb-4">Student Management</h4>
 
         <div className="students-filter-panel card card-soft mb-4 p-4">
           <div className="d-flex flex-wrap justify-content-between gap-3 mb-4">
@@ -1370,16 +1313,6 @@ export default function Students() {
               <p className="text-muted mb-0">
                 Use the hall ticket field or filters to quickly locate a student.
               </p>
-            </div>
-            <div className="text-end small text-muted">
-              <div>
-                Showing <strong>{filteredStudents.length}</strong> of {students.length}
-              </div>
-              <div>
-                {filters.current_semester
-                  ? `Payment semester: ${filters.current_semester}`
-                  : "Select semester for payment insights"}
-              </div>
             </div>
           </div>
           <div className="row g-3">
@@ -1479,14 +1412,14 @@ export default function Students() {
         <div className="students-table-panel card card-soft p-4">
           <div className="students-table-panel-header mb-3">
             <div>
-              <h5 className="students-table-panel-title fw-bold mb-1">
+              <h5 className="students-table-panel-title mb-1" style={{ color: '#ffffff' }}>
                 Students
               </h5>
-              <p className="students-table-panel-copy mb-0">
+              <p className="students-table-panel-copy mb-0" style={{ color: '#ffffff' }}>
                 Tap any row to review details, edit records or inspect payments.
               </p>
             </div>
-            <div className="students-table-panel-meta text-end">
+            <div className="students-table-panel-meta text-end" style={{ color: '#ffffff' }}>
               {loading ? "Refreshing data..." : `${filteredStudents.length} students listed`}
             </div>
           </div>
@@ -1494,7 +1427,7 @@ export default function Students() {
             <table className="table table-borderless table-hover align-middle mb-0">
               <thead className="table-light">
                 <tr>
-                  <th style={{ width: "70px" }}></th>
+                  <th style={{ width: "70px" }}>PHOTO</th>
                   <th>Student ID</th>
                   <th>Name</th>
                   <th>Hall Ticket</th>

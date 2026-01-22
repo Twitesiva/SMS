@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { api } from '../../lib/mockApi'
 import { supabase } from '../../../supabaseClient'
 import AdShellAdmin from '../../components/AdShellAdmin'
-import crestPrimary from '../../assets/media/images.png'
+
 import '../exam/Dashboard.css'
 import './Setup.css'
 import './AdminContent.css'
@@ -539,34 +539,19 @@ export default function FeesCollection() {
 
   return (
     <AdShellAdmin
-      brandTitle="Admin Management Console"
+      brandTitle="ADMIN PORTAL"
       footerTitle="Admin Management Studio"
       footerSubtitle="Crafted for Vijayam College"
     >
       <div className="desktop-container" style={{ overflowX: 'hidden' }}>
-        <section className="setup-hero mb-4">
-          <div className="setup-hero__inner">
-            <div className="setup-hero__content">
-              <div className="setup-hero__crest" aria-hidden="true">
-                <img src={crestPrimary} alt="Vijayam crest" />
-              </div>
-              <div>
-                <div className="setup-hero__eyebrow">Fees Collection</div>
-                <h1 className="setup-hero__title mb-1">Vijayam College of Arts & Science</h1>
-                <p className="setup-hero__subtitle mb-0">
-                  Collect payments, track balances, and issue receipts faster.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
+        <h4 className="mb-4">Fees Collection</h4>
 
         <div className="row g-4 justify-content-center mx-0">
           <div className="col-12 col-lg-4">
             <div className="students-section-shell card card-soft h-100">
               <div className="students-section-shell-header mb-3">
                 <div>
-                  <h5 className="section-title mb-1">Find Student</h5>
+                  <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>Find Student</h5>
                   <p className="students-section-copy mb-0">
                     Enter the student ID to load payment details.
                   </p>
