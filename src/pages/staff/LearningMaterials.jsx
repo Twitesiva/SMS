@@ -349,171 +349,173 @@ export default function LearningMaterials() {
   return (
     <StaffShell title="Learning Materials">
 
-      {/* 1. UPLOAD CONTAINER */}
-      <div className="card card-soft p-4 mb-4">
-        <h5 className="fw-bold mb-3">Upload New Material</h5>
-        <div className="row g-3 align-items-end">
-          <div className="col-md-4">
-            <label className="form-label small fw-bold text-muted">Select Subject</label>
-            <select
-              className="form-select"
-              value={uploadSubjectId}
-              onChange={(e) => setUploadSubjectId(e.target.value)}
-            >
-              <option value="">-- Choose Subject --</option>
-              {subjects.map(s => (
-                <option key={s.subject_id} value={s.subject_id}>
-                  {s.subject} ({s.code})
-                </option>
-              ))}
-            </select>
-            {uploadSubjectId && uploadedMaterials[uploadSubjectId] && uploadedMaterials[uploadSubjectId].length > 0 && (
-              <div className="text-danger small mt-1 fw-bold">
-                <i className="bi bi-exclamation-circle me-1"></i>
-                Already uploaded materials for this subject.
+      <div className="students-section-shell">
+        {/* 1. UPLOAD CONTAINER */}
+        <div className="student-card mb-4">
+          <div className="student-card__header">Upload New Material</div>
+          <div className="student-card__body">
+            <div className="row g-3 align-items-end">
+              <div className="col-md-4">
+                <label className="form-label small fw-bold text-muted">Select Subject</label>
+                <select
+                  className="form-select"
+                  value={uploadSubjectId}
+                  onChange={(e) => setUploadSubjectId(e.target.value)}
+                >
+                  <option value="">-- Choose Subject --</option>
+                  {subjects.map(s => (
+                    <option key={s.subject_id} value={s.subject_id}>
+                      {s.subject} ({s.code})
+                    </option>
+                  ))}
+                </select>
+                {uploadSubjectId && uploadedMaterials[uploadSubjectId] && uploadedMaterials[uploadSubjectId].length > 0 && (
+                  <div className="text-danger small mt-1 fw-bold">
+                    <i className="bi bi-exclamation-circle me-1"></i>
+                    Already uploaded materials for this subject.
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          <div className="col-md-5">
-            <label className="form-label small fw-bold text-muted">Upload PDF</label>
-            <input
-              key={uploadFile ? 'file-selected' : 'file-empty'} /* Reset on null */
-              type="file"
-              className="form-control"
-              accept="application/pdf"
-              onChange={handleGlobalFileChange}
-              disabled={uploadSubjectId && uploadedMaterials[uploadSubjectId] && uploadedMaterials[uploadSubjectId].length > 0}
-            />
-          </div>
-          <div className="col-md-3">
-            <button
-              className="btn btn-primary w-100"
-              onClick={handleGlobalUpload}
-              disabled={isGlobalUploading || !uploadSubjectId || !uploadFile || (uploadSubjectId && uploadedMaterials[uploadSubjectId] && uploadedMaterials[uploadSubjectId].length > 0)}
-            >
-              {isGlobalUploading ? (
-                <>
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  Uploading...
-                </>
-              ) : (
-                <>Upload <i className="bi bi-upload ms-1"></i></>
-              )}
-            </button>
+              <div className="col-md-5">
+                <label className="form-label small fw-bold text-muted">Upload PDF</label>
+                <input
+                  key={uploadFile ? 'file-selected' : 'file-empty'} /* Reset on null */
+                  type="file"
+                  className="form-control"
+                  accept="application/pdf"
+                  onChange={handleGlobalFileChange}
+                  disabled={uploadSubjectId && uploadedMaterials[uploadSubjectId] && uploadedMaterials[uploadSubjectId].length > 0}
+                />
+              </div>
+              <div className="col-md-3">
+                <button
+                  className="btn btn-primary w-100"
+                  onClick={handleGlobalUpload}
+                  disabled={isGlobalUploading || !uploadSubjectId || !uploadFile || (uploadSubjectId && uploadedMaterials[uploadSubjectId] && uploadedMaterials[uploadSubjectId].length > 0)}
+                >
+                  {isGlobalUploading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      Uploading...
+                    </>
+                  ) : (
+                    <>Upload <i className="bi bi-upload ms-1"></i></>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* 2. ASSIGNED SUBJECTS CONTAINER */}
-      <div className="card card-soft p-4">
-        {/* HEADER */}
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <div>
-            <h3 className="fw-bold mb-1">ASSIGNED SUBJECTS</h3>
-            <p className="text-muted mb-0">
+        {/* 2. ASSIGNED SUBJECTS CONTAINER */}
+        <div className="student-card">
+          <div className="student-card__header">
+            Assigned Subjects
+          </div>
+          <div className="student-card__body">
+            <p className="students-section-copy mb-4">
               View uploaded resources for your courses.
             </p>
-          </div>
-        </div>
 
-        {/* ASSIGNED SUBJECTS LIST */}
-        <div className="mb-4">
+            {/* ASSIGNED SUBJECTS LIST */}
+            <div className="mb-4">
 
-          {loading && (
-            <div className="student-details__loading" role="status" aria-live="polite">
-              <div className="student-details__loading-header">
-                <div className="student-loader__spinner" aria-hidden="true"></div>
-                <div>
-                  <div className="student-loader__title">Loading learning materials</div>
-                  <div className="student-loader__subtitle">Preparing your subjects and resources.</div>
-                </div>
-              </div>
-              <div className="student-details__loading-grid" aria-hidden="true">
-                <div className="student-loader-card">
-                  <div className="student-loader-card__header student-loader__shimmer"></div>
-                  <div className="student-loader-card__line student-loader__shimmer"></div>
-                  <div className="student-loader-card__line student-loader__shimmer"></div>
-                </div>
-              </div>
-              <span className="sr-only">Loading materials...</span>
-            </div>
-          )}
-          {error && <div className="text-danger">{error}</div>}
-
-          {!loading && subjects.length > 0 && (
-            <div className="d-flex flex-column gap-4">
-              {subjects.map((s) => (
-                <div
-                  key={s.subject_id} // Use subject_id as key
-                  className="p-0"
-                >
-                  {/* UPLOADED MATERIALS LIST - ALWAYS SHOW TABLE HEADER IF NO FILES? Or show message? */}
-                  {/* Let's show table if files exist, otherwise simplified 'No files' */}
-
-                  {uploadedMaterials[s.subject_id] && uploadedMaterials[s.subject_id].length > 0 ? (
-                    <div className="table-responsive border rounded">
-                      <table className="table table-bordered table-striped align-middle mb-0">
-                        <thead className="table-light text-uppercase small fw-bold text-secondary">
-                          <tr>
-                            <th className="text-center" style={{ width: '60px' }}>S.No</th>
-                            <th>Subject Name</th>
-                            <th>Upload Date</th>
-                            <th className="text-center" style={{ width: '220px' }}>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {uploadedMaterials[s.subject_id].map((mat, idx) => (
-                            <tr key={mat.id || idx}>
-                              <td className="text-center fw-medium text-secondary">{idx + 1}</td>
-                              <td className="fw-medium text-dark">{s.subject}</td>
-                              <td>
-                                <span className="fw-medium text-dark">
-                                  {new Date(mat.created_at).toLocaleDateString()}
-                                </span>
-                                <span className="text-muted small ms-2 ps-2">
-                                  {new Date(mat.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                              </td>
-                              <td className="text-center">
-                                <div className="d-flex justify-content-center gap-2">
-                                  <button
-                                    onClick={() => handleViewFile(mat.file_url)}
-                                    className="btn btn-sm btn-primary px-3"
-                                    title="View"
-                                  >
-                                    View
-                                  </button>
-                                  <button
-                                    className="btn btn-sm btn-outline-danger px-3"
-                                    onClick={() => handleDelete(mat.id, s.subject_id)}
-                                    title="Delete"
-                                  >
-                                    Delete
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+              {loading && (
+                <div className="student-details__loading" role="status" aria-live="polite">
+                  <div className="student-details__loading-header">
+                    <div className="student-loader__spinner" aria-hidden="true"></div>
+                    <div>
+                      <div className="student-loader__title">Loading learning materials</div>
+                      <div className="student-loader__subtitle">Preparing your subjects and resources.</div>
                     </div>
-                  ) : (
-                    <div className="text-muted fst-italic small p-2 bg-light rounded border">
-                      No materials uploaded yet.
+                  </div>
+                  <div className="student-details__loading-grid" aria-hidden="true">
+                    <div className="student-loader-card">
+                      <div className="student-loader-card__header student-loader__shimmer"></div>
+                      <div className="student-loader-card__line student-loader__shimmer"></div>
+                      <div className="student-loader-card__line student-loader__shimmer"></div>
                     </div>
-                  )}
-
+                  </div>
+                  <span className="sr-only">Loading materials...</span>
                 </div>
-              ))}
-            </div>
-          )}
+              )}
+              {error && <div className="text-danger">{error}</div>}
 
-          {!loading && subjects.length === 0 && (
-            <div className="alert alert-info">No subjects assigned.</div>
-          )}
-        </div>
+              {!loading && subjects.length > 0 && (
+                <div className="d-flex flex-column gap-4">
+                  {subjects.map((s) => (
+                    <div
+                      key={s.subject_id} // Use subject_id as key
+                      className="p-0"
+                    >
+                      {/* UPLOADED MATERIALS LIST - ALWAYS SHOW TABLE HEADER IF NO FILES? Or show message? */}
+                      {/* Let's show table if files exist, otherwise simplified 'No files' */}
 
-      </div>
+                      {uploadedMaterials[s.subject_id] && uploadedMaterials[s.subject_id].length > 0 ? (
+                        <div className="table-responsive border rounded">
+                          <table className="table table-bordered table-striped align-middle mb-0">
+                            <thead className="table-light text-uppercase small fw-bold text-secondary">
+                              <tr>
+                                <th className="text-center" style={{ width: '60px' }}>S.No</th>
+                                <th>Subject Name</th>
+                                <th>Upload Date</th>
+                                <th className="text-center" style={{ width: '220px' }}>Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {uploadedMaterials[s.subject_id].map((mat, idx) => (
+                                <tr key={mat.id || idx}>
+                                  <td className="text-center fw-medium text-secondary">{idx + 1}</td>
+                                  <td className="fw-medium text-dark">{s.subject}</td>
+                                  <td>
+                                    <span className="fw-medium text-dark">
+                                      {new Date(mat.created_at).toLocaleDateString()}
+                                    </span>
+                                    <span className="text-muted small ms-2 ps-2">
+                                      {new Date(mat.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                  </td>
+                                  <td className="text-center">
+                                    <div className="d-flex justify-content-center gap-2">
+                                      <button
+                                        onClick={() => handleViewFile(mat.file_url)}
+                                        className="btn btn-sm btn-primary px-3"
+                                        title="View"
+                                      >
+                                        View
+                                      </button>
+                                      <button
+                                        className="btn btn-sm btn-outline-danger px-3"
+                                        onClick={() => handleDelete(mat.id, s.subject_id)}
+                                        title="Delete"
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="text-muted fst-italic small p-2 bg-light rounded border">
+                          No materials uploaded yet.
+                        </div>
+                      )}
+
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!loading && subjects.length === 0 && (
+                <div className="alert alert-info">No subjects assigned.</div>
+              )}
+            </div> {/* Close mb-4 wrapper inside body */}
+          </div> {/* Close student-card__body */}
+        </div> {/* Close student-card */}
+      </div> {/* Close students-section-shell */}
 
       {/* DELETE CONFIRMATION MODAL */}
       {deleteModal.show && (

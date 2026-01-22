@@ -47,10 +47,10 @@ export default function StaffCirculars() {
         audienceLabel: audienceLabels[item.target_audience] || item.target_audience || 'Staff',
         publishLabel: item.publish_date
           ? new Date(item.publish_date).toLocaleDateString('en-GB', {
-              day: '2-digit',
-              month: 'short',
-              year: 'numeric'
-            })
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          })
           : '--'
       })),
     [circulars]
@@ -58,16 +58,15 @@ export default function StaffCirculars() {
 
   return (
     <StaffShell>
-      <div className="student-circulars">
-        <section className="student-circulars__hero">
-          <div>
-            <div className="student-circulars__eyebrow">Staff Portal</div>
-            <h2 className="student-circulars__title">Circulars</h2>
-            <p className="student-circulars__subtitle">
+      <div className="students-section-shell">
+        <div className="student-card mb-4">
+          <div className="student-card__header">Circulars</div>
+          <div className="student-card__body">
+            <p className="students-section-copy mb-0">
               Official announcements and updates for staff.
             </p>
           </div>
-        </section>
+        </div>
 
         <div className="student-circulars__list">
           {loading ? (
@@ -89,28 +88,33 @@ export default function StaffCirculars() {
               <span className="sr-only">Loading circulars...</span>
             </div>
           ) : error ? (
-            <div className="student-circulars__empty">{error}</div>
+            <div className="student-details__status student-details__status--error">{error}</div>
           ) : formattedCirculars.length === 0 ? (
-            <div className="student-circulars__empty">No active circulars for staff.</div>
+            <div className="student-details__status">No active circulars for staff.</div>
           ) : (
             formattedCirculars.map((item) => (
-              <article key={item.id} className="student-circulars__card">
-                <div className="student-circulars__card-header">
-                  <div className="student-circulars__card-title-wrap">
-                    <span className="student-circulars__icon" aria-hidden="true">
-                      <i className="bi bi-megaphone-fill"></i>
-                    </span>
-                    <div>
-                      <h4 className="student-circulars__card-title">{item.title}</h4>
-                      <div className="student-circulars__card-meta">
-                        <span>{item.publishLabel}</span>
-                      </div>
-                    </div>
+              <div key={item.id} className="student-card">
+                <div className="student-card__header d-flex justify-content-between align-items-center">
+                  <div className="d-flex align-items-center gap-2">
+                    <i className="bi bi-megaphone-fill opacity-75"></i>
+                    <span className="text-uppercase">{item.title}</span>
                   </div>
-                  <span className="student-circulars__badge">{item.audienceLabel}</span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: '600', opacity: 0.9 }}>
+                    {item.publishLabel}
+                  </span>
                 </div>
-                <p className="student-circulars__card-body">{item.description}</p>
-              </article>
+                <div className="student-card__body">
+                  <div className="mb-3 d-flex justify-content-between align-items-center">
+                    <span className="badge bg-light text-dark border">
+                      <i className="bi bi-people-fill me-1"></i>
+                      {item.audienceLabel}
+                    </span>
+                  </div>
+                  <div style={{ whiteSpace: 'pre-wrap', textAlign: 'justify', color: '#334155', lineHeight: '1.7' }}>
+                    {item.description}
+                  </div>
+                </div>
+              </div>
             ))
           )}
         </div>

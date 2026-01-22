@@ -105,7 +105,7 @@ export default function ParentShell({ children }) {
                             </div>
                         </div>
                         <button className="parent-header__logout" type="button" onClick={handleLogout}>
-                            <i className="bi bi-box-arrow-right"></i> Sign out
+                            <i className="bi bi-box-arrow-right"></i> Logout
                         </button>
                     </div>
                 </header>

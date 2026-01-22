@@ -157,14 +157,14 @@
 }
 
 .student-card__header {
-  background: #93c5fd;
-  color: #000000;
+  background: #606c88;
+  color: #ffffff;
   padding: 0.85rem 1.1rem;
   font-weight: 800;
   font-size: 1.1rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-bottom: 2px solid #2563eb;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .student-card__body {
@@ -967,15 +967,15 @@
 }
 
 .student-payments-table thead th {
-  background: #93c5fd;
-  color: #000000;
+  background: #606c88;
+  color: #ffffff;
   font-weight: 800;
   font-size: 0.85rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   padding: 1rem;
   text-align: left;
-  border-bottom: 3px solid #2563eb;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .student-payments-table tbody td {
@@ -1266,8 +1266,8 @@
 
 .student-subjects-accordion__trigger {
   width: 100%;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.16) 0%, rgba(147, 197, 253, 0.2) 100%);
-  color: #000000;
+  background: #606c88;
+  color: #ffffff;
   border: none;
   padding: 0.85rem 1.2rem;
   display: flex;
@@ -1285,7 +1285,7 @@
 
 .student-subjects-accordion__meta {
   font-size: 0.9rem;
-  color: #000000;
+  color: #ffffff;
   font-weight: 600;
 }
 
@@ -1304,12 +1304,12 @@
   font-size: 0.78rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  background: #93c5fd;
-  color: #000000;
+  background: #606c88;
+  color: #ffffff;
   font-weight: 800;
   border: none;
   padding: 0.8rem 0.75rem;
-  border-bottom: 2px solid #2563eb;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .student-subjects-accordion__table tbody tr {
@@ -1616,9 +1616,9 @@
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  background: #93c5fd;
-  color: #000000;
-  border-bottom: 3px solid #2563eb;
+  background: #606c88;
+  color: #ffffff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
   text-align: center;
   vertical-align: middle;
 }
@@ -1682,7 +1682,6 @@
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   gap: 1.5rem;
-  align-items: start;
 }
 
 .student-attendance__hero {

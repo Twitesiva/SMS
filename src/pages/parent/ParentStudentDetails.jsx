@@ -72,40 +72,64 @@ export default function ParentStudentDetails() {
         )}
 
         {!loading && !error && studentRecord && (
-          <div className="student-card">
-            <div className="student-card__header">Student Profile</div>
-            <div className="student-card__body">
-              <div className="student-profile__row" style={{ alignItems: 'center', marginBottom: '1rem' }}>
-                <div className="student-profile__label">Profile Photo</div>
-                <div className="student-profile__colon">:</div>
-                <div className="student-profile__value">
-                  <div className="student-avatar" style={{ width: '140px', height: '180px' }}>
-                    {studentRecord.photo_url ? (
-                      <img src={studentRecord.photo_url} alt={studentRecord.full_name || 'Student'} />
-                    ) : (
-                      <div className="student-avatar__fallback">
-                        {(studentRecord.full_name || 'ST').slice(0, 2).toUpperCase()}
-                      </div>
-                    )}
-                  </div>
+          <div className="student-dashboard__grid">
+            <div className="student-card student-card--profile h-100">
+              <div className="student-card__header">Student Profile</div>
+              <div className="student-card__body p-4">
+                <div className="d-flex flex-column gap-3">
+                  {[
+                    { label: 'Student Name', value: studentRecord.full_name },
+                    { label: 'Student ID', value: studentRecord.student_id },
+                    { label: 'Register No.', value: studentRecord.hall_ticket_no },
+                    { label: 'Academic Year', value: studentRecord.academic_year },
+                    { label: 'Course', value: studentRecord.course_name },
+                    { label: 'Group', value: studentRecord.group_name },
+                    { label: 'Semester', value: studentRecord.current_semester }
+                  ].filter((row) => row.value).map((row) => (
+                    <div key={row.label} className="d-flex border-bottom pb-2">
+                      <div className="fw-bold text-secondary" style={{ width: '160px' }}>{row.label}</div>
+                      <div className="me-3">:</div>
+                      <div className="fw-semibold text-dark">{row.value}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <div className="student-profile">
-                {[
-                  { label: 'Student Name', value: studentRecord.full_name },
-                  { label: 'Student ID', value: studentRecord.student_id },
-                  { label: 'Register No.', value: studentRecord.hall_ticket_no },
-                  { label: 'Academic Year', value: studentRecord.academic_year },
-                  { label: 'Course', value: studentRecord.course_name },
-                  { label: 'Group', value: studentRecord.group_name },
-                  { label: 'Semester', value: studentRecord.current_semester }
-                ].filter((row) => row.value).map((row) => (
-                  <div key={row.label} className="student-profile__row">
-                    <div className="student-profile__label">{row.label}</div>
-                    <div className="student-profile__colon">:</div>
-                    <div className="student-profile__value">{row.value}</div>
+            </div>
+
+            <div className="student-card h-100">
+              <div className="student-card__body d-flex flex-column align-items-center justify-content-center p-5 gap-4">
+                <div
+                  className="rounded-circle shadow-sm"
+                  style={{
+                    width: '180px',
+                    height: '180px',
+                    borderRadius: '50%',
+                    border: '5px solid #fff',
+                    overflow: 'hidden',
+                    margin: '0 auto'
+                  }}
+                >
+                  {studentRecord.photo_url ? (
+                    <img
+                      src={studentRecord.photo_url}
+                      alt={studentRecord.full_name || 'Student'}
+                      className="w-100 h-100"
+                      style={{ objectFit: 'cover', objectPosition: 'top' }}
+                    />
+                  ) : (
+                    <div className="w-100 h-100 bg-light d-flex align-items-center justify-content-center display-4 fw-bold text-primary opacity-50">
+                      {(studentRecord.full_name || 'ST').slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+
+                <div className="text-center">
+                  <div className="text-uppercase small text-muted letter-spacing-2 mb-1">Current Status</div>
+                  <div className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2 rounded-pill">
+                    <i className="bi bi-circle-fill me-2 small"></i>
+                    Active
                   </div>
-                ))}
+                </div>
               </div>
             </div>
           </div>

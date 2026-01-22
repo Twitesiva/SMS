@@ -65,38 +65,50 @@ export default function StudentCirculars() {
 
   return (
     <StudentShell>
-      <div className="student-details student-circulars">
-        <div className="student-details__header">
-          <h2>Circulars</h2>
-          <p>Official announcements and updates for students.</p>
+      <div className="students-section-shell">
+        <div className="student-card mb-4">
+          <div className="student-card__header">Circulars</div>
+          <div className="student-card__body">
+            <p className="students-section-copy mb-0">
+              Official announcements and updates for students.
+            </p>
+          </div>
         </div>
 
         <div className="student-circulars__list">
           {loading ? (
-            <div className="student-circulars__empty">Loading circulars...</div>
+            <div className="student-details__loading" role="status" aria-live="polite">
+              <div className="student-loader__spinner mx-auto mb-2" aria-hidden="true"></div>
+              <div className="text-center text-muted">Loading circulars...</div>
+            </div>
           ) : error ? (
-            <div className="student-circulars__empty">{error}</div>
+            <div className="student-details__status student-details__status--error">{error}</div>
           ) : formattedCirculars.length === 0 ? (
-            <div className="student-circulars__empty">No active circulars for students.</div>
+            <div className="student-details__status">No active circulars for students.</div>
           ) : (
             formattedCirculars.map((item) => (
-              <article key={item.id} className="student-circulars__card">
-                <div className="student-circulars__card-header">
-                  <div className="student-circulars__card-title-wrap">
-                    <span className="student-circulars__icon" aria-hidden="true">
-                      <i className="bi bi-megaphone-fill"></i>
-                    </span>
-                    <div>
-                      <h4 className="student-circulars__card-title">{item.title}</h4>
-                      <div className="student-circulars__card-meta">
-                        <span>{item.publishLabel}</span>
-                      </div>
-                    </div>
+              <div key={item.id} className="student-card">
+                <div className="student-card__header d-flex justify-content-between align-items-center">
+                  <div className="d-flex align-items-center gap-2">
+                    <i className="bi bi-megaphone-fill opacity-75"></i>
+                    <span className="text-uppercase">{item.title}</span>
                   </div>
-                  <span className="student-circulars__badge">{item.audienceLabel}</span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: '600', opacity: 0.9 }}>
+                    {item.publishLabel}
+                  </span>
                 </div>
-                <p className="student-circulars__card-body">{item.description}</p>
-              </article>
+                <div className="student-card__body">
+                  <div className="mb-3 d-flex justify-content-between align-items-center">
+                    <span className="badge bg-light text-dark border">
+                      <i className="bi bi-people-fill me-1"></i>
+                      {item.audienceLabel}
+                    </span>
+                  </div>
+                  <div style={{ whiteSpace: 'pre-wrap', textAlign: 'justify', color: '#334155', lineHeight: '1.7' }}>
+                    {item.description}
+                  </div>
+                </div>
+              </div>
             ))
           )}
         </div>

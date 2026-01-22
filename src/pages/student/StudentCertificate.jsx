@@ -85,86 +85,96 @@ export default function StudentCertificate() {
 
   return (
     <StudentShell>
-      <div
-        className={`student-certificate ${
-          certificateExporting ? 'student-certificate--exporting' : ''
-        }`}
-      >
-        <div className="student-certificate__paper" ref={certificateRef}>
-          <div className="student-certificate__header">
-            <div className="student-certificate__brand">
-              <img src={crest} alt="Vijayam crest" className="student-certificate__logo" />
-              <div>
-                <div className="student-certificate__college">Vijayam Arts & Science College</div>
-                <div className="student-certificate__subtitle">Bonafide Certificate</div>
-              </div>
-            </div>
-            <div className="student-certificate__meta">
-              <div>Certificate No: VJY/BC/{details?.student_id || '0000'}</div>
-              <div>
-                Date:{' '}
-                {new Date().toLocaleDateString('en-GB', {
-                  day: '2-digit',
-                  month: 'long',
-                  year: 'numeric',
-                })}
-              </div>
-              <button
-                type="button"
-                className="student-certificate__download"
-                onClick={handleCertificateDownload}
-                disabled={certificateExporting}
-              >
-                {certificateExporting ? 'Preparing PDF...' : 'Download PDF'}
-              </button>
-            </div>
+      <div className="students-section-shell">
+        <div className="student-card mb-4">
+          <div className="student-card__header">Bonafide Certificate</div>
+          <div className="student-card__body">
+            <p className="students-section-copy mb-0">
+              View and download your bonafide certificate.
+            </p>
           </div>
+        </div>
 
-          <div className="student-certificate__title">Bonafide Certificate</div>
+        <div
+          className={`student-certificate ${certificateExporting ? 'student-certificate--exporting' : ''
+            }`}
+        >
+          <div className="student-certificate__paper" ref={certificateRef}>
+            <div className="student-certificate__header">
+              <div className="student-certificate__brand">
+                <img src={crest} alt="Vijayam crest" className="student-certificate__logo" />
+                <div>
+                  <div className="student-certificate__college">Vijayam Arts & Science College</div>
+                  <div className="student-certificate__subtitle">Bonafide Certificate</div>
+                </div>
+              </div>
+              <div className="student-certificate__meta">
+                <div>Certificate No: VJY/BC/{details?.student_id || '0000'}</div>
+                <div>
+                  Date:{' '}
+                  {new Date().toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric',
+                  })}
+                </div>
+                <button
+                  type="button"
+                  className="student-certificate__download"
+                  onClick={handleCertificateDownload}
+                  disabled={certificateExporting}
+                >
+                  {certificateExporting ? 'Preparing PDF...' : 'Download PDF'}
+                </button>
+              </div>
+            </div>
 
-          <div className="student-certificate__body">
-            <div className="student-certificate__content">
-              <p className="student-certificate__text">
-                This is to certify that Mr./Ms.{' '}
-                {renderField(details?.full_name)}
-                , son/daughter of Mr./Ms.{` `}
-                {renderField(details?.father_name)}
-                , is a bonafide student of{' '}
-                <span className="student-certificate__fill">Vijayam Arts & Science College</span>
-                .
-              </p>
+            <div className="student-certificate__title">Bonafide Certificate</div>
 
-              <p className="student-certificate__text">
-                He/She is studying in{' '}
-                {renderField(
-                  [details?.course_name || details?.course, details?.group_name]
-                    .filter(Boolean)
-                    .join(' ')
-                )}{' '}
-                (Course / Department / Year / Semester) during the academic year{' '}
-                {renderField(details?.academic_year)}
-                .
-              </p>
+            <div className="student-certificate__body">
+              <div className="student-certificate__content">
+                <p className="student-certificate__text">
+                  This is to certify that Mr./Ms.{' '}
+                  {renderField(details?.full_name)}
+                  , son/daughter of Mr./Ms.{` `}
+                  {renderField(details?.father_name)}
+                  , is a bonafide student of{' '}
+                  <span className="student-certificate__fill">Vijayam Arts & Science College</span>
+                  .
+                </p>
 
-              <p className="student-certificate__text">
-                This certificate is issued for the purpose of{' '}
-                <span className="student-certificate__blank" aria-hidden="true"></span>.
-              </p>
+                <p className="student-certificate__text">
+                  He/She is studying in{' '}
+                  {renderField(
+                    [details?.course_name || details?.course, details?.group_name]
+                      .filter(Boolean)
+                      .join(' ')
+                  )}{' '}
+                  (Course / Department / Year / Semester) during the academic year{' '}
+                  {renderField(details?.academic_year)}
+                  .
+                </p>
 
-              <div className="student-certificate__meta-lines">
-                <div className="student-certificate__meta-line">
-                  <span>Date:</span>
-                  <span className="student-certificate__blank" aria-hidden="true"></span>
+                <p className="student-certificate__text">
+                  This certificate is issued for the purpose of{' '}
+                  <span className="student-certificate__blank" aria-hidden="true"></span>.
+                </p>
+
+                <div className="student-certificate__meta-lines">
+                  <div className="student-certificate__meta-line">
+                    <span>Date:</span>
+                    <span className="student-certificate__blank" aria-hidden="true"></span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="student-certificate__footer">
-            <div className="student-certificate__seal">College Seal</div>
-            <div className="student-certificate__sign">
-              <div className="student-certificate__sign-line"></div>
-              <div className="student-certificate__sign-label">Principal</div>
+            <div className="student-certificate__footer">
+              <div className="student-certificate__seal">College Seal</div>
+              <div className="student-certificate__sign">
+                <div className="student-certificate__sign-line"></div>
+                <div className="student-certificate__sign-label">Principal</div>
+              </div>
             </div>
           </div>
         </div>

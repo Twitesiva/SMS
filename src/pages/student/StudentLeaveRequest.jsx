@@ -137,10 +137,10 @@ export default function StudentLeaveRequest() {
                 <div className="row g-4">
                     {/* Request Form */}
                     <div className="col-lg-7">
-                        <div className="card border-0 shadow-sm rounded-3 overflow-hidden h-100" style={{ backgroundColor: '#ffffff' }}>
-                            <div className="p-3 border-bottom" style={{ backgroundColor: '#f8fafc' }}>
-                                <h5 className="fw-bold text-dark mb-1">Request Category</h5>
-                                <p className="text-muted small mb-0">Apply for leave or on-duty based on your requirement.</p>
+                        <div className="student-card h-100">
+                            <div className="student-card__header">Request Category</div>
+                            <div className="student-card__body pb-0">
+                                <p className="students-section-copy mb-0">Apply for leave or on-duty based on your requirement.</p>
                             </div>
 
                             <div className="p-3">
@@ -251,17 +251,10 @@ export default function StudentLeaveRequest() {
                     {/* Notifications / History */}
                     <div className="col-lg-5">
                         {/* Header Widget */}
-                        <div className="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
-                            <div className="card-body p-3 text-white" style={{ background: 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)' }}>
-                                <div className="d-flex align-items-center">
-                                    <div className="bg-white bg-opacity-25 rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style={{ width: '42px', height: '42px' }}>
-                                        <i className="bi bi-bell-fill fs-5"></i>
-                                    </div>
-                                    <div>
-                                        <h6 className="fw-bold mb-0">Request History</h6>
-                                        <div className="small opacity-75" style={{ fontSize: '0.8rem' }}>Track your status updates</div>
-                                    </div>
-                                </div>
+                        <div className="student-card mb-4">
+                            <div className="student-card__header">Request History</div>
+                            <div className="student-card__body">
+                                <p className="students-section-copy mb-0">Track your status updates</p>
                             </div>
                         </div>
 

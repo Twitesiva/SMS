@@ -113,6 +113,9 @@ import TransportLogin from "./pages/transport/TransportLogin.jsx";
 import TransportDashboard from "./pages/transport/TransportDashboard.jsx";
 import TransportRoutes from "./pages/transport/TransportRoutes.jsx";
 import TransportVehicles from "./pages/transport/TransportVehicles.jsx";
+import TransportPasses from "./pages/transport/TransportPasses.jsx";
+import TransportAllocation from "./pages/transport/TransportAllocation.jsx";
+import TransportReports from "./pages/transport/TransportReports.jsx";
 import Practical from "./pages/exam/Practical.jsx";
 
 
@@ -157,6 +160,30 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isTransportAuthed} redirectTo="/transport/login">
               <TransportVehicles />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/transport/passes"
+          element={
+            <GuardedRoute isAuthed={isTransportAuthed} redirectTo="/transport/login">
+              <TransportPasses />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/transport/allocation"
+          element={
+            <GuardedRoute isAuthed={isTransportAuthed} redirectTo="/transport/login">
+              <TransportAllocation />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/transport/reports"
+          element={
+            <GuardedRoute isAuthed={isTransportAuthed} redirectTo="/transport/login">
+              <TransportReports />
             </GuardedRoute>
           }
         />

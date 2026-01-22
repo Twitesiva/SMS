@@ -267,8 +267,9 @@ export default function ParentAttendance() {
   return (
     <ParentShell>
       <div className="student-details student-attendance">
-        <div className="student-details__header">
-          <h2 className="fw-bold text-dark">Attendance Analysis</h2>
+        <div className="student-card mb-4">
+          <div className="student-card__header">Attendance Analysis</div>
+
         </div>
 
         {/* TOP STATS - Simple Text Display */}
@@ -312,26 +313,31 @@ export default function ParentAttendance() {
         <div className="student-attendance__main">
           <div className="d-flex flex-column gap-4 w-100">
             {/* GRAPH */}
-            <div className="card card-soft p-4 shadow-sm">
-              <h4 className="fw-bold text-dark mb-4 text-uppercase small">Current Month: {new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</h4>
-              <div style={{ height: '350px' }}>
-                <Bar data={dailyChartData} options={dailyChartOptions} />
-              </div>
-              <div className="mt-3 d-flex justify-content-center gap-4">
-                <div className="small fw-bold text-dark"><span className="d-inline-block rounded-circle me-1" style={{ width: 10, height: 10, background: '#10b981' }}></span> Full Present</div>
-                <div className="small fw-bold text-dark"><span className="d-inline-block rounded-circle me-1" style={{ width: 10, height: 10, background: '#f59e0b' }}></span> Half Day</div>
-                <div className="small fw-bold text-dark"><span className="d-inline-block rounded-circle me-1" style={{ width: 10, height: 10, background: '#ef4444' }}></span> Absent</div>
+            {/* GRAPH */}
+            <div className="student-card shadow-sm h-100">
+              <div className="student-card__header">Current Month: {new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</div>
+              <div className="student-card__body">
+                <div style={{ height: '350px' }}>
+                  <Bar data={dailyChartData} options={dailyChartOptions} />
+                </div>
+                <div className="mt-3 d-flex justify-content-center gap-4">
+                  <div className="small fw-bold text-dark"><span className="d-inline-block rounded-circle me-1" style={{ width: 10, height: 10, background: '#10b981' }}></span> Full Present</div>
+                  <div className="small fw-bold text-dark"><span className="d-inline-block rounded-circle me-1" style={{ width: 10, height: 10, background: '#f59e0b' }}></span> Half Day</div>
+                  <div className="small fw-bold text-dark"><span className="d-inline-block rounded-circle me-1" style={{ width: 10, height: 10, background: '#ef4444' }}></span> Absent</div>
+                </div>
               </div>
             </div>
           </div>
 
           {/* OVERALL PANEL */}
-          <div className="student-attendance__panel">
-            <h4 className="fw-bold text-dark mb-4">Attendance Percentage</h4>
-            <div className="student-attendance__donut-wrap">
-              <div className="student-attendance__donut" style={{ background: overallStats.days ? `conic-gradient(#10b981 ${overallStats.rate}%, #ef4444 0)` : '#e2e8f0' }}>
-                <div className="student-attendance__donut-center">
-                  <div className="student-attendance__donut-value text-dark fw-bold">{overallStats.rate}%</div>
+          <div className="student-card w-100 h-100">
+            <div className="student-card__header">Attendance Percentage</div>
+            <div className="student-card__body student-card__body--center">
+              <div className="student-attendance__donut-wrap">
+                <div className="student-attendance__donut" style={{ background: overallStats.days ? `conic-gradient(#10b981 ${overallStats.rate}%, #ef4444 0)` : '#e2e8f0' }}>
+                  <div className="student-attendance__donut-center">
+                    <div className="student-attendance__donut-value text-dark fw-bold">{overallStats.rate}%</div>
+                  </div>
                 </div>
               </div>
             </div>

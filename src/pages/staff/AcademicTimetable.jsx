@@ -80,14 +80,14 @@ export default function StaffTimetable() {
 
     // Build subject map
     const subjectMap = {}
-mappings.forEach(m => {
-  subjectMap[m.subject_id] = {
-    subject: m.subjects?.subject_name || '',
-    course: m.courses?.course_name || '',
-    group: m.groups?.group_name || '',
-    semester: m.semester
-  }
-})
+    mappings.forEach(m => {
+      subjectMap[m.subject_id] = {
+        subject: m.subjects?.subject_name || '',
+        course: m.courses?.course_name || '',
+        group: m.groups?.group_name || '',
+        semester: m.semester
+      }
+    })
 
 
     // 3️⃣ Find matching timetables
@@ -203,12 +203,13 @@ mappings.forEach(m => {
         }
       `}</style>
 
-      <div className="desktop-container">
-        <div className="page-header mb-4">
-  <h2 className="fw-bold text-uppercase">
-    Academic Timetable
-  </h2>
-</div>
+      <div className="students-section-shell">
+        <div className="student-card mb-4">
+          <div className="student-card__header">Academic Timetable</div>
+          <div className="student-card__body">
+            <p className="students-section-copy mb-0">View your weekly teaching schedule.</p>
+          </div>
+        </div>
 
         {loading && (
           <div className="student-details__loading" role="status" aria-live="polite">
@@ -269,32 +270,32 @@ mappings.forEach(m => {
                       }
 
                       return (
-  <td key={slot.key} className="tt-period">
-    {tableData?.[day]?.[slot.period] ? (
-      <>
-        <div style={{ fontWeight: 700 }}>
-          {tableData[day][slot.period].subject}
-        </div>
-        <div
-          style={{
-            fontSize: '0.75rem',
-            fontWeight: 700,
-            color: '#374151'
-          }}
-        >
-          (
-          {tableData[day][slot.period].course} –{' '}
-          {tableData[day][slot.period].group} – Sem{' '}
-          {tableData[day][slot.period].semester}
-          )
-        </div>
-      </>
-    ) : (
-      <span style={{ color: '#111827', fontWeight: 800, fontSize: '1rem' }}>
-        –
-      </span>
-    )}
-  </td>
+                        <td key={slot.key} className="tt-period">
+                          {tableData?.[day]?.[slot.period] ? (
+                            <>
+                              <div style={{ fontWeight: 700 }}>
+                                {tableData[day][slot.period].subject}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: '0.75rem',
+                                  fontWeight: 700,
+                                  color: '#374151'
+                                }}
+                              >
+                                (
+                                {tableData[day][slot.period].course} –{' '}
+                                {tableData[day][slot.period].group} – Sem{' '}
+                                {tableData[day][slot.period].semester}
+                                )
+                              </div>
+                            </>
+                          ) : (
+                            <span style={{ color: '#111827', fontWeight: 800, fontSize: '1rem' }}>
+                              –
+                            </span>
+                          )}
+                        </td>
 
 
 

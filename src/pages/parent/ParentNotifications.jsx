@@ -95,20 +95,9 @@ export default function ParentNotifications() {
   return (
     <ParentShell>
       <div className="students-section-shell">
-        <div className="students-section-shell-header">
-          <h2 className="mb-2">Notifications</h2>
-          <p className="students-section-copy mb-3">
-            Recent updates based on attendance activity.
-          </p>
-          {badges.length > 0 && (
-            <div className="d-flex flex-wrap gap-2">
-              {badges.map((badge) => (
-                <span key={badge} className="students-section-badge students-section-badge-course">
-                  {badge}
-                </span>
-              ))}
-            </div>
-          )}
+        <div className="student-card mb-4">
+          <div className="student-card__header">Notifications</div>
+
         </div>
 
         {loading && (
@@ -130,7 +119,7 @@ export default function ParentNotifications() {
 
         {!loading && !error && (
           <div className="student-card">
-            <div className="student-card__header">Recent Alerts</div>
+
             <div className="student-card__body">
               {notifications.length ? (
                 <div className="student-detail-list">

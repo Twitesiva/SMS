@@ -113,7 +113,7 @@ export default function StaffShell({ children }) {
                         <div className="d-flex align-items-center gap-3 me-3 text-white border-end pe-3">
                             <div className="text-end" style={{ lineHeight: '1.2' }}>
                                 <div className="fw-bold small">{staff?.full_name || 'Staff Member'}</div>
-                                <div className="small opacity-75">{staff?.designation || 'Faculty'}</div>
+                                <div className="small opacity-75">{(staff?.designation || 'Faculty').replace(/_/g, ' ')}</div>
                             </div>
                             <div className="text-end small d-none d-md-block" style={{ lineHeight: '1.2', borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '1rem' }}>
                                 <div>{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>

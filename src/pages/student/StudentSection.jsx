@@ -21,10 +21,14 @@ export default function StudentSection() {
 
   return (
     <StudentShell>
-      <div className="student-section">
-        <div className="student-section__card">
-          <h2>{label}</h2>
-          <p>Details for {label.toLowerCase()} will appear here.</p>
+      <div className="students-section-shell">
+        <div className="student-card mb-4">
+          <div className="student-card__header">{label}</div>
+          <div className="student-card__body">
+            <p className="students-section-copy mb-0">
+              Details for {label.toLowerCase()} will appear here.
+            </p>
+          </div>
         </div>
       </div>
     </StudentShell>
