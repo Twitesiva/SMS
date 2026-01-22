@@ -978,7 +978,7 @@ export default function FeesCreation() {
                                 )}
                             </div>
                             <div className="table-responsive">
-                                <table className="table table-hover align-middle">
+                                <table className="table table-hover align-middle fees-creation-table">
                                     <thead className="table-light">
                                         <tr>
                                             <th>Academic Year</th>
@@ -1066,7 +1066,7 @@ export default function FeesCreation() {
                             )}
                         </div>
                         <div className="table-responsive">
-                            <table className="table table-hover align-middle">
+                            <table className="table table-hover align-middle fees-creation-table">
                                 <thead className="table-light">
                                     <tr>
                                         <th>Academic Year</th>
@@ -1102,7 +1102,7 @@ export default function FeesCreation() {
                                 </div>
                                 <div className="modal-body">
                                     <div className="table-responsive">
-                                        <table className="table table-hover align-middle">
+                                        <table className="table table-hover align-middle fees-creation-table">
                                             <thead className="table-light">
                                                 <tr>
                                                     <th>Academic Year</th>
