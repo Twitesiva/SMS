@@ -152,7 +152,7 @@
 
 .role-name {
     font-family: 'Space Grotesk', 'Cabinet Grotesk', sans-serif;
-    font-size: 1.05rem;
+    font-size: 1.1rem;
     font-weight: 700;
     color: #1f2a44;
     letter-spacing: 0.12em;
@@ -165,7 +165,7 @@
 
 .role-description {
     font-family: 'Space Grotesk', 'Cabinet Grotesk', sans-serif;
-    font-size: 0.82rem;
+    font-size: 1.1rem;
     color: rgba(31, 42, 68, 0.72);
     line-height: 1.5;
     letter-spacing: 0.02em;

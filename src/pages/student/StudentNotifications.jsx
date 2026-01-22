@@ -101,32 +101,37 @@ export default function StudentNotifications() {
 
   return (
     <StudentShell>
-      <div className="student-details">
-        <div className="student-details__header">
-          <h2>Notifications</h2>
-          <p>Attendance alerts and important updates.</p>
+      <div className="students-section-shell">
+        <div className="student-card mb-4">
+          <div className="student-card__header">Notifications</div>
+          <div className="student-card__body">
+            <p className="students-section-copy mb-0">
+              Attendance alerts and important updates.
+            </p>
+          </div>
         </div>
 
-        <div className="card card-soft p-4">
-          {loading ? (
-            <div className="text-muted">Loading notifications...</div>
-          ) : error ? (
-            <div className="text-muted">{error}</div>
-          ) : notifications.length === 0 ? (
-            <div className="text-muted">No notifications right now.</div>
-          ) : (
-            <div className="d-flex flex-column gap-3">
-              {notifications.map((note) => (
-                <div key={note.id} className="student-card">
-                  <div className="student-card__header">{note.title}</div>
-                  <div className="student-card__body student-notification__message" style={{ whiteSpace: 'pre-line' }}>
-                    {note.message}
-                  </div>
+        {loading ? (
+          <div className="student-details__loading" role="status" aria-live="polite">
+            <div className="student-loader__spinner mx-auto mb-2" aria-hidden="true"></div>
+            <div className="text-center text-muted">Loading notifications...</div>
+          </div>
+        ) : error ? (
+          <div className="student-details__status student-details__status--error">{error}</div>
+        ) : notifications.length === 0 ? (
+          <div className="student-details__status">No notifications right now.</div>
+        ) : (
+          <div className="d-flex flex-column gap-3">
+            {notifications.map((note) => (
+              <div key={note.id} className="student-card">
+                <div className="student-card__header">{note.title}</div>
+                <div className="student-card__body student-notification__message" style={{ whiteSpace: 'pre-line' }}>
+                  {note.message}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </StudentShell>
   )

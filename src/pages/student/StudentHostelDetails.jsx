@@ -151,11 +151,13 @@ export default function StudentHostelDetails() {
   return (
     <StudentShell>
       <div className="students-section-shell">
-        <div className="students-section-shell-header">
-          <h2 className="mb-2">Hostel fees</h2>
-          <p className="students-section-copy mb-0">
-            Review hostel fee information and payment history.
-          </p>
+        <div className="student-card mb-4">
+          <div className="student-card__header">Hostel Fees</div>
+          <div className="student-card__body">
+            <p className="students-section-copy mb-0">
+              Review hostel fee information and payment history.
+            </p>
+          </div>
         </div>
 
         <div className="student-payments-summary">
@@ -233,8 +235,8 @@ export default function StudentHostelDetails() {
                 <tr>
                   <th>Date</th>
                   <th>Fee type</th>
+                  <th>Payment type</th>
                   <th>Payment mode</th>
-                  <th>Payment method</th>
                   <th>Amount</th>
                   <th>Status</th>
                 </tr>
@@ -246,8 +248,8 @@ export default function StudentHostelDetails() {
                     <tr key={payment.id}>
                       <td>{formatDateTime(payment.created_at)}</td>
                       <td>{payment.fee_type || 'Hostel Fee'}</td>
-                      <td>{payment.payment_mode || 'N/A'}</td>
                       <td>{payment.payment_type || 'N/A'}</td>
+                      <td>{payment.payment_mode || 'N/A'}</td>
                       <td>{formatCurrency(payment.amount_paid)}</td>
                       <td>
                         <span className={`student-payments-badge student-payments-badge--${status.tone}`}>

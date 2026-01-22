@@ -336,9 +336,9 @@ export default function StudentTimeTable() {
 
   return (
     <StudentShell>
-      <div className="students-section-shell">
-        <div className="students-section-shell-header">
-          <h2 className="mb-2">Time table</h2>
+      <div className="student-card mb-4">
+        <div className="student-card__header">Time table</div>
+        <div className="student-card__body">
           <p className="students-section-copy mb-3">
             Review your weekly class schedule and subject slots.
           </p>
@@ -355,108 +355,109 @@ export default function StudentTimeTable() {
             </div>
           )}
         </div>
+      </div>
 
-        {loading && (
-          <div className="student-details__loading" role="status" aria-live="polite">
-            <div className="student-details__loading-header">
-              <div className="student-loader__spinner" aria-hidden="true"></div>
-              <div>
-                <div className="student-loader__title">Loading timetable</div>
-                <div className="student-loader__subtitle">Fetching your class schedule.</div>
-              </div>
+      {loading && (
+        <div className="student-details__loading" role="status" aria-live="polite">
+          <div className="student-details__loading-header">
+            <div className="student-loader__spinner" aria-hidden="true"></div>
+            <div>
+              <div className="student-loader__title">Loading timetable</div>
+              <div className="student-loader__subtitle">Fetching your class schedule.</div>
             </div>
-            <div className="student-details__loading-grid" aria-hidden="true">
-              {Array.from({ length: 3 }).map((_, index) => (
-                <div className="student-loader-card" key={`timetable-loader-${index}`}>
-                  <div className="student-loader-card__header student-loader__shimmer"></div>
-                  <div className="student-loader-card__line student-loader__shimmer"></div>
-                  <div className="student-loader-card__line student-loader__shimmer"></div>
-                  <div className="student-loader-card__line student-loader__shimmer"></div>
-                </div>
-              ))}
-            </div>
-            <span className="sr-only">Loading timetable...</span>
           </div>
-        )}
-
-        {error && !loading && (
-          <div className="student-details__status student-details__status--error">{error}</div>
-        )}
-
-        {!loading && !error && info?.id && (
-          <div className="student-timetable-card">
-            <div className="student-timetable-header">
-              <div>
-                <div className="student-timetable-title">{headerTitle}</div>
-                <div className="student-timetable-subtitle">{sheetTitle}</div>
+          <div className="student-details__loading-grid" aria-hidden="true">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div className="student-loader-card" key={`timetable-loader-${index}`}>
+                <div className="student-loader-card__header student-loader__shimmer"></div>
+                <div className="student-loader-card__line student-loader__shimmer"></div>
+                <div className="student-loader-card__line student-loader__shimmer"></div>
+                <div className="student-loader-card__line student-loader__shimmer"></div>
               </div>
-              <button
-                type="button"
-                className="btn btn-success"
-                onClick={handleDownload}
-                disabled={downloading}
-              >
-                <i className="bi bi-file-earmark-pdf me-2"></i>
-                {downloading ? 'Preparing PDF...' : 'Download PDF'}
-              </button>
-            </div>
+            ))}
+          </div>
+          <span className="sr-only">Loading timetable...</span>
+        </div>
+      )}
 
-            <div className="student-timetable-sheet" ref={timetableRef}>
-              <div className="student-timetable-sheet-title">{sheetTitle}</div>
-              {sheetSubtitle && (
-                <div className="student-timetable-sheet-subtitle">{sheetSubtitle}</div>
-              )}
-              <div className="student-timetable-scroll">
-                <table className="student-timetable-table">
-                  <thead>
-                    <tr>
-                      <th>DAY</th>
-                      {TIME_SLOTS.map((slot) => (
-                        <th key={slot.key}>
-                          <span className="student-timetable-head-title">{slot.label}</span>
-                          <span className="student-timetable-head-time">{slot.displayTime}</span>
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {DAYS.map((day, index) => (
-                      <tr key={day}>
-                        <th className="student-timetable-day">{day}</th>
-                        {TIME_SLOTS.map((slot) => {
-                          if (slot.type === 'BREAK') {
-                            return (
-                              <td key={slot.key} className="student-timetable-break">
-                                {BREAK_LETTERS[index]}
-                              </td>
-                            )
-                          }
-                          if (slot.type === 'LUNCH') {
-                            return (
-                              <td key={slot.key} className="student-timetable-lunch">
-                                {LUNCH_LETTERS[index]}
-                              </td>
-                            )
-                          }
+      {error && !loading && (
+        <div className="student-details__status student-details__status--error">{error}</div>
+      )}
+
+      {!loading && !error && info?.id && (
+        <div className="student-timetable-card">
+          <div className="student-timetable-header">
+            <div>
+              <div className="student-timetable-title">{headerTitle}</div>
+              <div className="student-timetable-subtitle">{sheetTitle}</div>
+            </div>
+            <button
+              type="button"
+              className="btn btn-success"
+              onClick={handleDownload}
+              disabled={downloading}
+            >
+              <i className="bi bi-file-earmark-pdf me-2"></i>
+              {downloading ? 'Preparing PDF...' : 'Download PDF'}
+            </button>
+          </div>
+
+          <div className="student-timetable-sheet" ref={timetableRef}>
+            <div className="student-timetable-sheet-title">{sheetTitle}</div>
+            {sheetSubtitle && (
+              <div className="student-timetable-sheet-subtitle">{sheetSubtitle}</div>
+            )}
+            <div className="student-timetable-scroll">
+              <table className="student-timetable-table">
+                <thead>
+                  <tr>
+                    <th>DAY</th>
+                    {TIME_SLOTS.map((slot) => (
+                      <th key={slot.key}>
+                        <span className="student-timetable-head-title">{slot.label}</span>
+                        <span className="student-timetable-head-time">{slot.displayTime}</span>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {DAYS.map((day, index) => (
+                    <tr key={day}>
+                      <th className="student-timetable-day">{day}</th>
+                      {TIME_SLOTS.map((slot) => {
+                        if (slot.type === 'BREAK') {
                           return (
-                            <td key={slot.key} className="student-timetable-period">
-                              {grid[day]?.[slot.key] || '-'}
+                            <td key={slot.key} className="student-timetable-break">
+                              {BREAK_LETTERS[index]}
                             </td>
                           )
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        }
+                        if (slot.type === 'LUNCH') {
+                          return (
+                            <td key={slot.key} className="student-timetable-lunch">
+                              {LUNCH_LETTERS[index]}
+                            </td>
+                          )
+                        }
+                        return (
+                          <td key={slot.key} className="student-timetable-period">
+                            {grid[day]?.[slot.key] || '-'}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {!loading && !error && hasLoaded && !info?.id && (
-          <div className="student-details__status">Timetable details are unavailable.</div>
-        )}
-      </div>
-    </StudentShell>
+      {!loading && !error && hasLoaded && !info?.id && (
+        <div className="student-details__status">Timetable details are unavailable.</div>
+      )}
+
+    </StudentShell >
   )
 }

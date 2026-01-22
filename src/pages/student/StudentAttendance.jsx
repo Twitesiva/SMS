@@ -79,15 +79,15 @@ export default function StudentAttendance() {
 
           if (subjectError) throw subjectError
 
-          ;(subjectRows || []).forEach((row) => {
-            subjectMap.set(row.subject_id, row)
-          })
+            ; (subjectRows || []).forEach((row) => {
+              subjectMap.set(row.subject_id, row)
+            })
         }
 
         const sessionMap = new Map()
-        ;(sessionRows || []).forEach((row) => {
-          sessionMap.set(row.id, row)
-        })
+          ; (sessionRows || []).forEach((row) => {
+            sessionMap.set(row.id, row)
+          })
 
         const merged = (recordRows || []).map((row) => {
           const session = sessionMap.get(row.attendance_session_id)
@@ -96,9 +96,9 @@ export default function StudentAttendance() {
             ...row,
             attendance_sessions: session
               ? {
-                  attendance_date: session.attendance_date,
-                  subjects: subject || null
-                }
+                attendance_date: session.attendance_date,
+                subjects: subject || null
+              }
               : null
           }
         })
@@ -124,7 +124,7 @@ export default function StudentAttendance() {
     records.forEach((r) => {
       const d = r.attendance_sessions?.attendance_date
       if (!d) return
-      
+
       if (startDate && d < startDate) return
       if (endDate && d > endDate) return
 
@@ -138,7 +138,7 @@ export default function StudentAttendance() {
         let statusText = 'ABSENT'
         if (presentCount >= 5) statusText = 'FULL PRESENT'
         else if (presentCount >= 3) statusText = 'HALF DAY'
-        
+
         return { date, sessions, presentCount, statusText }
       })
       .filter(day => !statusFilter || day.statusText === statusFilter)
@@ -150,7 +150,7 @@ export default function StudentAttendance() {
     const sessions = dayEntry?.sessions || []
     const present = sessions.filter((s) => s.status === 'PRESENT').length
     const total = sessions.length
-    const rate = total > 0 ? (present / 5 * 100).toFixed(1) : "0.0" 
+    const rate = total > 0 ? (present / 5 * 100).toFixed(1) : "0.0"
 
     let label = 'NO DATA'
     if (total > 0) {
@@ -166,10 +166,10 @@ export default function StudentAttendance() {
     const days = dateWiseRecords.length
     const presentDays = dateWiseRecords.filter(d => d.statusText === 'FULL PRESENT').length
     const halfDays = dateWiseRecords.filter(d => d.statusText === 'HALF DAY').length
-    
+
     const totalScore = presentDays + (halfDays * 0.5)
     const rate = days > 0 ? (totalScore / days * 100).toFixed(1) : "0.0"
-    
+
     return { days, presentDays, halfDays, rate, totalScore }
   }, [dateWiseRecords])
 
@@ -188,7 +188,7 @@ export default function StudentAttendance() {
     const year = now.getFullYear();
     const month = now.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    
+
     const labels = [];
     const dataPoints = [];
     const colors = [];
@@ -197,7 +197,7 @@ export default function StudentAttendance() {
       labels.push(i);
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
       const record = dateWiseRecords.find(r => r.date === dateStr);
-      
+
       if (record) {
         if (record.statusText === 'FULL PRESENT') {
           dataPoints.push(3); // Top level
@@ -210,7 +210,7 @@ export default function StudentAttendance() {
           colors.push('#ef4444');
         }
       } else {
-        dataPoints.push(null); 
+        dataPoints.push(null);
         colors.push('#e2e8f0');
       }
     }
@@ -253,7 +253,7 @@ export default function StudentAttendance() {
         max: 3,
         ticks: {
           stepSize: 1,
-          callback: function(value) {
+          callback: function (value) {
             if (value === 3) return 'PRESENT';
             if (value === 2) return 'HALFDAY';
             if (value === 1) return 'ABSENT';
@@ -308,7 +308,7 @@ export default function StudentAttendance() {
               <span className="student-attendance__stat-icon">
                 <i className="bi bi-globe text-info" aria-hidden="true"></i>
               </span>
-            <div className="student-attendance__stat-label fw-bold text-dark">Attendance Percentage</div>
+              <div className="student-attendance__stat-label fw-bold text-dark">Attendance Percentage</div>
             </div>
             <div className="student-attendance__stat-value text-dark">{overallStats.rate}%</div>
             <div className="student-attendance__stat-meta text-dark">Calculated from total days</div>
@@ -341,26 +341,31 @@ export default function StudentAttendance() {
         <div className="student-attendance__main">
           <div className="d-flex flex-column gap-4 w-100">
             {/* GRAPH */}
-            <div className="card card-soft p-4 shadow-sm">
-              <h4 className="fw-bold text-dark mb-4 text-uppercase small">Current Month: {new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</h4>
-              <div style={{ height: '350px' }}>
-                <Bar data={dailyChartData} options={dailyChartOptions} />
-              </div>
-              <div className="mt-3 d-flex justify-content-center gap-4">
-                <div className="small fw-bold text-dark"><span className="d-inline-block rounded-circle me-1" style={{width:10, height:10, background:'#10b981'}}></span> Full Present</div>
-                <div className="small fw-bold text-dark"><span className="d-inline-block rounded-circle me-1" style={{width:10, height:10, background:'#f59e0b'}}></span> Half Day</div>
-                <div className="small fw-bold text-dark"><span className="d-inline-block rounded-circle me-1" style={{width:10, height:10, background:'#ef4444'}}></span> Absent</div>
+            {/* GRAPH */}
+            <div className="student-card shadow-sm h-100">
+              <div className="student-card__header">Current Month: {new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</div>
+              <div className="student-card__body">
+                <div style={{ height: '350px' }}>
+                  <Bar data={dailyChartData} options={dailyChartOptions} />
+                </div>
+                <div className="mt-3 d-flex justify-content-center gap-4">
+                  <div className="small fw-bold text-dark"><span className="d-inline-block rounded-circle me-1" style={{ width: 10, height: 10, background: '#10b981' }}></span> Full Present</div>
+                  <div className="small fw-bold text-dark"><span className="d-inline-block rounded-circle me-1" style={{ width: 10, height: 10, background: '#f59e0b' }}></span> Half Day</div>
+                  <div className="small fw-bold text-dark"><span className="d-inline-block rounded-circle me-1" style={{ width: 10, height: 10, background: '#ef4444' }}></span> Absent</div>
+                </div>
               </div>
             </div>
           </div>
 
           {/* OVERALL PANEL */}
-          <div className="student-attendance__panel">
-            <h4 className="fw-bold text-dark mb-4">Attendance Percentage</h4>
-            <div className="student-attendance__donut-wrap">
-              <div className="student-attendance__donut" style={{ background: overallStats.days ? `conic-gradient(#10b981 ${overallStats.rate}%, #ef4444 0)` : '#e2e8f0' }}>
-                <div className="student-attendance__donut-center">
-                  <div className="student-attendance__donut-value text-dark fw-bold">{overallStats.rate}%</div>
+          <div className="student-card w-100 h-100">
+            <div className="student-card__header">Attendance Percentage</div>
+            <div className="student-card__body student-card__body--center">
+              <div className="student-attendance__donut-wrap">
+                <div className="student-attendance__donut" style={{ background: overallStats.days ? `conic-gradient(#10b981 ${overallStats.rate}%, #ef4444 0)` : '#e2e8f0' }}>
+                  <div className="student-attendance__donut-center">
+                    <div className="student-attendance__donut-value text-dark fw-bold">{overallStats.rate}%</div>
+                  </div>
                 </div>
               </div>
             </div>

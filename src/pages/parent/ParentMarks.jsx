@@ -161,22 +161,8 @@ export default function ParentMarks() {
 
   return (
     <ParentShell>
-      <div className="students-section-shell mb-3">
-        <div className="students-section-shell-header">
-          <h2 className="mb-2">Marks</h2>
-          <p className="students-section-copy mb-3">
-            Review latest exam results and overall performance.
-          </p>
-          {badges.length > 0 && (
-            <div className="d-flex flex-wrap gap-2">
-              {badges.map((badge) => (
-                <span key={badge} className="students-section-badge students-section-badge-course">
-                  {badge}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
+      <div className="student-card mb-4">
+        <div className="student-card__header">Marks</div>
       </div>
 
       <div className="students-section-shell">
@@ -271,11 +257,10 @@ export default function ParentMarks() {
                               <td className="text-center parent-marks__value">{Number(row.max_marks || 0)}</td>
                               <td>
                                 <span
-                                  className={`parent-marks__status-chip ${
-                                    status === 'pass'
-                                      ? 'parent-marks__status-chip--pass'
-                                      : 'parent-marks__status-chip--fail'
-                                  }`}
+                                  className={`parent-marks__status-chip ${status === 'pass'
+                                    ? 'parent-marks__status-chip--pass'
+                                    : 'parent-marks__status-chip--fail'
+                                    }`}
                                 >
                                   {row.result_status || 'N/A'}
                                 </span>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import React, { useLayoutEffect, useRef, useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useStudentAuth } from '../store/studentAuth'
 import crest from '../assets/media/images.png'
@@ -138,6 +138,29 @@ export default function StudentShell({ children }) {
     setUnreadCount(0)
   }, [pathname, notifications, student?.id])
 
+  const navRef = React.useRef(null)
+
+  // Restore sidebar scroll position
+  useLayoutEffect(() => {
+    const savedScroll = sessionStorage.getItem('studentSidebarScroll')
+    if (navRef.current && savedScroll) {
+      navRef.current.scrollTop = Number(savedScroll)
+    }
+  }, [])
+
+  // Save sidebar scroll position
+  useEffect(() => {
+    const navEl = navRef.current
+    if (!navEl) return
+
+    const handleScroll = () => {
+      sessionStorage.setItem('studentSidebarScroll', navEl.scrollTop)
+    }
+
+    navEl.addEventListener('scroll', handleScroll)
+    return () => navEl.removeEventListener('scroll', handleScroll)
+  }, [])
+
   return (
     <div className={`student-portal ${collapsed ? 'student-portal--collapsed' : ''} ${mobileOpen ? 'student-portal--mobile-open' : ''}`}>
       {/* Mobile Backdrop */}
@@ -165,7 +188,7 @@ export default function StudentShell({ children }) {
           </button>
         </div>
 
-        <nav className="student-sidebar__nav">
+        <nav className="student-sidebar__nav" ref={navRef}>
           {navItems.map((item) => (
             <Link
               key={item.to}

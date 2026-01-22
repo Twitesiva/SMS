@@ -18,13 +18,7 @@ const defaultNavGroups = [
       { to: "/transport/vehicles", label: "Vehicles", icon: "bi-truck" },
     ],
   },
-  {
-    title: "Student Transport",
-    items: [
-      { to: "/transport/passes", label: "Bus Passes", icon: "bi-card-heading" },
-      { to: "/transport/allocation", label: "Route Allocation", icon: "bi-people" },
-    ],
-  },
+
   {
     title: "Reports",
     items: [

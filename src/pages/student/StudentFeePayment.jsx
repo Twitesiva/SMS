@@ -277,11 +277,13 @@ export default function StudentFeePayment() {
   return (
     <StudentShell>
       <div className="students-section-shell">
-        <div className="students-section-shell-header">
-          <h2 className="mb-2">Fee payment</h2>
-          <p className="students-section-copy mb-0">
-            Review your fee payment history and transaction status.
-          </p>
+        <div className="student-card mb-4">
+          <div className="student-card__header">Fee payment</div>
+          <div className="student-card__body">
+            <p className="students-section-copy mb-0">
+              Review your fee payment history and transaction status.
+            </p>
+          </div>
         </div>
 
         <div className="student-payments-summary">

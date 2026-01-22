@@ -161,23 +161,22 @@ export default function StudentResults() {
 
   return (
     <StudentShell>
-      <div className="students-section-shell mb-3">
-        <div className="students-section-shell-header">
-          <h2 className="mb-2">Results</h2>
-          <p className="students-section-copy mb-3">View published examination results and CGPA.</p>
-          {badges.length > 0 && (
-            <div className="d-flex flex-wrap gap-2">
-              {badges.map((badge) => (
-                <span key={badge} className="students-section-badge students-section-badge-course">
-                  {badge}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
       <div className="students-section-shell">
+        <div className="student-card mb-4">
+          <div className="student-card__header">Results</div>
+          <div className="student-card__body">
+            <p className="students-section-copy mb-3">View published examination results and CGPA.</p>
+            {badges.length > 0 && (
+              <div className="d-flex flex-wrap gap-2">
+                {badges.map((badge) => (
+                  <span key={badge} className="badge bg-light text-dark border">
+                    {badge}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
         {loading && (
           <div className="student-details__loading" role="status" aria-live="polite">
             <div className="student-details__loading-header">
@@ -268,8 +267,8 @@ export default function StudentResults() {
                               <td>
                                 <span
                                   className={`parent-marks__status-chip ${status === 'pass'
-                                      ? 'parent-marks__status-chip--pass'
-                                      : 'parent-marks__status-chip--fail'
+                                    ? 'parent-marks__status-chip--pass'
+                                    : 'parent-marks__status-chip--fail'
                                     }`}
                                 >
                                   {row.result_status || 'N/A'}
