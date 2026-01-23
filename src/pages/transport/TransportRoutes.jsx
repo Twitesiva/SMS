@@ -7,6 +7,8 @@ const initialForm = {
   routeNo: '',
   routeName: '',
   academicYear: '',
+  vehicleRegisterNo: '',
+  seatsAvailable: '',
   boardingPoints: [] // Array of { name: '', time: '' }
 }
 
@@ -14,6 +16,8 @@ export default function TransportRoutes() {
   const [form, setForm] = useState(initialForm)
   const [academicYears, setAcademicYears] = useState([])
   const [loading, setLoading] = useState(false)
+  const [routes, setRoutes] = useState([])
+  const [editingRouteId, setEditingRouteId] = useState(null)
 
   // Boarding point input state
   const [bpName, setBpName] = useState('')
@@ -22,7 +26,81 @@ export default function TransportRoutes() {
 
   useEffect(() => {
     fetchAcademicYears()
+    fetchRoutes()
   }, [])
+
+  const fetchRoutes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('transport_routes')
+        .select('*')
+        .order('id', { ascending: false })
+
+      if (error) throw error
+      setRoutes(data || [])
+    } catch (error) {
+      console.error('Error fetching routes:', error)
+      showToast('Failed to load routes', 'error')
+    }
+  }
+
+  const handleEditRoute = async (route) => {
+    try {
+      setLoading(true)
+      // fetch boarding points
+      const { data: points, error } = await supabase
+        .from('transport_route_boarding_points')
+        .select('name, departure_time')
+        .eq('route_id', route.id)
+        .order('stop_order', { ascending: true })
+
+      if (error) throw error
+
+      setForm({
+        routeNo: route.route_no,
+        routeName: route.route_name,
+        academicYear: route.academic_year,
+        vehicleRegisterNo: route.vehicle_register_no || '',
+        seatsAvailable: route.seats_available || '',
+        boardingPoints: points.map(p => ({ name: p.name, time: p.departure_time }))
+      })
+      setEditingRouteId(route.id)
+
+      // Scroll to top to see form
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+
+    } catch (error) {
+      console.error('Error fetching details:', error)
+      showToast('Failed to load route details', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDeleteRoute = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this route? This will also remove all associated boarding points.')) return
+
+    try {
+      const { error } = await supabase
+        .from('transport_routes')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+      showToast('Route deleted successfully', 'success')
+
+      // If deleting the currently edited route, reset form
+      if (editingRouteId === id) {
+        setForm(initialForm)
+        setEditingRouteId(null)
+      }
+
+      fetchRoutes()
+    } catch (error) {
+      console.error('Error deleting route:', error)
+      showToast('Failed to delete route', 'error')
+    }
+  }
 
   const fetchAcademicYears = async () => {
     try {
@@ -111,23 +189,53 @@ export default function TransportRoutes() {
 
     setLoading(true)
     try {
-      // 1. Insert Route
-      const { data: routeData, error: routeError } = await supabase
-        .from('transport_routes')
-        .insert({
-          route_no: form.routeNo,
-          route_name: form.routeName,
-          academic_year: form.academicYear,
-          is_active: true
-        })
-        .select()
-        .single()
+      let routeId = editingRouteId
 
-      if (routeError) throw routeError
+      if (editingRouteId) {
+        // Update existing route
+        const { error: routeError } = await supabase
+          .from('transport_routes')
+          .update({
+            route_no: form.routeNo,
+            route_name: form.routeName,
+            academic_year: form.academicYear,
+            vehicle_register_no: form.vehicleRegisterNo || null,
+            seats_available: form.seatsAvailable ? parseInt(form.seatsAvailable) : null
+          })
+          .eq('id', editingRouteId)
 
-      // 2. Insert Boarding Points
+        if (routeError) throw routeError
+
+        // Delete existing points to replace them
+        const { error: deleteError } = await supabase
+          .from('transport_route_boarding_points')
+          .delete()
+          .eq('route_id', editingRouteId)
+
+        if (deleteError) throw deleteError
+
+      } else {
+        // 1. Insert New Route
+        const { data: routeData, error: routeError } = await supabase
+          .from('transport_routes')
+          .insert({
+            route_no: form.routeNo,
+            route_name: form.routeName,
+            academic_year: form.academicYear,
+            vehicle_register_no: form.vehicleRegisterNo || null,
+            seats_available: form.seatsAvailable ? parseInt(form.seatsAvailable) : null,
+            is_active: true
+          })
+          .select()
+          .single()
+
+        if (routeError) throw routeError
+        routeId = routeData.id
+      }
+
+      // 2. Insert Boarding Points (for both create and update)
       const pointsToInsert = form.boardingPoints.map((bp, index) => ({
-        route_id: routeData.id,
+        route_id: routeId,
         name: bp.name,
         departure_time: bp.time,
         stop_order: index + 1
@@ -138,13 +246,21 @@ export default function TransportRoutes() {
         .insert(pointsToInsert)
 
       if (bpError) {
-        // Rollback route creation if points fail (optional cleanup)
-        await supabase.from('transport_routes').delete().eq('id', routeData.id)
+        if (!editingRouteId) {
+          // Rollback route creation if points fail (only for new routes)
+          await supabase.from('transport_routes').delete().eq('id', routeId)
+        }
         throw bpError
       }
 
+      showToast(`Route ${editingRouteId ? 'updated' : 'created'} successfully!`, 'success')
+      setForm({ ...initialForm, academicYear: form.academicYear }) // Reset form but keep selected year
+      setEditingRouteId(null)
+      fetchRoutes()
+
       showToast(`Route ${form.routeNo} created successfully!`, 'success')
       setForm({ ...initialForm, academicYear: form.academicYear }) // Reset form but keep selected year
+      fetchRoutes()
 
     } catch (error) {
       console.error('Error creating route:', error)
@@ -164,15 +280,15 @@ export default function TransportRoutes() {
         <div className="row justify-content-center">
           <div className="col-12">
             <div className="transport-card shadow-sm border-0">
-              <div className="transport-card__header py-3">
-                <h5 className="mb-0 fw-bold text-white">Add New Transport Route</h5>
-              </div>
               <div className="card-body p-4">
+                <h5 className="mb-4 fw-bold text-dark">{editingRouteId ? 'Edit Transport Route' : 'Add New Transport Route'}</h5>
                 <form onSubmit={handleSubmit}>
                   {/* Route Details Section */}
-                  <h6 className="text-uppercase text-muted fw-bold small mb-3 letter-spacing-1">Route Details</h6>
+                  <div className="transport-card__header py-3 px-4 mb-4 rounded-3">
+                    <h5 className="mb-0 fw-bold text-white">Route Details</h5>
+                  </div>
                   <div className="row g-3 mb-4">
-                    <div className="col-md-4">
+                    <div className="col-md-3">
                       <label className="form-label fw-semibold text-secondary small">Academic Year <span className="text-danger">*</span></label>
                       <select
                         className="form-select"
@@ -186,7 +302,7 @@ export default function TransportRoutes() {
                         ))}
                       </select>
                     </div>
-                    <div className="col-md-4">
+                    <div className="col-md-3">
                       <label className="form-label fw-semibold text-secondary small">Route No <span className="text-danger">*</span></label>
                       <input
                         type="text"
@@ -197,7 +313,29 @@ export default function TransportRoutes() {
                         disabled={loading}
                       />
                     </div>
-                    <div className="col-md-4">
+                    <div className="col-md-3">
+                      <label className="form-label fw-semibold text-secondary small">Vehicle No</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. TN-01-AB-1234"
+                        value={form.vehicleRegisterNo}
+                        onChange={e => setForm({ ...form, vehicleRegisterNo: e.target.value })}
+                        disabled={loading}
+                      />
+                    </div>
+                    <div className="col-md-3">
+                      <label className="form-label fw-semibold text-secondary small">Seats</label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        placeholder="e.g. 40"
+                        value={form.seatsAvailable}
+                        onChange={e => setForm({ ...form, seatsAvailable: e.target.value })}
+                        disabled={loading}
+                      />
+                    </div>
+                    <div className="col-md-12">
                       <label className="form-label fw-semibold text-secondary small">Route Name <span className="text-danger">*</span></label>
                       <input
                         type="text"
@@ -213,12 +351,14 @@ export default function TransportRoutes() {
                   <hr className="my-4 text-muted opacity-25" />
 
                   {/* Boarding Points Section */}
-                  <h6 className="text-uppercase text-muted fw-bold small mb-3 letter-spacing-1">Boarding Points Configuration</h6>
+                  <div className="transport-card__header py-3 px-4 mb-4 rounded-3">
+                    <h5 className="mb-0 fw-bold text-white">Boarding Points Configuration</h5>
+                  </div>
 
                   <div className="bg-light p-3 rounded-3 mb-3 border">
                     <div className="row g-2 align-items-end">
                       <div className="col-md-5">
-                        <label className="form-label fw-semibold text-secondary small mb-1">Stop Name</label>
+                        <label className="form-label fw-semibold text-secondary small mb-1">Boarding Point Name</label>
                         <input
                           type="text"
                           className="form-control"
@@ -301,21 +441,19 @@ export default function TransportRoutes() {
                         </tbody>
                       </table>
                     </div>
-                  ) : (
-                    <div className="text-center py-4 border border-dashed rounded-3 text-muted mb-4">
-                      <i className="bi bi-signpost-split fs-4 d-block mb-2 text-secondary opacity-50"></i>
-                      <p className="mb-0 small">No boarding points added yet.<br />Add stops in the order they will be visited.</p>
-                    </div>
-                  )}
+                  ) : null}
 
                   <div className="d-flex justify-content-end gap-3 mt-4">
                     <button
                       type="button"
                       className="btn btn-light border px-4"
-                      onClick={() => setForm(initialForm)}
+                      onClick={() => {
+                        setForm(initialForm)
+                        setEditingRouteId(null)
+                      }}
                       disabled={loading}
                     >
-                      Reset Form
+                      {editingRouteId ? 'Cancel Edit' : 'Reset Form'}
                     </button>
                     <button
                       type="submit"
@@ -329,13 +467,77 @@ export default function TransportRoutes() {
                         </>
                       ) : (
                         <>
-                          <i className="bi bi-check-lg me-2"></i>
-                          Create Route
+                          <i className={`bi ${editingRouteId ? 'bi-save' : 'bi-check-lg'} me-2`}></i>
+                          {editingRouteId ? 'Update Route' : 'Create Route'}
                         </>
                       )}
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          </div>
+
+          <div className="col-12 mt-4">
+            <div className="transport-card shadow-sm border-0">
+              <div className="transport-card__header py-3">
+                <h5 className="mb-0 fw-bold text-white">Existing Routes</h5>
+              </div>
+              <div className="card-body p-0">
+                <div className="table-responsive">
+                  <table className="table table-bordered table-hover align-middle mb-0">
+                    <thead className="transport-card__header text-white">
+                      <tr>
+                        <th style={{ width: '10%' }} className="ps-4 py-3 fw-bold text-white text-uppercase small border-end-0">Route No</th>
+                        <th style={{ width: '25%' }} className="py-3 fw-bold text-white text-uppercase small border-start-0 border-end-0">Route Name</th>
+                        <th style={{ width: '20%' }} className="py-3 fw-bold text-white text-uppercase small border-start-0 border-end-0">Vehicle No</th>
+                        <th style={{ width: '10%' }} className="py-3 fw-bold text-white text-uppercase small border-start-0 border-end-0">Seats</th>
+                        <th style={{ width: '20%' }} className="py-3 fw-bold text-white text-uppercase small border-start-0 border-end-0">Academic Year</th>
+                        <th style={{ width: '15%' }} className="py-3 fw-bold text-white text-uppercase small text-center border-start-0">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {routes.length > 0 ? (
+                        routes.map((route) => (
+                          <tr key={route.id}>
+                            <td className="ps-4 fw-bold text-dark">{route.route_no}</td>
+                            <td className="text-dark">{route.route_name}</td>
+                            <td className="text-muted small">{route.vehicle_register_no || '-'}</td>
+                            <td className="text-muted small">{route.seats_available || '-'}</td>
+                            <td><span className="badge bg-light text-dark border fw-normal">{route.academic_year}</span></td>
+                            <td className="text-center">
+                              <div className="d-flex justify-content-center gap-2">
+                                <button
+                                  className="btn btn-sm btn-outline-primary"
+                                  onClick={() => handleEditRoute(route)}
+                                  title="Edit Route"
+                                >
+                                  <i className="bi bi-pencil-square"></i>
+                                </button>
+                                <button
+                                  className="btn btn-sm btn-outline-danger"
+                                  onClick={() => handleDeleteRoute(route.id)}
+                                  title="Delete Route"
+                                >
+                                  <i className="bi bi-trash-fill"></i>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="6" className="text-center py-5 text-muted">
+                            <div className="d-flex flex-column align-items-center opacity-50">
+                              <i className="bi bi-exclamation-circle fs-4 mb-2"></i>
+                              <p className="mb-0 small">No routes found.</p>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
