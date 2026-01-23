@@ -226,130 +226,123 @@ export default function MarksEntry() {
   }
   return (
     <AdminShell>
-      <div className="card card-soft p-3" style={{ maxWidth: '600px', margin: '0 auto' }}>
-        <h5 className="mb-3">Enter Barcode</h5>
-        <div className="row g-2 align-items-end">
-          <div className="col-md-8">
-            <input
-              ref={barcodeInputRef}
-              type="text"
-              className="form-control"
-              placeholder="Barcode"
-              value={barcode}
-              onChange={e => {
-                setBarcode(e.target.value)
-                setDecodeError('')
-                setSubject(null)
-                setBarcodeId(null)
-                setScanData(null)
-              }}
-              onKeyDown={e => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  if (debounceRef.current) clearTimeout(debounceRef.current)
-                  fetchDecodeDetails(e.currentTarget.value)
-                }
-              }}
-            />
+      <div className="container-fluid px-4">
+        <h1 className="mt-4">Marks Entry</h1>
+        <div className="card card-soft p-4 mb-4">
+          <div className="mb-3">
+            <h5 className="fw-bold mb-1">Enter Barcode</h5>
+            <p className="text-muted small mb-0">Scan or enter the barcode from the answer script.</p>
           </div>
-          <div className="col-md-4 d-grid">
-            <button
-              type="button"
-              className="btn btn-brand"
-              onClick={fetchDecodeDetails}
-              disabled={decodeLoading}
-            >
-              {decodeLoading ? 'Loading...' : 'Submit'}
-            </button>
-          </div>
-        </div>
-        {decodeError && (
-          <div className="alert alert-danger mt-3 mb-0 py-2">
-            {decodeError}
-          </div>
-        )}
-      </div>
-
-      {subject && (
-        <div className="card card-soft p-3 mt-4" style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <h5 className="mb-2">Subject Details</h5>
-          <p className="mb-1">
-            <strong>Subject</strong><br />
-            {subject.subject_code ? `${subject.subject_code} - ${subject.subject_name}` : subject.subject_name}
-          </p>
-
-          <div className="row g-2 align-items-end">
-            <div className="col-md-6">
-              <label className="form-label">Marks Obtained</label>
+          <div className="row g-3 align-items-end">
+            <div className="col-md-5">
+              <label className="form-label fw-semibold">Barcode</label>
               <input
-                ref={marksInputRef}
-                type="number"
+                ref={barcodeInputRef}
+                type="text"
                 className="form-control"
-                value={marksForm.marks_obtained}
+                placeholder="Scan Barcode..."
+                value={barcode}
                 onChange={e => {
-                  const value = e.target.value
-                  setMarksForm(prev => ({ ...prev, marks_obtained: value }))
-                  if (value === '') {
-                    setMarksError('')
-                  } else if (Number(value) > 70) {
-                    setMarksError('Please enter valid marks')
-                  } else {
-                    setMarksError('')
-                  }
+                  setBarcode(e.target.value)
+                  setDecodeError('')
+                  setSubject(null)
+                  setBarcodeId(null)
+                  setScanData(null)
                 }}
                 onKeyDown={e => {
                   if (e.key === 'Enter') {
                     e.preventDefault()
-                    saveMarks()
+                    if (debounceRef.current) clearTimeout(debounceRef.current)
+                    fetchDecodeDetails(e.currentTarget.value)
                   }
                 }}
               />
             </div>
+            <div className="col-md-2">
+              <button
+                type="button"
+                className="btn btn-primary w-100"
+                onClick={fetchDecodeDetails}
+                disabled={decodeLoading}
+              >
+                {decodeLoading ? 'Loading...' : 'Submit'}
+              </button>
+            </div>
           </div>
-
-          {marksError && (
-            <div className="text-danger mt-2">
-              {marksError}
+          {decodeError && (
+            <div className="alert alert-danger mt-3 mb-0 py-2">
+              <i className="bi bi-exclamation-triangle-fill me-2"></i>
+              {decodeError}
             </div>
           )}
+        </div>
 
-          <div className="mt-3 d-flex justify-content-end">
-            <button
-              type="button"
-              className="btn btn-success"
-              onClick={saveMarks}
-              disabled={savingMarks || !marksForm.marks_obtained || !!marksError}
-            >
-              {savingMarks ? 'Saving...' : 'Save Marks'}
-            </button>
-          </div>
+        {subject && (
+          <div className="card card-soft p-4 mt-4 animate__animated animate__fadeIn">
+            <div className="mb-3 border-bottom pb-2">
+              <h5 className="fw-bold mb-0">Subject Details</h5>
+            </div>
+            
+            <div className="row g-4 align-items-stretch">
+              <div className="col-md-6">
+                <div className="p-3 bg-light rounded-3 border h-100 d-flex flex-column justify-content-center">
+                  <label className="text-muted small text-uppercase fw-bold mb-1 d-block">Subject</label>
+                  <div className="fs-5 fw-bold text-dark">
+                    {subject.subject_code ? `${subject.subject_code} - ${subject.subject_name}` : subject.subject_name}
+                  </div>
+                </div>
+              </div>
 
-        </div>
-      )}
-      {/* Original functionality preserved but commented out
-      <h2 className="fw-bold mb-3">Publish Results</h2>
-      <div className="card card-soft p-3">
-        <div className="row g-2">
-          <div className="col-md-4">
-            <select className="form-select" value={form.student_id} onChange={e=>setForm({...form,student_id:e.target.value})}>
-              <option value="">Select Student</option>
-              {students.map(s=> (<option key={s.student_id} value={s.student_id}>{s.student_id} — {s.full_name}</option>))}
-            </select>
+              <div className="col-md-6">
+                <div className="p-3 bg-light rounded-3 border h-100 d-flex flex-column justify-content-center">
+                  <label className="form-label fw-bold text-dark mb-2">Marks Obtained (Max: 70)</label>
+                  <div className="d-flex gap-2">
+                    <div className="flex-grow-1">
+                      <input
+                        ref={marksInputRef}
+                        type="number"
+                        className={`form-control form-control-lg ${marksError ? 'is-invalid' : ''}`}
+                        value={marksForm.marks_obtained}
+                        placeholder="00"
+                        onChange={e => {
+                          const value = e.target.value
+                          setMarksForm(prev => ({ ...prev, marks_obtained: value }))
+                          if (value === '') {
+                            setMarksError('')
+                          } else if (Number(value) > 70) {
+                            setMarksError('Please enter valid marks')
+                          } else {
+                            setMarksError('')
+                          }
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            saveMarks()
+                          }
+                        }}
+                      />
+                      {marksError && (
+                        <div className="invalid-feedback">
+                          {marksError}
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-success px-4"
+                      onClick={saveMarks}
+                      disabled={savingMarks || !marksForm.marks_obtained || !!marksError}
+                    >
+                      {savingMarks ? 'Saving...' : 'Save Marks'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="col-md-4">
-            <select className="form-select" value={form.exam_id} onChange={e=>setForm({...form,exam_id:e.target.value})}>
-              <option value="">Select Exam</option>
-              {exams.map(x=> (<option key={x.id} value={x.id}>{x.title} ({x.date})</option>))}
-            </select>
-          </div>
-          <div className="col-md-2"><input type="number" className="form-control" placeholder="Total" value={form.total} onChange={e=>setForm({...form,total:e.target.value})} /></div>
-          <div className="col-md-2"><input className="form-control" placeholder="Grade (e.g., A)" value={form.grade} onChange={e=>setForm({...form,grade:e.target.value})} /></div>
-        </div>
-        <div className="mt-3 d-flex justify-content-end">
-          <button className="btn btn-brand" disabled={saving} onClick={save}>{saving?'Saving...':'Add Result'}</button>
-        </div>
+        )}
       </div>
-      */}
     </AdminShell>
   )
 }
