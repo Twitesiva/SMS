@@ -202,21 +202,6 @@ export default function ChargesAndPenalties() {
 
   return (
     <div className="desktop-container" style={{ overflowX: 'hidden' }}>
-      <section className="setup-hero mb-4 text-center">
-        <div className="setup-hero-copywrap mx-auto text-center" style={{ maxWidth: '640px' }}>
-          <div className="admin-applications__crest mx-auto" aria-hidden="true">
-            <img src={crestPrimary} alt="Vijayam crest" />
-          </div>
-          <h3 className="setup-hero-title mb-2 fw-bold text-white">Charges & Penalties</h3>
-          <p className="setup-hero-copy mb-3 text-white">Configure default amounts for fines and deposits.</p>
-          <div className="setup-hero-chips d-flex flex-wrap gap-2 justify-content-center">
-            <span className="setup-hero-chip text-uppercase">FINES</span>
-            <span className="setup-hero-chip text-uppercase">DEPOSITS</span>
-            <span className="setup-hero-chip text-uppercase">POLICY</span>
-          </div>
-        </div>
-      </section>
-
       <div className="row g-3 mb-4 justify-content-center">
         <div className="col-6 col-md-4">
           <div className="card card-soft p-3 h-100 text-center">

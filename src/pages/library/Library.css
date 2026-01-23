@@ -8,8 +8,11 @@
 .library-catalogue-page,
 .library-dashboard-page,
 .library-insights-page {
-  font-family: "Manrope", "Space Grotesk", "Cabinet Grotesk", system-ui, -apple-system,
-    "Segoe UI", sans-serif;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  font-weight: inherit;
 }
 
 .library-books-page h1,
@@ -840,6 +843,12 @@
   font-size: 0.72rem;
   text-transform: uppercase;
   color: #405166;
+  padding: 0.85rem 1rem;
+  white-space: nowrap;
+}
+
+.activity-table th + th {
+  padding-left: 1.5rem;
 }
 
 .activity-table td {
@@ -895,11 +904,17 @@
 }
 
 .activity-book {
-  font-size: 0.85rem;
+  font-size: inherit;
+  font-family: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
   color: #5b6a80;
 }
 
 .activity-time {
-  font-size: 0.85rem;
+  font-size: inherit;
+  font-family: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
   color: #5b6a80;
 }

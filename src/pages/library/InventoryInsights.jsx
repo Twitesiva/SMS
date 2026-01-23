@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import crestPrimary from '../../assets/media/images.png'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
 
@@ -210,29 +209,7 @@ export default function InventoryInsights() {
 
   return (
     <div className="desktop-container library-insights-page" style={{ overflowX: 'hidden' }}>
-      <section className="library-insights-hero">
-        <div className="library-insights-hero__content">
-          <div className="library-insights-hero__brand">
-            <div className="library-insights-hero__crest" aria-hidden="true">
-              <img src={crestPrimary} alt="Vijayam crest" />
-            </div>
-            <div>
-              <div className="library-insights-hero__eyebrow">Library Insights</div>
-              <h3 className="library-insights-hero__title">Book Balance & Issuance</h3>
-              <p className="library-insights-hero__subtitle">
-                Track available balance, issued copies, and aging titles with clarity.
-              </p>
-            </div>
-          </div>
-          <div className="library-insights-hero__chips">
-            <span>Availability</span>
-            <span>Issued Books</span>
-            <span>Outdated Titles</span>
-          </div>
-        </div>
-      </section>
-
-      <div className="library-insights-stats row g-3 mb-4">
+      <div className="library-insights-stats row g-3 mb-4 mt-4">
         <div className="col-12 col-md-6 col-xl-3">
           <div 
             className="library-insights-stat"

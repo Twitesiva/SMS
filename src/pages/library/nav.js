@@ -6,7 +6,8 @@ export const libraryNavGroups = [
       {
         to: '/library',
         label: 'Dashboard',
-        icon: 'bi-speedometer2'
+        icon: 'bi-speedometer2',
+        exact: true
       }
     ]
   },
@@ -16,12 +17,14 @@ export const libraryNavGroups = [
       {
         to: '/library/books',
         label: 'Book Entry',
-        icon: 'bi-journal-plus'
+        icon: 'bi-journal-plus',
+        exact: true
       },
       {
         to: '/library/books/all',
         label: 'View Books',
-        icon: 'bi-journal-text'
+        icon: 'bi-journal-text',
+        exact: true
       }
     ]
   },
@@ -31,7 +34,8 @@ export const libraryNavGroups = [
       {
         to: '/library/settings',
         label: 'Charges & Penalties',
-        icon: 'bi-gear'
+        icon: 'bi-gear',
+        exact: true
       }
     ]
   },
@@ -41,12 +45,14 @@ export const libraryNavGroups = [
       {
         to: '/library/circulation',
         label: 'Book issue & return',
-        icon: 'bi-arrow-left-right'
+        icon: 'bi-arrow-left-right',
+        exact: true
       },
       {
         to: '/library/fines',
         label: 'Fines',
-        icon: 'bi-cash-coin'
+        icon: 'bi-cash-coin',
+        exact: true
       }
     ]
   },
@@ -56,7 +62,8 @@ export const libraryNavGroups = [
       {
         to: '/library/inventory',
         label: 'Library Insights',
-        icon: 'bi-clipboard-data'
+        icon: 'bi-clipboard-data',
+        exact: true
       }
     ]
   },
@@ -66,12 +73,14 @@ export const libraryNavGroups = [
       {
         to: '/library/reports',
         label: 'Reports',
-        icon: 'bi-graph-up'
+        icon: 'bi-graph-up',
+        exact: true
       },
       {
         to: '/library/history',
         label: 'Student History',
-        icon: 'bi-clock-history'
+        icon: 'bi-clock-history',
+        exact: true
       }
     ]
   }

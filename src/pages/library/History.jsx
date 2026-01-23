@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import crestPrimary from '../../assets/media/images.png'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
 
@@ -111,18 +110,8 @@ export default function History() {
 
   return (
     <div className="desktop-container" style={{ overflowX: 'hidden' }}>
-      <section className="setup-hero mb-4 text-center">
-        <div className="setup-hero-copywrap mx-auto text-center" style={{ maxWidth: '640px' }}>
-          <div className="admin-applications__crest mx-auto" aria-hidden="true">
-            <img src={crestPrimary} alt="Vijayam crest" />
-          </div>
-          <h3 className="setup-hero-title mb-2">Student History</h3>
-          <p className="setup-hero-copy mb-3">View complete library activity for a student.</p>
-        </div>
-      </section>
-
       {/* Search Section */}
-      <div className="row justify-content-center mb-4">
+      <div className="row justify-content-center mb-4 mt-4">
         <div className="col-12 col-md-6">
           <div className="card card-soft p-4">
             <form onSubmit={handleSearch} className="d-flex gap-2">

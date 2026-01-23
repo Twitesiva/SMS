@@ -410,20 +410,6 @@ export default function Circulation() {
   }
   return (
     <div className="desktop-container" style={{ overflowX: 'hidden' }}>
-      <section className="setup-hero mb-4 text-center">
-        <div className="setup-hero-copywrap mx-auto text-center" style={{ maxWidth: '640px' }}>
-          <div className="admin-applications__crest mx-auto" aria-hidden="true">
-            <img src={crestPrimary} alt="Vijayam crest" />
-          </div>
-          <h3 className="setup-hero-title mb-2">Book Outgoing</h3>
-          <p className="setup-hero-copy mb-3">Book issue &amp; return.</p>
-          <div className="setup-hero-chips d-flex flex-wrap gap-2 justify-content-center">
-            <span className="setup-hero-chip text-uppercase">ISSUE DESK</span>
-            <span className="setup-hero-chip text-uppercase">RETURNS</span>
-            <span className="setup-hero-chip text-uppercase">RENEWALS</span>
-          </div>
-        </div>
-      </section>
 
       <div className="row g-4 justify-content-center mx-0">
         <div className="col-12 col-lg-6">

@@ -494,20 +494,6 @@ export default function Fines() {
   }
   return (
     <div className="desktop-container" style={{ overflowX: 'hidden' }}>
-      <section className="setup-hero mb-4 text-center">
-        <div className="setup-hero-copywrap mx-auto text-center" style={{ maxWidth: '640px' }}>
-          <div className="admin-applications__crest mx-auto" aria-hidden="true">
-            <img src={crestPrimary} alt="Vijayam crest" />
-          </div>
-          <h3 className="setup-hero-title mb-2">Library Fines</h3>
-          <p className="setup-hero-copy mb-3">Track penalties and record collections.</p>
-          <div className="setup-hero-chips d-flex flex-wrap gap-2 justify-content-center">
-            <span className="setup-hero-chip text-uppercase">PENALTIES</span>
-            <span className="setup-hero-chip text-uppercase">COLLECTIONS</span>
-            <span className="setup-hero-chip text-uppercase">OVERDUE</span>
-          </div>
-        </div>
-      </section>
 
       <div className="row g-4 justify-content-center mx-0 mb-4">
         <div className="col-12 col-md-4">

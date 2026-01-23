@@ -146,7 +146,8 @@ export default function AdShellAdmin({
     // Determine which nav groups to use
     const activeNavGroups = navGroups || adminPortalNavGroups;
 
-    const isRouteActive = (pathname, to) => {
+    const isRouteActive = (pathname, to, exact = false) => {
+        if (exact) return pathname === to;
         return pathname === to || pathname.startsWith(`${to}/`);
     };
 
@@ -166,7 +167,7 @@ export default function AdShellAdmin({
     // Automatically expand the group that contains the current active route
     useEffect(() => {
         const activeGroupIndex = activeNavGroups.findIndex(
-            (group) => !group.static && group.items.some((item) => isRouteActive(pathname, item.to))
+            (group) => !group.static && group.items.some((item) => isRouteActive(pathname, item.to, item.exact))
         );
         if (activeGroupIndex !== -1) {
             setExpandedGroups((prev) => ({
@@ -207,7 +208,7 @@ export default function AdShellAdmin({
                 <nav className="staff-sidebar__nav">
                     {activeNavGroups.map((group, groupIndex) => {
                         const isStatic = group.static;
-                        const isActiveGroup = group.items.some((item) => isRouteActive(pathname, item.to));
+                        const isActiveGroup = group.items.some((item) => isRouteActive(pathname, item.to, item.exact));
                         const isExpanded = expandedGroups[groupIndex];
 
                         if (isStatic) {
@@ -216,7 +217,7 @@ export default function AdShellAdmin({
                                 <Link
                                     key={item.to}
                                     to={item.to}
-                                    className={`staff-sidebar__link ${isRouteActive(pathname, item.to) ? 'active' : ''}`}
+                                    className={`staff-sidebar__link ${isRouteActive(pathname, item.to, item.exact) ? 'active' : ''}`}
                                 >
                                     <i className={`bi ${item.icon}`}></i>
                                     <span>{item.label}</span>
@@ -248,8 +249,8 @@ export default function AdShellAdmin({
                                             <Link
                                                 key={item.to}
                                                 to={item.to}
-                                                className={`staff-sidebar__link ${isRouteActive(pathname, item.to) ? 'active' : ''}`}
-                                                style={{ padding: '8px 12px', fontSize: '0.9rem', marginBottom: '2px', background: isRouteActive(pathname, item.to) ? 'rgba(255,255,255,0.15)' : 'transparent', border: 'none' }}
+                                                className={`staff-sidebar__link ${isRouteActive(pathname, item.to, item.exact) ? 'active' : ''}`}
+                                                style={{ padding: '8px 12px', fontSize: '0.9rem', marginBottom: '2px', background: isRouteActive(pathname, item.to, item.exact) ? 'rgba(255,255,255,0.15)' : 'transparent', border: 'none' }}
                                             >
                                                 <i className={`bi ${item.icon}`} style={{ fontSize: '0.85rem' }}></i>
                                                 <span style={{ fontSize: '0.85rem' }}>{item.label}</span>

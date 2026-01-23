@@ -177,23 +177,6 @@ export default function LibraryDashboard() {
 
   return (
     <div className="desktop-container library-dashboard-page" style={{ overflowX: 'hidden' }}>
-      <section className="library-dashboard-hero">
-        <div className="library-dashboard-hero__content">
-          <div className="library-dashboard-hero__brand">
-            <div className="library-dashboard-hero__eyebrow">Library Control Center</div>
-            <h3 className="library-dashboard-hero__title">Vijayam Arts & Science College</h3>
-            <p className="library-dashboard-hero__subtitle">
-              Manage catalogues, lending, and returns with confidence.
-            </p>
-          </div>
-        </div>
-        <div className="library-dashboard-hero__chips">
-          <span>Library Services</span>
-          <span>Catalog Management</span>
-          <span>Issue & Return Desk</span>
-        </div>
-      </section>
-
         <div className="row g-4 justify-content-center mx-0">
           <div className="col">
             <div 

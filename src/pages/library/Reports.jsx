@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import crestPrimary from '../../assets/media/images.png'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
 
@@ -646,22 +645,7 @@ export default function Reports() {
   }, [monthLabels])
   return (
     <div className="desktop-container" style={{ overflowX: 'hidden' }}>
-      <section className="setup-hero mb-4 text-center">
-        <div className="setup-hero-copywrap mx-auto text-center" style={{ maxWidth: '640px' }}>
-          <div className="admin-applications__crest mx-auto" aria-hidden="true">
-            <img src={crestPrimary} alt="Vijayam crest" />
-          </div>
-          <h3 className="setup-hero-title mb-2">Library Reports</h3>
-          <p className="setup-hero-copy mb-3">Generate insight reports for inventory and circulation.</p>
-          <div className="setup-hero-chips d-flex flex-wrap gap-2 justify-content-center">
-            <span className="setup-hero-chip text-uppercase">INVENTORY</span>
-            <span className="setup-hero-chip text-uppercase">CIRCULATION</span>
-            <span className="setup-hero-chip text-uppercase">ANALYTICS</span>
-          </div>
-        </div>
-      </section>
-
-      <div className="row g-4 justify-content-center mx-0">
+      <div className="row g-4 justify-content-center mx-0 mt-4">
         <div className="col-12 col-md-6 col-xl-3">
           <div className="card card-soft p-4 h-100">
             <h5 className="mb-2">Library Summary</h5>

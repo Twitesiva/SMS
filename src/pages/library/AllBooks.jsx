@@ -353,23 +353,6 @@ export default function AllBooks() {
 
   return (
     <div className="desktop-container library-catalogue-page" style={{ overflowX: 'hidden' }}>
-      <section className="library-catalogue-hero">
-        <div className="library-catalogue-hero__content">
-          <div className="library-catalogue-hero__brand">
-            <div className="library-catalogue-hero__crest" aria-hidden="true">
-              <img src={crestPrimary} alt="Vijayam crest" />
-            </div>
-            <div>
-              <div className="library-catalogue-hero__eyebrow">Library Console</div>
-              <h2 className="library-catalogue-hero__title">All Books Catalogue</h2>
-              <p className="library-catalogue-hero__subtitle">
-                Review every title, update metadata, and manage inventory status.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <div className="library-catalogue-stats row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-6 g-3 mb-4">
         <div className="col">
           <div className="library-catalogue-stat">

@@ -135,25 +135,6 @@ export default function Books() {
 
   return (
     <div className="desktop-container library-books-page" style={{ overflowX: 'hidden' }}>
-      <section className="library-books-hero">
-        <div className="library-books-hero__content">
-          <div className="library-books-hero__brand">
-            <div className="library-books-hero__crest" aria-hidden="true">
-              <img src={crestPrimary} alt="Vijayam crest" />
-            </div>
-            <div>
-              <div className="library-books-hero__eyebrow">Library Console</div>
-              <h3 className="library-books-hero__title">Library Book Entry</h3>
-              <p className="library-books-hero__subtitle">Track inventory, metadata, and shelf location details.</p>
-            </div>
-          </div>
-          <div className="library-books-hero__chips">
-            <span>Catalogue</span>
-            <span>Inventory</span>
-            <span>Metadata</span>
-          </div>
-        </div>
-      </section>
 
       <div className="row g-4 justify-content-center mx-0">
         <div className="col-12">
