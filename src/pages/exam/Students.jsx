@@ -27,6 +27,7 @@ export default function Students() {
   const [loading, setLoading] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
   const [viewingStudent, setViewingStudent] = useState(null);
+  const [profilePhotoError, setProfilePhotoError] = useState(false);
   const [viewingPaymentRecords, setViewingPaymentRecords] = useState({
     loading: false,
     data: [],
@@ -47,6 +48,9 @@ export default function Students() {
     balance: 0,
     totalFee: 0,
   });
+  useEffect(() => {
+    setProfilePhotoError(false);
+  }, [viewingStudent]);
   const baseCategoryOptions = ["UG", "PG"];
   const normalizeCategoryValue = (value) =>
     value ? value.toString().trim().toUpperCase() : "";
@@ -1591,14 +1595,15 @@ export default function Students() {
                       <div className="row align-items-center">
                          <div className="col-auto">
                             <div className="position-relative">
-                               {viewingMedia.photoUrl ? (
+                               {viewingMedia.photoUrl && !profilePhotoError ? (
                                   <img 
                                     src={viewingMedia.photoUrl} 
-                                    className="rounded-circle border border-3 border-light shadow-sm"
-                                    style={{ width: '100px', height: '100px', objectFit: 'cover' }}
+                                    className="rounded-circle border border-3 border-light shadow-sm bg-white"
+                                    style={{ width: '100px', height: '100px', objectFit: 'contain' }}
                                     alt="Student"
+                                    onError={() => setProfilePhotoError(true)}
                                   />
-                               ) : (
+                                 ) : (
                                   <div className="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold border border-3 border-light shadow-sm" style={{ width: '100px', height: '100px', fontSize: '2rem' }}>
                                     {viewingMedia.initials}
                                   </div>
