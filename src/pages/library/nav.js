@@ -50,23 +50,13 @@ export const libraryNavGroups = [
       },
       {
         to: '/library/fines',
-        label: 'Fines',
+        label: 'Fines Collection',
         icon: 'bi-cash-coin',
         exact: true
       }
     ]
   },
-  {
-    title: 'Insights',
-    items: [
-      {
-        to: '/library/inventory',
-        label: 'Library Insights',
-        icon: 'bi-clipboard-data',
-        exact: true
-      }
-    ]
-  },
+
   {
     title: 'Reports',
     items: [
