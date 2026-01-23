@@ -1150,8 +1150,8 @@ export default function Reports() {
                                   <span className={`badge ${ 
                                     item.status === 'ISSUED' ? 'bg-warning text-dark' :
                                     item.status === 'RETURNED' ? 'bg-success' :
-                                    item.status === 'DAMAGED' ? 'bg-danger' :
-                                    item.status === 'MISSING' ? 'bg-dark' : 'bg-secondary'
+                                    item.status === 'DAMAGED' ? 'bg-warning text-dark' :
+                                    item.status === 'MISSING' ? 'bg-info text-white' : 'bg-secondary'
                                   }`}> 
                                     {item.status}
                                   </span>

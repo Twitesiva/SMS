@@ -510,7 +510,7 @@ export default function InventoryInsights() {
 
                       {(modalTab === 'all' || modalTab === 'missed') && (
                         <div className="mb-4">
-                          <h4 className="fw-bold mb-3 border-bottom pb-2 text-danger">Missed Copies</h4>
+                          <h4 className="fw-bold mb-3 border-bottom pb-2 text-info">Missed Copies</h4>
                           {bookDetails.copies.filter(c => (c.availability || '').toUpperCase() === 'MISSING').length > 0 ? (
                             <div className="table-responsive">
                               <table className="table table-sm table-hover align-middle">
@@ -533,7 +533,7 @@ export default function InventoryInsights() {
                                           <td className="fw-semibold">{issueLoan?.students?.full_name || '-'}</td>
                                           <td className="font-monospace fw-bold">{copy.id}</td>
                                           <td>
-                                            <span className="badge bg-danger fs-6">
+                                            <span className="badge bg-info text-white fs-6">
                                               {copy.availability}
                                             </span>
                                           </td>
@@ -551,7 +551,7 @@ export default function InventoryInsights() {
 
                       {(modalTab === 'all' || modalTab === 'damaged') && (
                         <div>
-                          <h4 className="fw-bold mb-3 border-bottom pb-2 text-warning text-dark">Damaged Copies</h4>
+                          <h4 className="fw-bold mb-3 border-bottom pb-2 text-warning">Damaged Copies</h4>
                           {bookDetails.copies.filter(c => (c.availability || '').toUpperCase() === 'DAMAGED').length > 0 ? (
                             <div className="table-responsive">
                               <table className="table table-sm table-hover align-middle">
