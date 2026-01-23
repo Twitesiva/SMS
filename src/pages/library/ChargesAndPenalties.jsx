@@ -230,7 +230,7 @@ export default function ChargesAndPenalties() {
       </div>
 
       <div className="row g-4 justify-content-center mx-0">
-        <div className="col-12 col-lg-8">
+        <div className="col-12">
           <div className="card card-soft p-4 mb-4">
             <div className="d-flex justify-content-between align-items-center mb-2">
               <div>
@@ -253,8 +253,8 @@ export default function ChargesAndPenalties() {
                 )}
               </div>
             </div>
-            <form className="row g-3" onSubmit={handleSave}>
-              <div className="col-md-6">
+            <form className="row g-3 align-items-end" onSubmit={handleSave}>
+              <div className="col-md-5">
                 <label className="form-label fw-bold text-dark">Overdue Fine (Rs.)</label>
                 <input
                   className="form-control"
@@ -265,7 +265,7 @@ export default function ChargesAndPenalties() {
                   disabled={loading || (settingsId && !editing)}
                 />
               </div>
-              <div className="col-md-6">
+              <div className="col-md-5">
                 <label className="form-label fw-bold text-dark">Security Deposit (Rs.)</label>
                 <input
                   className="form-control"
@@ -276,15 +276,15 @@ export default function ChargesAndPenalties() {
                   disabled={loading || (settingsId && !editing)}
                 />
               </div>
-              <div className="col-12 d-flex justify-content-end gap-2">
+              <div className="col-md-2 d-flex justify-content-end gap-2">
                 {settingsId && !editing && (
-                  <button type="submit" className="btn btn-primary" disabled={saving || loading}>
+                  <button type="submit" className="btn btn-primary w-100" disabled={saving || loading}>
                     Edit
                   </button>
                 )}
                 {(!settingsId || editing) && (
-                  <button type="submit" className="btn btn-primary" disabled={saving || loading}>
-                    {saving ? 'Saving...' : 'Save Changes'}
+                  <button type="submit" className="btn btn-primary w-100" disabled={saving || loading}>
+                    {saving ? 'Saving...' : 'Save'}
                   </button>
                 )}
               </div>
@@ -332,21 +332,21 @@ export default function ChargesAndPenalties() {
             </div>
 
             <form className="row g-2 align-items-end" onSubmit={handleAddCharge}>
-              <div className="col-md-6">
+              <div className="col-md-5">
                 <label className="form-label small fw-bold text-muted">New Category Name</label>
                 <input
                   type="text"
-                  className="form-control form-control-sm"
+                  className="form-control"
                   placeholder="e.g. Lost ID Card"
                   value={newCharge.name}
                   onChange={handleNewChargeChange('name')}
                 />
               </div>
-              <div className="col-md-4">
+              <div className="col-md-5">
                 <label className="form-label small fw-bold text-muted">Amount (Rs.)</label>
                 <input
                   type="number"
-                  className="form-control form-control-sm"
+                  className="form-control"
                   placeholder="0"
                   min="0"
                   value={newCharge.amount}
@@ -356,10 +356,10 @@ export default function ChargesAndPenalties() {
               <div className="col-md-2">
                 <button 
                   type="submit" 
-                  className="btn btn-sm btn-primary w-100"
+                  className="btn btn-primary w-100"
                   disabled={addingCustom}
                 >
-                  {addingCustom ? '...' : 'Add'}
+                  {addingCustom ? '...' : 'Add Category'}
                 </button>
               </div>
             </form>
