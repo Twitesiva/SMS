@@ -2937,26 +2937,6 @@ export default function SubjectMapping() {
           </p>
         </div>
       </div>
-      <div className="students-hero mb-4">
-        <div className="px-3 pt-3">
-          <p className="students-hero-eyebrow text-uppercase mb-1">Payments</p>
-          <h2 className="students-hero-title">Record payments</h2>
-          <p className="students-hero-copy mb-0">
-            Filter, search, and select a student to settle outstanding fees in one clean flow.
-          </p>
-        </div>
-        <div className="students-stats-grid row g-3 px-3 pb-3">
-          {paymentStats.map((stat) => (
-            <div className="col-6 col-md-3" key={stat.label}>
-              <div className="students-hero-card h-100 p-3">
-                <div className="students-hero-stat-label small mb-1 text-white">{stat.label}</div>
-                <div className="fs-3 fw-bold students-hero-stat-value text-white">{stat.value}</div>
-                <div className="students-hero-stat-meta small text-white">{stat.meta}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
 
       <div className="students-filter-panel payments-filter-panel card card-soft mb-4 p-4">
         <h4 className="fw-bold mb-3">Filter Students</h4>

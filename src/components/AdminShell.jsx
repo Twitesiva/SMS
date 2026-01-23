@@ -29,7 +29,6 @@ const examPortalNavGroups = [
       { to: "/admin/complete-registration", label: "Complete Registration & View Time table", icon: "bi-list-check" },
       { to: "/admin/hall-tickets", label: "Hall Ticket", icon: "bi-ticket-perforated" },
       { to: "/admin/practical", label: "Practical", icon: "bi-flask" },
-      { to: "/admin/internal-marks", label: "Internal Marks Entry", icon: "bi-clipboard-check" },
       { to: "/admin/seat-allocation", label: "Seat Allocation", icon: "bi-grid-3x3-gap" },
     ],
   },

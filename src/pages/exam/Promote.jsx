@@ -1768,344 +1768,382 @@ export default function Promote() {
       </div>
 
       {viewingStudent && (
-        <div className="students-modal-overlay" tabIndex="-1">
-          <div className="students-modal-dialog">
-            <div className="students-modal-content">
-              <div className="students-modal-header">
-                <div>
-                  <p className="students-modal-header-eyebrow text-uppercase mb-1">
-                    Student overview
-                  </p>
-                  <h5 className="students-modal-header-title fw-semibold mb-1">
-                    {viewingStudent.full_name || "Student Details"}
-                  </h5>
-                  <div className="students-modal-header-meta text-white-50 small">
-                    <span>{viewingStudent.student_id || "-"}</span>
-                    {(viewingStudent.course?.course_name ||
-                      viewingStudent.course_name ||
-                      viewingStudent.group?.group_name ||
-                      viewingStudent.group_name) && (
-                        <span className="mx-2">•</span>
-                      )}
-                    <span>
-                      {viewingStudent.course?.course_name ||
-                        viewingStudent.course_name ||
-                        viewingStudent.group?.group_name ||
-                        viewingStudent.group_name ||
-                        ""}
-                    </span>
+        <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div className="modal-content border-0 shadow-lg">
+              {/* Modal Header */}
+              <div className="modal-header bg-primary text-white border-0 py-4">
+                <div className="d-flex align-items-center flex-grow-1">
+                  <div className="position-relative me-3" style={{ width: '80px', height: '80px' }}>
+                    {viewingMedia.photoUrl ? (
+                      <img 
+                        src={viewingMedia.photoUrl} 
+                        alt={viewingStudent.full_name} 
+                        className="rounded-circle border-3 border-white shadow-sm"
+                        style={{ width: '80px', height: '80px', objectFit: 'cover' }}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.style.display = 'none';
+                          e.target.nextElementSibling.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div 
+                      className="rounded-circle bg-white bg-opacity-25 border-3 border-white shadow-sm d-flex align-items-center justify-content-center"
+                      style={{ 
+                        width: '80px', 
+                        height: '80px',
+                        display: viewingMedia.photoUrl ? 'none' : 'flex'
+                      }}
+                    >
+                      <span className="display-6 fw-bold text-white">{viewingMedia.initials}</span>
+                    </div>
+                  </div>
+                  <div className="flex-grow-1">
+                    <h3 className="modal-title mb-1">{viewingStudent.full_name || "Student Details"}</h3>
+                    <div className="d-flex flex-wrap align-items-center gap-3 text-white-50">
+                      <span className="small">
+                        <i className="bi bi-person-badge me-1"></i>
+                        ID: {viewingStudent.student_id || viewingStudent.id || "-"}
+                      </span>
+                      <span className="small">
+                        <i className="bi bi-book me-1"></i>
+                        {viewingStudent.course?.course_name || viewingStudent.course_name || viewingStudent.group?.group_name || viewingStudent.group_name || "-"}
+                      </span>
+                      <span className="small">
+                        <i className="bi bi-calendar3 me-1"></i>
+                        {viewingStudent.academic_year || "-"}
+                      </span>
+                      <span className="small">
+                        <i className="bi bi-layers me-1"></i>
+                        Sem {viewingStudent.current_semester || viewingStudent.semester || "-"}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <button
                   type="button"
-                  className="students-modal-close btn btn-sm"
+                  className="btn-close btn-close-white btn-lg"
                   aria-label="Close"
                   onClick={closeStudentDetails}
-                >
-                  Close
-                </button>
+                />
               </div>
-              <div className="students-modal-body">
-                <div className="students-modal-summary">
-                  <div className="students-modal-avatar">
-                    <div className="students-modal-avatar-inner">
-                      {viewingMedia.photoUrl ? (
-                        <img
-                          src={viewingMedia.photoUrl}
-                          alt={viewingStudent.full_name || "Student photo"}
-                        />
-                      ) : (
-                        <div className="students-modal-avatar-initials">
-                          {viewingMedia.initials}
-                        </div>
-                      )}
-                    </div>
-                    <div className="students-modal-avatar-meta">
-                      <p className="students-modal-avatar-status text-uppercase small mb-0">
-                        {viewingStudent.status === "DISCONTINUE"
-                          ? "Discontinued"
-                          : viewingStudent.status === "HOLD"
-                            ? "On Hold"
-                            : "Active Student"}
-                      </p>
-                      <h6 className="text-truncate mb-0">
-                        {viewingStudent.full_name || "-"}
-                      </h6>
-                    </div>
-                  </div>
-                  <div className="students-modal-details">
-                    <div className="students-modal-statuses">
-                      <span
-                        className={`students-modal-badge students-modal-badge--${viewingPaymentStatus?.variant ||
-                          "secondary"}`}
-                      >
-                        {viewingPaymentStatus?.label ||
-                          "Payment info pending"}
-                      </span>
-                      <span
-                        className={`students-modal-badge students-modal-badge--${viewingStudent.status === "DISCONTINUE"
-                          ? "danger"
-                          : viewingStudent.status === "HOLD"
-                            ? "warning"
-                            : "success"
-                          }`}
-                      >
-                        {viewingStudent.status === "DISCONTINUE"
-                          ? "Discontinued"
-                          : viewingStudent.status === "HOLD"
-                            ? "On Hold"
-                            : "Active"}
-                      </span>
-                    </div>
-                    <div className="students-modal-info-grid row g-3">
-                      {[
-                        {
-                          label: "Category",
-                          value:
-                            viewingStudent.Category ||
-                            viewingStudent.category,
-                        },
-                        {
-                          label: "Academic Year",
-                          value: viewingStudent.academic_year,
-                        },
-                        {
-                          label: "Semester",
-                          value: formatDerivedSemesterLabel(viewingStudent.academic_year),
-                        },
-                        {
-                          label: "Course",
-                          value:
-                            viewingStudent.course?.course_name ||
-                            viewingStudent.course_name,
-                        },
-                        {
-                          label: "Group",
-                          value:
-                            viewingStudent.group?.group_name ||
-                            viewingStudent.group_name,
-                        },
-                        {
-                          label: "Hall Ticket",
-                          value: viewingStudent.hall_ticket_no,
-                        },
-                        { label: "Gender", value: viewingStudent.gender },
-                        {
-                          label: "Date of Birth",
-                          value: formatDateLabel(viewingStudent.date_of_birth),
-                        },
-                        {
-                          label: "Nationality",
-                          value: viewingStudent.nationality,
-                        },
-                      ].map((field) => (
-                        <div key={field.label} className="col-6 col-md-4">
-                          <small className="students-modal-field-label">
-                            {field.label}
-                          </small>
-                          <div className="students-modal-field-value">
-                            {field.value || "-"}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <div className="students-modal-card-grid row g-3 mt-4">
-                  <div className="col-lg-6">
-                    <div className="students-modal-card">
-                      <div className="students-modal-card-header">
-                        <p className="students-modal-card-title">Contact</p>
-                        <span className="students-modal-card-meta">Primary</span>
-                      </div>
-                      <div className="students-modal-card-body">
-                        <div className="fw-semibold">
-                          {viewingStudent.phone_number || "-"}
-                        </div>
-                        <div className="text-muted small">
-                          {viewingStudent.email || "-"}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="col-lg-6">
-                    <div className="students-modal-card">
-                      <div className="students-modal-card-header">
-                        <p className="students-modal-card-title">Residence</p>
-                        <span className="students-modal-card-meta">
-                          {viewingStudent.pincode ? `PIN ${viewingStudent.pincode}` : ""}
-                        </span>
-                      </div>
-                      <div className="students-modal-card-body">
-                        <div className="students-modal-card-value text-capitalize">
-                          {viewingStudent.address || "-"}
-                        </div>
-                        <div className="text-muted small mt-2">
-                          {viewingStudent.state || "-"}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="col-lg-6">
-                    <div className="students-modal-card">
-                      <div className="students-modal-card-header">
-                        <p className="students-modal-card-title">Parents</p>
-                        <span className="students-modal-card-meta">Family Info</span>
-                      </div>
-                      <div className="students-modal-card-body">
-                        <div className="fw-semibold">
-                          {viewingStudent.father_name || "-"}
-                        </div>
-                        <div className="text-muted small">Father</div>
-                        <div className="fw-semibold mt-3">
-                          {viewingStudent.mother_name || "-"}
-                        </div>
-                        <div className="text-muted small">Mother</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="col-lg-6">
-                    <div className="students-modal-card">
-                      <div className="students-modal-card-header">
-                        <p className="students-modal-card-title">Identity</p>
-                        <span className="students-modal-card-meta">Core details</span>
-                      </div>
-                      <div className="students-modal-card-body">
-                        <div className="fw-semibold">
-                          {viewingStudent.aadhar_number || "-"}
-                        </div>
-                        <div className="text-muted small">Aadhar</div>
-                        <div className="fw-semibold mt-3">
-                          {viewingStudent.religion || "-"}
-                        </div>
-                        <div className="text-muted small">Religion</div>
-                        <div className="fw-semibold mt-3 text-capitalize">
-                          {viewingStudent.caste || "-"}
-                          {viewingStudent.sub_caste
-                            ? ` • ${viewingStudent.sub_caste}`
-                            : ""}
-                        </div>
-                        <div className="text-muted small">Caste / Sub Caste</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="students-modal-card students-modal-card--full mt-4">
-                  <div className="students-modal-card-header">
-                    <p className="students-modal-card-title mb-0">
-                      Payment History
-                    </p>
-                    <span className="students-modal-card-meta">
-                      {viewingPaymentRecords.data.length
-                        ? `${viewingPaymentRecords.data.length} semester${viewingPaymentRecords.data.length === 1 ? "" : "s"
-                        }`
-                        : "No registrations yet"}
+
+              {/* Modal Body */}
+              <div className="modal-body p-0">
+                {/* Status Bar */}
+                <div className="bg-light border-bottom px-4 py-3">
+                  <div className="d-flex align-items-center gap-3">
+                    <span className={`badge bg-${viewingStudent.status === "DISCONTINUE" ? "danger" : viewingStudent.status === "HOLD" ? "warning" : "success"} fs-6 px-3 py-2`}>
+                      <i className={`bi bi-${viewingStudent.status === "DISCONTINUE" ? "x-circle" : viewingStudent.status === "HOLD" ? "exclamation-triangle" : "check-circle"} me-2`}></i>
+                      {viewingStudent.status === "DISCONTINUE" ? "Discontinued" : viewingStudent.status === "HOLD" ? "On Hold" : "Active"}
+                    </span>
+                    <span className={`badge bg-${viewingPaymentStatus?.variant || "secondary"} fs-6 px-3 py-2`}>
+                      <i className="bi bi-credit-card me-2"></i>
+                      {viewingPaymentStatus?.label || "Payment info pending"}
+                    </span>
+                    <span className="badge bg-info fs-6 px-3 py-2">
+                      <i className="bi bi-layers me-2"></i>
+                      {formatDerivedSemesterLabel(viewingStudent.academic_year)}
                     </span>
                   </div>
-                  <div className="students-modal-card-body">
-                    {viewingPaymentRecords.loading ? (
-                      <div className="text-center py-3">
-                        <div className="spinner-border text-primary" role="status">
-                          <span className="visually-hidden">Loading...</span>
+                </div>
+
+                <div className="p-4">
+                  {/* Personal Information Section */}
+                  <div className="row mb-4">
+                    <div className="col-12">
+                      <h5 className="mb-3 text-primary">
+                        <i className="bi bi-person-vcard me-2"></i>
+                        Personal Information
+                      </h5>
+                      <div className="card border-0 bg-light">
+                        <div className="card-body">
+                          <div className="row g-3">
+                            <div className="col-md-3">
+                              <label className="text-muted small mb-1">Hall Ticket No</label>
+                              <div className="fw-semibold">{viewingStudent.hall_ticket_no || viewingStudent.hallTicketNo || "-"}</div>
+                            </div>
+                            <div className="col-md-3">
+                              <label className="text-muted small mb-1">Student ID</label>
+                              <div className="fw-semibold">{viewingStudent.student_id || viewingStudent.id || "-"}</div>
+                            </div>
+                            <div className="col-md-3">
+                              <label className="text-muted small mb-1">Category</label>
+                              <div className="fw-semibold">{viewingStudent.Category || viewingStudent.category || "-"}</div>
+                            </div>
+                            <div className="col-md-3">
+                              <label className="text-muted small mb-1">Gender</label>
+                              <div className="fw-semibold">{viewingStudent.gender || "-"}</div>
+                            </div>
+                            <div className="col-md-3">
+                              <label className="text-muted small mb-1">Date of Birth</label>
+                              <div className="fw-semibold">{formatDateLabel(viewingStudent.date_of_birth) || "-"}</div>
+                            </div>
+                            <div className="col-md-3">
+                              <label className="text-muted small mb-1">Age</label>
+                              <div className="fw-semibold">
+                                {viewingStudent.date_of_birth ? 
+                                  `${Math.floor((new Date() - new Date(viewingStudent.date_of_birth)) / (365.25 * 24 * 60 * 60 * 1000))} years` 
+                                  : "-"}
+                              </div>
+                            </div>
+                            <div className="col-md-3">
+                              <label className="text-muted small mb-1">Blood Group</label>
+                              <div className="fw-semibold">{viewingStudent.blood_group || "-"}</div>
+                            </div>
+                            <div className="col-md-3">
+                              <label className="text-muted small mb-1">Nationality</label>
+                              <div className="fw-semibold">{viewingStudent.nationality || "-"}</div>
+                            </div>
+                            <div className="col-md-3">
+                              <label className="text-muted small mb-1">Religion</label>
+                              <div className="fw-semibold">{viewingStudent.religion || "-"}</div>
+                            </div>
+                            <div className="col-md-3">
+                              <label className="text-muted small mb-1">Caste</label>
+                              <div className="fw-semibold">
+                                {viewingStudent.caste || "-"}
+                                {viewingStudent.sub_caste && <span className="text-muted"> • {viewingStudent.sub_caste}</span>}
+                              </div>
+                            </div>
+                            <div className="col-md-3">
+                              <label className="text-muted small mb-1">Aadhar Number</label>
+                              <div className="fw-semibold">{viewingStudent.aadhar_number || "-"}</div>
+                            </div>
+                            <div className="col-md-3">
+                              <label className="text-muted small mb-1">Academic Year</label>
+                              <div className="fw-semibold">{viewingStudent.academic_year || "-"}</div>
+                            </div>
+                            <div className="col-md-3">
+                              <label className="text-muted small mb-1">Current Semester</label>
+                              <div className="fw-semibold">{viewingStudent.current_semester || viewingStudent.semester || "-"}</div>
+                            </div>
+                            <div className="col-md-3">
+                              <label className="text-muted small mb-1">Course</label>
+                              <div className="fw-semibold">
+                                {viewingStudent.course?.course_name || viewingStudent.course_name || "-"}
+                              </div>
+                            </div>
+                            <div className="col-md-3">
+                              <label className="text-muted small mb-1">Course Code</label>
+                              <div className="fw-semibold">
+                                {viewingStudent.course?.course_code || viewingStudent.course_code || "-"}
+                              </div>
+                            </div>
+                            <div className="col-md-3">
+                              <label className="text-muted small mb-1">Group</label>
+                              <div className="fw-semibold">
+                                {viewingStudent.group?.group_name || viewingStudent.group_name || "-"}
+                              </div>
+                            </div>
+                            <div className="col-md-3">
+                              <label className="text-muted small mb-1">Group Code</label>
+                              <div className="fw-semibold">
+                                {viewingStudent.group?.group_code || viewingStudent.group_code || "-"}
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    ) : viewingPaymentRecords.error ? (
-                      <div className="alert alert-warning mb-0">
-                        {viewingPaymentRecords.error}
+                    </div>
+                  </div>
+
+                  {/* Contact & Address Section */}
+                  <div className="row mb-4">
+                    <div className="col-md-6">
+                      <h5 className="mb-3 text-primary">
+                        <i className="bi bi-telephone me-2"></i>
+                        Contact Information
+                      </h5>
+                      <div className="card border-0 bg-light h-100">
+                        <div className="card-body">
+                          <div className="mb-3">
+                            <label className="text-muted small mb-1">Phone Number</label>
+                            <div className="fw-semibold">
+                              <i className="bi bi-telephone-fill text-primary me-2"></i>
+                              {viewingStudent.phone_number || "-"}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-muted small mb-1">Email Address</label>
+                            <div className="fw-semibold">
+                              <i className="bi bi-envelope-fill text-primary me-2"></i>
+                              {viewingStudent.email || "-"}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    ) : viewingPaymentRecords.data.length === 0 ? (
-                      <div className="text-muted small">
-                        No payments recorded yet.
+                    </div>
+                    <div className="col-md-6">
+                      <h5 className="mb-3 text-primary">
+                        <i className="bi bi-geo-alt me-2"></i>
+                        Address Information
+                      </h5>
+                      <div className="card border-0 bg-light h-100">
+                        <div className="card-body">
+                          <div className="mb-3">
+                            <label className="text-muted small mb-1">Address</label>
+                            <div className="fw-semibold text-capitalize">{viewingStudent.address || "-"}</div>
+                          </div>
+                          <div className="row">
+                            <div className="col-6">
+                              <label className="text-muted small mb-1">State</label>
+                              <div className="fw-semibold">{viewingStudent.state || "-"}</div>
+                            </div>
+                            <div className="col-6">
+                              <label className="text-muted small mb-1">PIN Code</label>
+                              <div className="fw-semibold">{viewingStudent.pincode || "-"}</div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    ) : (
-                      viewingPaymentRecords.data.map((record, index) => {
-                        const totalFee = Number(record.total_fee || 0);
-                        const payments = Array.isArray(record.payments)
-                          ? record.payments
-                          : [];
-                        const paidTotal = payments
-                          .filter((payment) => payment.payment_status === "success")
-                          .reduce(
-                            (sum, payment) => sum + Number(payment.amount_paid || 0),
-                            0
-                          );
-                        const outstanding = Math.max(totalFee - paidTotal, 0);
-                        const semesterLabel = record.semester
-                          ? `Semester ${record.semester}`
-                          : "Semester not set";
-                        return (
-                          <div
-                            key={`payment-history-${record.semester ?? index}`}
-                            className="students-payment-record"
-                          >
-                            <div className="students-payment-record-header">
-                              <div>
-                                <strong>{semesterLabel}</strong>
-                                <div className="text-muted small">
-                                  {payments.length
-                                    ? `${payments.length} payment${payments.length === 1 ? "" : "s"
-                                    }`
-                                    : "No payments yet"}
+                    </div>
+                  </div>
+
+                  {/* Parents Information Section */}
+                  <div className="row mb-4">
+                    <div className="col-12">
+                      <h5 className="mb-3 text-primary">
+                        <i className="bi bi-people me-2"></i>
+                        Parents Information
+                      </h5>
+                      <div className="card border-0 bg-light">
+                        <div className="card-body">
+                          <div className="row">
+                            <div className="col-md-6">
+                              <div className="d-flex align-items-center mb-3">
+                                <div className="avatar-sm bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3">
+                                  <i className="bi bi-person-fill text-primary"></i>
                                 </div>
-                              </div>
-                              <div className="text-end">
-                                <div className="fw-semibold">
-                                  {totalFee
-                                    ? formatCurrency(totalFee)
-                                    : "Total fee not set"}
-                                </div>
-                                <div className="text-muted small">
-                                  <strong>
-                                    {outstanding > 0
-                                      ? `Balance ${formatCurrency(outstanding)}`
-                                      : "Paid in full"}
-                                  </strong>
+                                <div>
+                                  <label className="text-muted small mb-1">Father's Name</label>
+                                  <div className="fw-semibold">{viewingStudent.father_name || "-"}</div>
                                 </div>
                               </div>
                             </div>
-                            {payments.length ? (
-                              <div className="table-responsive mt-2">
-                                <table className="table table-sm mb-0 align-middle">
-                                  <thead className="table-light">
-                                    <tr>
-                                      <th>Date</th>
-                                      <th>Amount</th>
-                                      <th>Type</th>
-                                      <th>Fee Type</th>
-                                      <th>Status</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {payments.map((payment) => (
-                                      <tr
-                                        key={
-                                          payment.id ||
-                                          `${payment.payment_type}-${payment.created_at}`
-                                        }
-                                      >
-                                        <td className="text-nowrap">
-                                          {formatPaymentDate(payment.created_at)}
-                                        </td>
-                                        <td>
-                                          {payment.amount_paid
-                                            ? formatCurrency(payment.amount_paid)
-                                            : "-"}
-                                        </td>
-                                        <td>{payment.payment_type || "-"}</td>
-                                        <td>{payment.fee_type || "-"}</td>
-                                        <td className="text-capitalize">
-                                          {payment.payment_status || "-"}
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
+                            <div className="col-md-6">
+                              <div className="d-flex align-items-center mb-3">
+                                <div className="avatar-sm bg-danger bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3">
+                                  <i className="bi bi-person-fill text-danger"></i>
+                                </div>
+                                <div>
+                                  <label className="text-muted small mb-1">Mother's Name</label>
+                                  <div className="fw-semibold">{viewingStudent.mother_name || "-"}</div>
+                                </div>
                               </div>
-                            ) : null}
+                            </div>
                           </div>
-                        );
-                      })
-                    )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payment History Section */}
+                  <div className="row">
+                    <div className="col-12">
+                      <h5 className="mb-3 text-primary">
+                        <i className="bi bi-clock-history me-2"></i>
+                        Payment History
+                      </h5>
+                      <div className="card border-0 bg-light">
+                        <div className="card-body">
+                          {viewingPaymentRecords.loading ? (
+                            <div className="text-center py-4">
+                              <div className="spinner-border text-primary" role="status">
+                                <span className="visually-hidden">Loading...</span>
+                              </div>
+                              <p className="mt-2 mb-0 text-muted">Loading payment history...</p>
+                            </div>
+                          ) : viewingPaymentRecords.error ? (
+                            <div className="alert alert-warning mb-0">
+                              <i className="bi bi-exclamation-triangle me-2"></i>
+                              {viewingPaymentRecords.error}
+                            </div>
+                          ) : viewingPaymentRecords.data.length === 0 ? (
+                            <div className="text-center py-4 text-muted">
+                              <i className="bi bi-credit-card display-4 mb-3 d-block opacity-50"></i>
+                              <p className="mb-0">No payments recorded yet.</p>
+                            </div>
+                          ) : (
+                            <div className="accordion" id="paymentHistoryAccordion">
+                              {viewingPaymentRecords.data.map((record, index) => {
+                                const totalFee = Number(record.total_fee || 0);
+                                const payments = Array.isArray(record.payments) ? record.payments : [];
+                                const paidTotal = payments
+                                  .filter((payment) => payment.payment_status === "success")
+                                  .reduce((sum, payment) => sum + Number(payment.amount_paid || 0), 0);
+                                const outstanding = Math.max(totalFee - paidTotal, 0);
+                                const semesterLabel = record.semester ? `Semester ${record.semester}` : "Semester not set";
+                                const accordionId = `payment-semester-${record.semester ?? index}`;
+
+                                return (
+                                  <div className="accordion-item border" key={accordionId}>
+                                    <h2 className="accordion-header">
+                                      <button className="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target={`#${accordionId}`}>
+                                        <div className="d-flex justify-content-between align-items-center w-100 me-3">
+                                          <div>
+                                            <h6 className="mb-1 fw-semibold">{semesterLabel}</h6>
+                                            <small className="text-muted">
+                                              {payments.length ? `${payments.length} payment${payments.length === 1 ? "" : "s"}` : "No payments yet"}
+                                            </small>
+                                          </div>
+                                          <div className="text-end">
+                                            <div className="fw-semibold">{totalFee ? formatCurrency(totalFee) : "Total fee not set"}</div>
+                                            <small className={`fw-bold ${outstanding > 0 ? "text-danger" : "text-success"}`}>
+                                              {outstanding > 0 ? `Balance: ${formatCurrency(outstanding)}` : "Paid in full"}
+                                            </small>
+                                          </div>
+                                        </div>
+                                      </button>
+                                    </h2>
+                                    <div id={accordionId} className="accordion-collapse collapse show" data-bs-parent="#paymentHistoryAccordion">
+                                      <div className="accordion-body">
+                                        {payments.length ? (
+                                          <div className="table-responsive">
+                                            <table className="table table-hover align-middle">
+                                              <thead className="table-light">
+                                                <tr>
+                                                  <th><i className="bi bi-calendar-date me-1"></i>Date</th>
+                                                  <th><i className="bi bi-currency-rupee me-1"></i>Amount</th>
+                                                  <th><i className="bi bi-credit-card me-1"></i>Type</th>
+                                                  <th><i className="bi bi-tag me-1"></i>Fee Type</th>
+                                                  <th><i className="bi bi-info-circle me-1"></i>Status</th>
+                                                </tr>
+                                              </thead>
+                                              <tbody>
+                                                {payments.map((payment) => (
+                                                  <tr key={payment.id || `${payment.payment_type}-${payment.created_at}`}>
+                                                    <td className="text-nowrap">{formatPaymentDate(payment.created_at)}</td>
+                                                    <td className="fw-semibold">{payment.amount_paid ? formatCurrency(payment.amount_paid) : "-"}</td>
+                                                    <td><span className="badge bg-light text-dark">{payment.payment_type || "-"}</span></td>
+                                                    <td><span className="badge bg-info text-white">{payment.fee_type || "-"}</span></td>
+                                                    <td>
+                                                      <span className={`badge bg-${payment.payment_status === "success" ? "success" : payment.payment_status === "pending" ? "warning" : "danger"}`}>
+                                                        {payment.payment_status || "-"}
+                                                      </span>
+                                                    </td>
+                                                  </tr>
+                                                ))}
+                                              </tbody>
+                                            </table>
+                                          </div>
+                                        ) : (
+                                          <div className="text-center text-muted py-3">
+                                            <i className="bi bi-inbox display-5 mb-2 d-block opacity-50"></i>
+                                            No payment records found for this semester.
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

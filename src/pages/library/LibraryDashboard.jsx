@@ -180,238 +180,233 @@ export default function LibraryDashboard() {
       <section className="library-dashboard-hero">
         <div className="library-dashboard-hero__content">
           <div className="library-dashboard-hero__brand">
-            <div className="library-dashboard-hero__crest" aria-hidden="true">
-              <img src={crestPrimary} alt="Vijayam crest" />
-            </div>
-            <div>
-              <div className="library-dashboard-hero__eyebrow">Library Control Center</div>
-              <h3 className="library-dashboard-hero__title">Vijayam Arts & Science College</h3>
-              <p className="library-dashboard-hero__subtitle">
-                Manage catalogues, lending, and returns with confidence.
-              </p>
-            </div>
+            <div className="library-dashboard-hero__eyebrow">Library Control Center</div>
+            <h3 className="library-dashboard-hero__title">Vijayam Arts & Science College</h3>
+            <p className="library-dashboard-hero__subtitle">
+              Manage catalogues, lending, and returns with confidence.
+            </p>
           </div>
-          <div className="library-dashboard-hero__chips">
-            <span>Library Services</span>
-            <span>Catalog Management</span>
-            <span>Issue & Return Desk</span>
-          </div>
+        </div>
+        <div className="library-dashboard-hero__chips">
+          <span>Library Services</span>
+          <span>Catalog Management</span>
+          <span>Issue & Return Desk</span>
         </div>
       </section>
 
-      <div className="library-dashboard-stats row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-5 g-3 mb-4">
-        <div className="col">
-          <div 
-            className="library-dashboard-stat"
-            onClick={() => navigate('/library/inventory')}
-            style={{ cursor: 'pointer' }}
-          >
-            <div className="library-dashboard-stat__label">Total Books Title</div>
-            <div className="library-dashboard-stat__value">{formatStat(stats.totalBooks)}</div>
-            <div className="library-dashboard-stat__meta">Library inventory</div>
-          </div>
-        </div>
-        <div className="col">
-          <div 
-            className="library-dashboard-stat"
-            onClick={() => setStatPreview('issuedToday')}
-            style={{ cursor: 'pointer' }}
-          >
-            <div className="library-dashboard-stat__label">Issued Today</div>
-            <div className="library-dashboard-stat__value">{formatStat(stats.issuedToday)}</div>
-            <div className="library-dashboard-stat__meta">New issues today</div>
-          </div>
-        </div>
-        <div className="col">
-          <div 
-            className="library-dashboard-stat"
-            onClick={() => setStatPreview('returnedToday')}
-            style={{ cursor: 'pointer' }}
-          >
-            <div className="library-dashboard-stat__label">Returned Today</div>
-            <div className="library-dashboard-stat__value">{formatStat(stats.returnedToday)}</div>
-            <div className="library-dashboard-stat__meta">Books checked in</div>
-          </div>
-        </div>
-        <div className="col">
-          <div 
-            className="library-dashboard-stat"
-            onClick={() => navigate('/library/circulation')}
-            style={{ cursor: 'pointer' }}
-          >
-            <div className="library-dashboard-stat__label">Overdue Items</div>
-            <div className="library-dashboard-stat__value library-dashboard-stat__value--danger">
-              {formatStat(stats.overdueItems)}
+        <div className="row g-4 justify-content-center mx-0">
+          <div className="col">
+            <div 
+              className="library-dashboard-stat"
+              onClick={() => navigate('/library/inventory')}
+              style={{ cursor: 'pointer' }}
+            >
+              <div className="library-dashboard-stat__label">Total Books Title</div>
+              <div className="library-dashboard-stat__value">{formatStat(stats.totalBooks)}</div>
+              <div className="library-dashboard-stat__meta">Library inventory</div>
             </div>
-            <div className="library-dashboard-stat__meta">Pending returns</div>
+          </div>
+          <div className="col">
+            <div 
+              className="library-dashboard-stat"
+              onClick={() => setStatPreview('issuedToday')}
+              style={{ cursor: 'pointer' }}
+            >
+              <div className="library-dashboard-stat__label">Issued Today</div>
+              <div className="library-dashboard-stat__value">{formatStat(stats.issuedToday)}</div>
+              <div className="library-dashboard-stat__meta">New issues today</div>
+            </div>
+          </div>
+          <div className="col">
+            <div 
+              className="library-dashboard-stat"
+              onClick={() => setStatPreview('returnedToday')}
+              style={{ cursor: 'pointer' }}
+            >
+              <div className="library-dashboard-stat__label">Returned Today</div>
+              <div className="library-dashboard-stat__value">{formatStat(stats.returnedToday)}</div>
+              <div className="library-dashboard-stat__meta">Books checked in</div>
+            </div>
+          </div>
+          <div className="col">
+            <div 
+              className="library-dashboard-stat"
+              onClick={() => navigate('/library/circulation')}
+              style={{ cursor: 'pointer' }}
+            >
+              <div className="library-dashboard-stat__label">Overdue Items</div>
+              <div className="library-dashboard-stat__value library-dashboard-stat__value--danger">
+                {formatStat(stats.overdueItems)}
+              </div>
+              <div className="library-dashboard-stat__meta">Pending returns</div>
+            </div>
+          </div>
+          <div className="col">
+            <div 
+              className="library-dashboard-stat"
+              onClick={() => navigate('/library/reports')}
+              style={{ cursor: 'pointer' }}
+            >
+              <div className="library-dashboard-stat__label">Overall Issued (last 30 days)</div>
+              <div className="library-dashboard-stat__value">{formatStat(stats.issuedLast30Days)}</div>
+              <div className="library-dashboard-stat__meta">Total issues in period</div>
+            </div>
           </div>
         </div>
-        <div className="col">
-          <div 
-            className="library-dashboard-stat"
-            onClick={() => navigate('/library/reports')}
-            style={{ cursor: 'pointer' }}
-          >
-            <div className="library-dashboard-stat__label">Overall Issued (last 30 days)</div>
-            <div className="library-dashboard-stat__value">{formatStat(stats.issuedLast30Days)}</div>
-            <div className="library-dashboard-stat__meta">Total issues in period</div>
-          </div>
-        </div>
-      </div>
 
-      <div className="row g-4 justify-content-center mx-0">
-        <div className="col-12 col-lg-7">
-          <div className="library-dashboard-panel h-100">
-            <div className="library-dashboard-panel__header">
-              <div>
-                <h5 className="mb-1">Recent Circulation</h5>
-                <p className="text-muted mb-0">Latest issue and return activity.</p>
+        <div className="row g-4 justify-content-center mx-0">
+          <div className="col-12 col-lg-7">
+            <div className="library-dashboard-panel h-100">
+              <div className="library-dashboard-panel__header">
+                <div>
+                  <h5 className="mb-1">Recent Circulation</h5>
+                  <p className="text-muted mb-0">Latest issue and return activity.</p>
+                </div>
+                <button type="button" className="btn btn-outline-secondary btn-sm">View All</button>
               </div>
-              <button type="button" className="btn btn-outline-secondary btn-sm">View All</button>
-            </div>
-            <div className="table-responsive">
-              <table className="table library-dashboard-table mb-0">
-                <thead>
-                  <tr>
-                    <th>Member</th>
-                    <th>Book</th>
-                    <th>Status</th>
-                    <th className="text-end">Due</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentLoans.length === 0 ? (
+              <div className="table-responsive">
+                <table className="table library-dashboard-table mb-0">
+                  <thead>
                     <tr>
-                      <td colSpan="4" className="text-center text-muted py-4">No circulation activity yet.</td>
+                      <th>Member</th>
+                      <th>Book</th>
+                      <th>Status</th>
+                      <th className="text-end">Due</th>
                     </tr>
-                  ) : (
-                    recentLoans.map((loan) => {
-                      const student = loan.students
-                      const book = loan.library_book_copies?.library_books
-                      return (
-                        <tr key={loan.id}>
-                          <td>{student?.full_name || 'Unknown'} ({student?.student_id || '--'})</td>
-                          <td>{book?.title || 'Unknown'}</td>
-                          <td>
-                            <span
-                              className={`library-status ${loan.status === 'ISSUED' ? 'library-status--issued' : 'library-status--returned'}`}
-                            >
-                              {loan.status || 'Unknown'}
-                            </span>
-                          </td>
-                          <td className="text-end">{formatDate(loan.due_date)}</td>
-                        </tr>
-                      )
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-        <div className="col-12 col-lg-5">
-          <div className="library-dashboard-panel h-100">
-            <div className="library-dashboard-panel__header">
-              <div>
-                <h5 className="mb-1">Today Details</h5>
-                <p className="text-muted mb-0">
-                  {statPreview === 'issuedToday' && 'Issued today'}
-                  {statPreview === 'returnedToday' && 'Returned today'}
-                  {!statPreview && 'Click a stat tile to view details.'}
-                </p>
-              </div>
-              {statPreview && (
-                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setStatPreview(null)}>
-                  Clear
-                </button>
-              )}
-            </div>
-            <div className="table-responsive">
-              <table className="table library-dashboard-table mb-0">
-                <thead>
-                  <tr>
-                    <th>Member</th>
-                    <th>Book</th>
-                    <th className="text-end">Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {!statPreview ? (
-                    <tr>
-                      <td colSpan="3" className="text-center text-muted py-4">Select Issued Today or Returned Today to view details.</td>
-                    </tr>
-                  ) : previewRows.length === 0 ? (
-                    <tr>
-                      <td colSpan="3" className="text-center text-muted py-4">No records for today.</td>
-                    </tr>
-                  ) : (
-                    previewRows.map((loan) => (
-                      <tr key={loan.id}>
-                        <td>{loan.students?.full_name || 'Unknown'} ({loan.students?.student_id || '--'})</td>
-                        <td>{loan.library_book_copies?.library_books?.title || 'Unknown'}</td>
-                        <td className="text-end">
-                          {statPreview === 'issuedToday'
-                            ? (loan.issued_at ? new Date(loan.issued_at).toLocaleTimeString('en-GB') : '--')
-                            : (loan.returned_at ? new Date(loan.returned_at).toLocaleTimeString('en-GB') : '--')}
-                        </td>
+                  </thead>
+                  <tbody>
+                    {recentLoans.length === 0 ? (
+                      <tr>
+                        <td colSpan="4" className="text-center text-muted py-4">No circulation activity yet.</td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ) : (
+                      recentLoans.map((loan) => {
+                        const student = loan.students
+                        const book = loan.library_book_copies?.library_books
+                        return (
+                          <tr key={loan.id}>
+                            <td>{student?.full_name || 'Unknown'} ({student?.student_id || '--'})</td>
+                            <td>{book?.title || 'Unknown'}</td>
+                            <td>
+                              <span
+                                className={`library-status ${loan.status === 'ISSUED' ? 'library-status--issued' : 'library-status--returned'}`}
+                              >
+                                {loan.status || 'Unknown'}
+                              </span>
+                            </td>
+                            <td className="text-end">{formatDate(loan.due_date)}</td>
+                          </tr>
+                        )
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div className="col-12 col-lg-5">
+            <div className="library-dashboard-panel h-100">
+              <div className="library-dashboard-panel__header">
+                <div>
+                  <h5 className="mb-1">Today Details</h5>
+                  <p className="text-muted mb-0">
+                    {statPreview === 'issuedToday' && 'Issued today'}
+                    {statPreview === 'returnedToday' && 'Returned today'}
+                    {!statPreview && 'Click a stat tile to view details.'}
+                  </p>
+                </div>
+                {statPreview && (
+                  <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setStatPreview(null)}>
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div className="table-responsive">
+                <table className="table library-dashboard-table mb-0">
+                  <thead>
+                    <tr>
+                      <th>Member</th>
+                      <th>Book</th>
+                      <th className="text-end">Time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {!statPreview ? (
+                      <tr>
+                        <td colSpan="3" className="text-center text-muted py-4">Select Issued Today or Returned Today to view details.</td>
+                      </tr>
+                    ) : previewRows.length === 0 ? (
+                      <tr>
+                        <td colSpan="3" className="text-center text-muted py-4">No records for today.</td>
+                      </tr>
+                    ) : (
+                      previewRows.map((loan) => (
+                        <tr key={loan.id}>
+                          <td>{loan.students?.full_name || 'Unknown'} ({loan.students?.student_id || '--'})</td>
+                          <td>{loan.library_book_copies?.library_books?.title || 'Unknown'}</td>
+                          <td className="text-end">
+                            {statPreview === 'issuedToday'
+                              ? (loan.issued_at ? new Date(loan.issued_at).toLocaleTimeString('en-GB') : '--')
+                              : (loan.returned_at ? new Date(loan.returned_at).toLocaleTimeString('en-GB') : '--')}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="library-dashboard-panel mt-4">
-        <div className="library-dashboard-panel__header">
-          <div>
-            <h5 className="mb-1">Activity Log</h5>
-            <p className="text-muted mb-0">Latest library actions and updates.</p>
+        <div className="library-dashboard-panel mt-4">
+          <div className="library-dashboard-panel__header">
+            <div>
+              <h5 className="mb-1">Activity Log</h5>
+              <p className="text-muted mb-0">Latest library actions and updates.</p>
+            </div>
+          </div>
+          <div className="table-responsive">
+            <table className="table library-dashboard-table mb-0 activity-table">
+              <thead>
+                <tr>
+                  <th>Activity</th>
+                  <th>Member</th>
+                  <th>Book</th>
+                  <th className="text-end">Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activityEvents.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" className="text-center text-muted py-4">No activity yet.</td>
+                  </tr>
+                ) : (
+                  activityEvents.map((event) => (
+                    <tr key={event.id}>
+                      <td>
+                        <span className={`activity-badge ${event.title === 'Book Issued' ? 'is-issued' : event.title === 'Book Returned' ? 'is-returned' : 'is-fine'}`}>
+                          {event.title}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="activity-name">
+                          {event.studentName || 'Unknown'} <span>({event.studentId || '--'})</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="activity-book fw-bold text-dark">{event.bookTitle || 'Unknown'}</div>
+                      </td>
+                      <td className="text-end activity-time">
+                        {event.time ? new Date(event.time).toLocaleString('en-GB') : '--'}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
-        <div className="table-responsive">
-          <table className="table library-dashboard-table mb-0 activity-table">
-            <thead>
-              <tr>
-                <th>Activity</th>
-                <th>Member</th>
-                <th>Book</th>
-                <th className="text-end">Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {activityEvents.length === 0 ? (
-                <tr>
-                  <td colSpan="4" className="text-center text-muted py-4">No activity yet.</td>
-                </tr>
-              ) : (
-                activityEvents.map((event) => (
-                  <tr key={event.id}>
-                    <td>
-                      <span className={`activity-badge ${event.title === 'Book Issued' ? 'is-issued' : event.title === 'Book Returned' ? 'is-returned' : 'is-fine'}`}>
-                        {event.title}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="activity-name">
-                        {event.studentName || 'Unknown'} <span>({event.studentId || '--'})</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="activity-book fw-bold text-dark">{event.bookTitle || 'Unknown'}</div>
-                    </td>
-                    <td className="text-end activity-time">
-                      {event.time ? new Date(event.time).toLocaleString('en-GB') : '--'}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   )
 }

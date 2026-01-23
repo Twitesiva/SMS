@@ -100,9 +100,6 @@ export default function AcademicYearsSection({
         <div className="students-section-shell-header mb-3">
           <div>
             <h5 className="section-title mb-1">Academic Years</h5>
-            <p className="students-section-copy small mb-0">
-              Define academic years to organize batches and curriculum.
-            </p>
           </div>
         </div>
 
