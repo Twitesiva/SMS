@@ -30,12 +30,12 @@ const examPortalNavGroups = [
       { to: "/admin/hall-tickets", label: "Hall Ticket", icon: "bi-ticket-perforated" },
       { to: "/admin/practical", label: "Practical", icon: "bi-flask" },
       { to: "/admin/seat-allocation", label: "Seat Allocation", icon: "bi-grid-3x3-gap" },
+      { to: "/admin/internal-marks", label: "Internal Marks Entry", icon: "bi-clipboard-check" },
     ],
   },
   {
     title: "Post-Exam Portal",
     items: [
-      { to: "/admin/internal-marks", label: "Internal Marks Entry", icon: "bi-clipboard-check" },
       { to: "/admin/decode", label: "Decoding", icon: "bi-bar-chart" },
       { to: "/admin/marks-entry", label: "Marks Entry", icon: "bi-award" },
       { to: "/admin/result-publish", label: "Result Publish", icon: "bi-megaphone" },
