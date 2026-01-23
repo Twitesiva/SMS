@@ -952,7 +952,7 @@ export default function Dashboard() {
             </article>
           </div>
 
-          <div className="dashboard-chart-row mt-4">
+          <div className="dashboard-chart-row-full mt-4">
             <article
               className="dashboard-chart-card card-shadow w-100"
               style={{ minHeight: "auto", cursor: "default" }}
@@ -973,11 +973,10 @@ export default function Dashboard() {
                 <table className="table table-hover align-middle mb-0">
                   <thead className="table-light">
                     <tr>
-                      <th scope="col">Time</th>
-
-                      <th scope="col">Role</th>
-                      <th scope="col">Action</th>
-                      <th scope="col">Page</th>
+                      <th scope="col" style={{ width: '180px' }}>Time</th>
+                      <th scope="col" style={{ width: '100px' }}>Role</th>
+                      <th scope="col" style={{ width: '150px' }}>Action</th>
+                      <th scope="col" style={{ width: '200px' }}>Page</th>
                       <th scope="col">Description</th>
                     </tr>
                   </thead>
@@ -985,25 +984,34 @@ export default function Dashboard() {
                     {recentActivities.length > 0 ? (
                       recentActivities.map((log) => (
                         <tr key={log.id}>
-                          <td style={{ whiteSpace: "nowrap", fontSize: "0.9rem" }}>
-                            {new Date(log.created_at).toLocaleString()}
+                          <td style={{ whiteSpace: "nowrap", fontSize: "0.85rem" }}>
+                            {new Date(log.created_at).toLocaleString('en-IN', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              second: '2-digit',
+                              hour12: true
+                            })}
                           </td>
 
                           <td>
-                            <span className={`badge ${log.role === 'admin' ? 'bg-primary' : 'bg-info'}`}>
+                            <span className={`badge ${log.role?.toLowerCase() === 'admin' ? 'bg-primary' : 'bg-info'}`}>
                               {log.role?.toUpperCase() || "USER"}
                             </span>
                           </td>
-                          <td className="fw-medium">{log.action}</td>
-                          <td className="text-muted">{log.page}</td>
-                          <td className="text-muted small" style={{ whiteSpace: "pre-wrap" }}>
+                          <td className="fw-bold">{log.action}</td>
+                          <td className="text-secondary">{log.page}</td>
+                          <td className="text-muted small" style={{ whiteSpace: "pre-wrap", lineHeight: '1.4' }}>
                             {log.description || "-"}
                           </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="5" className="text-center text-muted py-4">
+                        <td colSpan="5" className="text-center text-muted py-5">
+                          <i className="bi bi-clock-history d-block mb-2 fs-2 opacity-50"></i>
                           No recent activities found
                         </td>
                       </tr>

@@ -434,6 +434,11 @@
   gap: 1.5rem;
 }
 
+.dashboard-chart-row-full {
+  display: block;
+  width: 100%;
+}
+
 .dashboard-chart-card {
   transition: transform 0.4s ease, box-shadow 0.4s ease, border 0.4s ease;
   animation: fadeInUp 0.6s ease both;
