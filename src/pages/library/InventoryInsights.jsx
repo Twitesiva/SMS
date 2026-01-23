@@ -210,7 +210,7 @@ export default function InventoryInsights() {
   return (
     <div className="desktop-container library-insights-page" style={{ overflowX: 'hidden' }}>
       <div className="library-insights-stats row g-3 mb-4 mt-4">
-        <div className="col-12 col-md-6 col-xl-3">
+        <div className="col-12 col-sm-6 col-xl-3">
           <div 
             className="library-insights-stat"
             onClick={() => navigate('/library/books/all')}
@@ -221,7 +221,7 @@ export default function InventoryInsights() {
             <div className="library-insights-stat__meta">Catalogued titles</div>
           </div>
         </div>
-        <div className="col-12 col-md-6 col-xl-2">
+        <div className="col-12 col-sm-6 col-xl-3">
           <div 
             className="library-insights-stat"
             onClick={() => navigate('/library/books/all')}
@@ -232,7 +232,7 @@ export default function InventoryInsights() {
             <div className="library-insights-stat__meta">Copies ready to issue</div>
           </div>
         </div>
-        <div className="col-12 col-md-6 col-xl-2">
+        <div className="col-12 col-sm-6 col-xl-3">
           <div 
             className="library-insights-stat"
             onClick={() => navigate('/library/circulation')}
@@ -243,7 +243,7 @@ export default function InventoryInsights() {
             <div className="library-insights-stat__meta">Currently with members</div>
           </div>
         </div>
-        <div className="col-12 col-md-6 col-xl-2">
+        <div className="col-12 col-sm-6 col-xl-3">
           <div 
             className="library-insights-stat"
             onClick={() => navigate('/library/circulation')}
