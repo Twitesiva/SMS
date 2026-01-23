@@ -892,14 +892,14 @@ export default function Fines() {
       </div>
 
       <div className="row g-4 justify-content-center mx-0 mb-4">
-        <div className="col-12 col-lg-8">
+        <div className="col-12">
           <div className="card card-soft p-4 h-100">
             <div>
               <h4 className="mb-1">Other Fines & Charges</h4>
               <p className="text-muted mb-3">Record miscellaneous library charges.</p>
             </div>
             <form className="row g-3" onSubmit={handleOtherFineSubmit}>
-              <div className="col-md-6">
+              <div className="col-md-4">
                 <label className="form-label">Student ID</label>
                 <input
                   type="text"
@@ -909,7 +909,7 @@ export default function Fines() {
                   onChange={(e) => setOtherFineForm(p => ({ ...p, studentId: e.target.value }))}
                 />
               </div>
-              <div className="col-md-6">
+              <div className="col-md-4">
                 <label className="form-label">Category</label>
                 <select
                   className="form-select"
@@ -922,7 +922,7 @@ export default function Fines() {
                   ))}
                 </select>
               </div>
-              <div className="col-md-6">
+              <div className="col-md-4">
                 <label className="form-label">Fine Amount (Rs.)</label>
                 <input
                   type="number"
@@ -932,10 +932,10 @@ export default function Fines() {
                   onChange={handleOtherFormChange('amount')}
                 />
               </div>
-              <div className="col-md-6 d-flex align-items-end">
+              <div className="col-12 d-flex justify-content-end mt-4">
                 <button 
                   type="submit" 
-                  className="btn btn-primary w-100"
+                  className="btn btn-primary px-4"
                   disabled={savingOther}
                 >
                   {savingOther ? 'Saving...' : 'Record Other Fine'}
