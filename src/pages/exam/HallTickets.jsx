@@ -412,7 +412,7 @@ export default function HallTickets() {
 
           return {
             seatNumber: row.seat_number ?? "—",
-            date: schedule?.exam_date ?? "—",
+            date: formatDateDDMMYYYY(schedule?.exam_date),
             time:
               formatScheduleTimeRange(
                 schedule?.exam_start_time,
@@ -498,7 +498,7 @@ export default function HallTickets() {
         const schedule = scheduleMap.get(code);
         return {
           seatNumber: row.seat_number ?? "—",
-          date: schedule?.exam_date ?? "—",
+          date: formatDateDDMMYYYY(schedule?.exam_date),
           time:
             formatScheduleTimeRange(
               schedule?.exam_start_time,
@@ -614,6 +614,14 @@ export default function HallTickets() {
     course?.courseName ??
     course?.courseCode ??
     "Course";
+
+  const formatDateDDMMYYYY = (isoDate) => {
+    if (!isoDate) return "—";
+    const parts = isoDate.split("-");
+    if (parts.length !== 3) return isoDate;
+    const [year, month, day] = parts;
+    return `${day}-${month}-${year}`;
+  };
 
   const getExamValue = (exam) =>
     String(exam?.id ?? exam?.exam_id ?? exam?.value ?? "");
@@ -749,13 +757,13 @@ export default function HallTickets() {
           const code = subject?.subject_code?.toString().toUpperCase();
           const schedule = scheduleMap.get(code);
           return {
-            seatNumber: row.seat_number ?? "�",
-            date: schedule?.exam_date ?? "�",
+            seatNumber: row.seat_number ?? "—",
+            date: formatDateDDMMYYYY(schedule?.exam_date),
             time:
               formatScheduleTimeRange(
                 schedule?.exam_start_time,
                 schedule?.exam_end_time
-              ) || "�",
+              ) || "—",
             subjectCode: subject?.subject_code ?? "�",
             subjectName: subject?.subject_name ?? "�",
           };

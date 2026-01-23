@@ -543,7 +543,7 @@ export default function CompleteRegistration() {
                                             <button
                                                 type="button"
                                                 className="btn btn-sm btn-outline-warning rounded-pill px-3"
-                                                onClick={() => navigate('/admin/exams', { state: { openPreview: true } })}
+                                                onClick={() => navigate('/admin/create-exam', { state: { openPreview: true } })}
                                             >
                                                 Edit Time Table
                                             </button>
