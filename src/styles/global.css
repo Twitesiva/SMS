@@ -340,3 +340,35 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after,
   font-weight: 600;
   margin-left: 0.25rem;
 }
+
+.activity-table-header {
+  background: #606c88 !important;
+  color: #ffffff !important;
+}
+
+.activity-table-header th,
+.activity-table-header i,
+.activity-table-header span,
+.activity-table-header div,
+.activity-table-header h1,
+.activity-table-header h2,
+.activity-table-header h3,
+.activity-table-header h4,
+.activity-table-header h5,
+.activity-table-header h6,
+.activity-table-header p,
+.activity-table-header small,
+.activity-table-header .text-muted,
+.activity-table-header .text-white-50,
+.activity-table-header *,
+.activity-table-header {
+  color: #ffffff !important;
+}
+
+.activity-table-header th {
+  background: #606c88 !important;
+  border: none !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}

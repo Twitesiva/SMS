@@ -971,7 +971,7 @@ export default function Dashboard() {
               </div>
               <div className="table-responsive p-3">
                 <table className="table table-hover align-middle mb-0">
-                  <thead className="table-light">
+                  <thead className="activity-table-header">
                     <tr>
                       <th scope="col" style={{ width: '180px' }}>Time</th>
                       <th scope="col" style={{ width: '100px' }}>Role</th>

@@ -379,8 +379,8 @@ export default function MarksReports() {
                         <div className="card-body p-0">
                             <div className="table-responsive">
                                 <table className="table table-bordered border-dark align-middle table-nowrap mb-0">
-                                    <thead className="bg-white">
-                                        <tr className="text-dark fw-bold text-uppercase border-dark">
+                                    <thead className="activity-table-header">
+                                        <tr className="fw-bold text-uppercase border-dark">
                                             <th className="ps-4 border-dark">S.No</th>
                                             <th className="border-dark">HT No</th>
                                             <th className="border-dark">Student Name</th>

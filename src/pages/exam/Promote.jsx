@@ -1561,7 +1561,7 @@ export default function Promote() {
           </div>
           <div className="table-responsive">
             <table className="table table-borderless table-hover align-middle mb-0">
-              <thead className="table-light">
+              <thead className="activity-table-header">
                 <tr>
 
                   <th style={{ width: "40px" }}>
@@ -1772,7 +1772,7 @@ export default function Promote() {
           <div className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
             <div className="modal-content border-0 shadow-lg">
               {/* Modal Header */}
-              <div className="modal-header bg-primary text-white border-0 py-4">
+              <div className="modal-header activity-table-header border-0 py-4">
                 <div className="d-flex align-items-center flex-grow-1">
                   <div className="position-relative me-3" style={{ width: '80px', height: '80px' }}>
                     {viewingMedia.photoUrl ? (
@@ -1801,7 +1801,7 @@ export default function Promote() {
                   </div>
                   <div className="flex-grow-1">
                     <h3 className="modal-title mb-1">{viewingStudent.full_name || "Student Details"}</h3>
-                    <div className="d-flex flex-wrap align-items-center gap-3 text-white-50">
+                    <div className="d-flex flex-wrap align-items-center gap-3 text-white">
                       <span className="small">
                         <i className="bi bi-person-badge me-1"></i>
                         ID: {viewingStudent.student_id || viewingStudent.id || "-"}
@@ -2102,7 +2102,7 @@ export default function Promote() {
                                         {payments.length ? (
                                           <div className="table-responsive">
                                             <table className="table table-hover align-middle">
-                                              <thead className="table-light">
+                                              <thead className="activity-table-header">
                                                 <tr>
                                                   <th><i className="bi bi-calendar-date me-1"></i>Date</th>
                                                   <th><i className="bi bi-currency-rupee me-1"></i>Amount</th>
@@ -2676,7 +2676,7 @@ export default function Promote() {
                         {semData.payments && semData.payments.length > 0 ? (
                           <div className="table-responsive">
                             <table className="table table-sm table-bordered mb-0">
-                              <thead className="table-light">
+                              <thead className="activity-table-header">
                                 <tr>
                                   <th>Date</th>
                                   <th>Amount</th>
@@ -2742,7 +2742,7 @@ export default function Promote() {
         <div className="students-modal-overlay" style={{ zIndex: 1060 }}>
           <div className="students-modal-dialog" style={{ maxWidth: "500px" }}>
             <div className="students-modal-content">
-              <div className="students-modal-header bg-primary text-white">
+              <div className="students-modal-header activity-table-header">
                 <h5 className="students-modal-header-title fw-bold mb-0">Confirm Promotion</h5>
                 <button
                   type="button"

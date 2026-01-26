@@ -752,22 +752,22 @@ export default function Reports() {
                         <div className="row g-4">
                             {/* Summary Card */}
                             <div className="col-12">
-                                <div className="card shadow-sm border-0 rounded-4 bg-primary text-white">
+                                <div className="card shadow-sm border-0 rounded-4 activity-table-header text-white">
                                     <div className="card-body p-4 d-flex align-items-center justify-content-between">
                                         <div>
-                                            <h5 className="mb-1 text-black text-uppercase small fw-bold">
+                                            <h5 className="mb-1 text-white text-uppercase small fw-bold">
                                                 Total Students
                                             </h5>
-                                            <h1 className="display-4 fw-bold mb-0">
+                                            <h1 className="display-4 fw-bold mb-0 text-white">
                                                 {chartData.total}
                                             </h1>
                                         </div>
                                         <div className="text-end">
-                                            <p className="mb-0 h5 text-white-50">
+                                            <p className="mb-0 h5 text-white">
                                                 {filters.academic_year}
                                             </p>
                                             {filters.exam_name && (
-                                                <span className="badge bg-white text-primary mt-2">
+                                                <span className="badge bg-white text-dark mt-2 border-0">
                                                     {filters.exam_name}
                                                 </span>
                                             )}
@@ -917,7 +917,7 @@ export default function Reports() {
                             {/* Student List Table */}
                             <div className="col-12">
                                 <div className="students-table-panel card card-soft p-4">
-                                    <div className="students-table-panel-header mb-3">
+                                    <div className="students-table-panel-header activity-table-header mb-3">
                                         <div>
                                             <h5 className="students-table-panel-title fw-bold mb-1">
                                                 Students
@@ -932,7 +932,7 @@ export default function Reports() {
                                     </div>
                                     <div className="table-responsive">
                                         <table className="table table-borderless table-hover align-middle mb-0">
-                                            <thead className="table-light">
+                                            <thead className="activity-table-header">
                                                 <tr>
                                                     <th>Student ID</th>
                                                     <th>Name</th>

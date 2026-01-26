@@ -536,7 +536,6 @@ export default function SeatAllocation() {
                                     vertical-align: middle;
                                 }
                                 .seat-allocation-table th {
-                                    background-color: #f8f9fa;
                                     font-weight: 600;
                                     text-align: center;
                                 }
@@ -551,7 +550,7 @@ export default function SeatAllocation() {
                             `}
                         </style>
                         <table className="table seat-allocation-table mb-0">
-                            <thead>
+                            <thead className="activity-table-header">
                                 <tr>
                                     <th scope="col" style={{ width: '5%' }}>S.No</th>
                                     <th scope="col" style={{ width: '10%' }}>Seat No</th>

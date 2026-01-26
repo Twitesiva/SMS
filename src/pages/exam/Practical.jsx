@@ -377,7 +377,7 @@ export default function Practical() {
                     </div>
                     <div className="table-responsive">
                         <table className="table table-hover table-striped mb-0 align-middle">
-                            <thead className="table-light">
+                            <thead className="activity-table-header">
                                 <tr>
                                     <th width="5%" className="text-center">S.No</th>
                                     <th width="20%">Hall Ticket No</th>

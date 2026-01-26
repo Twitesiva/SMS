@@ -212,6 +212,17 @@
   font-weight: 700 !important;
 }
 
+/* Force white for activity-table-header elements */
+.admin-content .activity-table-header,
+.admin-content .activity-table-header *,
+.admin-content .activity-table-header .fw-bold,
+.admin-content .activity-table-header .text-uppercase,
+.admin-content .activity-table-header .small,
+.admin-content .activity-table-header .text-muted,
+.admin-content .activity-table-header .text-white {
+  color: #ffffff !important;
+}
+
 /* Header elements - ensure white color */
 .admin-content .setup-hero__title {
   color: #ffffff !important;

@@ -1027,7 +1027,7 @@ export default function HallTickets() {
                   {!loadingRegistrations && registeredStudents.length > 0 && (
                     <div className="table-responsive">
                       <table className="table mb-0">
-                        <thead>
+                        <thead className="activity-table-header">
                           <tr>
                             <th style={{ width: '40px' }}>
                               <div className="form-check">
