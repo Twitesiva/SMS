@@ -217,14 +217,15 @@
   border-spacing: 0 0.75rem;
 }
 
-.library-catalogue-table thead th {
-  font-size: 0.75rem;
+.library-catalogue-page .library-catalogue-table thead th {
+  font-size: 0.9rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #51627a;
+  color: #ffffff !important;
   border: none;
   padding: 0.75rem 1rem;
-  background: transparent;
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%) !important;
+  font-weight: 800;
 }
 
 .library-catalogue-table tbody tr {
@@ -454,14 +455,16 @@
   border-spacing: 0 0.6rem;
 }
 
-.library-books-table thead th {
+.library-books-page .library-books-table thead th,
+.library-books-page .library-books-table thead th.fw-bold {
   font-size: 0.75rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #51627a;
+  color: #ffffff !important;
   border: none;
-  background: transparent;
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%) !important;
   padding: 0.65rem 1rem;
+  font-weight: 800;
 }
 
 .library-books-table tbody tr {
@@ -634,10 +637,11 @@
   font-size: 0.75rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #51627a;
+  color: #ffffff !important;
   border: none;
-  background: transparent;
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%) !important;
   padding: 0.65rem 1rem;
+  font-weight: 800;
 }
 
 .library-dashboard-table tbody tr {
@@ -650,6 +654,63 @@
   border: none;
   padding: 0.85rem 1rem;
   vertical-align: middle;
+}
+
+.library-charges-table thead th {
+  font-size: 0.9rem !important;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #ffffff !important;
+  border: none;
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%) !important;
+  padding: 0.65rem 1rem;
+  font-weight: 800;
+}
+
+.library-circulation-table thead th {
+  font-size: 0.9rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #ffffff !important;
+  border: none;
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%) !important;
+  padding: 0.65rem 1rem;
+  font-weight: 800;
+}
+
+.library-fines-table thead th {
+  font-size: 0.9rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #ffffff !important;
+  border: none;
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%) !important;
+  padding: 0.65rem 1rem;
+  font-weight: 800;
+}
+
+.library-reports-monthly-table thead th {
+  font-size: 0.9rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #ffffff !important;
+  border: none;
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%) !important;
+  padding: 0.65rem 1rem;
+  font-weight: 800;
+}
+
+.library-history-issued-table thead th,
+.library-history-returned-table thead th,
+.library-history-fines-table thead th {
+  font-size: 0.9rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #ffffff !important;
+  border: none;
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%) !important;
+  padding: 0.65rem 1rem;
+  font-weight: 800;
 }
 
 .library-dashboard-overdue-list {

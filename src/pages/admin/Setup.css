@@ -1020,6 +1020,22 @@
   gap: 2rem;
 }
 
+.students-modal-report-tabs .btn {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #000000;
+}
+
+.students-modal-report-tabs .btn.btn-primary {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #000000;
+}
+
+.students-modal-report-tabs .btn.btn-outline-secondary {
+  color: #000000;
+}
+
 .subjects-modal-dialog .students-modal-body {
   max-height: none;
   padding: 1.25rem;

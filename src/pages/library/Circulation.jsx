@@ -641,7 +641,7 @@ export default function Circulation() {
               </div>
             </div>
             <div className="table-responsive">
-              <table className="table table-hover align-middle mb-0">
+              <table className="table table-hover align-middle mb-0 library-circulation-table">
                 <thead className="table-light">
                   <tr>
                     <th>Student</th>

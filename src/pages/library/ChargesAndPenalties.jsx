@@ -298,7 +298,7 @@ export default function ChargesAndPenalties() {
             </div>
             
             <div className="table-responsive mb-3">
-              <table className="table table-sm table-hover align-middle">
+              <table className="table table-sm table-hover align-middle library-charges-table">
                 <thead className="table-light">
                   <tr>
                     <th>Category Name</th>

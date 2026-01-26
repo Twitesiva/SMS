@@ -1027,7 +1027,7 @@ export default function Reports() {
           <button type="button" className="btn btn-outline-secondary btn-sm">Export</button>
         </div>
         <div className="table-responsive">
-          <table className="table table-hover align-middle mb-0">
+          <table className="table table-hover align-middle mb-0 library-reports-monthly-table">
             <thead className="table-light">
               <tr>
                 <th>Month</th>
@@ -1081,7 +1081,7 @@ export default function Reports() {
                   <div className="text-center py-5 text-muted">Loading details...</div>
                 ) : (
                   <>
-                    <div className="d-flex gap-2 mb-3">
+                    <div className="d-flex gap-2 mb-3 students-modal-report-tabs">
                       <button
                         className={`btn btn-sm ${activeTab === 'issued' ? 'btn-primary' : 'btn-outline-secondary'}`}
                         onClick={() => setActiveTab('issued')}

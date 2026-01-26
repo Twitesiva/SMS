@@ -627,7 +627,7 @@ export default function Fines() {
               <button type="button" className="btn btn-outline-secondary btn-sm">Export</button>
             </div>
             <div className="table-responsive">
-              <table className="table table-hover align-middle mb-0">
+              <table className="table table-hover align-middle mb-0 library-fines-table">
                 <thead className="table-light">
                   <tr>
                     <th>Student</th>

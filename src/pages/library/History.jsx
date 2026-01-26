@@ -163,7 +163,7 @@ export default function History() {
                   <p className="text-muted fst-italic">No active loans.</p>
                 ) : (
                   <div className="table-responsive">
-                    <table className="table table-sm table-hover align-middle">
+                    <table className="table table-sm table-hover align-middle library-history-issued-table">
                       <thead className="table-light">
                         <tr>
                           <th>Book Title</th>
@@ -202,7 +202,7 @@ export default function History() {
                   <p className="text-muted fst-italic">No return history found.</p>
                 ) : (
                   <div className="table-responsive" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                    <table className="table table-sm table-hover align-middle">
+                    <table className="table table-sm table-hover align-middle library-history-returned-table">
                       <thead className="table-light sticky-top">
                         <tr>
                           <th>Book Title</th>
@@ -240,7 +240,7 @@ export default function History() {
                   <p className="text-muted fst-italic">No fine records found.</p>
                 ) : (
                   <div className="table-responsive">
-                    <table className="table table-sm table-hover align-middle">
+                    <table className="table table-sm table-hover align-middle library-history-fines-table">
                       <thead className="table-light">
                         <tr>
                           <th>Date</th>
