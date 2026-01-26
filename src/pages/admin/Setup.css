@@ -1061,6 +1061,12 @@
   box-shadow: 0 10px 20px rgba(15, 23, 42, 0.35);
 }
 
+.staff-detail-label {
+  width: 140px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 /* Ensure dashboard grid matches the 3-column intent */
 .dashboard-chart-row {
   grid-template-columns: repeat(3, 1fr) !important;

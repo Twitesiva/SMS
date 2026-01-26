@@ -206,7 +206,7 @@ export default function ConfirmedAdmissions() {
                             <div className="text-white p-4 d-flex justify-content-between align-items-center" style={{ background: '#3f4c6b' }}>
                                 <div>
                                     <h3 className="mb-1 fw-bold">{selectedApp.full_name}</h3>
-                                    <div className="d-flex align-items-center gap-2 opacity-75">
+                                    <div className="d-flex align-items-center gap-2 text-white">
                                         <i className="bi bi-card-heading"></i>
                                         <span>Application No: {selectedApp.application_no}</span>
                                     </div>

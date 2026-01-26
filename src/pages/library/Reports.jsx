@@ -1115,7 +1115,7 @@ export default function Reports() {
                     </div>
 
                     <div className="table-responsive bg-white rounded border">
-                      <table className="table table-hover mb-0">
+                      <table className="table table-hover mb-0 library-reports-details-table">
                         <thead className="table-light">
                           <tr>
                             <th>Issued</th>

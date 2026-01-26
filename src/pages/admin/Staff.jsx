@@ -445,23 +445,23 @@ export default function Staff() {
                                                     </h5>
                                                     <div className="row row-cols-1 row-cols-lg-2 g-x-5 g-y-2 mb-4">
                                                         <div className="col d-flex">
-                                                            <span className="text-dark fw-bold text-uppercase" style={{ width: '120px' }}>Staff ID :</span>
+                                                            <span className="staff-detail-label text-dark fw-bold text-uppercase">Staff ID :</span>
                                                             <span className="fw-medium text-dark">{viewingTeacher.staff_id}</span>
                                                         </div>
                                                         <div className="col d-flex">
-                                                            <span className="text-dark fw-bold text-uppercase" style={{ width: '120px' }}>Qualification :</span>
+                                                            <span className="staff-detail-label text-dark fw-bold text-uppercase">Qualification :</span>
                                                             <span className="fw-medium text-dark">{viewingTeacher.qualification || "-"}</span>
                                                         </div>
                                                         <div className="col d-flex">
-                                                            <span className="text-dark fw-bold text-uppercase" style={{ width: '120px' }}>Designation :</span>
+                                                            <span className="staff-detail-label text-dark fw-bold text-uppercase">Designation :</span>
                                                             <span className="fw-medium text-dark">{viewingTeacher.designation || "-"}</span>
                                                         </div>
                                                         <div className="col d-flex">
-                                                            <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Experience :</span>
+                                                            <span className="staff-detail-label text-muted small text-uppercase fw-semibold">Experience :</span>
                                                             <span className="fw-medium text-dark">{viewingTeacher.experience_years} Years</span>
                                                         </div>
                                                         <div className="col d-flex">
-                                                            <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Joining Date :</span>
+                                                            <span className="staff-detail-label text-muted small text-uppercase fw-semibold">Joining Date :</span>
                                                             <span className="fw-medium text-dark">{formatDate(viewingTeacher.joining_date)}</span>
                                                         </div>
                                                     </div>
@@ -471,15 +471,15 @@ export default function Staff() {
                                                     </h5>
                                                     <div className="row row-cols-1 row-cols-lg-2 g-x-5 g-y-2 mb-4">
                                                         <div className="col d-flex">
-                                                            <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Full Name :</span>
+                                                            <span className="staff-detail-label text-muted small text-uppercase fw-semibold">Full Name :</span>
                                                             <span className="fw-medium text-dark">{viewingTeacher.full_name}</span>
                                                         </div>
                                                         <div className="col d-flex">
-                                                            <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>DOB :</span>
+                                                            <span className="staff-detail-label text-muted small text-uppercase fw-semibold">DOB :</span>
                                                             <span className="fw-medium text-dark">{formatDate(viewingTeacher.date_of_birth)}</span>
                                                         </div>
                                                         <div className="col d-flex">
-                                                            <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Gender :</span>
+                                                            <span className="staff-detail-label text-muted small text-uppercase fw-semibold">Gender :</span>
                                                             <span className="fw-medium text-dark">{viewingTeacher.gender || "-"}</span>
                                                         </div>
                                                     </div>
@@ -489,15 +489,15 @@ export default function Staff() {
                                                     </h5>
                                                     <div className="d-flex flex-column gap-2">
                                                         <div className="d-flex">
-                                                            <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Phone :</span>
+                                                            <span className="staff-detail-label text-muted small text-uppercase fw-semibold">Phone :</span>
                                                             <span className="fw-medium text-dark">{viewingTeacher.phone_number || "-"}</span>
                                                         </div>
                                                         <div className="d-flex">
-                                                            <span className="text-muted small text-uppercase fw-semibold" style={{ width: '120px' }}>Email :</span>
+                                                            <span className="staff-detail-label text-muted small text-uppercase fw-semibold">Email :</span>
                                                             <span className="fw-medium text-dark">{viewingTeacher.email || "-"}</span>
                                                         </div>
                                                         <div className="d-flex mt-1">
-                                                            <span className="text-muted small text-uppercase fw-semibold flex-shrink-0" style={{ width: '120px' }}>Address :</span>
+                                                            <span className="staff-detail-label text-muted small text-uppercase fw-semibold">Address :</span>
                                                             <span className="fw-medium text-dark">
                                                                 {viewingTeacher.address}
                                                             </span>

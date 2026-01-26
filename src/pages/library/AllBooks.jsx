@@ -799,7 +799,7 @@ export default function AllBooks() {
                           <h4 className="fw-bold mb-3 border-bottom pb-2">Active Loans</h4>
                           {bookDetails.loans.length > 0 ? (
                             <div className="table-responsive">
-                              <table className="table table-sm table-hover align-middle">
+                              <table className="table table-sm table-hover align-middle library-issue-details-table">
                                 <thead className="table-light">
                                   <tr>
                                     <th>Student ID</th>
@@ -833,7 +833,7 @@ export default function AllBooks() {
                           <h4 className="fw-bold mb-3 border-bottom pb-2 text-danger">Missed Copies</h4>
                           {bookDetails.copies.filter(c => (c.availability || '').toUpperCase() === 'MISSING').length > 0 ? (
                             <div className="table-responsive">
-                              <table className="table table-sm table-hover align-middle">
+                              <table className="table table-sm table-hover align-middle library-issue-details-table">
                                 <thead className="table-light">
                                   <tr>
                                     <th>Student ID</th>
