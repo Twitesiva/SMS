@@ -437,7 +437,7 @@ export default function StudentAttendance() {
                 </div>
               )}
 
-              <table className="table table-bordered">
+              <table className="table table-bordered staff-attendance-table">
                 <thead>
                   <tr>
                     <th className="text-center" style={{ width: '80px' }}>S.No</th>

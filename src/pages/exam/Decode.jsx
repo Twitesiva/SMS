@@ -1123,7 +1123,7 @@ export default function Decode() {
                 </div>
               ) : isDecodeGenerated && subjectStudents.length > 0 ? (
                 <div id="decode-table-container" className="table-responsive">
-                  <table className="table table-sm">
+                  <table className="table table-sm exam-decode-table">
                     <thead>
                       <tr>
                         <th>S.NO</th>

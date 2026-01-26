@@ -453,7 +453,7 @@ export default function LearningMaterials() {
 
                       {uploadedMaterials[s.subject_id] && uploadedMaterials[s.subject_id].length > 0 ? (
                         <div className="table-responsive border rounded">
-                          <table className="table table-bordered table-striped align-middle mb-0">
+                          <table className="table table-bordered table-striped align-middle mb-0 staff-learning-materials-table">
                             <thead className="table-light text-uppercase small fw-bold text-secondary">
                               <tr>
                                 <th className="text-center" style={{ width: '60px' }}>S.No</th>

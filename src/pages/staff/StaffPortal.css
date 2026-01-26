@@ -29,6 +29,40 @@
   border-right: none;
 }
 
+.attendance-page .staff-attendance-table thead th {
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%) !important;
+  color: #ffffff !important;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 10px 14px;
+  font-size: 0.95rem;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  vertical-align: middle;
+}
+
+.attendance-page .staff-attendance-table thead th:last-child {
+  border-right: none;
+}
+
+.students-section-shell .staff-learning-materials-table thead th {
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%) !important;
+  color: #ffffff !important;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 10px 14px;
+  font-size: 0.95rem;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  vertical-align: middle;
+}
+
+.staff-learning-materials-table thead th:last-child {
+  border-right: none;
+}
+
 .attendance-page .table td {
   padding: 8px 14px;
   vertical-align: middle;

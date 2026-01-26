@@ -919,7 +919,7 @@ const TimetableList = ({ schedules, subjects, courses, groups, filterGroup, filt
                 </span>
             </div>
             <div className="table-responsive">
-                <table className="table table-striped table-hover table-bordered align-middle mb-0">
+                <table className="table table-striped table-hover table-bordered align-middle mb-0 exam-registration-table">
                     <thead className="table-light">
                         <tr className="text-dark">
                             <th style={{ width: '60px' }} className="text-center">S.No</th>
