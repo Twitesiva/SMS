@@ -81,6 +81,7 @@ import StudentAttendance from "./pages/student/StudentAttendance.jsx";
 import StudentNotifications from "./pages/student/StudentNotifications.jsx";
 import StudentCirculars from "./pages/student/StudentCirculars.jsx";
 import StudentResults from "./pages/student/StudentResults.jsx";
+import StudentTransport from "./pages/student/StudentTransport.jsx";
 import Batches from "./pages/exam/Batches.jsx";
 import Courses from "./pages/exam/Courses.jsx";
 import Students from "./pages/exam/Students.jsx";
@@ -821,6 +822,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
               <StudentTimeTable />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/student/transport"
+          element={
+            <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
+              <StudentTransport />
             </GuardedRoute>
           }
         />
