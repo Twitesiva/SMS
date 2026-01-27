@@ -114,6 +114,7 @@ import AdmissionsApplication from "./pages/admissions/AdmissionsApplication.jsx"
 import TransportLogin from "./pages/transport/TransportLogin.jsx";
 import TransportDashboard from "./pages/transport/TransportDashboard.jsx";
 import TransportRoutes from "./pages/transport/TransportRoutes.jsx";
+import TransportViewRoutes from "./pages/transport/TransportViewRoutes.jsx";
 import TransportVehicles from "./pages/transport/TransportVehicles.jsx";
 import TransportPasses from "./pages/transport/TransportPasses.jsx";
 import TransportAllocation from "./pages/transport/TransportAllocation.jsx";
@@ -231,6 +232,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isTransportAuthed} redirectTo="/transport/login">
               <TransportRoutes />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/transport/view-routes"
+          element={
+            <GuardedRoute isAuthed={isTransportAuthed} redirectTo="/transport/login">
+              <TransportViewRoutes />
             </GuardedRoute>
           }
         />

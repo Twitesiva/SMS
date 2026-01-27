@@ -6,8 +6,9 @@ import './TransportShell.css'
 
 const navItems = [
   { to: '/transport/dashboard', label: 'Dashboard', icon: 'bi-grid-fill' },
-  { to: '/transport/routes', label: 'Route Creation', icon: 'bi-map' },
-
+  { to: '/transport/routes', label: 'Route Creations', icon: 'bi-map' },
+  { to: '/transport/view-routes', label: 'View Routes', icon: 'bi-eye' },
+  { to: '/transport/vehicles', label: 'Seats Availability', icon: 'bi-truck-front' },
   { to: '/transport/reports', label: 'Reports', icon: 'bi-file-earmark-text' },
 ]
 
