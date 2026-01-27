@@ -70,7 +70,8 @@ export default function AdmissionsApplication() {
         caste: '',
         current_semester: '',
         is_hostel: '',
-        is_transport: ''
+        is_transport: '',
+        hostel_ac: null
     }
 
     const [form, setForm] = useState({
@@ -377,6 +378,7 @@ export default function AdmissionsApplication() {
                 // Accommodation Details from Application
                 is_hostel: app.is_hostel === true || app.is_hostel === 'true',
                 is_transport: (app.is_hostel === true || app.is_hostel === 'true') ? false : (app.is_transport === true || app.is_transport === 'true'),
+                hostel_ac: app.hostel_ac === true ? true : app.hostel_ac === false ? false : null,
                 // Set Generated IDs
                 student_id: nextStudentId,
                 ht_no: nextHtNo
@@ -411,6 +413,10 @@ export default function AdmissionsApplication() {
 
         if (form.is_hostel === '') {
             showToast('Please select Student Type (Hostel/Dayscholar).', { type: 'warning' })
+            return
+        }
+        if (form.is_hostel === true && form.hostel_ac === null) {
+            showToast('Please select Hostel AC/Non-AC option.', { type: 'warning' })
             return
         }
         if (form.is_hostel === false && form.is_transport === '') {
@@ -483,6 +489,7 @@ export default function AdmissionsApplication() {
                 status: 'ACTIVE',
                 is_hostel: form.is_hostel,
                 is_transport: form.is_hostel ? false : form.is_transport,
+                hostel_ac: form.is_hostel ? form.hostel_ac : null,
                 created_at: new Date().toISOString()
             }
 
@@ -511,7 +518,13 @@ export default function AdmissionsApplication() {
                     // 2. Mark Application as Confirmed
                     const { error: appError } = await supabase
                         .from('applications')
-                        .update({ status: 'CONFIRMED', application_status: 'CONFIRMED' })
+                        .update({
+                            status: 'CONFIRMED',
+                            application_status: 'CONFIRMED',
+                            is_hostel: form.is_hostel,
+                            is_transport: form.is_hostel ? false : form.is_transport,
+                            hostel_ac: form.is_hostel ? form.hostel_ac : null
+                        })
                         .eq('id', location.state.applicationData.id)
 
                     if (appError) {
@@ -777,18 +790,44 @@ export default function AdmissionsApplication() {
                                                 <div className="form-check form-check-inline">
                                                     <input className="form-check-input" type="radio" name="is_hostel" id="hostelYes"
                                                         checked={form.is_hostel === true}
-                                                        onChange={() => handle('is_hostel', true)}
+                                                        onChange={() => {
+                                                            handle('is_hostel', true)
+                                                            handle('is_transport', false)
+                                                        }}
                                                     />
                                                     <label className="form-check-label" htmlFor="hostelYes">Hostel</label>
                                                 </div>
                                                 <div className="form-check form-check-inline">
                                                     <input className="form-check-input" type="radio" name="is_hostel" id="hostelNo"
                                                         checked={form.is_hostel === false}
-                                                        onChange={() => handle('is_hostel', false)}
+                                                        onChange={() => {
+                                                            handle('is_hostel', false)
+                                                            handle('is_transport', '')
+                                                            handle('hostel_ac', null)
+                                                        }}
                                                     />
                                                     <label className="form-check-label" htmlFor="hostelNo">Day Scholar</label>
                                                 </div>
                                             </div>
+                                            {form.is_hostel === true && (
+                                                <div className="col-md-4">
+                                                    <label className="form-label d-block text-muted">Hostel Accommodation</label>
+                                                    <div className="form-check form-check-inline">
+                                                        <input className="form-check-input" type="radio" name="hostel_ac" id="hostelAc"
+                                                            checked={form.hostel_ac === true}
+                                                            onChange={() => handle('hostel_ac', true)}
+                                                        />
+                                                        <label className="form-check-label" htmlFor="hostelAc">AC</label>
+                                                    </div>
+                                                    <div className="form-check form-check-inline">
+                                                        <input className="form-check-input" type="radio" name="hostel_ac" id="hostelNonAc"
+                                                            checked={form.hostel_ac === false}
+                                                            onChange={() => handle('hostel_ac', false)}
+                                                        />
+                                                        <label className="form-check-label" htmlFor="hostelNonAc">Non AC</label>
+                                                    </div>
+                                                </div>
+                                            )}
                                             <div className="col-md-4">
                                                 <label className="form-label d-block text-muted">College Transport (if Day Scholar)</label>
                                                 <div className="form-check form-check-inline">

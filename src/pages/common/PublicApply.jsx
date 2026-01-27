@@ -41,7 +41,8 @@ export default function PublicApply() {
     twelth_register_no: '',
     twelth_percentage: '',
     is_hostel: null,
-    is_transport: null
+    is_transport: null,
+    hostel_ac: null
   })
   const [photo, setPhoto] = useState(null)
   const [cert, setCert] = useState(null)
@@ -118,7 +119,8 @@ export default function PublicApply() {
       twelth_register_no: '',
       twelth_percentage: '',
       is_hostel: null,
-      is_transport: null
+      is_transport: null,
+      hostel_ac: null
     })
     setPhoto(null); setCert(null); setTenthMarksheet(null); setTwelthMarksheet(null)
     setFileInputKey((k) => k + 1)
@@ -218,6 +220,11 @@ export default function PublicApply() {
       setLoading(false)
       return
     }
+    if (form.is_hostel === true && form.hostel_ac === null) {
+      showToast('Please select Hostel AC/Non-AC option.', { type: 'warning', title: 'Accommodation required' })
+      setLoading(false)
+      return
+    }
 
     // Validation passed, show confirmation popup
     setShowConfirm(true)
@@ -267,7 +274,8 @@ export default function PublicApply() {
             status: 'SUBMITTED',
             application_status: 'SUBMITTED',
             is_hostel: form.is_hostel,
-            is_transport: form.is_transport || false
+            is_transport: form.is_transport || false,
+            hostel_ac: form.is_hostel ? form.hostel_ac : null
           }
         ])
         .select()
@@ -531,7 +539,10 @@ export default function PublicApply() {
                                 type="radio"
                                 name="studentType"
                                 checked={form.is_hostel === true}
-                                onChange={() => handle('is_hostel', true)}
+                                onChange={() => {
+                                  handle('is_hostel', true)
+                                  handle('is_transport', false)
+                                }}
                               />
                               <i className="bi bi-building"></i>
                               <span>Hostel Accommodation</span>
@@ -544,6 +555,7 @@ export default function PublicApply() {
                                 onChange={() => {
                                   handle('is_hostel', false)
                                   handle('is_transport', null)
+                                  handle('hostel_ac', null)
                                 }}
                               />
                               <i className="bi bi-house"></i>
@@ -579,6 +591,34 @@ export default function PublicApply() {
                             </label>
                           </div>
                         </div>
+
+                        {form.is_hostel === true && (
+                          <div className="col-md-6">
+                            <label className="form-label mb-2 fw-bold text-dark">Hostel Accommodation Type</label>
+                            <div className="accommodation-toggle-group">
+                              <label className={`accommodation-checkbox ${form.hostel_ac === true ? 'active' : ''}`}>
+                                <input
+                                  type="radio"
+                                  name="hostel_ac"
+                                  checked={form.hostel_ac === true}
+                                  onChange={() => handle('hostel_ac', true)}
+                                />
+                                <i className="bi bi-snow"></i>
+                                <span>AC</span>
+                              </label>
+                              <label className={`accommodation-checkbox ${form.hostel_ac === false ? 'active' : ''}`}>
+                                <input
+                                  type="radio"
+                                  name="hostel_ac"
+                                  checked={form.hostel_ac === false}
+                                  onChange={() => handle('hostel_ac', false)}
+                                />
+                                <i className="bi bi-wind"></i>
+                                <span>Non AC</span>
+                              </label>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
 
