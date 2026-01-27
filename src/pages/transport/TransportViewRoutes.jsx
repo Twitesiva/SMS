@@ -3,7 +3,19 @@ import TransportShell from '../../components/TransportShell'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
 
-export default function TransportVehicles() {
+
+const initialForm = {
+  routeNo: '',
+  routeName: '',
+  academicYear: '',
+  vehicleRegisterNo: '',
+  seatsAvailable: '',
+  boardingPoints: [] // Array of { name: '', time: '' }
+}
+
+export default function TransportViewRoutes() {
+
+
   const [routes, setRoutes] = useState([])
   const [academicYears, setAcademicYears] = useState([])
   const [selectedYear, setSelectedYear] = useState('')
@@ -39,6 +51,8 @@ export default function TransportVehicles() {
 
   const fetchRoutes = async () => {
     try {
+      // Fetch routes with the count of registered students
+      // Note: This assumes a foreign key relationship exists between transport_routes and student_transport
       const { data, error } = await supabase
         .from('transport_routes')
         .select(`
@@ -49,6 +63,7 @@ export default function TransportVehicles() {
 
       if (error) throw error
 
+      // Process data to flatten the count
       const processedRoutes = (data || []).map(route => ({
         ...route,
         reserved_count: route.student_transport ? route.student_transport[0]?.count || 0 : 0
@@ -74,7 +89,7 @@ export default function TransportVehicles() {
 
       if (routeError) throw routeError
 
-      // 2. Fetch Boarding Points (needed for student details)
+      // 2. Fetch Boarding Points
       const { data: bpData, error: bpError } = await supabase
         .from('transport_route_boarding_points')
         .select('*')
@@ -115,15 +130,17 @@ export default function TransportVehicles() {
     setSelectedRouteDetails(null)
   }
 
+
+
   return (
-    <TransportShell brandTitle="Transport Management" brandSubtitle="Seats Availability">
+    <TransportShell brandTitle="Transport Management" brandSubtitle="View Routes">
       <div className="container-fluid px-0">
         <div className="row justify-content-center">
 
           <div className="col-12">
             <div className="transport-card shadow-sm border-0">
               <div className="transport-card__header py-3 d-flex justify-content-between align-items-center px-4 text-white">
-                <h5 className="mb-0 fw-bold">Seats Availability ({routes.filter(r => !selectedYear || r.academic_year === selectedYear).length})</h5>
+                <h5 className="mb-0 fw-bold">View Routes ({routes.filter(r => !selectedYear || r.academic_year === selectedYear).length})</h5>
               </div>
 
               <div className="p-3 bg-light border-bottom">
@@ -153,9 +170,8 @@ export default function TransportVehicles() {
                         <th style={{ width: '10%' }} className="ps-4 py-3 fw-bold text-white text-uppercase border-end-0 fs-6">Route No</th>
                         <th style={{ width: '25%' }} className="py-3 fw-bold text-white text-uppercase border-start-0 border-end-0 fs-6">Route Name</th>
                         <th style={{ width: '20%' }} className="py-3 fw-bold text-white text-uppercase border-start-0 border-end-0 fs-6">Vehicle No</th>
-                        <th style={{ width: '10%' }} className="py-3 fw-bold text-white text-uppercase border-start-0 border-end-0 fs-6">Total Seats</th>
-                        <th style={{ width: '10%' }} className="py-3 fw-bold text-white text-uppercase border-start-0 border-end-0 fs-6">Reserved</th>
-                        <th style={{ width: '10%' }} className="py-3 fw-bold text-white text-uppercase border-start-0 border-end-0 fs-6">Available</th>
+
+
                       </tr>
                     </thead>
                     <tbody>
@@ -169,16 +185,13 @@ export default function TransportVehicles() {
                             <td className="ps-4 fw-bold text-dark">{route.route_no}</td>
                             <td className="text-dark">{route.route_name}</td>
                             <td className="text-muted small">{route.vehicle_register_no || '-'}</td>
-                            <td className="text-muted small">{route.seats_available || 0}</td>
-                            <td className="text-muted small">{route.reserved_count}</td>
-                            <td className={`small fw-bold ${((route.seats_available || 0) - route.reserved_count) > 0 ? 'text-success' : 'text-danger'}`}>
-                              {(route.seats_available || 0) - route.reserved_count}
-                            </td>
+
+
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan="6" className="text-center py-5 text-muted">
+                          <td colSpan="3" className="text-center py-5 text-muted">
                             <div className="d-flex flex-column align-items-center opacity-50">
                               <i className="bi bi-exclamation-circle fs-4 mb-2"></i>
                               <p className="mb-0 small">No routes found.</p>
@@ -195,7 +208,7 @@ export default function TransportVehicles() {
         </div>
       </div>
 
-      {/* Detail Modal - Shows ONLY Registered Students */}
+      {/* Detail Modal */}
       {showModal && (
         <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1055 }} tabIndex="-1">
           <div className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
@@ -215,10 +228,11 @@ export default function TransportVehicles() {
                   </div>
                 ) : selectedRouteDetails && (
                   <div className="row g-4">
-                    {/* Route Overview Section */}
+                    {/* Route Info Card */}
                     <div className="col-12">
                       <div className="card border-0 shadow-sm">
                         <div className="card-body">
+
                           <div className="d-flex flex-column gap-2 mb-3">
                             <div className="fw-bold fs-6">
                               <span className="text-secondary text-uppercase" style={{ minWidth: '120px', display: 'inline-block' }}>Route Name :</span>
@@ -237,40 +251,38 @@ export default function TransportVehicles() {
                       </div>
                     </div>
 
-                    {/* Registered Students Only - Full Width */}
+                    {/* Boarding Points */}
                     <div className="col-12">
                       <div className="card border-0 shadow-sm h-100">
                         <div className="card-header bg-white py-3">
-                          <h6 className="mb-0 fw-bold">Total Registered Students : {String(selectedRouteDetails.students.length).padStart(2, '0')}</h6>
+                          <h6 className="mb-0 fw-bold">Boarding Points</h6>
                         </div>
-                        <div className="table-responsive" style={{ maxHeight: '600px' }}>
+                        <div className="table-responsive">
                           <table className="table table-hover mb-0 align-middle">
-                            <thead className="transport-card__header sticky-top">
+                            <thead className="transport-card__header">
                               <tr>
-                                <th className="ps-3 text-white text-uppercase fw-bold border-end-0 fs-6">Student ID</th>
-                                <th className="text-white text-uppercase fw-bold border-start-0 border-end-0 fs-6">Student Name</th>
-                                <th className="text-white text-uppercase fw-bold border-start-0 border-end-0 fs-6">Boarding Point</th>
-                                <th className="text-end pe-3 text-white text-uppercase fw-bold border-start-0 fs-6">Boarding Time</th>
+                                <th className="ps-3 text-uppercase fw-bold text-white border-end-0 fs-6">Stop Name</th>
+                                <th className="text-end pe-3 text-uppercase fw-bold text-white border-start-0 fs-6">Departure Time</th>
                               </tr>
                             </thead>
                             <tbody>
-                              {selectedRouteDetails.students.length > 0 ? (
-                                selectedRouteDetails.students.map((st, idx) => (
+                              {selectedRouteDetails.boardingPoints.length > 0 ? (
+                                selectedRouteDetails.boardingPoints.map((bp, idx) => (
                                   <tr key={idx}>
-                                    <td className="ps-3 fw-bold text-dark">{st.students?.student_id}</td>
-                                    <td className="text-dark">{st.students?.full_name}</td>
-                                    <td>{st.transport_route_boarding_points?.name}</td>
-                                    <td className="text-end pe-3 font-monospace text-muted">{st.transport_route_boarding_points?.departure_time}</td>
+                                    <td className="ps-3 fw-bold">{bp.name}</td>
+                                    <td className="text-end pe-3 font-monospace fw-bold">{bp.departure_time}</td>
                                   </tr>
                                 ))
                               ) : (
-                                <tr><td colSpan="4" className="text-center text-muted py-3">No students registered</td></tr>
+                                <tr><td colSpan="2" className="text-center text-muted py-3">No stops defined</td></tr>
                               )}
                             </tbody>
                           </table>
                         </div>
                       </div>
                     </div>
+
+
                   </div>
                 )}
               </div>

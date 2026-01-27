@@ -66,30 +66,21 @@ export default function TransportDashboard() {
 
   const metrics = [
     {
-      label: "Routes",
+      label: "Total Routes",
       value: loading ? '-' : routes.length,
-      detail: "Active routes configured",
       icon: "bi-map",
       path: "/transport/routes"
     },
     {
-      label: "Vehicles",
+      label: "Total Vehicles",
       value: loading ? '-' : vehicleCount,
-      detail: "Total fleet size",
       icon: "bi-truck-front", // or bi-bus-front if available
       path: "/transport/vehicles" // Note: This route might need to be created/verified
     },
-    {
-      label: "Boarding Points",
-      value: loading ? '-' : boardingPointsCount,
-      detail: "Across all routes",
-      icon: "bi-geo-alt",
-      path: "/transport/routes"
-    },
+
     {
       label: "Academic Years",
       value: loading ? '-' : academicYears,
-      detail: "Distinct years",
       icon: "bi-calendar-event",
       path: "/transport/routes"
     }

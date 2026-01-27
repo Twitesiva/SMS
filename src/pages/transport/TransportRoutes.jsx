@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import TransportShell from '../../components/TransportShell'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
-import ConfirmationModal from '../../components/ConfirmationModal'
+
 
 const initialForm = {
   routeNo: '',
@@ -17,7 +18,9 @@ export default function TransportRoutes() {
   const [form, setForm] = useState(initialForm)
   const [academicYears, setAcademicYears] = useState([])
   const [loading, setLoading] = useState(false)
-  const [routes, setRoutes] = useState([])
+  const [recentRoutes, setRecentRoutes] = useState([])
+  const navigate = useNavigate()
+
   const [editingRouteId, setEditingRouteId] = useState(null)
 
   // Boarding point input state
@@ -25,103 +28,26 @@ export default function TransportRoutes() {
   const [bpTime, setBpTime] = useState('')
   const [editingBpIndex, setEditingBpIndex] = useState(-1)
 
-  // Delete Modal State
-  const [deleteConfirmation, setDeleteConfirmation] = useState({
-    show: false,
-    id: null,
-    message: ''
-  })
+
 
   useEffect(() => {
     fetchAcademicYears()
-    fetchRoutes()
+    fetchRecentRoutes()
   }, [])
 
-  const fetchRoutes = async () => {
+  const fetchRecentRoutes = async () => {
     try {
       const { data, error } = await supabase
         .from('transport_routes')
         .select('*')
         .order('id', { ascending: false })
+        .limit(3)
 
       if (error) throw error
-      setRoutes(data || [])
+      setRecentRoutes(data || [])
     } catch (error) {
-      console.error('Error fetching routes:', error)
-      showToast('Failed to load routes', 'error')
+      console.error('Error fetching recent routes:', error)
     }
-  }
-
-  const handleEditRoute = async (route) => {
-    try {
-      setLoading(true)
-      // fetch boarding points
-      const { data: points, error } = await supabase
-        .from('transport_route_boarding_points')
-        .select('name, departure_time')
-        .eq('route_id', route.id)
-        .order('stop_order', { ascending: true })
-
-      if (error) throw error
-
-      setForm({
-        routeNo: route.route_no,
-        routeName: route.route_name,
-        academicYear: route.academic_year,
-        vehicleRegisterNo: route.vehicle_register_no || '',
-        seatsAvailable: route.seats_available || '',
-        boardingPoints: points.map(p => ({ name: p.name, time: p.departure_time }))
-      })
-      setEditingRouteId(route.id)
-
-      // Scroll to top to see form
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-
-    } catch (error) {
-      console.error('Error fetching details:', error)
-      showToast('Failed to load route details', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const confirmDelete = async () => {
-    const id = deleteConfirmation.id
-    if (!id) return
-
-    try {
-      const { error } = await supabase
-        .from('transport_routes')
-        .delete()
-        .eq('id', id)
-
-      if (error) throw error
-      showToast('Route deleted successfully', 'success')
-
-      // If deleting the currently edited route, reset form
-      if (editingRouteId === id) {
-        setForm(initialForm)
-        setEditingRouteId(null)
-      }
-
-      fetchRoutes()
-    } catch (error) {
-      console.error('Error deleting route:', error)
-      showToast('Failed to delete route', 'error')
-    }
-    closeDeleteModal()
-  }
-
-  const closeDeleteModal = () => {
-    setDeleteConfirmation({ show: false, id: null, message: '' })
-  }
-
-  const handleDeleteRoute = async (id) => {
-    setDeleteConfirmation({
-      show: true,
-      id,
-      message: 'Are you sure you want to delete this route? This will also remove all associated boarding points.'
-    })
   }
 
   const fetchAcademicYears = async () => {
@@ -133,6 +59,11 @@ export default function TransportRoutes() {
 
       if (error) throw error
       setAcademicYears(data || [])
+
+      const defaultYear = (data || []).find(y => y.academic_year === '2025-2026')
+      if (defaultYear) {
+        setForm(prev => ({ ...prev, academicYear: defaultYear.academic_year }))
+      }
 
     } catch (error) {
       console.error('Error fetching academic years:', error)
@@ -282,7 +213,7 @@ export default function TransportRoutes() {
 
       showToast(`Route ${form.routeNo} created successfully!`, 'success')
       setForm({ ...initialForm, academicYear: form.academicYear }) // Reset form but keep selected year
-      fetchRoutes()
+      fetchRecentRoutes()
 
     } catch (error) {
       console.error('Error creating route:', error)
@@ -500,80 +431,58 @@ export default function TransportRoutes() {
             </div>
           </div>
 
-          <div className="col-12 mt-4">
-            <div className="transport-card shadow-sm border-0">
-              <div className="transport-card__header py-3">
-                <h5 className="mb-0 fw-bold text-white">Existing Routes</h5>
-              </div>
-              <div className="card-body p-0">
-                <div className="table-responsive">
-                  <table className="table table-bordered table-hover align-middle mb-0">
-                    <thead className="transport-card__header text-white">
-                      <tr>
-                        <th style={{ width: '10%' }} className="ps-4 py-3 fw-bold text-white text-uppercase small border-end-0">Route No</th>
-                        <th style={{ width: '25%' }} className="py-3 fw-bold text-white text-uppercase small border-start-0 border-end-0">Route Name</th>
-                        <th style={{ width: '20%' }} className="py-3 fw-bold text-white text-uppercase small border-start-0 border-end-0">Vehicle No</th>
-                        <th style={{ width: '10%' }} className="py-3 fw-bold text-white text-uppercase small border-start-0 border-end-0">Seats</th>
-                        <th style={{ width: '20%' }} className="py-3 fw-bold text-white text-uppercase small border-start-0 border-end-0">Academic Year</th>
-                        <th style={{ width: '15%' }} className="py-3 fw-bold text-white text-uppercase small text-center border-start-0">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {routes.length > 0 ? (
-                        routes.map((route) => (
+
+        </div>
+
+        {/* Recent Routes Section */}
+        {recentRoutes.length > 0 && (
+          <div className="row justify-content-center mt-4">
+            <div className="col-12">
+              <div className="transport-card shadow-sm border-0">
+                <div className="transport-card__header py-3 px-4 d-flex justify-content-between align-items-center rounded-top">
+                  <h5 className="mb-0 fw-bold text-white">Recently Created Routes</h5>
+                  {recentRoutes.length > 2 && (
+                    <button
+                      className="btn btn-sm btn-light text-primary fw-bold"
+                      onClick={() => navigate('/transport/view-routes')}
+                    >
+                      View All
+                    </button>
+                  )}
+                </div>
+                <div className="card-body p-0">
+                  <div className="table-responsive">
+                    <table className="table table-hover mb-0 align-middle">
+                      <thead className="table-light">
+                        <tr>
+                          <th className="ps-4 py-3 text-secondary small text-uppercase">Route No</th>
+                          <th className="py-3 text-secondary small text-uppercase">Route Name</th>
+                          <th className="py-3 text-secondary small text-uppercase">Vehicle No</th>
+                          <th className="py-3 text-secondary small text-uppercase">Academic Year</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {recentRoutes.slice(0, 2).map((route) => (
                           <tr key={route.id}>
                             <td className="ps-4 fw-bold text-dark">{route.route_no}</td>
                             <td className="text-dark">{route.route_name}</td>
                             <td className="text-muted small">{route.vehicle_register_no || '-'}</td>
-                            <td className="text-muted small">{route.seats_available || '-'}</td>
-                            <td><span className="badge bg-light text-dark border fw-normal">{route.academic_year}</span></td>
-                            <td className="text-center">
-                              <div className="d-flex justify-content-center gap-2">
-                                <button
-                                  className="btn btn-sm btn-outline-primary"
-                                  onClick={() => handleEditRoute(route)}
-                                  title="Edit Route"
-                                >
-                                  <i className="bi bi-pencil-square"></i>
-                                </button>
-                                <button
-                                  className="btn btn-sm btn-outline-danger"
-                                  onClick={() => handleDeleteRoute(route.id)}
-                                  title="Delete Route"
-                                >
-                                  <i className="bi bi-trash-fill"></i>
-                                </button>
-                              </div>
+                            <td className="text-muted small">
+                              <span className="badge bg-light text-dark border">{route.academic_year}</span>
                             </td>
                           </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan="6" className="text-center py-5 text-muted">
-                            <div className="d-flex flex-column align-items-center opacity-50">
-                              <i className="bi bi-exclamation-circle fs-4 mb-2"></i>
-                              <p className="mb-0 small">No routes found.</p>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
+
       </div>
-      <ConfirmationModal
-        isOpen={deleteConfirmation.show}
-        onClose={closeDeleteModal}
-        onConfirm={confirmDelete}
-        title="Confirm Delete"
-        message={deleteConfirmation.message}
-        confirmText="Confirm Delete"
-        cancelText="Cancel"
-      />
+
     </TransportShell>
   )
 }
