@@ -367,6 +367,11 @@
   box-shadow: 0 10px 30px rgba(15, 30, 72, 0.04);
   overflow: hidden;
   padding: 0 !important; /* Reset padding */
+  font-size: 1.08rem;
+  line-height: 1.55;
+  letter-spacing: 0.01em;
+  color: #000000;
+  font-weight: 600;
 }
 
 .public-apply-form-header {
@@ -379,16 +384,16 @@
 }
 
 .public-apply-form-header h5 {
-  font-size: 1.25rem;
+  font-size: 1.45rem;
   font-weight: 700;
-  color: #0f172a;
+  color: #000000;
   margin: 0;
 }
 
 .public-apply-form-copy {
   margin: 0.2rem 0 0;
-  font-size: 0.9rem;
-  color: #64748b;
+  font-size: 1rem;
+  color: #000000;
 }
 
 .public-apply-form-badge {
@@ -408,6 +413,7 @@
   display: flex;
   flex-direction: column;
   gap: 3rem;
+  color: #000000;
 }
 
 .public-apply-section {
@@ -432,29 +438,29 @@
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 1.1rem;
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
   flex-shrink: 0;
 }
 
 .public-apply-section-title {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #0f172a;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #000000;
   margin: 0;
 }
 
 .public-apply-section-copy {
-  font-size: 0.85rem;
-  color: #64748b;
+  font-size: 1rem;
+  color: #000000;
   margin: 0.15rem 0 0;
 }
 
 .public-apply-form .form-label {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: #475569;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #000000;
   margin-bottom: 0.6rem;
   display: flex;
   align-items: center;
@@ -471,8 +477,8 @@
   border-radius: 12px;
   border: 1px solid #e2e8f3;
   padding: 0.8rem 1rem;
-  font-size: 0.95rem;
-  color: #1e293b;
+  font-size: 1.02rem;
+  color: #000000;
   background-color: #fcfdfe;
   transition: all 0.2s ease;
 }
@@ -486,7 +492,7 @@
 
 .public-apply-form .form-control[readOnly] {
   background-color: #f8fafc;
-  color: #64748b;
+  color: #000000;
   font-weight: 600;
 }
 
@@ -518,9 +524,9 @@
 }
 
 .accommodation-checkbox span {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #475569;
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: #000000;
   transition: all 0.2s ease;
 }
 
@@ -570,9 +576,9 @@
 .public-apply-upload-hint {
   display: block;
   margin-top: 0.6rem;
-  font-size: 0.75rem;
-  color: #94a3b8;
-  font-weight: 500;
+  font-size: 0.9rem;
+  color: #000000;
+  font-weight: 600;
 }
 
 .public-apply-actions {
