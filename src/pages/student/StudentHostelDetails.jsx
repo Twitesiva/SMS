@@ -69,7 +69,7 @@ export default function StudentHostelDetails() {
       try {
         const { data: studentData, error: studentError } = await supabase
           .from('students')
-          .select('id, student_id, full_name, academic_year, current_semester, year_of_study, is_hostel')
+          .select('id, student_id, full_name, academic_year, current_semester, year_of_study, is_hostel, hostel_ac')
           .eq('id', student.id)
           .maybeSingle()
 
@@ -89,12 +89,13 @@ export default function StudentHostelDetails() {
         const academicYear = (studentData.academic_year || '').toString().trim()
         const yearOfStudy = deriveYearOfStudy(studentData)
 
-        if (studentData.is_hostel && academicYear && yearOfStudy) {
+        if (studentData.is_hostel && academicYear) {
+          const studentType = studentData.hostel_ac ? 'AC' : 'NON_AC'
           const { data: hostelData, error: hostelError } = await supabase
             .from('hostel_fees')
             .select('hostel_fee')
             .eq('academic_year', academicYear)
-            .eq('year_of_study', yearOfStudy)
+            .eq('hostel_type', studentType)
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle()

@@ -340,11 +340,12 @@ export default function FeesCollection() {
     }
 
     if (student?.is_hostel) {
+      const studentType = student.hostel_ac ? 'AC' : 'NON_AC'
       const { data: hostelData, error: hostelError } = await supabase
         .from('hostel_fees')
         .select('hostel_fee')
         .eq('academic_year', academicYear)
-        .eq('year_of_study', yearOfStudy)
+        .eq('hostel_type', studentType)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
@@ -399,7 +400,7 @@ export default function FeesCollection() {
       setLoadingStudent(true)
       const { data: student, error: studentError } = await supabase
         .from('students')
-        .select('id, student_id, full_name, academic_year, group_id, group_name, course_id, course_name, current_semester, year_of_study, Category, status, is_hostel')
+        .select('id, student_id, full_name, academic_year, group_id, group_name, course_id, course_name, current_semester, year_of_study, Category, status, is_hostel, hostel_ac')
         .eq('student_id', trimmed)
         .maybeSingle()
 

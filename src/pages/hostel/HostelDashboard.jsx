@@ -26,7 +26,7 @@ export default function HostelDashboard() {
           .select(`
             id, student_id, full_name, academic_year, year_of_study,
             group_name, course_name, course_id, group_id,
-            phone_number, current_semester, status, admission_year,
+            phone_number, current_semester, status, admission_year, hostel_ac,
             courses:course_id (course_name, course_code),
             groups:group_id (group_name, group_code)
           `)
@@ -56,13 +56,13 @@ export default function HostelDashboard() {
 
         const { data: hostelFees, error: feesError } = await supabase
           .from('hostel_fees')
-          .select('id, academic_year, year_of_study, hostel_fee')
+          .select('id, academic_year, hostel_type, hostel_fee')
 
         if (feesError) throw feesError
 
         const feeLookup = new Map()
         hostelFees?.forEach((fee) => {
-          const key = `${fee.academic_year || ''}-${fee.year_of_study || ''}`
+          const key = `${fee.academic_year || ''}-${fee.hostel_type || 'NON_AC'}`
           feeLookup.set(key, Number(fee.hostel_fee))
         })
 
@@ -97,7 +97,8 @@ export default function HostelDashboard() {
             student?.groups?.group_name ||
             student.group_name ||
             '—'
-          const key = `${student.academic_year || ''}-${student.year_of_study || ''}`
+          const studentType = student.hostel_ac ? 'AC' : 'NON_AC'
+          const key = `${student.academic_year || ''}-${studentType}`
           const hostelFee = feeLookup.get(key) ?? null
           const totalPaid = payments
             .filter((pay) => pay.student_id === student.id && (pay.payment_status || '').toLowerCase() === 'success')
@@ -290,10 +291,11 @@ export default function HostelDashboard() {
               Array.from(
                 residents.reduce((acc, res) => {
                   if (res.hostelFee !== null) {
-                    const key = `${res.academic_year}-${res.year_of_study}`
+                    const studentType = res.hostel_ac ? 'AC' : 'NON_AC'
+                    const key = `${res.academic_year}-${studentType}`
                     acc.set(key, {
                       academic_year: res.academic_year,
-                      year_of_study: res.year_of_study,
+                      hostel_type: studentType,
                       hostelFee: res.hostelFee,
                     })
                   }
@@ -302,7 +304,7 @@ export default function HostelDashboard() {
               ).map(([key, fee]) => (
                 <div key={key} className="hostel-fee-card">
                   <div className="hostel-fee-card__title">{fee.academic_year || 'Academic year N/A'}</div>
-                  <div className="hostel-fee-card__meta">Year {fee.year_of_study || '—'}</div>
+                  <div className="hostel-fee-card__meta">{fee.hostel_type === 'AC' ? 'AC' : 'Non AC'}</div>
                   <div className="hostel-fee-card__value">{currency(fee.hostelFee)}</div>
                 </div>
               ))
