@@ -32,6 +32,9 @@ export default function RoleSelection() {
             case 'transport':
                 navigate('/transport/login');
                 break;
+            case 'hostel':
+                navigate('/hostel/login');
+                break;
             default:
                 break;
         }

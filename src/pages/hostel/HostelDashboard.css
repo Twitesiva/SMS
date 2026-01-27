@@ -1,0 +1,306 @@
+.hostel-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.hostel-dashboard__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  background: #f0f4ff;
+  border: 1px solid #d8e3ff;
+  border-radius: 18px;
+  padding: 1.4rem 1.6rem;
+  box-shadow: 0 10px 24px rgba(63, 76, 107, 0.12);
+}
+
+.hostel-dashboard__eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.75rem;
+  color: #3f4c6b;
+  margin-bottom: 0.2rem;
+  font-weight: 800;
+}
+
+.hostel-dashboard__lede {
+  color: #1f2d3d;
+  margin: 0;
+}
+
+.hostel-dashboard__actions {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.hostel-chip {
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: #3f4c6b;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+}
+
+.hostel-chip--soft {
+  background: #e8efff;
+  color: #1f2d3d;
+}
+
+.hostel-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.hostel-metric-card {
+  background: #ffffff;
+  border: 1px solid #e1e8f5;
+  border-radius: 16px;
+  padding: 1rem 1rem;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  box-shadow: 0 14px 28px rgba(31, 45, 61, 0.08);
+}
+
+.hostel-metric-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #8fb4ff, #5f7db8);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #1f2d3d;
+  font-size: 1.1rem;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+.hostel-metric-label {
+  margin: 0;
+  color: #3f4c6b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 800;
+  font-size: 0.8rem;
+}
+
+.hostel-metric-value {
+  margin: 0.1rem 0 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.hostel-panel {
+  background: #ffffff;
+  border: 1px solid #e1e8f5;
+  border-radius: 18px;
+  box-shadow: 0 14px 26px rgba(31, 45, 61, 0.08);
+  padding: 1.2rem 1.2rem 1.4rem;
+}
+
+.hostel-panel__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.hostel-panel__eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #3f4c6b;
+  font-weight: 800;
+  font-size: 0.78rem;
+  margin-bottom: 0.1rem;
+}
+
+.hostel-panel__controls {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.hostel-input,
+.hostel-select {
+  border: 1px solid #d8e3ff;
+  background: #f7faff;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  min-width: 180px;
+}
+
+.hostel-table {
+  border: 1px solid #e1e8f5;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.hostel-table__head {
+  background: #e8efff;
+  border-bottom: 1px solid #d8e3ff;
+}
+
+.hostel-table__row {
+  display: grid;
+  grid-template-columns: 1.1fr 1.3fr 1.3fr 0.8fr 1fr 1fr 1fr 1fr;
+  gap: 0.4rem;
+  padding: 0.75rem 1rem;
+  align-items: center;
+  border-bottom: 1px solid #edf2fb;
+}
+
+.hostel-table__row--head {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #3f4c6b;
+}
+
+.hostel-table__row:not(.hostel-table__row--head):hover {
+  background: #f2f6ff;
+}
+
+.hostel-table__body {
+  max-height: 520px;
+  overflow: auto;
+}
+
+.hostel-table__skeleton {
+  padding: 0.8rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.hostel-skeleton-row {
+  height: 48px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #edf2fb 0%, #d8e3ff 40%, #edf2fb 80%);
+  background-size: 200% 100%;
+  animation: hostel-shimmer 1.1s infinite;
+}
+
+@keyframes hostel-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.hostel-empty {
+  padding: 1rem;
+  text-align: center;
+  color: #475569;
+  font-weight: 600;
+}
+
+.hostel-subtle {
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.hostel-status {
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  border: 1px solid transparent;
+}
+
+.hostel-status--cleared {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #86efac;
+}
+
+.hostel-status--partial {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fcd34d;
+}
+
+.hostel-status--pending {
+  background: #ffe4e6;
+  color: #9f1239;
+  border-color: #fecdd3;
+}
+
+.hostel-status--missing-fee-config {
+  background: #e0f2fe;
+  color: #075985;
+  border-color: #bae6fd;
+}
+
+.hostel-alert {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #7f1d1d;
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+}
+
+.hostel-fees-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.9rem;
+}
+
+.hostel-fee-card {
+  border: 1px solid #e1e8f5;
+  border-radius: 14px;
+  padding: 0.9rem;
+  background: linear-gradient(160deg, #f0f4ff 0%, #fff 70%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+
+.hostel-fee-card__title {
+  font-weight: 800;
+  color: #3f4c6b;
+}
+
+.hostel-fee-card__meta {
+  color: #475569;
+  margin-top: 0.15rem;
+}
+
+.hostel-fee-card__value {
+  font-size: 1.2rem;
+  font-weight: 800;
+  margin: 0.35rem 0;
+}
+
+.hostel-fee-card__note {
+  margin: 0;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 1100px) {
+  .hostel-table__row {
+    grid-template-columns: 1fr 1.1fr 1.2fr 0.7fr 0.9fr 0.9fr 0.9fr 0.9fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .hostel-table__row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .hostel-table__head { display: none; }
+  .hostel-table__row > div { padding: 0.2rem 0; }
+  .hostel-table__row:not(.hostel-table__row--head) {
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid #e1e8f5;
+  }
+  .hostel-dashboard__header { flex-direction: column; }
+  .hostel-panel__head { flex-direction: column; align-items: flex-start; }
+}

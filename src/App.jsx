@@ -4,6 +4,7 @@ import { useStudentAuth } from "./store/studentAuth";
 import { useStaffAuth } from "./store/staffAuth";
 import { useParentAuth } from "./store/parentAuth";
 import { useTransportAuth } from "./store/transportAuth";
+import { useHostelAuth } from "./store/hostelAuth";
 import PublicApply from "./pages/common/PublicApply.jsx";
 import Home from "./pages/common/Home.jsx";
 import Intro from "./pages/common/Intro.jsx";
@@ -117,6 +118,8 @@ import TransportPasses from "./pages/transport/TransportPasses.jsx";
 import TransportAllocation from "./pages/transport/TransportAllocation.jsx";
 import TransportReports from "./pages/transport/TransportReports.jsx";
 import Practical from "./pages/exam/Practical.jsx";
+import HostelLogin from "./pages/hostel/HostelLogin.jsx";
+import HostelDashboard from "./pages/hostel/HostelDashboard.jsx";
 
 
 export default function App() {
@@ -125,11 +128,13 @@ export default function App() {
   const { staff } = useStaffAuth();
   const { parent } = useParentAuth();
   const { transportUser } = useTransportAuth();
+  const { hostelUser } = useHostelAuth();
   const isAuthed = !!user;
   const isStudentAuthed = !!student;
   const isStaffAuthed = !!staff;
   const isParentAuthed = !!parent;
   const isTransportAuthed = !!transportUser;
+  const isHostelAuthed = !!hostelUser;
   return (
     <>
       <Routes>
@@ -137,6 +142,16 @@ export default function App() {
         <Route path="/home" element={<Home />} />
         <Route path="/roles" element={<RoleSelection />} />
         <Route path="/admission" element={<AdmissionPortal />} />
+
+        <Route path="/hostel/login" element={<HostelLogin />} />
+        <Route
+          path="/hostel/dashboard"
+          element={
+            <GuardedRoute isAuthed={isHostelAuthed} redirectTo="/hostel/login">
+              <HostelDashboard />
+            </GuardedRoute>
+          }
+        />
 
         <Route path="/transport/login" element={<TransportLogin />} />
         <Route
