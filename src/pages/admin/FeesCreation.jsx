@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../../lib/mockApi'
 import { supabase } from '../../../supabaseClient'
-import { ToastContainer } from 'react-toastify'
+import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import '../exam/Dashboard.css'
 import './Setup.css'
@@ -39,10 +39,18 @@ export default function FeesCreation() {
     // Hostel Fees State
     const [hostelFeesList, setHostelFeesList] = useState([])
     const [hostelYear, setHostelYear] = useState('')
-    const [hostelYearOfStudy, setHostelYearOfStudy] = useState('')
+
+    const [hostelType, setHostelType] = useState('')
     const [hostelAmount, setHostelAmount] = useState('')
     const [editingHostelId, setEditingHostelId] = useState(null)
     const [showAllHostelFeesModal, setShowAllHostelFeesModal] = useState(false)
+
+    // Transport Fees State
+    const [transportFaresList, setTransportFaresList] = useState([])
+    const [transportYear, setTransportYear] = useState('')
+    const [transportAmount, setTransportAmount] = useState('')
+    const [editingTransportId, setEditingTransportId] = useState(null)
+    const [showAllTransportFaresModal, setShowAllTransportFaresModal] = useState(false)
 
     // Delete Modal State
     const [deleteConfirmation, setDeleteConfirmation] = useState({
@@ -51,6 +59,9 @@ export default function FeesCreation() {
         data: null,
         message: ''
     })
+
+    const [transportDuplicateWarning, setTransportDuplicateWarning] = useState(null)
+    const [hostelDuplicateWarning, setHostelDuplicateWarning] = useState(null)
 
     // Duplicate Check State
 
@@ -163,7 +174,80 @@ export default function FeesCreation() {
         fetchMasterData()
         fetchSavedFeeStructures()
         fetchHostelFees()
+        fetchHostelFees()
+        fetchTransportFares()
+        fetchHostelFees()
+        fetchTransportFares()
     }, [])
+
+    useEffect(() => {
+        checkTransportDuplicate()
+    }, [transportYear])
+
+    const checkTransportDuplicate = async () => {
+        setTransportDuplicateWarning(null)
+        if (!transportYear) return
+
+        const yearObj = years.find(y => y.id.toString() === transportYear.toString())
+        if (!yearObj) return
+
+        try {
+            const { data } = await supabase
+                .from('transport_route_fares')
+                .select('id, amount')
+                .eq('academic_year', yearObj.academic_year)
+                .maybeSingle()
+
+            if (data) {
+                if (editingTransportId && data.id === editingTransportId) return
+                setTransportDuplicateWarning('Transport fee already exists for this year!')
+            }
+        } catch (err) {
+            console.error('Error checking transport duplicate:', err)
+        }
+    }
+
+    // Hostel Duplicate Check
+    useEffect(() => {
+        checkHostelDuplicate()
+    }, [hostelYear, hostelType])
+
+    const checkHostelDuplicate = async () => {
+        setHostelDuplicateWarning(null)
+        if (!hostelYear || !hostelType) return
+
+        const yearObj = years.find(y => y.id.toString() === hostelYear.toString())
+        if (!yearObj) return
+
+        try {
+            const { data } = await supabase
+                .from('hostel_fees')
+                .select('id, hostel_fee')
+                .eq('academic_year', yearObj.academic_year)
+                .eq('hostel_type', hostelType)
+                .maybeSingle()
+
+            if (data) {
+                if (editingHostelId && data.id === editingHostelId) return
+                setHostelDuplicateWarning(`Hostel fee already exists for this combination!`)
+            }
+        } catch (err) {
+            console.error('Error checking hostel duplicate:', err)
+        }
+    }
+
+    const fetchTransportFares = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('transport_route_fares')
+                .select('*')
+                .order('created_at', { ascending: false })
+            if (error) throw error
+            setTransportFaresList(data || [])
+        } catch (error) {
+            console.error('Error fetching transport fares:', error)
+        }
+    }
 
     const fetchHostelFees = async () => {
         try {
@@ -475,7 +559,7 @@ export default function FeesCreation() {
     // Hostel Fees Handlers
     const handleSaveHostelFee = async (e) => {
         e.preventDefault()
-        if (!hostelYear || !hostelAmount) {
+        if (!hostelYear || !hostelAmount || !hostelType) {
             toast.error('Please fill all required fields for Hostel Fee')
             return
         }
@@ -488,7 +572,7 @@ export default function FeesCreation() {
 
             const payload = {
                 academic_year: yearObj.academic_year,
-                year_of_study: 1, // Defaulting to 1 as per UI hiding request
+                hostel_type: hostelType,
                 hostel_fee: parseFloat(hostelAmount),
                 created_by: user?.id || null
             }
@@ -506,11 +590,11 @@ export default function FeesCreation() {
                     .from('hostel_fees')
                     .select('id')
                     .eq('academic_year', yearObj.academic_year)
-                    .eq('year_of_study', payload.year_of_study)
+                    .eq('hostel_type', hostelType)
                     .maybeSingle()
 
                 if (existing) {
-                    toast.error('Hostel fee for this year already exists')
+                    toast.error(`Hostel fee for this year and type (${hostelType}) already exists`)
                     setIsLoading(false)
                     return
                 }
@@ -524,7 +608,9 @@ export default function FeesCreation() {
 
             setHostelYear('')
             setHostelAmount('')
+            setHostelType('')
             setEditingHostelId(null)
+            setHostelDuplicateWarning(null)
             fetchHostelFees()
 
         } catch (error) {
@@ -541,15 +627,45 @@ export default function FeesCreation() {
         const yearObj = years.find(y => y.academic_year === fee.academic_year)
         if (yearObj) setHostelYear(yearObj.id.toString())
         setHostelAmount(fee.hostel_fee)
+        setHostelType(fee.hostel_type || 'NON_AC')
         setEditingHostelId(fee.id)
     }
 
     const handleCancelHostelEdit = () => {
         setHostelYear('')
         setHostelAmount('')
+        setHostelType('')
         setEditingHostelId(null)
+        setHostelDuplicateWarning(null)
         setShowAllHostelFeesModal(false)
     }
+
+    const renderHostelFeeRows = (feesToRender) => {
+        return feesToRender.map((fee) => (
+            <tr key={fee.id}>
+                <td>{fee.academic_year}</td>
+                <td>{fee.hostel_type === 'NON_AC' ? 'Non AC' : fee.hostel_type}</td>
+                <td className="text-end fw-bold">₹{fee.hostel_fee}</td>
+                <td className="text-end">
+                    <div className="d-flex justify-content-end gap-2">
+                        <button
+                            className="btn btn-sm btn-outline-primary"
+                            onClick={() => handleEditHostelFee(fee)}
+                        >
+                            <i className="bi bi-pencil"></i>
+                        </button>
+                        <button
+                            className="btn btn-sm btn-outline-danger"
+                            onClick={() => handleDeleteHostelFee(fee.id)}
+                        >
+                            <i className="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        ))
+    }
+
 
     const confirmDeleteAction = async () => {
         const { type, data } = deleteConfirmation
@@ -583,6 +699,20 @@ export default function FeesCreation() {
             } catch (error) {
                 console.error('Error deleting hostel fee:', error)
                 toast.error('Failed to delete hostel fee')
+            }
+        } else if (type === 'transport') {
+            const id = data
+            try {
+                const { error } = await supabase
+                    .from('transport_route_fares')
+                    .delete()
+                    .eq('id', id)
+                if (error) throw error
+                toast.success('Transport fee deleted')
+                fetchTransportFares()
+            } catch (error) {
+                console.error('Error deleting transport fee:', error)
+                toast.error('Failed to delete transport fee')
             }
         } else if (type === 'structure') {
             const fee = data
@@ -632,22 +762,102 @@ export default function FeesCreation() {
         })
     }
 
-    const renderHostelFeeRows = (feesToRender) => {
-        return feesToRender.map((fee) => (
+    const handleDeleteTransportFare = (id) => {
+        setDeleteConfirmation({
+            show: true,
+            type: 'transport',
+            data: id,
+            message: 'Are you sure you want to delete this transport fee?'
+        })
+    }
+
+    const handleSaveTransportFare = async (e) => {
+        e.preventDefault()
+        if (!transportYear || !transportAmount) return
+
+        setIsLoading(true)
+        try {
+            const yearObj = years.find(y => y.id.toString() === transportYear.toString())
+            if (!yearObj) throw new Error('Invalid academic year')
+
+            const payload = {
+                academic_year: yearObj.academic_year,
+                amount: parseFloat(transportAmount)
+            }
+
+            if (editingTransportId) {
+                const { error } = await supabase
+                    .from('transport_route_fares')
+                    .update(payload)
+                    .eq('id', editingTransportId)
+                if (error) throw error
+                toast.success('Transport fee updated successfully')
+            } else {
+                // Check duplicate
+                const { data: existing } = await supabase
+                    .from('transport_route_fares')
+                    .select('id')
+                    .eq('academic_year', yearObj.academic_year)
+                    .maybeSingle()
+
+                if (existing) {
+                    toast.error('Transport fee for this year already exists')
+                    setIsLoading(false)
+                    return
+                }
+
+                const { error } = await supabase
+                    .from('transport_route_fares')
+                    .insert([payload])
+                if (error) throw error
+                toast.success('Transport fee added successfully')
+            }
+
+            setTransportYear('')
+            setTransportAmount('')
+            setEditingTransportId(null)
+            setTransportDuplicateWarning(null)
+            fetchTransportFares()
+
+        } catch (error) {
+            console.error('Error saving transport fee:', error)
+            toast.error(error.message || 'Failed to save transport fee')
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    const handleEditTransportFare = (fee) => {
+        const yearObj = years.find(y => y.academic_year === fee.academic_year)
+        if (yearObj) setTransportYear(yearObj.id.toString())
+        setTransportAmount(fee.amount)
+        setEditingTransportId(fee.id)
+    }
+
+    const handleCancelTransportEdit = () => {
+        setTransportYear('')
+        setTransportAmount('')
+        setEditingTransportId(null)
+        setTransportDuplicateWarning(null)
+        setShowAllTransportFaresModal(false)
+    }
+
+    const renderTransportFareRows = (faresToRender) => {
+        return faresToRender.map((fee) => (
             <tr key={fee.id}>
                 <td>{fee.academic_year}</td>
-                <td className="text-end fw-bold">₹{fee.hostel_fee}</td>
+                <td className="text-end fw-bold">₹{fee.amount}</td>
                 <td className="text-end">
                     <div className="d-flex justify-content-end gap-2">
                         <button
                             className="btn btn-sm btn-outline-primary"
-                            onClick={() => handleEditHostelFee(fee)}
+                            onClick={() => handleEditTransportFare(fee)}
                         >
                             <i className="bi bi-pencil"></i>
                         </button>
                         <button
                             className="btn btn-sm btn-outline-danger"
-                            onClick={() => handleDeleteHostelFee(fee.id)}
+                            onClick={() => handleDeleteTransportFare(fee.id)}
                         >
                             <i className="bi bi-trash"></i>
                         </button>
@@ -656,6 +866,8 @@ export default function FeesCreation() {
             </tr>
         ))
     }
+
+
 
     const renderFeeRows = (feesToRender) => {
         return feesToRender.map((fee) => {
@@ -1050,7 +1262,7 @@ export default function FeesCreation() {
                     <div className="card card-soft p-4">
                         <h4 className="mb-3">Hostel Fees Management</h4>
                         <form onSubmit={handleSaveHostelFee} className="row g-3 align-items-end mb-4">
-                            <div className="col-md-4">
+                            <div className="col-md-3">
                                 <label className="form-label">Academic Year <span className="text-danger">*</span></label>
                                 <select
                                     className="form-select"
@@ -1064,7 +1276,20 @@ export default function FeesCreation() {
                                     ))}
                                 </select>
                             </div>
-                            <div className="col-md-4">
+                            <div className="col-md-3">
+                                <label className="form-label">Hostel Type <span className="text-danger">*</span></label>
+                                <select
+                                    className="form-select"
+                                    value={hostelType}
+                                    onChange={(e) => setHostelType(e.target.value)}
+                                    required
+                                >
+                                    <option value="" disabled>Select Hostel Type</option>
+                                    <option value="NON_AC">Non AC</option>
+                                    <option value="AC">AC</option>
+                                </select>
+                            </div>
+                            <div className="col-md-3">
                                 <label className="form-label">Amount <span className="text-danger">*</span></label>
                                 <div className="input-group">
                                     <span className="input-group-text">₹</span>
@@ -1079,7 +1304,7 @@ export default function FeesCreation() {
                                     />
                                 </div>
                             </div>
-                            <div className="col-md-4">
+                            <div className="col-md-3">
                                 <div className="d-flex gap-2">
                                     <button type="submit" className="btn btn-primary px-4">
                                         {editingHostelId ? 'Update' : 'Save'}
@@ -1089,6 +1314,14 @@ export default function FeesCreation() {
                                     )}
                                 </div>
                             </div>
+                            {hostelDuplicateWarning && (
+                                <div className="col-12 mt-2">
+                                    <div className="mt-1" style={{ color: 'red', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                                        <i className="bi bi-exclamation-circle me-2"></i>
+                                        {hostelDuplicateWarning}
+                                    </div>
+                                </div>
+                            )}
                         </form>
 
                         <div className="d-flex justify-content-between align-items-center mb-3">
@@ -1107,6 +1340,7 @@ export default function FeesCreation() {
                                 <thead className="table-light">
                                     <tr>
                                         <th>Academic Year</th>
+                                        <th>Hostel Type</th>
                                         <th className="text-end">Amount</th>
                                         <th className="text-end">Actions</th>
                                     </tr>
@@ -1114,7 +1348,7 @@ export default function FeesCreation() {
                                 <tbody>
                                     {hostelFeesList.length === 0 ? (
                                         <tr>
-                                            <td colSpan="3" className="text-center py-4 text-muted">No hostel fees found.</td>
+                                            <td colSpan="4" className="text-center py-4 text-muted">No hostel fees found.</td>
                                         </tr>
                                     ) : (
                                         renderHostelFeeRows(hostelFeesList.slice(0, 2))
@@ -1123,9 +1357,99 @@ export default function FeesCreation() {
                             </table>
                         </div>
                     </div>
-                </div>
-            </div>
+                </div >
+            </div >
 
+
+            {/* Transport Fees Section */}
+            < div className="row g-4 justify-content-center mx-0 mt-4" >
+                <div className="col-12">
+                    <div className="card card-soft p-4">
+                        <h4 className="mb-3">Transport Fees Management</h4>
+                        <form onSubmit={handleSaveTransportFare} className="row g-3 align-items-end mb-4">
+                            <div className="col-md-4">
+                                <label className="form-label">Academic Year <span className="text-danger">*</span></label>
+                                <select
+                                    className="form-select"
+                                    value={transportYear}
+                                    onChange={(e) => setTransportYear(e.target.value)}
+                                    required
+                                >
+                                    <option value="" disabled>Select Year</option>
+                                    {years.map(year => (
+                                        <option key={year.id} value={year.id}>{year.academic_year}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="col-md-4">
+                                <label className="form-label">Amount <span className="text-danger">*</span></label>
+                                <div className="input-group">
+                                    <span className="input-group-text">₹</span>
+                                    <input
+                                        type="number"
+                                        className="form-control"
+                                        placeholder="Enter amount"
+                                        value={transportAmount}
+                                        onChange={(e) => setTransportAmount(e.target.value)}
+                                        min="0"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div className="col-md-4">
+                                <div className="d-flex gap-2">
+                                    <button type="submit" className="btn btn-primary px-4">
+                                        {editingTransportId ? 'Update' : 'Save'}
+                                    </button>
+                                    {editingTransportId && (
+                                        <button type="button" className="btn btn-secondary" onClick={handleCancelTransportEdit}>Cancel</button>
+                                    )}
+                                </div>
+                            </div>
+                            {transportDuplicateWarning && (
+                                <div className="col-12 mt-2">
+                                    <div className="mt-1" style={{ color: 'red', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                                        <i className="bi bi-exclamation-circle me-2"></i>
+                                        {transportDuplicateWarning}
+                                    </div>
+                                </div>
+                            )}
+                        </form>
+
+                        <div className="d-flex justify-content-between align-items-center mb-3">
+                            <h5 className="mb-0">Saved Transport Fees</h5>
+                            {transportFaresList.length > 2 && (
+                                <button
+                                    className="btn btn-sm btn-outline-primary"
+                                    onClick={() => setShowAllTransportFaresModal(true)}
+                                >
+                                    View All
+                                </button>
+                            )}
+                        </div>
+                        <div className="table-responsive">
+                            <table className="table table-hover align-middle fees-creation-table">
+                                <thead className="table-light">
+                                    <tr>
+                                        <th>Academic Year</th>
+                                        <th className="text-end">Amount</th>
+                                        <th className="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {transportFaresList.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="3" className="text-center py-4 text-muted">No transport fees found.</td>
+                                        </tr>
+                                    ) : (
+                                        renderTransportFareRows(transportFaresList.slice(0, 2))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div >
 
             {/* View All Modal */}
             {
@@ -1166,6 +1490,75 @@ export default function FeesCreation() {
                 )
             }
 
+            {
+                showAllHostelFeesModal && (
+                    <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} tabIndex="-1">
+                        <div className="modal-dialog modal-xl modal-dialog-scrollable">
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h5 className="modal-title">All Hostel Fees</h5>
+                                    <button type="button" className="btn-close" onClick={() => setShowAllHostelFeesModal(false)}></button>
+                                </div>
+                                <div className="modal-body">
+                                    <div className="table-responsive">
+                                        <table className="table table-hover align-middle fees-creation-table">
+                                            <thead className="table-light">
+                                                <tr>
+                                                    <th>Academic Year</th>
+                                                    <th>Hostel Type</th>
+                                                    <th className="text-end">Amount</th>
+                                                    <th className="text-end">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {renderHostelFeeRows(hostelFeesList)}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div className="modal-footer">
+                                    <button type="button" className="btn btn-secondary" onClick={() => setShowAllHostelFeesModal(false)}>Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            {
+                showAllTransportFaresModal && (
+                    <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} tabIndex="-1">
+                        <div className="modal-dialog modal-xl modal-dialog-scrollable">
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h5 className="modal-title">All Transport Fees</h5>
+                                    <button type="button" className="btn-close" onClick={() => setShowAllTransportFaresModal(false)}></button>
+                                </div>
+                                <div className="modal-body">
+                                    <div className="table-responsive">
+                                        <table className="table table-hover align-middle fees-creation-table">
+                                            <thead className="table-light">
+                                                <tr>
+                                                    <th>Academic Year</th>
+                                                    <th className="text-end">Amount</th>
+                                                    <th className="text-end">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {renderTransportFareRows(transportFaresList)}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div className="modal-footer">
+                                    <button type="button" className="btn btn-secondary" onClick={() => setShowAllTransportFaresModal(false)}>Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
             <ToastContainer position="top-right" autoClose={3000} />
             <ConfirmationModal
                 isOpen={deleteConfirmation.show}
@@ -1176,7 +1569,7 @@ export default function FeesCreation() {
                 confirmText="Confirm Delete"
                 cancelText="Cancel"
             />
-        </AdShellAdmin>
+        </AdShellAdmin >
     )
 }
 
