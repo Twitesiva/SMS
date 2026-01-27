@@ -2,6 +2,72 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  font-size: 1.08rem;
+  line-height: 1.55;
+  letter-spacing: 0.01em;
+}
+
+/* Scoped dashboard card styles (mirror admin dashboard sizes, but isolated) */
+.hostel-dashboard .dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.hostel-dashboard .dashboard-card {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.hostel-dashboard .dashboard-card-link {
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.35s ease, box-shadow 0.35s ease;
+}
+
+.hostel-dashboard .dashboard-card-link:hover,
+.hostel-dashboard .dashboard-card-link:focus-visible {
+  transform: translateY(-6px);
+  box-shadow: 0 30px 45px rgba(15, 23, 42, 0.35);
+  outline: 3px solid rgba(76, 117, 242, 0.4);
+  outline-offset: 2px;
+}
+
+.hostel-dashboard .dashboard-card-icon {
+  color: #fff;
+  background: linear-gradient(160deg, #4c75f2, #3f4c6b);
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  box-shadow: 0 12px 25px rgba(76, 117, 242, 0.25);
+}
+
+.hostel-dashboard .dashboard-card-value {
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.hostel-dashboard .dashboard-card-label {
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #475569;
+}
+
+.hostel-dashboard .dashboard-chart-card {
+  transition: transform 0.4s ease, box-shadow 0.4s ease, border 0.4s ease;
+  padding: 1.25rem;
+  background: #ffffff;
+  border-radius: 18px;
+}
+
+.hostel-dashboard .card-shadow {
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.08);
 }
 
 .hostel-dashboard__header {

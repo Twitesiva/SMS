@@ -159,7 +159,7 @@ export default function HostelDashboard() {
 
         {error && <div className="hostel-alert" role="alert">{error}</div>}
 
-        <section className="hostel-metrics" id="overview">
+        <section className="hostel-metrics dashboard-cards" id="overview">
           {[{
             label: 'Total hostelers',
             value: metrics.totalResidents,
@@ -177,17 +177,17 @@ export default function HostelDashboard() {
             value: currency(metrics.outstanding),
             icon: 'bi-exclamation-octagon'
           }].map((item) => (
-            <article key={item.label} className="hostel-metric-card">
-              <div className="hostel-metric-icon"><i className={`bi ${item.icon}`}></i></div>
+            <article key={item.label} className="dashboard-card card-shadow dashboard-card-link hostel-metric-card">
+              <div className="dashboard-card-icon"><i className={`bi ${item.icon}`}></i></div>
               <div>
-                <p className="hostel-metric-label">{item.label}</p>
-                <p className="hostel-metric-value">{item.value}</p>
+                <p className="hostel-metric-label dashboard-card-label">{item.label}</p>
+                <p className="hostel-metric-value dashboard-card-value">{item.value}</p>
               </div>
             </article>
           ))}
         </section>
 
-        <section className="hostel-panel" id="residents">
+        <section className="hostel-panel dashboard-chart-card card-shadow" id="residents">
           <div className="hostel-panel__head">
             <div>
               <p className="hostel-panel__eyebrow">Residents</p>
@@ -275,7 +275,7 @@ export default function HostelDashboard() {
           </div>
         </section>
 
-        <section className="hostel-panel" id="fees">
+        <section className="hostel-panel dashboard-chart-card card-shadow" id="fees">
           <div className="hostel-panel__head">
             <div>
               <p className="hostel-panel__eyebrow">Fee setup</p>
