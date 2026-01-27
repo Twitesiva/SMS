@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import TransportShell from '../../components/TransportShell'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
+import ConfirmationModal from '../../components/ConfirmationModal'
 
 const initialForm = {
   routeNo: '',
@@ -23,6 +24,13 @@ export default function TransportRoutes() {
   const [bpName, setBpName] = useState('')
   const [bpTime, setBpTime] = useState('')
   const [editingBpIndex, setEditingBpIndex] = useState(-1)
+
+  // Delete Modal State
+  const [deleteConfirmation, setDeleteConfirmation] = useState({
+    show: false,
+    id: null,
+    message: ''
+  })
 
   useEffect(() => {
     fetchAcademicYears()
@@ -77,8 +85,9 @@ export default function TransportRoutes() {
     }
   }
 
-  const handleDeleteRoute = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this route? This will also remove all associated boarding points.')) return
+  const confirmDelete = async () => {
+    const id = deleteConfirmation.id
+    if (!id) return
 
     try {
       const { error } = await supabase
@@ -100,6 +109,19 @@ export default function TransportRoutes() {
       console.error('Error deleting route:', error)
       showToast('Failed to delete route', 'error')
     }
+    closeDeleteModal()
+  }
+
+  const closeDeleteModal = () => {
+    setDeleteConfirmation({ show: false, id: null, message: '' })
+  }
+
+  const handleDeleteRoute = async (id) => {
+    setDeleteConfirmation({
+      show: true,
+      id,
+      message: 'Are you sure you want to delete this route? This will also remove all associated boarding points.'
+    })
   }
 
   const fetchAcademicYears = async () => {
@@ -543,6 +565,15 @@ export default function TransportRoutes() {
           </div>
         </div>
       </div>
+      <ConfirmationModal
+        isOpen={deleteConfirmation.show}
+        onClose={closeDeleteModal}
+        onConfirm={confirmDelete}
+        title="Confirm Delete"
+        message={deleteConfirmation.message}
+        confirmText="Confirm Delete"
+        cancelText="Cancel"
+      />
     </TransportShell>
   )
 }

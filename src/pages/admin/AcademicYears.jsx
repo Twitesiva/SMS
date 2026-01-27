@@ -9,12 +9,15 @@ import './Setup.css'
 import './AdminContent.css'
 import { showToast } from '../../store/ui'
 import { validateRequiredFields } from '../../lib/validation'
+import ConfirmationModal from '../../components/ConfirmationModal'
 
 
 function AcademicYears() {
   const [yearForm, setYearForm] = useState({ name: '', category: '', active: true })
   const [academicYears, setAcademicYears] = useState([])
   const [editingYearId, setEditingYearId] = useState('')
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [yearToDelete, setYearToDelete] = useState(null)
 
   useEffect(() => {
     const loadYears = async () => {
@@ -75,18 +78,40 @@ function AcademicYears() {
     setEditingYearId(year.id)
   }
 
-  const deleteYear = async (id) => {
-    setAcademicYears((prev) => prev.filter((y) => y.id !== id))
+  const openDeleteModal = (id) => {
+    setYearToDelete(id)
+    setShowDeleteModal(true)
+  }
+
+  const closeDeleteModal = () => {
+    setYearToDelete(null)
+    setShowDeleteModal(false)
+  }
+
+  const confirmDeleteYear = async () => {
+    if (!yearToDelete) return
+
+    setAcademicYears((prev) => prev.filter((y) => y.id !== yearToDelete))
     try {
-      await api.deleteAcademicYear?.(id)
+      if (api.deleteAcademicYear) {
+        await api.deleteAcademicYear(yearToDelete)
+      }
+      showToast('Academic year deleted successfully', { type: 'success' })
     } catch (error) {
       console.error('Error deleting academic year:', error)
       showToast(error?.message || 'Error deleting academic year', { type: 'danger' })
     }
-    if (editingYearId === id) {
+
+    if (editingYearId === yearToDelete) {
       setYearForm({ name: '', category: '', active: true })
       setEditingYearId('')
     }
+
+    closeDeleteModal()
+  }
+
+  const deleteYear = (id) => {
+    openDeleteModal(id)
   }
 
   const cancelYearEdit = () => {
@@ -116,37 +141,28 @@ function AcademicYears() {
               <form className="row g-3 mb-4 form-large-text" onSubmit={(e) => { e.preventDefault(); addYear(); }}>
                 <div className="col-md-4">
                   <label className="form-label">Academic Year Name *</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="e.g., 2024-2025"
+                  <select
+                    className="form-select"
                     value={yearForm.name}
                     onChange={(e) => setYearForm({ ...yearForm, name: e.target.value })}
                     required
-                  />
+                  >
+                    <option value="">Select Academic Year</option>
+                    {[...Array(6)].map((_, i) => {
+                      const start = 2025 + i;
+                      const val = `${start}-${start + 1}`;
+                      const isCreated = academicYears.some(
+                        (y) => (y.name === val || y.academic_year === val)
+                      );
+                      return (
+                        <option key={val} value={val} disabled={isCreated}>
+                          {val} {isCreated ? '(Created)' : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
                 </div>
-                <div className="col-md-4">
-                  <label className="form-label">Category</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="e.g., Regular, Supplementary"
-                    value={yearForm.category}
-                    onChange={(e) => setYearForm({ ...yearForm, category: e.target.value })}
-                  />
-                </div>
-                <div className="col-md-4">
-                  <label className="form-label">Status</label>
-                  <div className="form-check form-switch mt-2">
-                    <input
-                      className="form-check-input"
-                      type="checkbox"
-                      checked={yearForm.active}
-                      onChange={(e) => setYearForm({ ...yearForm, active: e.target.checked })}
-                    />
-                    <label className="form-check-label">Active</label>
-                  </div>
-                </div>
+
                 <div className="col-12 d-flex gap-2">
                   <button type="submit" className="btn btn-primary">
                     {editingYearId ? 'Update Year' : 'Add Year'}
@@ -164,8 +180,7 @@ function AcademicYears() {
                   <thead className="table-header-gradient">
                     <tr>
                       <th>Academic Year</th>
-                      <th>Category</th>
-                      <th>Status</th>
+
                       <th className="text-end">Actions</th>
                     </tr>
                   </thead>
@@ -173,12 +188,6 @@ function AcademicYears() {
                     {academicYears.map((year) => (
                       <tr key={year.id}>
                         <td className="fw-bold">{year.name || year.academic_year}</td>
-                        <td>{year.category || '-'}</td>
-                        <td>
-                          <span className={`badge ${year.active ? 'bg-success' : 'bg-secondary'}`}>
-                            {year.active ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
                         <td className="text-end">
                           <div className="d-flex justify-content-end gap-2">
                             <button
@@ -204,13 +213,17 @@ function AcademicYears() {
           </div>
         </div>
       </div>
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={closeDeleteModal}
+        onConfirm={confirmDeleteYear}
+        title="Confirm Delete"
+        message="Are you sure you want to delete this academic year?"
+        confirmText="Confirm Delete"
+        cancelText="Cancel"
+      />
     </AdShellAdmin>
   )
 }
 
 export default AcademicYears
-
-
-
-
-

@@ -4,6 +4,7 @@ import AdShellAdmin from '../../components/AdShellAdmin'
 import SubjectsSection from '../exam/Subjects'
 import { api } from '../../lib/mockApi'
 import { showToast } from '../../store/ui'
+import ConfirmationModal from '../../components/ConfirmationModal'
 import './AdminContent.css'
 
 
@@ -233,8 +234,17 @@ export default function Subjects() {
   const [subjectIdsToDelete, setSubjectIdsToDelete] = useState([])
   const [subjectEditBackup, setSubjectEditBackup] = useState([])
   const [subjectForm, setSubjectForm] = useState(() => buildSubjectForm(''))
+
   const [editingSubjectId, setEditingSubjectId] = useState('')
   const [editingBatchId, setEditingBatchId] = useState('')
+
+  // Delete Modal State
+  const [deleteConfirmation, setDeleteConfirmation] = useState({
+    show: false,
+    type: null, // 'category' | 'pending' | 'subject'
+    data: null,
+    message: ''
+  })
 
   const groupNameByCode = useMemo(() => buildGroupNameMap(groups), [groups])
   const courseLookup = useMemo(() => buildCourseLookup(courses), [courses])
@@ -471,33 +481,7 @@ export default function Subjects() {
     }
   }
 
-  const deleteCategory = async (name) => {
-    if (!name) return
-    const id = categoryIdMap[name]
-    setCategories((prev) => prev.filter((n) => n !== name))
-    setCatItems((prev) => {
-      const copy = { ...prev }
-      delete copy[name]
-      return copy
-    })
-    setCategoryCreditsMap((prev) => {
-      const copy = { ...prev }
-      delete copy[name]
-      return copy
-    })
-    setCategoryIdMap((prev) => {
-      const copy = { ...prev }
-      delete copy[name]
-      return copy
-    })
-    try {
-      if (id) await api.deleteSubCategory?.(id)
-      showToast('Sub-category deleted.', { type: 'info' })
-    } catch (error) {
-      console.error('Failed to delete sub-category', error)
-      showToast('Unable to delete sub-category.', { type: 'danger' })
-    }
-  }
+
 
   const saveSubject = () => {
     const {
@@ -985,51 +969,116 @@ export default function Subjects() {
     editPendingSubject(rec)
   }
 
-  const deletePendingSubject = (item) => {
-    const getLogicalKey = (s) => [
-      String(s.academicYearId || s.academicYearName || ''),
-      String(s.groupCode || ''),
-      String(s.courseCode || ''),
-      String(s.semester === undefined || s.semester === null ? '' : s.semester),
-      String(s.category || '')
-    ].join('__')
+  const confirmDeleteAction = async () => {
+    const { type, data } = deleteConfirmation
+    if (!type || !data) return
 
-    const targetKey = getLogicalKey(item)
+    if (type === 'category') {
+      const name = data
+      const id = categoryIdMap[name]
+      setCategories((prev) => prev.filter((n) => n !== name))
+      setCatItems((prev) => {
+        const copy = { ...prev }
+        delete copy[name]
+        return copy
+      })
+      setCategoryCreditsMap((prev) => {
+        const copy = { ...prev }
+        delete copy[name]
+        return copy
+      })
+      setCategoryIdMap((prev) => {
+        const copy = { ...prev }
+        delete copy[name]
+        return copy
+      })
+      try {
+        if (id) await api.deleteSubCategory?.(id)
+        showToast('Sub-category deleted.', { type: 'info' })
+      } catch (error) {
+        console.error('Failed to delete sub-category', error)
+        showToast('Unable to delete sub-category.', { type: 'danger' })
+      }
+    } else if (type === 'pending') {
+      const item = data
+      const getLogicalKey = (s) => [
+        String(s.academicYearId || s.academicYearName || ''),
+        String(s.groupCode || ''),
+        String(s.courseCode || ''),
+        String(s.semester === undefined || s.semester === null ? '' : s.semester),
+        String(s.category || '')
+      ].join('__')
 
-    setPendingSubjects((prev) =>
-      prev.filter((s) => getLogicalKey(s) !== targetKey)
-    )
+      const targetKey = getLogicalKey(item)
 
-    if (editingSubjectId === (item.subjectId || item.id)) {
-      setSubjectForm(buildSubjectForm(categories[0] || ''))
-      setEditingSubjectId('')
+      setPendingSubjects((prev) =>
+        prev.filter((s) => getLogicalKey(s) !== targetKey)
+      )
+
+      if (editingSubjectId === (item.subjectId || item.id)) {
+        setSubjectForm(buildSubjectForm(categories[0] || ''))
+        setEditingSubjectId('')
+      }
+    } else if (type === 'subject') {
+      const group = data
+      const batchRef = buildSubjectBatchKey(group)
+
+      const ids = (
+        group.subjectIds?.length ? group.subjectIds : [group.subjectId || group.id]
+      ).filter(Boolean)
+
+      setSubjects((prev) =>
+        prev.filter((s) => buildSubjectBatchKey(s) !== batchRef)
+      )
+
+      try {
+        const numericIds = ids
+          .map((id) => Number(id))
+          .filter((n) => Number.isFinite(n))
+        if (numericIds.length) {
+          await Promise.all(numericIds.map((id) => api.deleteSubject?.(id)))
+        }
+
+        showToast('Subject entries deleted.', { type: 'info' })
+      } catch (error) {
+        console.error('Failed to delete subject', error)
+        showToast('Unable to delete subject.', { type: 'danger' })
+      }
     }
+
+    closeDeleteModal()
   }
 
-  const deleteSubject = async (group) => {
-    const batchRef = buildSubjectBatchKey(group)
+  const closeDeleteModal = () => {
+    setDeleteConfirmation({ show: false, type: null, data: null, message: '' })
+  }
 
-    const ids = (
-      group.subjectIds?.length ? group.subjectIds : [group.subjectId || group.id]
-    ).filter(Boolean)
+  const deleteCategory = (name) => {
+    if (!name) return
+    setDeleteConfirmation({
+      show: true,
+      type: 'category',
+      data: name,
+      message: 'Are you sure you want to delete this sub-category?'
+    })
+  }
 
-    setSubjects((prev) =>
-      prev.filter((s) => buildSubjectBatchKey(s) !== batchRef)
-    )
+  const deletePendingSubject = (item) => {
+    setDeleteConfirmation({
+      show: true,
+      type: 'pending',
+      data: item,
+      message: 'Are you sure you want to remove this pending subject?'
+    })
+  }
 
-    try {
-      const numericIds = ids
-        .map((id) => Number(id))
-        .filter((n) => Number.isFinite(n))
-      if (numericIds.length) {
-        await Promise.all(numericIds.map((id) => api.deleteSubject?.(id)))
-      }
-
-      showToast('Subject entries deleted.', { type: 'info' })
-    } catch (error) {
-      console.error('Failed to delete subject', error)
-      showToast('Unable to delete subject.', { type: 'danger' })
-    }
+  const deleteSubject = (group) => {
+    setDeleteConfirmation({
+      show: true,
+      type: 'subject',
+      data: group,
+      message: 'Are you sure you want to delete this subject?'
+    })
   }
 
   const cancelSubjectEdit = () => {
@@ -1087,7 +1136,17 @@ export default function Subjects() {
           </div>
         </div>
       </div>
-    </AdShellAdmin>
+
+      <ConfirmationModal
+        isOpen={deleteConfirmation.show}
+        onClose={closeDeleteModal}
+        onConfirm={confirmDeleteAction}
+        title="Confirm Delete"
+        message={deleteConfirmation.message}
+        confirmText="Confirm Delete"
+        cancelText="Cancel"
+      />
+    </AdShellAdmin >
   )
 }
 

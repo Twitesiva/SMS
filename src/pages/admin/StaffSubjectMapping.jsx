@@ -327,7 +327,7 @@ export default function StaffSubjectMapping() {
                                 onClick={saveAssignments}
                                 disabled={saving}
                             >
-                                {saving ? 'Saving...' : 'Save Assignments'}
+                                {saving ? 'Saving...' : 'Click to Save'}
                             </button>
                         </div>
 

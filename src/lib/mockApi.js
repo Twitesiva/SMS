@@ -8,21 +8,21 @@ const TABLES = {
   courses: "courses",
   subCategories: "subject_category",
   subjects: "subjects",
-  batches: "batches",
+  batches: "batches", // Note: 'batches' table not found in passed schema, but keeping for now or mapping null
   students: "students",
   exams: "exam_master",
-  payments: "payments",
-  hallTickets: "hall_tickets",
+  payments: "student_fee_payments", // mapped to student_fee_payments based on context
+  hallTickets: "hall_tickets", // Note: 'hall_tickets' not found in passed schema
   results: "results",
   feeDefinitions: "fee_structure",
   feeCategories: "fee_categories",
-  adminUsers: "admin_users",
+  adminUsers: "admin_users", // This is mock data usually
   examSchedules: "exam_schedule",
   applicationDocuments: "application_documents",
   transportRoutes: "transport_routes",
   transportBoardingPoints: "transport_route_boarding_points",
-  transportFares: "transport_route_fares",
-  transportVehicles: "transport_vehicles",
+  transportFares: "transport_route_fares", // Note: 'transport_route_fares' not found in passed schema, checking 'transport_vehicles'
+  transportVehicles: "transport_vehicles", // mapped correctly
 };
 
 const runQuery = async (query, label) => {
@@ -1331,7 +1331,7 @@ export const api = {
         transport_route_fares (*)
       `)
       .order('route_no')
-    
+
     if (error) {
       console.error('Unable to fetch transport routes', error)
       throw new Error(error.message)
@@ -1357,7 +1357,7 @@ export const api = {
       route_no: route.routeNo,
       route_name: route.routeName
     }
-    
+
     // Check if exists to get ID (since route_no is unique but not PK)
     let routeId
     const { data: existing } = await supabase
@@ -1365,7 +1365,7 @@ export const api = {
       .select('id')
       .eq('route_no', route.routeNo)
       .maybeSingle()
-      
+
     if (existing) {
       routeId = existing.id
       await runQuery(
@@ -1454,14 +1454,14 @@ export const api = {
       .select('id')
       .eq('route_no', vehicle.routeNo)
       .maybeSingle()
-    
+
     if (!route) throw new Error('Invalid route number')
 
     const payload = {
       vehicle_no: vehicle.vehicleNo,
       route_id: route.id
     }
-    
+
     await runQuery(
       supabase.from(TABLES.transportVehicles).upsert(payload, { onConflict: 'vehicle_no' }),
       'Unable to save vehicle'

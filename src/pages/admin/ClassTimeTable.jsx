@@ -9,6 +9,7 @@ import { supabase } from '../../../supabaseClient'
 import '../exam/Dashboard.css'
 import './Setup.css'
 import './AdminContent.css'
+import ConfirmationModal from '../../components/ConfirmationModal'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 
@@ -70,6 +71,13 @@ export default function ClassTimeTable() {
   const [showModal, setShowModal] = useState(false)
   const [modalData, setModalData] = useState(null) // { info: {}, grid: {} }
   const [isPreview, setIsPreview] = useState(false)
+
+  // Delete Modal State
+  const [deleteConfirmation, setDeleteConfirmation] = useState({
+    show: false,
+    id: null,
+    message: ''
+  })
 
   const isGridComplete = useMemo(() => {
     if (!selectedAcademicYear || !selectedGroupId || !selectedCourseId || !selectedSemester) return false
@@ -602,8 +610,9 @@ export default function ClassTimeTable() {
     }
   }
 
-  const handleDeleteTimetable = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this timetable?')) return
+  const confirmDelete = async () => {
+    const id = deleteConfirmation.id
+    if (!id) return
 
     try {
       const { error } = await supabase.from('timetables').delete().eq('id', id)
@@ -620,6 +629,19 @@ export default function ClassTimeTable() {
       console.error('Error deleting timetable', error)
       toast.error('Failed to delete timetable')
     }
+    closeDeleteModal()
+  }
+
+  const closeDeleteModal = () => {
+    setDeleteConfirmation({ show: false, id: null, message: '' })
+  }
+
+  const handleDeleteTimetable = (id) => {
+    setDeleteConfirmation({
+      show: true,
+      id,
+      message: 'Are you sure you want to delete this timetable?'
+    })
   }
 
   const handleCloseModal = () => {
@@ -888,6 +910,16 @@ export default function ClassTimeTable() {
         )}
         <ToastContainer position="top-right" autoClose={3000} />
       </div>
+      <ToastContainer position="top-right" autoClose={3000} />
+      <ConfirmationModal
+        isOpen={deleteConfirmation.show}
+        onClose={closeDeleteModal}
+        onConfirm={confirmDelete}
+        title="Confirm Delete"
+        message={deleteConfirmation.message}
+        confirmText="Confirm Delete"
+        cancelText="Cancel"
+      />
     </AdShellAdmin>
   )
 }
