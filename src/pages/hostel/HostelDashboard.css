@@ -145,8 +145,9 @@
 }
 
 .hostel-table__head {
-  background: #e8efff;
-  border-bottom: 1px solid #d8e3ff;
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
 }
 
 .hostel-table__row {
@@ -162,7 +163,7 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: #3f4c6b;
+  color: #ffffff;
 }
 
 .hostel-table__row:not(.hostel-table__row--head):hover {

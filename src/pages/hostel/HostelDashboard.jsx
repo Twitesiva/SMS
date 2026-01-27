@@ -35,6 +35,25 @@ export default function HostelDashboard() {
 
         if (studentsError) throw studentsError
 
+        const [{ data: courses }, { data: groups }] = await Promise.all([
+          supabase.from('courses').select('course_id, course_name, course_code'),
+          supabase.from('groups').select('group_id, group_name, group_code')
+        ])
+
+        const courseById = new Map()
+        const courseByCode = new Map()
+        courses?.forEach((c) => {
+          if (c.course_id !== undefined) courseById.set(c.course_id, c.course_name || c.course_code || '—')
+          if (c.course_code) courseByCode.set(String(c.course_code).toLowerCase(), c.course_name || c.course_code || '—')
+        })
+
+        const groupById = new Map()
+        const groupByCode = new Map()
+        groups?.forEach((g) => {
+          if (g.group_id !== undefined) groupById.set(g.group_id, g.group_name || g.group_code || '—')
+          if (g.group_code) groupByCode.set(String(g.group_code).toLowerCase(), g.group_name || g.group_code || '—')
+        })
+
         const { data: hostelFees, error: feesError } = await supabase
           .from('hostel_fees')
           .select('id, academic_year, year_of_study, hostel_fee')
@@ -62,14 +81,20 @@ export default function HostelDashboard() {
         }
 
         const merged = (students || []).map((student) => {
+          const courseCodeKey = (student.course_name || student.courses?.course_code || '').toString().toLowerCase()
+          const groupCodeKey = (student.group_name || student.groups?.group_code || '').toString().toLowerCase()
+
           const displayCourse =
+            courseById.get(student.course_id) ||
+            courseByCode.get(courseCodeKey) ||
             student?.courses?.course_name ||
-            student?.courses?.course_code ||
             student.course_name ||
             '—'
+
           const displayGroup =
+            groupById.get(student.group_id) ||
+            groupByCode.get(groupCodeKey) ||
             student?.groups?.group_name ||
-            student?.groups?.group_code ||
             student.group_name ||
             '—'
           const key = `${student.academic_year || ''}-${student.year_of_study || ''}`
