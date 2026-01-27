@@ -20,21 +20,12 @@ const hostelNavGroups = [
     items: [
       { to: '/hostel/blocks', label: 'Blocks', icon: 'bi-box' },
       { to: '/hostel/rooms', label: 'Rooms', icon: 'bi-door-closed' },
-      { to: '/hostel/beds', label: 'Beds', icon: 'bi-minecart-loaded' },
       { to: '/hostel/room-year-mapping', label: 'Year Mapping', icon: 'bi-calendar-check' },
-      { to: '/hostel/applications', label: 'Applications', icon: 'bi-file-earmark-text' },
       { to: '/hostel/allocations', label: 'Allocations', icon: 'bi-person-check' },
       { to: '/hostel/reports', label: 'Reports', icon: 'bi-graph-up' }
     ]
   },
-  {
-    title: 'Hostel Operations',
-    items: [
-      { to: '/hostel/dashboard#residents', label: 'Residents', icon: 'bi-people' },
-      { to: '/hostel/dashboard#fees', label: 'Hostel Fees', icon: 'bi-cash-stack' },
-      { to: '/hostel/dashboard#activity', label: 'Activity', icon: 'bi-clipboard-data' }
-    ]
-  }
+  
 ]
 
 export default function HostelShell({ children, navGroups, brandTitle = "HOSTEL PORTAL" }) {

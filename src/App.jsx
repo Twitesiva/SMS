@@ -125,9 +125,7 @@ import HostelDashboard from "./pages/hostel/HostelDashboard.jsx";
 // Hostel Admin Pages
 import HostelBlocks from "./pages/hostel/Blocks.jsx";
 import HostelRooms from "./pages/hostel/Rooms.jsx";
-import HostelBeds from "./pages/hostel/Beds.jsx";
 import RoomYearMapping from "./pages/hostel/RoomYearMapping.jsx";
-import HostelApplications from "./pages/hostel/Applications.jsx";
 import HostelAllocations from "./pages/hostel/Allocations.jsx";
 import HostelReports from "./pages/hostel/Reports.jsx";
 
@@ -182,7 +180,7 @@ export default function App() {
           path="/hostel/beds"
           element={
             <GuardedRoute isAuthed={isHostelAuthed} redirectTo="/hostel/login">
-              <HostelBeds />
+              <Navigate to="/hostel/rooms" replace />
             </GuardedRoute>
           }
         />
@@ -198,7 +196,7 @@ export default function App() {
           path="/hostel/applications"
           element={
             <GuardedRoute isAuthed={isHostelAuthed} redirectTo="/hostel/login">
-              <HostelApplications />
+              <Navigate to="/hostel/allocations" replace />
             </GuardedRoute>
           }
         />
