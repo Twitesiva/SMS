@@ -60,7 +60,7 @@ export default function ApplicationLogin() {
     return (
         <div className="admission-portal" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
             <div className="admission-portal__header admission-portal__hero public-apply-hero" style={{ flexGrow: 0 }}>
-                <div className="public-apply-hero-brand">
+                <div className="public-apply-hero-brand d-flex align-items-center gap-3">
                     <img src={crestPrimary} className="brand-logo public-apply-logo" alt="Vijayam crest" />
                     <div>
                         <div className="public-apply-eyebrow">ADMISSIONS {new Date().getFullYear()}</div>
