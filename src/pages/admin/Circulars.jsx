@@ -9,6 +9,7 @@ import './Setup.css'
 import './AdminContent.css'
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
+import ConfirmationModal from '../../components/ConfirmationModal'
 
 
 
@@ -31,6 +32,13 @@ export default function Circulars() {
     })
     const [groups, setGroups] = useState([])
     const [courses, setCourses] = useState([])
+
+    // Delete Modal State
+    const [deleteConfirmation, setDeleteConfirmation] = useState({
+        show: false,
+        id: null,
+        message: ''
+    })
 
     useEffect(() => {
         fetchCirculars()
@@ -132,8 +140,9 @@ export default function Circulars() {
         setViewMode('view')
     }
 
-    const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this circular?')) return
+    const confirmDelete = async () => {
+        if (!deleteConfirmation.id) return
+        const id = deleteConfirmation.id
 
         try {
             const { error } = await supabase
@@ -151,6 +160,19 @@ export default function Circulars() {
             console.error('Error deleting circular:', error)
             toast.error('Failed to delete circular')
         }
+        closeDeleteModal()
+    }
+
+    const closeDeleteModal = () => {
+        setDeleteConfirmation({ show: false, id: null, message: '' })
+    }
+
+    const handleDelete = (id) => {
+        setDeleteConfirmation({
+            show: true,
+            id,
+            message: 'Are you sure you want to delete this circular?'
+        })
     }
 
     const handleSubmit = async (e) => {
@@ -359,11 +381,7 @@ export default function Circulars() {
                                             <button className="btn btn-outline-primary" onClick={() => openEdit(viewData)}>
                                                 <i className="bi bi-pencil me-2"></i>Edit
                                             </button>
-                                            <button className="btn btn-danger" onClick={() => {
-                                                if (window.confirm('Delete this circular?')) {
-                                                    handleDelete(viewData.id)
-                                                }
-                                            }}>
+                                            <button className="btn btn-danger" onClick={() => handleDelete(viewData.id)}>
                                                 <i className="bi bi-trash me-2"></i>Delete
                                             </button>
                                         </div>
@@ -481,6 +499,15 @@ export default function Circulars() {
                 </div>
             </div>
             <ToastContainer position="top-right" autoClose={3000} />
+            <ConfirmationModal
+                isOpen={deleteConfirmation.show}
+                onClose={closeDeleteModal}
+                onConfirm={confirmDelete}
+                title="Confirm Delete"
+                message={deleteConfirmation.message}
+                confirmText="Confirm Delete"
+                cancelText="Cancel"
+            />
         </AdShellAdmin>
     )
 }

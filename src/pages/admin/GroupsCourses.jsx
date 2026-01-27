@@ -10,6 +10,7 @@ import './Setup.css'
 import './AdminContent.css'
 import { showToast } from '../../store/ui'
 import { validateRequiredFields } from '../../lib/validation'
+import ConfirmationModal from '../../components/ConfirmationModal'
 
 
 
@@ -52,6 +53,14 @@ export default function GroupsCourses() {
     semesters: 6
   })
   const [editingCourseId, setEditingCourseId] = useState('')
+
+  // Delete Modal State
+  const [deleteConfirmation, setDeleteConfirmation] = useState({
+    show: false,
+    type: null, // 'group' | 'course'
+    id: null,
+    message: ''
+  })
 
   useEffect(() => {
     const loadData = async () => {
@@ -153,20 +162,6 @@ export default function GroupsCourses() {
     setEditingGroupId(group.id)
   }
 
-  const deleteGroup = async (id) => {
-    setGroups((prev) => prev.filter((g) => g.id !== id))
-    try {
-      await api.deleteGroup?.(id)
-      showToast('Group deleted successfully', {
-        type: 'success',
-        title: 'Group'
-      })
-    } catch (error) {
-      console.error('Error deleting group:', error)
-      showToast(error?.message || 'Error deleting group', { type: 'danger' })
-    }
-  }
-
   const saveCourse = async () => {
     const {
       groupCode,
@@ -264,18 +259,52 @@ export default function GroupsCourses() {
     setEditingCourseId(course.id)
   }
 
-  const deleteCourse = async (id) => {
-    setCourses((prev) => prev.filter((c) => c.id !== id))
-    try {
-      await api.deleteCourse?.(id)
-      showToast('Course deleted successfully', {
-        type: 'success',
-        title: 'Course'
-      })
-    } catch (error) {
-      console.error('Error deleting course:', error)
-      showToast(error?.message || 'Error deleting course', { type: 'danger' })
+  const confirmDelete = async () => {
+    const { type, id } = deleteConfirmation
+    if (!type || !id) return
+
+    if (type === 'group') {
+      setGroups((prev) => prev.filter((g) => g.id !== id))
+      try {
+        await api.deleteGroup?.(id)
+        showToast('Group deleted successfully', { type: 'success', title: 'Group' })
+      } catch (error) {
+        console.error('Error deleting group:', error)
+        showToast(error?.message || 'Error deleting group', { type: 'danger' })
+      }
+    } else if (type === 'course') {
+      setCourses((prev) => prev.filter((c) => c.id !== id))
+      try {
+        await api.deleteCourse?.(id)
+        showToast('Course deleted successfully', { type: 'success', title: 'Course' })
+      } catch (error) {
+        console.error('Error deleting course:', error)
+        showToast(error?.message || 'Error deleting course', { type: 'danger' })
+      }
     }
+    closeDeleteModal()
+  }
+
+  const closeDeleteModal = () => {
+    setDeleteConfirmation({ show: false, type: null, id: null, message: '' })
+  }
+
+  const deleteGroup = (id) => {
+    setDeleteConfirmation({
+      show: true,
+      type: 'group',
+      id,
+      message: 'Are you sure you want to delete this group?'
+    })
+  }
+
+  const deleteCourse = (id) => {
+    setDeleteConfirmation({
+      show: true,
+      type: 'course',
+      id,
+      message: 'Are you sure you want to delete this course?'
+    })
   }
 
   return (
@@ -310,6 +339,15 @@ export default function GroupsCourses() {
           </div>
         </div>
       </div>
+      <ConfirmationModal
+        isOpen={deleteConfirmation.show}
+        onClose={closeDeleteModal}
+        onConfirm={confirmDelete}
+        title="Confirm Delete"
+        message={deleteConfirmation.message}
+        confirmText="Confirm Delete"
+        cancelText="Cancel"
+      />
     </AdShellAdmin>
   )
 }

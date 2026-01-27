@@ -9,6 +9,7 @@ import 'react-toastify/dist/ReactToastify.css'
 import '../exam/Dashboard.css'
 import './Setup.css'
 import './AdminContent.css'
+import ConfirmationModal from '../../components/ConfirmationModal'
 
 
 export default function ClassTimeTableCreation() {
@@ -16,6 +17,13 @@ export default function ClassTimeTableCreation() {
     const [timeTables, setTimeTables] = useState([])
     const [loading, setLoading] = useState(false)
     const [editingId, setEditingId] = useState(null)
+
+    // Delete Modal State
+    const [deleteConfirmation, setDeleteConfirmation] = useState({
+        show: false,
+        id: null,
+        message: ''
+    })
 
     useEffect(() => {
         fetchTimeTables()
@@ -78,8 +86,9 @@ export default function ClassTimeTableCreation() {
         window.scrollTo({ top: 0, behavior: 'smooth' })
     }
 
-    const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this time table?')) return
+    const confirmDelete = async () => {
+        if (!deleteConfirmation.id) return
+        const id = deleteConfirmation.id
 
         try {
             const { error } = await supabase
@@ -95,6 +104,19 @@ export default function ClassTimeTableCreation() {
             console.error('Error deleting time table:', error)
             toast.error('Failed to delete time table')
         }
+        closeDeleteModal()
+    }
+
+    const closeDeleteModal = () => {
+        setDeleteConfirmation({ show: false, id: null, message: '' })
+    }
+
+    const handleDelete = (id) => {
+        setDeleteConfirmation({
+            show: true,
+            id,
+            message: 'Are you sure you want to delete this time table?'
+        })
     }
 
     const handleReset = () => {
@@ -189,6 +211,15 @@ export default function ClassTimeTableCreation() {
                 </div>
             </div>
             <ToastContainer position="top-right" autoClose={3000} />
+            <ConfirmationModal
+                isOpen={deleteConfirmation.show}
+                onClose={closeDeleteModal}
+                onConfirm={confirmDelete}
+                title="Confirm Delete"
+                message={deleteConfirmation.message}
+                confirmText="Confirm Delete"
+                cancelText="Cancel"
+            />
         </AdShellAdmin>
     )
 }

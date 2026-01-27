@@ -9,6 +9,7 @@ import 'react-toastify/dist/ReactToastify.css'
 import '../exam/Dashboard.css'
 import './Setup.css'
 import './AdminContent.css'
+import ConfirmationModal from '../../components/ConfirmationModal'
 
 export default function FeesCreation() {
     const [isLoading, setIsLoading] = useState(true)
@@ -42,6 +43,14 @@ export default function FeesCreation() {
     const [hostelAmount, setHostelAmount] = useState('')
     const [editingHostelId, setEditingHostelId] = useState(null)
     const [showAllHostelFeesModal, setShowAllHostelFeesModal] = useState(false)
+
+    // Delete Modal State
+    const [deleteConfirmation, setDeleteConfirmation] = useState({
+        show: false,
+        type: null, // 'category' | 'hostel' | 'structure'
+        data: null,
+        message: ''
+    })
 
     // Duplicate Check State
 
@@ -115,24 +124,7 @@ export default function FeesCreation() {
     }
 
 
-    const handleRemoveCategory = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this category?')) return
 
-        try {
-            const { error } = await supabase
-                .from('academic_fee_categories')
-                .delete()
-                .eq('id', id)
-
-            if (error) throw error
-
-            setFeeCategories(feeCategories.filter(c => c.id !== id))
-            toast.success('Category removed')
-        } catch (error) {
-            console.error('Error removing category:', error)
-            toast.error('Failed to remove category')
-        }
-    }
 
     const handleEditClick = (category) => {
         setEditingCategory(category.id)
@@ -543,21 +535,7 @@ export default function FeesCreation() {
         }
     }
 
-    const handleDeleteHostelFee = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this hostel fee?')) return
-        try {
-            const { error } = await supabase
-                .from('hostel_fees')
-                .delete()
-                .eq('id', id)
-            if (error) throw error
-            toast.success('Hostel fee deleted')
-            fetchHostelFees()
-        } catch (error) {
-            console.error('Error deleting hostel fee:', error)
-            toast.error('Failed to delete hostel fee')
-        }
-    }
+
 
     const handleEditHostelFee = (fee) => {
         const yearObj = years.find(y => y.academic_year === fee.academic_year)
@@ -571,6 +549,87 @@ export default function FeesCreation() {
         setHostelAmount('')
         setEditingHostelId(null)
         setShowAllHostelFeesModal(false)
+    }
+
+    const confirmDeleteAction = async () => {
+        const { type, data } = deleteConfirmation
+        if (!type || !data) return
+
+        if (type === 'category') {
+            const id = data
+            try {
+                const { error } = await supabase
+                    .from('academic_fee_categories')
+                    .delete()
+                    .eq('id', id)
+
+                if (error) throw error
+                setFeeCategories(feeCategories.filter(c => c.id !== id))
+                toast.success('Category removed')
+            } catch (error) {
+                console.error('Error removing category:', error)
+                toast.error('Failed to remove category')
+            }
+        } else if (type === 'hostel') {
+            const id = data
+            try {
+                const { error } = await supabase
+                    .from('hostel_fees')
+                    .delete()
+                    .eq('id', id)
+                if (error) throw error
+                toast.success('Hostel fee deleted')
+                fetchHostelFees()
+            } catch (error) {
+                console.error('Error deleting hostel fee:', error)
+                toast.error('Failed to delete hostel fee')
+            }
+        } else if (type === 'structure') {
+            const fee = data
+            try {
+                const { error: breakdownError } = await supabase
+                    .from('academic_fee_breakdown')
+                    .delete()
+                    .eq('academic_fee_id', fee.id)
+
+                if (breakdownError) throw breakdownError
+
+                const { error } = await supabase
+                    .from('academic_fees')
+                    .delete()
+                    .eq('id', fee.id)
+
+                if (error) throw error
+                toast.success('Fee structure deleted')
+                fetchSavedFeeStructures()
+            } catch (e) {
+                console.error(e)
+                toast.error('Failed to delete')
+            }
+        }
+        closeDeleteModal()
+    }
+
+    const closeDeleteModal = () => {
+        setDeleteConfirmation({ show: false, type: null, data: null, message: '' })
+    }
+
+    const handleRemoveCategory = (id) => {
+        setDeleteConfirmation({
+            show: true,
+            type: 'category',
+            data: id,
+            message: 'Are you sure you want to delete this category?'
+        })
+    }
+
+    const handleDeleteHostelFee = (id) => {
+        setDeleteConfirmation({
+            show: true,
+            type: 'hostel',
+            data: id,
+            message: 'Are you sure you want to delete this hostel fee?'
+        })
     }
 
     const renderHostelFeeRows = (feesToRender) => {
@@ -621,29 +680,12 @@ export default function FeesCreation() {
                             </button>
                             <button
                                 className="btn btn-sm btn-outline-danger"
-                                onClick={async () => {
-                                    if (!window.confirm('Delete this fee structure?')) return;
-                                    try {
-                                        const { error: breakdownError } = await supabase
-                                            .from('academic_fee_breakdown')
-                                            .delete()
-                                            .eq('academic_fee_id', fee.id)
-
-                                        if (breakdownError) throw breakdownError;
-
-                                        const { error } = await supabase
-                                            .from('academic_fees')
-                                            .delete()
-                                            .eq('id', fee.id)
-
-                                        if (error) throw error
-                                        toast.success('Fee structure deleted')
-                                        fetchSavedFeeStructures()
-                                    } catch (e) {
-                                        console.error(e)
-                                        toast.error('Failed to delete')
-                                    }
-                                }}
+                                onClick={() => setDeleteConfirmation({
+                                    show: true,
+                                    type: 'structure',
+                                    data: fee,
+                                    message: 'Are you sure you want to delete this fee structure?'
+                                })}
                             >
                                 <i className="bi bi-trash"></i>
                             </button>
@@ -1125,6 +1167,15 @@ export default function FeesCreation() {
             }
 
             <ToastContainer position="top-right" autoClose={3000} />
+            <ConfirmationModal
+                isOpen={deleteConfirmation.show}
+                onClose={closeDeleteModal}
+                onConfirm={confirmDeleteAction}
+                title="Confirm Delete"
+                message={deleteConfirmation.message}
+                confirmText="Confirm Delete"
+                cancelText="Cancel"
+            />
         </AdShellAdmin>
     )
 }
