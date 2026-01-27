@@ -222,7 +222,7 @@ export default function ApplicationTracker() {
             </div>
 
             <div className="container mt-3 mb-3">
-                <div className="card border-0 shadow-sm rounded-4 text-white" style={{ background: 'linear-gradient(135deg, #1f4fab, #2f7ed6, #61a4ff)' }}>
+                <div className="card border-0 shadow-sm rounded-4 text-white" style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)' }}>
                     <div className="card-body text-center p-3">
                         <h3 className="fw-bold m-0 text-white">My Admission Status</h3>
                     </div>
