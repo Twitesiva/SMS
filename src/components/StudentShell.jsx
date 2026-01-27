@@ -10,7 +10,7 @@ const navItems = [
   { to: '/student/personal-details', label: 'Personal details', icon: 'bi-person' },
   { to: '/student/course-list', label: 'Learning Materials', icon: 'bi-journal-text' },
   { to: '/student/time-table', label: 'Time table', icon: 'bi-clock-history' },
-  { to: '/student/hostel-details', label: 'Hostel fees', icon: 'bi-house-door' },
+  { to: '/student/hostel-details', label: 'Hostel Details', icon: 'bi-house-door' },
   { to: '/student/fee-payment', label: 'Fee payment', icon: 'bi-credit-card' },
   { to: '/student/certificate', label: 'Certificate', icon: 'bi-patch-check' },
   { to: '/student/leave-request', label: 'Leave Request', icon: 'bi-calendar-minus' },

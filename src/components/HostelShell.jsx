@@ -4,6 +4,7 @@ import { useHostelAuth } from '../store/hostelAuth'
 import logo from '../assets/media/images.png'
 import './AdminPortalShell.css'
 import '../pages/staff/StaffPortal.css'
+import '../pages/student/Student.css'
 
 const hostelNavGroups = [
   {
@@ -11,6 +12,19 @@ const hostelNavGroups = [
     static: true,
     items: [
       { to: '/hostel/dashboard', label: 'Dashboard', icon: 'bi-speedometer2', exact: true }
+    ]
+  },
+  {
+    title: 'Hostel Management',
+    icon: 'bi-building',
+    items: [
+      { to: '/hostel/blocks', label: 'Blocks', icon: 'bi-box' },
+      { to: '/hostel/rooms', label: 'Rooms', icon: 'bi-door-closed' },
+      { to: '/hostel/beds', label: 'Beds', icon: 'bi-minecart-loaded' },
+      { to: '/hostel/room-year-mapping', label: 'Year Mapping', icon: 'bi-calendar-check' },
+      { to: '/hostel/applications', label: 'Applications', icon: 'bi-file-earmark-text' },
+      { to: '/hostel/allocations', label: 'Allocations', icon: 'bi-person-check' },
+      { to: '/hostel/reports', label: 'Reports', icon: 'bi-graph-up' }
     ]
   },
   {

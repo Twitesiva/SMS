@@ -118,6 +118,7 @@ const adminPortalNavGroups = [
             }
         ]
     },
+
     {
         title: 'Payment Reports',
         static: true,

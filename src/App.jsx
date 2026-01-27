@@ -122,6 +122,15 @@ import Practical from "./pages/exam/Practical.jsx";
 import HostelLogin from "./pages/hostel/HostelLogin.jsx";
 import HostelDashboard from "./pages/hostel/HostelDashboard.jsx";
 
+// Hostel Admin Pages
+import HostelBlocks from "./pages/hostel/Blocks.jsx";
+import HostelRooms from "./pages/hostel/Rooms.jsx";
+import HostelBeds from "./pages/hostel/Beds.jsx";
+import RoomYearMapping from "./pages/hostel/RoomYearMapping.jsx";
+import HostelApplications from "./pages/hostel/Applications.jsx";
+import HostelAllocations from "./pages/hostel/Allocations.jsx";
+import HostelReports from "./pages/hostel/Reports.jsx";
+
 
 export default function App() {
   const { user, signOut } = useAuth();
@@ -150,6 +159,62 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isHostelAuthed} redirectTo="/hostel/login">
               <HostelDashboard />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/hostel/blocks"
+          element={
+            <GuardedRoute isAuthed={isHostelAuthed} redirectTo="/hostel/login">
+              <HostelBlocks />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/hostel/rooms"
+          element={
+            <GuardedRoute isAuthed={isHostelAuthed} redirectTo="/hostel/login">
+              <HostelRooms />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/hostel/beds"
+          element={
+            <GuardedRoute isAuthed={isHostelAuthed} redirectTo="/hostel/login">
+              <HostelBeds />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/hostel/room-year-mapping"
+          element={
+            <GuardedRoute isAuthed={isHostelAuthed} redirectTo="/hostel/login">
+              <RoomYearMapping />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/hostel/applications"
+          element={
+            <GuardedRoute isAuthed={isHostelAuthed} redirectTo="/hostel/login">
+              <HostelApplications />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/hostel/allocations"
+          element={
+            <GuardedRoute isAuthed={isHostelAuthed} redirectTo="/hostel/login">
+              <HostelAllocations />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/hostel/reports"
+          element={
+            <GuardedRoute isAuthed={isHostelAuthed} redirectTo="/hostel/login">
+              <HostelReports />
             </GuardedRoute>
           }
         />
@@ -325,6 +390,9 @@ export default function App() {
             </GuardedRoute>
           }
         />
+
+        {/* Hostel Management Admin Routes */}
+
 
 
         <Route

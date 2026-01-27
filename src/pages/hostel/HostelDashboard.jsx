@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import HostelShell from '../../components/HostelShell'
+import HostelPreloader from '../../components/HostelPreloader'
 import { supabase } from '../../../supabaseClient'
 import './HostelDashboard.css'
 
@@ -160,157 +161,161 @@ export default function HostelDashboard() {
 
         {error && <div className="hostel-alert" role="alert">{error}</div>}
 
-        <section className="hostel-metrics dashboard-cards" id="overview">
-          {[{
-            label: 'Total hostelers',
-            value: metrics.totalResidents,
-            icon: 'bi-people'
-          }, {
-            label: 'Expected hostel fee',
-            value: currency(metrics.totalExpected),
-            icon: 'bi-cash-stack'
-          }, {
-            label: 'Collected',
-            value: currency(metrics.totalCollected),
-            icon: 'bi-piggy-bank'
-          }, {
-            label: 'Outstanding',
-            value: currency(metrics.outstanding),
-            icon: 'bi-exclamation-octagon'
-          }].map((item) => (
-            <article key={item.label} className="dashboard-card card-shadow dashboard-card-link hostel-metric-card">
-              <div className="dashboard-card-icon"><i className={`bi ${item.icon}`}></i></div>
-              <div>
-                <p className="hostel-metric-label dashboard-card-label">{item.label}</p>
-                <p className="hostel-metric-value dashboard-card-value">{item.value}</p>
-              </div>
-            </article>
-          ))}
-        </section>
+        {loading ? (
+          <HostelPreloader
+            title="Loading hostel dashboard"
+            subtitle="Syncing residents, fees, and balances."
+            cardCount={4}
+          />
+        ) : (
+          <>
+            <section className="hostel-metrics dashboard-cards" id="overview">
+              {[{
+                label: 'Total hostelers',
+                value: metrics.totalResidents,
+                icon: 'bi-people'
+              }, {
+                label: 'Expected hostel fee',
+                value: currency(metrics.totalExpected),
+                icon: 'bi-cash-stack'
+              }, {
+                label: 'Collected',
+                value: currency(metrics.totalCollected),
+                icon: 'bi-piggy-bank'
+              }, {
+                label: 'Outstanding',
+                value: currency(metrics.outstanding),
+                icon: 'bi-exclamation-octagon'
+              }].map((item) => (
+                <article key={item.label} className="dashboard-card card-shadow dashboard-card-link hostel-metric-card">
+                  <div className="dashboard-card-icon"><i className={`bi ${item.icon}`}></i></div>
+                  <div>
+                    <p className="hostel-metric-label dashboard-card-label">{item.label}</p>
+                    <p className="hostel-metric-value dashboard-card-value">{item.value}</p>
+                  </div>
+                </article>
+              ))}
+            </section>
 
-        <section className="hostel-panel dashboard-chart-card card-shadow" id="residents">
-          <div className="hostel-panel__head">
-            <div>
-              <p className="hostel-panel__eyebrow">Residents</p>
-              <h2>Hostel student ledger</h2>
-            </div>
-            <div className="hostel-panel__controls">
-              <input
-                type="search"
-                className="hostel-input"
-                placeholder="Search name, ID, course"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-              <select
-                className="hostel-select"
-                value={yearFilter}
-                onChange={(e) => setYearFilter(e.target.value)}
-              >
-                <option value="">Year of study</option>
-                {[1, 2, 3, 4, 5, 6].map((year) => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="hostel-table" role="table" aria-busy={loading}>
-            <div className="hostel-table__head" role="rowgroup">
-              <div role="row" className="hostel-table__row hostel-table__row--head">
-                <div role="columnheader">Student ID</div>
-                <div role="columnheader">Name</div>
-                <div role="columnheader">Course / Group</div>
-                <div role="columnheader">Year</div>
-                <div role="columnheader">Hostel fee</div>
-                <div role="columnheader">Paid</div>
-                <div role="columnheader">Balance</div>
-                <div role="columnheader" className="text-end">Status</div>
-              </div>
-            </div>
-
-            <div className="hostel-table__body" role="rowgroup">
-              {loading ? (
-                <div className="hostel-table__skeleton">
-                  {Array.from({ length: 6 }).map((_, idx) => (
-                    <div key={idx} className="hostel-skeleton-row"></div>
-                  ))}
+            <section className="hostel-panel dashboard-chart-card card-shadow" id="residents">
+              <div className="hostel-panel__head">
+                <div>
+                  <p className="hostel-panel__eyebrow">Residents</p>
+                  <h2>Hostel student ledger</h2>
                 </div>
-              ) : filteredResidents.length === 0 ? (
-                <div className="hostel-empty">No hostel students found for the selected filters.</div>
-              ) : (
-                filteredResidents.slice(0, 40).map((resident) => {
-                  const feeStatus = resident.balance === null
-                    ? 'Missing fee config'
-                    : resident.balance === 0
-                      ? 'Cleared'
-                      : resident.totalPaid > 0
-                        ? 'Partial'
-                        : 'Pending'
+                <div className="hostel-panel__controls">
+                  <input
+                    type="search"
+                    className="hostel-input"
+                    placeholder="Search name, ID, course"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                  <select
+                    className="hostel-select"
+                    value={yearFilter}
+                    onChange={(e) => setYearFilter(e.target.value)}
+                  >
+                    <option value="">Year of study</option>
+                    {[1, 2, 3, 4, 5, 6].map((year) => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
-                  return (
-                    <div role="row" className="hostel-table__row" key={resident.id}>
-                      <div role="cell" className="mono">{resident.student_id}</div>
-                      <div role="cell">
-                        <div className="fw-semibold">{resident.full_name || '—'}</div>
-                        <div className="hostel-subtle">{resident.phone_number || '—'}</div>
-                      </div>
-                      <div role="cell">
-                        <div>{resident.displayCourse}</div>
-                        <div className="hostel-subtle">{resident.displayGroup}</div>
-                      </div>
-                      <div role="cell">{resident.year_of_study || '—'}</div>
-                      <div role="cell">{currency(resident.hostelFee)}</div>
-                      <div role="cell">{currency(resident.totalPaid)}</div>
-                      <div role="cell">{currency(resident.balance)}</div>
-                      <div role="cell" className="text-end">
-                        <span className={`hostel-status hostel-status--${feeStatus.toLowerCase().replace(' ', '-')}`}>
-                          {feeStatus}
-                        </span>
-                      </div>
-                    </div>
-                  )
-                })
-              )}
-            </div>
-          </div>
-        </section>
+              <div className="hostel-table" role="table">
+                <div className="hostel-table__head" role="rowgroup">
+                  <div role="row" className="hostel-table__row hostel-table__row--head">
+                    <div role="columnheader">Student ID</div>
+                    <div role="columnheader">Name</div>
+                    <div role="columnheader">Course / Group</div>
+                    <div role="columnheader">Year</div>
+                    <div role="columnheader">Hostel fee</div>
+                    <div role="columnheader">Paid</div>
+                    <div role="columnheader">Balance</div>
+                    <div role="columnheader" className="text-end">Status</div>
+                  </div>
+                </div>
 
-        <section className="hostel-panel dashboard-chart-card card-shadow" id="fees">
-          <div className="hostel-panel__head">
-            <div>
-              <p className="hostel-panel__eyebrow">Fee setup</p>
-              <h2>Hostel fee catalogue</h2>
-            </div>
-          </div>
+                <div className="hostel-table__body" role="rowgroup">
+                  {filteredResidents.length === 0 ? (
+                    <div className="hostel-empty">No hostel students found for the selected filters.</div>
+                  ) : (
+                    filteredResidents.slice(0, 40).map((resident) => {
+                      const feeStatus = resident.balance === null
+                        ? 'Missing fee config'
+                        : resident.balance === 0
+                          ? 'Cleared'
+                          : resident.totalPaid > 0
+                            ? 'Partial'
+                            : 'Pending'
 
-          <div className="hostel-fees-grid">
-            {residents.length === 0 ? (
-              <div className="hostel-empty">Hostel fees will appear when residents data loads.</div>
-            ) : (
-              Array.from(
-                residents.reduce((acc, res) => {
-                  if (res.hostelFee !== null) {
-                    const studentType = res.hostel_ac ? 'AC' : 'NON_AC'
-                    const key = `${res.academic_year}-${studentType}`
-                    acc.set(key, {
-                      academic_year: res.academic_year,
-                      hostel_type: studentType,
-                      hostelFee: res.hostelFee,
+                      return (
+                        <div role="row" className="hostel-table__row" key={resident.id}>
+                          <div role="cell" className="mono">{resident.student_id}</div>
+                          <div role="cell">
+                            <div className="fw-semibold">{resident.full_name || '—'}</div>
+                            <div className="hostel-subtle">{resident.phone_number || '—'}</div>
+                          </div>
+                          <div role="cell">
+                            <div>{resident.displayCourse}</div>
+                            <div className="hostel-subtle">{resident.displayGroup}</div>
+                          </div>
+                          <div role="cell">{resident.year_of_study || '—'}</div>
+                          <div role="cell">{currency(resident.hostelFee)}</div>
+                          <div role="cell">{currency(resident.totalPaid)}</div>
+                          <div role="cell">{currency(resident.balance)}</div>
+                          <div role="cell" className="text-end">
+                            <span className={`hostel-status hostel-status--${feeStatus.toLowerCase().replace(' ', '-')}`}>
+                              {feeStatus}
+                            </span>
+                          </div>
+                        </div>
+                      )
                     })
-                  }
-                  return acc
-                }, new Map())
-              ).map(([key, fee]) => (
-                <div key={key} className="hostel-fee-card">
-                  <div className="hostel-fee-card__title">{fee.academic_year || 'Academic year N/A'}</div>
-                  <div className="hostel-fee-card__meta">{fee.hostel_type === 'AC' ? 'AC' : 'Non AC'}</div>
-                  <div className="hostel-fee-card__value">{currency(fee.hostelFee)}</div>
+                  )}
                 </div>
-              ))
-            )}
-          </div>
-        </section>
+              </div>
+            </section>
+
+            <section className="hostel-panel dashboard-chart-card card-shadow" id="fees">
+              <div className="hostel-panel__head">
+                <div>
+                  <p className="hostel-panel__eyebrow">Fee setup</p>
+                  <h2>Hostel fee catalogue</h2>
+                </div>
+              </div>
+
+              <div className="hostel-fees-grid">
+                {residents.length === 0 ? (
+                  <div className="hostel-empty">Hostel fees will appear when residents data loads.</div>
+                ) : (
+                  Array.from(
+                    residents.reduce((acc, res) => {
+                      if (res.hostelFee !== null) {
+                        const studentType = res.hostel_ac ? 'AC' : 'NON_AC'
+                        const key = `${res.academic_year}-${studentType}`
+                        acc.set(key, {
+                          academic_year: res.academic_year,
+                          hostel_type: studentType,
+                          hostelFee: res.hostelFee,
+                        })
+                      }
+                      return acc
+                    }, new Map())
+                  ).map(([key, fee]) => (
+                    <div key={key} className="hostel-fee-card">
+                      <div className="hostel-fee-card__title">{fee.academic_year || 'Academic year N/A'}</div>
+                      <div className="hostel-fee-card__meta">{fee.hostel_type === 'AC' ? 'AC' : 'Non AC'}</div>
+                      <div className="hostel-fee-card__value">{currency(fee.hostelFee)}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </section>
+          </>
+        )}
       </div>
     </HostelShell>
   )

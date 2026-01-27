@@ -119,6 +119,7 @@ export default function StudentHostelDetails() {
 
         if (paymentError) throw paymentError
         setPayments(paymentRows || [])
+
       } catch (err) {
         console.error(err)
         setError(err?.message || 'Unable to load hostel fees right now.')
@@ -149,6 +150,8 @@ export default function StudentHostelDetails() {
   const hostelFeeDisplay = hostelFee === null ? 'N/A' : formatCurrency(hostelFee)
   const balanceDisplay = hostelFee === null ? 'N/A' : formatCurrency(balance)
 
+
+
   return (
     <StudentShell>
       <div className="students-section-shell">
@@ -156,7 +159,9 @@ export default function StudentHostelDetails() {
           <div className="student-card__header">Hostel Fees</div>
           <div className="student-card__body">
             <p className="students-section-copy mb-0">
-              Review hostel fee information and payment history.
+              {studentInfo?.is_hostel 
+                ? 'Review hostel fee information and payment history.' 
+                : 'You are not currently registered as a hostel resident.'}
             </p>
           </div>
         </div>
