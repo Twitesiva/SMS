@@ -69,6 +69,7 @@ export default function HostelDashboard() {
 
         const studentIds = students?.map((s) => s.id) || []
         let payments = []
+        let allocations = []
 
         if (studentIds.length > 0) {
           const { data: paymentRows, error: paymentsError } = await supabase
@@ -79,7 +80,20 @@ export default function HostelDashboard() {
 
           if (paymentsError) throw paymentsError
           payments = paymentRows || []
+
+          const { data: allocationRows, error: allocationsError } = await supabase
+            .from('hostel_allocations')
+            .select('student_id, status')
+            .in('student_id', studentIds)
+            .eq('status', 'ACTIVE')
+
+          if (allocationsError) throw allocationsError
+          allocations = allocationRows || []
         }
+
+        const allocatedStudentIds = new Set(
+          allocations.map((alloc) => alloc.student_id).filter(Boolean)
+        )
 
         const merged = (students || []).map((student) => {
           const courseCodeKey = (student.course_name || student.courses?.course_code || '').toString().toLowerCase()
@@ -113,7 +127,8 @@ export default function HostelDashboard() {
             hostelFee,
             totalPaid,
             balance,
-            hasPaymentRecord: payments.some((pay) => pay.student_id === student.id)
+            hasPaymentRecord: payments.some((pay) => pay.student_id === student.id),
+            isAllocated: allocatedStudentIds.has(student.id)
           }
         })
 
@@ -142,22 +157,16 @@ export default function HostelDashboard() {
 
   const metrics = useMemo(() => {
     const totalResidents = residents.length
-    const totalExpected = residents.reduce((acc, r) => acc + (r.hostelFee || 0), 0)
-    const totalCollected = residents.reduce((acc, r) => acc + (r.totalPaid || 0), 0)
-    const outstanding = Math.max(totalExpected - totalCollected, 0)
+    const allocated = residents.filter((r) => r.isAllocated).length
+    const unallocated = Math.max(totalResidents - allocated, 0)
 
-    return { totalResidents, totalExpected, totalCollected, outstanding }
+    return { totalResidents, allocated, unallocated }
   }, [residents])
 
   return (
     <HostelShell>
       <div className="hostel-dashboard" aria-live="polite">
-        <div className="hostel-dashboard__header">
-          <div>
-            <p className="hostel-dashboard__eyebrow">Hostel dashboard</p>
-            <h1>Residents, fees, balances</h1>
-          </div>
-        </div>
+        <h1 className="mb-4">Hostel dashboard</h1>
 
         {error && <div className="hostel-alert" role="alert">{error}</div>}
 
@@ -175,17 +184,13 @@ export default function HostelDashboard() {
                 value: metrics.totalResidents,
                 icon: 'bi-people'
               }, {
-                label: 'Expected hostel fee',
-                value: currency(metrics.totalExpected),
-                icon: 'bi-cash-stack'
+                label: 'Bed allocated',
+                value: metrics.allocated,
+                icon: 'bi-house-check'
               }, {
-                label: 'Collected',
-                value: currency(metrics.totalCollected),
-                icon: 'bi-piggy-bank'
-              }, {
-                label: 'Outstanding',
-                value: currency(metrics.outstanding),
-                icon: 'bi-exclamation-octagon'
+                label: 'Non allocated',
+                value: metrics.unallocated,
+                icon: 'bi-house-dash'
               }].map((item) => (
                 <article key={item.label} className="dashboard-card card-shadow dashboard-card-link hostel-metric-card">
                   <div className="dashboard-card-icon"><i className={`bi ${item.icon}`}></i></div>
@@ -200,8 +205,7 @@ export default function HostelDashboard() {
             <section className="hostel-panel dashboard-chart-card card-shadow" id="residents">
               <div className="hostel-panel__head">
                 <div>
-                  <p className="hostel-panel__eyebrow">Residents</p>
-                  <h2>Hostel student ledger</h2>
+                  <h2 className="mb-0">Hostel Students</h2>
                 </div>
                 <div className="hostel-panel__controls">
                   <input
@@ -233,7 +237,6 @@ export default function HostelDashboard() {
                     <div role="columnheader">Year</div>
                     <div role="columnheader">Hostel fee</div>
                     <div role="columnheader">Paid</div>
-                    <div role="columnheader">Balance</div>
                     <div role="columnheader" className="text-end">Status</div>
                   </div>
                 </div>
@@ -265,7 +268,6 @@ export default function HostelDashboard() {
                           <div role="cell">{resident.year_of_study || '—'}</div>
                           <div role="cell">{currency(resident.hostelFee)}</div>
                           <div role="cell">{currency(resident.totalPaid)}</div>
-                          <div role="cell">{currency(resident.balance)}</div>
                           <div role="cell" className="text-end">
                             <span className={`hostel-status hostel-status--${feeStatus.toLowerCase().replace(' ', '-')}`}>
                               {feeStatus}
@@ -282,8 +284,7 @@ export default function HostelDashboard() {
             <section className="hostel-panel dashboard-chart-card card-shadow" id="fees">
               <div className="hostel-panel__head">
                 <div>
-                  <p className="hostel-panel__eyebrow">Fee setup</p>
-                  <h2>Hostel fee catalogue</h2>
+                  <h2 className="mb-0">Hostel Fees</h2>
                 </div>
               </div>
 
