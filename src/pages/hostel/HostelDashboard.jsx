@@ -15,6 +15,7 @@ export default function HostelDashboard() {
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [yearFilter, setYearFilter] = useState('')
+  const [showAll, setShowAll] = useState(false)
 
   useEffect(() => {
     const loadHostelData = async () => {
@@ -245,7 +246,7 @@ export default function HostelDashboard() {
                   {filteredResidents.length === 0 ? (
                     <div className="hostel-empty">No hostel students found for the selected filters.</div>
                   ) : (
-                    filteredResidents.slice(0, 40).map((resident) => {
+                    filteredResidents.slice(0, showAll ? undefined : 2).map((resident) => {
                       const feeStatus = resident.balance === null
                         ? 'Missing fee config'
                         : resident.balance === 0
@@ -279,6 +280,16 @@ export default function HostelDashboard() {
                   )}
                 </div>
               </div>
+              {filteredResidents.length > 2 && !showAll && (
+                <div className="text-center p-3 border-top">
+                  <button 
+                    className="btn btn-primary btn-sm"
+                    onClick={() => setShowAll(true)}
+                  >
+                    View All Students
+                  </button>
+                </div>
+              )}
             </section>
 
             <section className="hostel-panel dashboard-chart-card card-shadow" id="fees">
