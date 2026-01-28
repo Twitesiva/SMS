@@ -8,6 +8,7 @@ export default function TransportAllocation() {
     const [loading, setLoading] = useState(true)
     const [studentSearch, setStudentSearch] = useState('')
     const [routeSearch, setRouteSearch] = useState('')
+    const [boardingPointFilter, setBoardingPointFilter] = useState('')
 
     // Edit Modal State
     const [showEditModal, setShowEditModal] = useState(false)
@@ -26,6 +27,10 @@ export default function TransportAllocation() {
         fetchAllocations()
         fetchRoutes()
     }, [])
+
+    useEffect(() => {
+        setBoardingPointFilter('')
+    }, [routeSearch])
 
     const fetchRoutes = async () => {
         try {
@@ -182,18 +187,32 @@ export default function TransportAllocation() {
         return [...new Set(routes)].sort()
     }, [allocations])
 
+    const uniqueBoardingPoints = useMemo(() => {
+        let filtered = allocations
+        if (routeSearch) {
+            filtered = allocations.filter(item => item.transport_routes?.route_no === routeSearch)
+        }
+        const points = filtered
+            .map(item => item.transport_route_boarding_points?.name)
+            .filter(Boolean)
+        return [...new Set(points)].sort()
+    }, [allocations, routeSearch])
+
     const filteredAllocations = allocations.filter(item => {
         const sSearch = studentSearch.toLowerCase()
         const rSearch = routeSearch.toLowerCase()
+        const bFilter = boardingPointFilter
 
         const studentName = item.students?.full_name?.toLowerCase() || ''
         const studentId = item.students?.student_id?.toLowerCase() || ''
         const routeNo = item.transport_routes?.route_no?.toLowerCase() || ''
+        const boardingPoint = item.transport_route_boarding_points?.name || ''
 
         const matchesStudent = !sSearch || studentName.includes(sSearch) || studentId.includes(sSearch)
         const matchesRoute = !rSearch || routeNo === rSearch
+        const matchesBoardingPoint = !bFilter || boardingPoint === bFilter
 
-        return matchesStudent && matchesRoute
+        return matchesStudent && matchesRoute && matchesBoardingPoint
     })
 
     const filteredBoardingPoints = useMemo(() => {
@@ -223,8 +242,8 @@ export default function TransportAllocation() {
 
                             <div className="p-3 bg-light border-bottom">
                                 <div className="row g-3">
-                                    <div className="col-md-6">
-                                        <label className="form-label text-muted small fw-bold text-uppercase">Filter by Route Number</label>
+                                    <div className="col-md-4">
+                                        <label className="form-label text-muted small fw-bold text-uppercase">Filter by Route No</label>
                                         <div className="input-group">
                                             <span className="input-group-text bg-white border"><i className="bi bi-bus-front"></i></span>
                                             <select
@@ -239,7 +258,23 @@ export default function TransportAllocation() {
                                             </select>
                                         </div>
                                     </div>
-                                    <div className="col-md-6">
+                                    <div className="col-md-4">
+                                        <label className="form-label text-muted small fw-bold text-uppercase">Filter by Boarding Point</label>
+                                        <div className="input-group">
+                                            <span className="input-group-text bg-white border"><i className="bi bi-geo-alt"></i></span>
+                                            <select
+                                                className="form-select border"
+                                                value={boardingPointFilter}
+                                                onChange={(e) => setBoardingPointFilter(e.target.value)}
+                                            >
+                                                <option value="">Select Boarding Point</option>
+                                                {uniqueBoardingPoints.map(point => (
+                                                    <option key={point} value={point}>{point}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-4">
                                         <label className="form-label text-muted small fw-bold text-uppercase">Search by Student ID</label>
                                         <div className="input-group">
                                             <span className="input-group-text bg-white border"><i className="bi bi-search"></i></span>
@@ -293,7 +328,8 @@ export default function TransportAllocation() {
                                     <table className="table table-bordered table-hover align-middle mb-0">
                                         <thead className="transport-card__header text-white">
                                             <tr>
-                                                <th className="ps-4 py-3 fw-bold text-white text-uppercase border-end-0 fs-6">Student ID</th>
+                                                <th className="ps-4 py-3 fw-bold text-white text-uppercase border-end-0 fs-6">S.No</th>
+                                                <th className="py-3 fw-bold text-white text-uppercase border-start-0 border-end-0 fs-6">Student ID</th>
                                                 <th className="py-3 fw-bold text-white text-uppercase border-start-0 border-end-0 fs-6">Student Name</th>
                                                 <th className="py-3 fw-bold text-white text-uppercase border-start-0 border-end-0 fs-6">Route No</th>
                                                 <th className="py-3 fw-bold text-white text-uppercase border-start-0 border-end-0 fs-6">Boarding Point</th>
@@ -313,7 +349,8 @@ export default function TransportAllocation() {
                                             ) : filteredAllocations.length > 0 ? (
                                                 filteredAllocations.map((item, index) => (
                                                     <tr key={item.id || index}>
-                                                        <td className="ps-4 fw-bold text-dark">{item.students?.student_id || '-'}</td>
+                                                        <td className="ps-4 fw-bold text-dark">{index + 1}</td>
+                                                        <td className="text-dark fw-bold">{item.students?.student_id || '-'}</td>
                                                         <td className="text-dark fw-semibold">{item.students?.full_name}</td>
                                                         <td className="text-dark fw-bold">{item.transport_routes?.route_no}</td>
                                                         <td className="text-dark">{item.transport_route_boarding_points?.name}</td>

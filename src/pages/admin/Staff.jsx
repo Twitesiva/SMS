@@ -65,7 +65,7 @@ export default function Staff() {
             (teacher.full_name || "").toLowerCase().includes(search) ||
             (teacher.staff_id || "").toLowerCase().includes(search) ||
             (teacher.phone_number || "").includes(search) ||
-            (teacher.designation || "").toLowerCase().includes(search)
+            (teacher.designation || "").toLowerCase().replace(/_/g, ' ').includes(search)
         );
     }, [teachers, searchTerm]);
 
@@ -281,26 +281,36 @@ export default function Staff() {
                                         >
                                             <td>
                                                 <div
-                                                    className="d-flex align-items-center justify-content-center bg-light rounded-circle"
+                                                    className="d-flex align-items-center justify-content-center rounded-circle bg-white shadow-sm border"
                                                     style={{
                                                         width: "50px",
                                                         height: "50px",
-                                                        overflow: "hidden",
-                                                        flexShrink: 0,
-                                                        border: "1px solid #e9ecef"
+                                                        padding: "3px",
+                                                        flexShrink: 0
                                                     }}
                                                 >
-                                                    <span
-                                                        className="text-secondary fw-bold"
-                                                        style={{ fontSize: "0.85em" }}
-                                                    >
-                                                        {getInitials(teacher.full_name)}
-                                                    </span>
+                                                    <div className="w-100 h-100 rounded-circle overflow-hidden bg-light d-flex align-items-center justify-content-center">
+                                                        {teacher.image_url ? (
+                                                            <img
+                                                                src={teacher.image_url}
+                                                                alt={teacher.full_name}
+                                                                className="w-100 h-100"
+                                                                style={{ objectFit: 'cover', objectPosition: 'top center' }}
+                                                            />
+                                                        ) : (
+                                                            <span
+                                                                className="text-secondary fw-bold"
+                                                                style={{ fontSize: "0.85em" }}
+                                                            >
+                                                                {getInitials(teacher.full_name)}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </td>
                                             <td>{teacher.staff_id}</td>
                                             <td>{teacher.full_name}</td>
-                                            <td>{teacher.designation}</td>
+                                            <td>{teacher.designation?.replace(/_/g, ' ')}</td>
                                             <td>{teacher.phone_number || "-"}</td>
                                             <td className="text-end">
                                                 <div className="d-flex justify-content-end flex-wrap gap-2">
@@ -402,7 +412,7 @@ export default function Staff() {
                                     <div className="students-modal-header-meta text-white-50 small">
                                         <span>{viewingTeacher.staff_id || "-"}</span>
                                         <span className="mx-2">•</span>
-                                        <span>{viewingTeacher.designation || "-"}</span>
+                                        <span>{viewingTeacher.designation?.replace(/_/g, ' ') || "-"}</span>
                                     </div>
                                 </div>
                                 <button
@@ -420,12 +430,24 @@ export default function Staff() {
                                         <div className="card-body p-4">
                                             <div className="d-flex flex-column flex-md-row gap-5 align-items-start">
                                                 {/* Photo Section */}
-                                                <div className="flex-shrink-0 mx-auto mx-md-0" style={{ width: '220px' }}>
-                                                    <div className="border rounded-3 p-2 bg-white shadow-sm">
-                                                        <div className="bg-light rounded-2 overflow-hidden position-relative" style={{ height: '260px' }}>
-                                                            <div className="d-flex align-items-center justify-content-center h-100 text-secondary display-6 fw-bold">
-                                                                {getInitials(viewingTeacher.full_name)}
-                                                            </div>
+                                                <div className="flex-shrink-0 mx-auto mx-md-0" style={{ width: '200px' }}>
+                                                    <div
+                                                        className="rounded-circle bg-white shadow-sm border"
+                                                        style={{ width: '200px', height: '200px', padding: '5px' }}
+                                                    >
+                                                        <div className="w-100 h-100 rounded-circle overflow-hidden bg-light position-relative d-flex align-items-center justify-content-center">
+                                                            {viewingTeacher.image_url ? (
+                                                                <img
+                                                                    src={viewingTeacher.image_url}
+                                                                    alt={viewingTeacher.full_name}
+                                                                    className="w-100 h-100"
+                                                                    style={{ objectFit: 'cover', objectPosition: 'top center' }}
+                                                                />
+                                                            ) : (
+                                                                <div className="text-secondary display-4 fw-bold">
+                                                                    {getInitials(viewingTeacher.full_name)}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                     <div className="text-center mt-3">
@@ -454,7 +476,7 @@ export default function Staff() {
                                                         </div>
                                                         <div className="col d-flex">
                                                             <span className="staff-detail-label text-dark fw-bold text-uppercase">Designation :</span>
-                                                            <span className="fw-medium text-dark">{viewingTeacher.designation || "-"}</span>
+                                                            <span className="fw-medium text-dark">{viewingTeacher.designation?.replace(/_/g, ' ') || "-"}</span>
                                                         </div>
                                                         <div className="col d-flex">
                                                             <span className="staff-detail-label text-muted small text-uppercase fw-semibold">Experience :</span>
