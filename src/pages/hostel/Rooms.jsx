@@ -210,13 +210,13 @@ export default function HostelRooms() {
                             <div className="table-responsive">
                                 <table className="table align-middle">
                                     <thead>
-                                        <tr className="text-muted small text-uppercase fw-bold">
-                                            <th>Block</th>
-                                            <th>Room No</th>
-                                            <th>Floor</th>
-                                            <th>Type</th>
-                                            <th>Beds</th>
-                                            <th className="text-end">Actions</th>
+                                        <tr className="text-white text-uppercase fw-bold" style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)', fontSize: '1.1rem' }}>
+                                            <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Block</th>
+                                            <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room No</th>
+                                            <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Floor</th>
+                                            <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Type</th>
+                                            <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Beds</th>
+                                            <th className="py-3 px-3 border-0 text-end" style={{ backgroundColor: 'transparent', color: 'white' }}>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>

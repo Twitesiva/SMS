@@ -212,13 +212,13 @@ export default function HostelAllocations() {
                                         <div className="table-responsive" style={{ maxHeight: '300px' }}>
                                             <table className="table table-hover align-middle">
                                                 <thead className="sticky-top">
-                                                    <tr className="text-white text-uppercase fw-bold" style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)' }}>
-                                                        <th className="py-2 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Student ID</th>
-                                                        <th className="py-2 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Name</th>
-                                                        <th className="py-2 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Gender</th>
-                                                        <th className="py-2 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Paid Type</th>
-                                                        <th className="py-2 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Payment Date</th>
-                                                        <th className="py-2 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Action</th>
+                                                    <tr className="text-white text-uppercase fw-bold" style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)', fontSize: '1.1rem' }}>
+                                                        <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Student ID</th>
+                                                        <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Name</th>
+                                                        <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Gender</th>
+                                                        <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Paid Type</th>
+                                                        <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Payment Date</th>
+                                                        <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Action</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>

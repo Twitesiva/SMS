@@ -11,6 +11,7 @@ export default function HostelBlocks() {
     const [form, setForm] = useState({ id: '', block_name: '', gender: 'BOYS', total_floors: 1 });
     const [editingId, setEditingId] = useState(null);
     const [deleteModal, setDeleteModal] = useState({ show: false, id: null });
+    const [showAllBlocks, setShowAllBlocks] = useState(false);
 
     useEffect(() => {
         fetchBlocks();
@@ -152,18 +153,18 @@ export default function HostelBlocks() {
                             <div className="table-responsive">
                                 <table className="table align-middle">
                                     <thead>
-                                        <tr className="text-muted small text-uppercase fw-bold">
-                                            <th>Block Name</th>
-                                            <th>Gender</th>
-                                            <th>Floors</th>
-                                            <th className="text-end">Actions</th>
+                                        <tr className="text-white text-uppercase fw-bold" style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)', fontSize: '1.1rem' }}>
+                                            <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Block Name</th>
+                                            <th className="py-2 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Gender</th>
+                                            <th className="py-2 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Floors</th>
+                                            <th className="py-2 px-3 border-0 text-end" style={{ backgroundColor: 'transparent', color: 'white' }}>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {blocks.length === 0 ? (
                                             <tr><td colSpan="4" className="text-center py-4">No blocks found</td></tr>
                                         ) : (
-                                            blocks.map((block) => (
+                                            blocks.slice(0, showAllBlocks ? undefined : 2).map((block) => (
                                                 <tr key={block.id}>
                                                     <td className="fw-bold">{block.block_name}</td>
                                                     <td>
@@ -193,6 +194,16 @@ export default function HostelBlocks() {
                                         )}
                                     </tbody>
                                 </table>
+                            </div>
+                        )}
+                        {blocks.length > 2 && !showAllBlocks && !loading && (
+                            <div className="text-center p-3 border-top">
+                                <button 
+                                    className="btn btn-primary btn-sm"
+                                    onClick={() => setShowAllBlocks(true)}
+                                >
+                                    View All
+                                </button>
                             </div>
                         )}
                     </div>
