@@ -10,22 +10,25 @@ export default function HostelAllocations() {
     const [searching, setSearching] = useState(false);
     const [student, setStudent] = useState(null);
     const [currentAllocation, setCurrentAllocation] = useState(null);
-    
+
     const [showAllocateModal, setShowAllocateModal] = useState(false);
     const [showChangeModal, setShowChangeModal] = useState(false);
     const [availableBeds, setAvailableBeds] = useState([]);
     const [years, setYears] = useState([]);
-    
+
     const [bookingForm, setBookingForm] = useState({ academic_year: '', bed_id: '' });
     const [filters, setFilters] = useState({ block_id: '', room_type: '' });
     const [blocks, setBlocks] = useState([]);
-    
+
     // New states for tabs and eligible students
     const [eligibleStudents, setEligibleStudents] = useState([]);
     const [loadingEligible, setLoadingEligible] = useState(false);
     const [eligibleSearch, setEligibleSearch] = useState('');
     const [showAllEligible, setShowAllEligible] = useState(false);
-    
+
+    // Track allocated students
+    const [allocatedStudentIds, setAllocatedStudentIds] = useState(new Set());
+
     useEffect(() => {
         fetchInitialData();
     }, []);
@@ -38,7 +41,7 @@ export default function HostelAllocations() {
         setYears(yearsData.data || []);
         setBlocks(blocksData.data || []);
         if (yearsData.data?.[0]) setBookingForm(prev => ({ ...prev, academic_year: yearsData.data[0].academic_year }));
-        
+
         // Fetch eligible students initially
         fetchEligibleStudents();
     };
@@ -46,8 +49,23 @@ export default function HostelAllocations() {
     const fetchEligibleStudents = async () => {
         setLoadingEligible(true);
         const { data, error } = await supabase.from('v_hostel_payment_eligible_students').select('*').order('full_name');
-        if (error) toast.error('Failed to load eligible students');
-        else setEligibleStudents(data || []);
+        if (error) {
+            toast.error('Failed to load eligible students');
+        } else {
+            setEligibleStudents(data || []);
+            // Check allocation status for these students
+            if (data?.length > 0) {
+                const ids = data.map(s => s.student_id);
+                const { data: allocs } = await supabase
+                    .from('hostel_allocations')
+                    .select('student_id')
+                    .in('student_id', ids)
+                    .eq('status', 'ACTIVE');
+
+                const allocatedSet = new Set(allocs?.map(a => a.student_id));
+                setAllocatedStudentIds(allocatedSet);
+            }
+        }
         setLoadingEligible(false);
     };
 
@@ -59,7 +77,7 @@ export default function HostelAllocations() {
             .eq('student_id', studentId)
             .eq('status', 'ACTIVE')
             .maybeSingle();
-        
+
         setCurrentAllocation(alloc);
     };
 
@@ -68,10 +86,10 @@ export default function HostelAllocations() {
         let query = supabase.from('v_hostel_available_beds')
             .select('*')
             .eq('academic_year', bookingForm.academic_year);
-            
+
         if (filters.block_id) query = query.eq('block_id', filters.block_id);
         if (filters.room_type) query = query.eq('room_type', filters.room_type);
-        
+
         if (student) {
             const gender = student.gender?.toUpperCase().startsWith('M') ? 'BOYS' : 'GIRLS';
             query = query.eq('block_gender', gender);
@@ -187,7 +205,7 @@ export default function HostelAllocations() {
             setBookingForm((prev) => ({ ...prev, academic_year: studentData.academic_year }));
         }
 
-        setFilters(prev => ({ ...prev, room_type: s.hostel_type })); 
+        setFilters(prev => ({ ...prev, room_type: s.hostel_type }));
         fetchCurrentAllocation(s.student_id);
     };
 
@@ -208,210 +226,205 @@ export default function HostelAllocations() {
                     <div className="students-section-shell card card-soft mb-4">
                         <div className="card-body">
 
-                                <>
-                                    <div className="d-flex justify-content-between align-items-center mb-3">
-                                        <div>
-                                            <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>ELIGIBLE STUDENTS</h5>
-                                            <p className="students-section-copy mb-0">Students who have successfully paid hostel fees.</p>
-                                        </div>
-                                        <div style={{ width: '300px' }}>
-                                            <input 
-                                                type="search" 
-                                                className="form-control" 
-                                                placeholder="Filter by name or ID..." 
-                                                value={eligibleSearch}
-                                                onChange={(e) => setEligibleSearch(e.target.value)}
-                                            />
-                                        </div>
+                            <>
+                                <div className="d-flex justify-content-between align-items-center mb-3">
+                                    <div>
+                                        <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>ELIGIBLE STUDENTS</h5>
+                                        <p className="students-section-copy mb-0">Students who have successfully paid hostel fees.</p>
                                     </div>
-
-                                    {loadingEligible ? (
-                                        <HostelPreloader
-                                            title="Loading eligible students"
-                                            subtitle="Identifying students who paid hostel fees."
+                                    <div style={{ width: '300px' }}>
+                                        <input
+                                            type="search"
+                                            className="form-control"
+                                            placeholder="Filter by name or ID..."
+                                            value={eligibleSearch}
+                                            onChange={(e) => setEligibleSearch(e.target.value)}
                                         />
-                                    ) : (
-                                        <div className="table-responsive" style={{ maxHeight: '300px' }}>
-                                            <table className="table table-hover align-middle">
-                                                <thead className="sticky-top">
-                                                    <tr className="text-white text-uppercase fw-bold" style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)', fontSize: '1.1rem' }}>
-                                                        <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Student ID</th>
-                                                        <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Name</th>
-                                                        <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Gender</th>
-                                                        <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Paid Type</th>
-                                                        <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Payment Date</th>
-                                                        <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Action</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {filteredEligibleStudents.length === 0 ? (
-                                                        <tr><td colSpan="6" className="text-center py-4 text-muted">No eligible students found matching filter.</td></tr>
-                                                    ) : (
-                                                        filteredEligibleStudents.slice(0, showAllEligible ? undefined : 2).map(s => (
-                                                            <tr key={s.student_id}>
-                                                                <td className="fw-bold text-primary">{s.hall_ticket_no}</td>
-                                                                <td>{s.full_name}</td>
-                                                                <td><span className="badge bg-light text-dark border">{s.gender}</span></td>
-                                                                <td>
-                                                                    <span className={`badge ${s.hostel_type === 'AC' ? 'bg-info text-dark' : 'bg-light text-dark border'}`}>
-                                                                        {s.hostel_type?.replace(/_/g, ' ')}
-                                                                    </span>
-                                                                </td>
-                                                                <td className="small text-muted">{new Date(s.last_payment_date).toLocaleDateString()}</td>
-                                                                <td>
-                                                                    <button 
-                                                                        className="btn btn-sm btn-outline-primary"
+                                    </div>
+                                </div>
+
+                                {loadingEligible ? (
+                                    <HostelPreloader
+                                        title="Loading eligible students"
+                                        subtitle="Identifying students who paid hostel fees."
+                                    />
+                                ) : (
+                                    <div className="table-responsive" style={{ maxHeight: '300px' }}>
+                                        <table className="table table-hover align-middle">
+                                            <thead className="sticky-top">
+                                                <tr className="text-white text-uppercase fw-bold" style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)', fontSize: '1.1rem' }}>
+                                                    <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Student ID</th>
+                                                    <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Name</th>
+                                                    <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Gender</th>
+                                                    <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Paid Type</th>
+                                                    <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Payment Date</th>
+                                                    <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {filteredEligibleStudents.length === 0 ? (
+                                                    <tr><td colSpan="6" className="text-center py-4 text-muted">No eligible students found matching filter.</td></tr>
+                                                ) : (
+                                                    filteredEligibleStudents.slice(0, showAllEligible ? undefined : 2).map(s => (
+                                                        <tr key={s.student_id}>
+                                                            <td className="fw-bold text-primary">{s.hall_ticket_no}</td>
+                                                            <td>{s.full_name}</td>
+                                                            <td><span className="badge bg-light text-dark border">{s.gender}</span></td>
+                                                            <td>
+                                                                <span className={`badge ${s.hostel_type === 'AC' ? 'bg-info text-dark' : 'bg-light text-dark border'}`}>
+                                                                    {s.hostel_type?.replace(/_/g, ' ')}
+                                                                </span>
+                                                            </td>
+                                                            <td className="small text-muted">{new Date(s.last_payment_date).toLocaleDateString()}</td>
+                                                            <td>
+                                                                {allocatedStudentIds.has(s.student_id) ? (
+                                                                    <div className="d-flex gap-2">
+                                                                        <button
+                                                                            className="btn btn-sm btn-outline-primary"
+                                                                            onClick={() => handleSelectEligibleStudent(s)}
+                                                                            title="Edit Allocation"
+                                                                        >
+                                                                            <i className="bi bi-pencil-square"></i>
+                                                                        </button>
+                                                                        <button
+                                                                            className="btn btn-sm btn-outline-danger"
+                                                                            onClick={() => handleSelectEligibleStudent(s)}
+                                                                            title="Vacate / Delete"
+                                                                        >
+                                                                            <i className="bi bi-trash"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <button
+                                                                        className="btn btn-sm btn-primary"
                                                                         onClick={() => handleSelectEligibleStudent(s)}
                                                                     >
-                                                                        Select
+                                                                        Allocate Room
                                                                     </button>
-                                                                </td>
-                                                            </tr>
-                                                        ))
-                                                    )}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    )}
-                                    
-                                    {!loadingEligible && filteredEligibleStudents.length > 2 && !showAllEligible && (
-                                        <div className="text-center mt-3">
-                                            <button 
-                                                className="btn btn-outline-primary btn-sm"
-                                                onClick={() => setShowAllEligible(true)}
-                                            >
-                                                View All
-                                            </button>
-                                        </div>
-                                    )}
-                                </>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+
+                                {!loadingEligible && filteredEligibleStudents.length > 2 && !showAllEligible && (
+                                    <div className="text-center mt-3">
+                                        <button
+                                            className="btn btn-outline-primary btn-sm"
+                                            onClick={() => setShowAllEligible(true)}
+                                        >
+                                            View All
+                                        </button>
+                                    </div>
+                                )}
+                            </>
 
                         </div>
                     </div>
 
                     {student && (
-                        <div className="row g-4">
-                            <div className="col-md-5">
-                                <div className="students-section-shell card card-soft h-100">
-                                    <div className="students-section-shell-header border-bottom pb-3 mb-3 d-flex justify-content-between align-items-center">
-                                        <h5 className="section-title mb-0" style={{ fontSize: '1.1rem' }}>Student Profile</h5>
-                                        <div className="d-flex gap-2">
-                                            <button className="btn btn-sm btn-outline-primary border-0" title="Edit Student">
-                                                <i className="bi bi-pencil-square fs-5"></i>
-                                            </button>
-                                            <button className="btn btn-sm btn-outline-danger border-0" title="Delete Student">
-                                                <i className="bi bi-trash-fill fs-5"></i>
-                                            </button>
-                                        </div>
+                        <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
+                            <div className="modal-dialog modal-lg modal-dialog-centered">
+                                <div className="modal-content border-0 shadow-lg">
+                                    <div className="modal-header modal-header-gradient p-3">
+                                        <h5 className="modal-title fw-bold text-uppercase ls-1 text-white">Allocation Details</h5>
+                                        <button type="button" className="btn-close btn-close-white" onClick={() => setStudent(null)}></button>
                                     </div>
-                                    <div className="py-2">
-                                        <div className="d-flex align-items-center mb-4">
-                                            <div className="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white" style={{ width: '60px', height: '60px', fontSize: '1.5rem' }}>
-                                                {student.full_name?.[0]}
-                                            </div>
-                                            <div className="ms-3">
-                                                <h5 className="mb-1">{student.full_name}</h5>
-                                                <span className="text-primary fw-bold small">{student.student_id}</span>
-                                            </div>
-                                        </div>
-                                        <div className="d-flex flex-column gap-3">
-                                            <div className="d-flex">
-                                                <div className="text-muted small text-uppercase" style={{ minWidth: '120px' }}>Gender</div>
-                                                <div className="fw-bold fs-6">: {student.gender}</div>
-                                            </div>
-                                            <div className="d-flex">
-                                                <div className="text-muted small text-uppercase" style={{ minWidth: '120px' }}>Phone</div>
-                                                <div className="fw-bold fs-6">: {student.phone_number}</div>
-                                            </div>
-                                            {student.hostel_type && (
-                                                <div className="d-flex">
-                                                    <div className="text-muted small text-uppercase" style={{ minWidth: '120px' }}>Fee Payment</div>
-                                                    <div className="fw-bold fs-6">
-                                                        : <span className={`badge ${student.hostel_type === 'AC' ? 'bg-info text-dark' : 'bg-light text-dark border'}`}>
-                                                            PAID FOR {student.hostel_type?.replace(/_/g, ' ')}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                                    <div className="modal-body p-4 bg-white">
 
-                            <div className="col-md-7">
-                                <div className="students-section-shell card card-soft h-100">
-                                    <div className="students-section-shell-header border-bottom pb-3 mb-3 d-flex justify-content-between align-items-center">
-                                        <h5 className="section-title mb-0" style={{ fontSize: '1.1rem' }}>Allocation Details</h5>
-                                        <div className="d-flex align-items-center gap-2">
-                                            {currentAllocation && (
-                                                <>
-                                                    <button 
-                                                        className="btn btn-sm btn-outline-primary border-0" 
-                                                        onClick={() => setShowChangeModal(true)}
-                                                        title="Edit Allocation"
-                                                    >
-                                                        <i className="bi bi-pencil-square fs-5"></i>
-                                                    </button>
-                                                    <button 
-                                                        className="btn btn-sm btn-outline-danger border-0" 
-                                                        onClick={handleVacate}
-                                                        title="Delete Allocation (Vacate)"
-                                                    >
-                                                        <i className="bi bi-trash-fill fs-5"></i>
-                                                    </button>
-                                                </>
-                                            )}
+                                        {/* Student Profile Section */}
+                                        <div className="mb-4">
+                                            <h6 className="text-uppercase text-muted fw-bold mb-3 small letter-spacing-1">Student Profile</h6>
+                                            <div className="bg-light rounded p-4 border relative">
+                                                <div className="d-flex flex-column gap-3">
+                                                    <div className="d-flex align-items-center">
+                                                        <small className="text-muted text-uppercase fw-bold" style={{ width: '130px', fontSize: '0.85rem' }}>Student Name</small>
+                                                        <span className="fw-bold text-dark fs-6">: {student.full_name}</span>
+                                                    </div>
+                                                    <div className="d-flex align-items-center">
+                                                        <small className="text-muted text-uppercase fw-bold" style={{ width: '130px', fontSize: '0.85rem' }}>Student ID</small>
+                                                        <span className="fw-bold text-dark fs-6">: {student.student_id}</span>
+                                                    </div>
+                                                    <div className="d-flex align-items-center">
+                                                        <small className="text-muted text-uppercase fw-bold" style={{ width: '130px', fontSize: '0.85rem' }}>Gender</small>
+                                                        <span className="fw-bold text-dark fs-6">: {student.gender}</span>
+                                                    </div>
+                                                    <div className="d-flex align-items-center">
+                                                        <small className="text-muted text-uppercase fw-bold" style={{ width: '130px', fontSize: '0.85rem' }}>Phone</small>
+                                                        <span className="fw-bold text-dark fs-6">: {student.phone_number}</span>
+                                                    </div>
+                                                    {student.hostel_type && (
+                                                        <div className="d-flex align-items-center">
+                                                            <small className="text-muted text-uppercase fw-bold" style={{ width: '130px', fontSize: '0.85rem' }}>Fee Payment</small>
+                                                            <span className="fw-bold text-dark fs-6">
+                                                                : <span className={student.hostel_type === 'AC' ? 'text-primary' : 'text-dark'}>
+                                                                    PAID FOR {student.hostel_type?.replace(/_/g, ' ')}
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    
-                                    <div className="py-2 flex-grow-1">
-                                        {currentAllocation ? (
-                                            <div className="d-flex flex-column gap-3">
-                                                <div className="p-3 bg-light rounded border-start border-4 border-primary">
+
+                                        {/* Allocation Details Section */}
+                                        <div className="mb-4">
+                                            <h6 className="text-uppercase text-muted fw-bold mb-3 small letter-spacing-1">Current Room Allocation</h6>
+
+                                            {currentAllocation ? (
+                                                <div className="bg-light rounded p-4 border relative">
                                                     <div className="d-flex flex-column gap-3">
-                                                        <div className="d-flex">
-                                                            <div className="text-muted small text-uppercase" style={{ minWidth: '130px' }}>Academic Year</div>
-                                                            <div className="fw-bold fs-6">: {currentAllocation.academic_year}</div>
+                                                        <div className="d-flex align-items-center">
+                                                            <small className="text-muted text-uppercase fw-bold" style={{ width: '130px', fontSize: '0.85rem' }}>Block</small>
+                                                            <span className="fw-bold text-dark fs-6">: {currentAllocation.hostel_beds?.hostel_rooms?.hostel_blocks?.block_name}</span>
                                                         </div>
-                                                        <div className="d-flex">
-                                                            <div className="text-muted small text-uppercase" style={{ minWidth: '130px' }}>Block</div>
-                                                            <div className="fw-bold fs-6">: {currentAllocation.hostel_beds?.hostel_rooms?.hostel_blocks?.block_name}</div>
+                                                        <div className="d-flex align-items-center">
+                                                            <small className="text-muted text-uppercase fw-bold" style={{ width: '130px', fontSize: '0.85rem' }}>Room & Bed</small>
+                                                            <span className="fw-bold text-dark fs-6">
+                                                                : Room {currentAllocation.hostel_beds?.hostel_rooms?.room_no} <span className="text-muted px-1">|</span> Bed {currentAllocation.hostel_beds?.bed_no}
+                                                            </span>
                                                         </div>
-                                                        <div className="d-flex">
-                                                            <div className="text-muted small text-uppercase" style={{ minWidth: '130px' }}>Room & Bed</div>
-                                                            <div className="fw-bold fs-6 text-primary">
-                                                                : Room {currentAllocation.hostel_beds?.hostel_rooms?.room_no} | Bed {currentAllocation.hostel_beds?.bed_no}
-                                                            </div>
+                                                        <div className="d-flex align-items-center">
+                                                            <small className="text-muted text-uppercase fw-bold" style={{ width: '130px', fontSize: '0.85rem' }}>Floor</small>
+                                                            <span className="fw-bold text-dark fs-6">: Floor {currentAllocation.hostel_beds?.hostel_rooms?.floor_no}</span>
                                                         </div>
-                                                        <div className="d-flex">
-                                                            <div className="text-muted small text-uppercase" style={{ minWidth: '130px' }}>Floor / Type</div>
-                                                            <div className="fw-bold fs-6">: Floor {currentAllocation.hostel_beds?.hostel_rooms?.floor_no} | {currentAllocation.hostel_beds?.hostel_rooms?.room_type?.replace(/_/g, ' ')}</div>
+                                                        <div className="d-flex align-items-center">
+                                                            <small className="text-muted text-uppercase fw-bold" style={{ width: '130px', fontSize: '0.85rem' }}>Room Type</small>
+                                                            <span className="fw-bold text-dark fs-6">: {currentAllocation.hostel_beds?.hostel_rooms?.room_type?.replace(/_/g, ' ')}</span>
+                                                        </div>
+
+                                                        <div className="mt-2 pt-3 border-top d-flex justify-content-end gap-2">
+                                                            <button className="btn btn-primary px-4 shadow-sm" onClick={() => setShowChangeModal(true)}>
+                                                                Change Room
+                                                            </button>
+                                                            <button className="btn btn-outline-danger px-4" onClick={handleVacate}>
+                                                                Vacate
+                                                            </button>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="d-flex gap-2">
-                                                    <button className="btn btn-primary flex-grow-1" onClick={() => setShowChangeModal(true)}>Change Room</button>
-                                                    <button className="btn btn-outline-danger flex-grow-1" onClick={handleVacate}>Vacate</button>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="h-100 d-flex flex-column align-items-center justify-content-center text-center py-4">
-                                                <i className="bi bi-house-door display-4 text-muted mb-3 opacity-25"></i>
-                                                <p className="text-muted mb-4">No active hostel allocation found for this student.</p>
-                                                <div className="d-flex gap-3">
-                                                    <button className="btn btn-outline-secondary px-4" onClick={() => setShowAllocateModal(true)}>
-                                                        Allocate
+                                            ) : (
+                                                <div className="text-center py-5 bg-light rounded border border-dashed">
+                                                    <i className="bi bi-exclamation-circle text-muted display-6 mb-3 d-block opacity-50"></i>
+                                                    <p className="text-muted mb-3">No room currently allocated to this student.</p>
+                                                    <button className="btn btn-primary px-5 shadow-sm" onClick={() => setShowAllocateModal(true)}>
+                                                        Allocate Room
                                                     </button>
                                                 </div>
-                                            </div>
-                                        )}
+                                            )}
+                                        </div>
+
                                     </div>
                                 </div>
                             </div>
                         </div>
                     )}
                 </section>
-            </div>
+            </div >
 
             {(showAllocateModal || showChangeModal) && (
                 <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1055 }}>
@@ -461,7 +474,7 @@ export default function HostelAllocations() {
                                     ) : (
                                         availableBeds.map(bed => (
                                             <div className="col-md-4 col-lg-3" key={bed.bed_id}>
-                                                <div 
+                                                <div
                                                     className={`card h-100 p-2 text-center shadow-sm select-card ${bookingForm.bed_id === bed.bed_id ? 'border-primary bg-primary bg-opacity-10' : 'border-light'}`}
                                                     style={{ cursor: 'pointer' }}
                                                     onClick={() => setBookingForm({ ...bookingForm, bed_id: bed.bed_id })}
@@ -477,9 +490,9 @@ export default function HostelAllocations() {
                             </div>
                             <div className="modal-footer p-4 pt-0 bg-light border-0">
                                 <button type="button" className="btn btn-light px-4" onClick={() => { setShowAllocateModal(false); setShowChangeModal(false); }}>Cancel</button>
-                                <button 
-                                    type="button" 
-                                    className="btn btn-primary px-5" 
+                                <button
+                                    type="button"
+                                    className="btn btn-primary px-5"
                                     disabled={!bookingForm.bed_id || searching}
                                     onClick={showAllocateModal ? handleAllocate : handleChangeBed}
                                 >
@@ -489,7 +502,8 @@ export default function HostelAllocations() {
                         </div>
                     </div>
                 </div>
-            )}
+            )
+            }
 
             <style>{`
                 .select-card { transition: all 0.2s; }
@@ -503,6 +517,6 @@ export default function HostelAllocations() {
                     color: white !important;
                 }
             `}</style>
-        </HostelShell>
+        </HostelShell >
     );
 }
