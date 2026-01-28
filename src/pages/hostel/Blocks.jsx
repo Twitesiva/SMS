@@ -117,6 +117,12 @@ export default function HostelBlocks() {
                             </div>
                         </div>
 
+                        {Number(form.total_floors) === 0 && (
+                            <div className="alert alert-info py-2 mb-3" role="alert">
+                                If total floors is 0, it is assigned as Ground Floor only.
+                            </div>
+                        )}
+
                         <form onSubmit={handleSubmit} className="students-section-form row g-3 align-items-end">
                             <div className="col-md-4">
                                 <label className="form-label fw-bold mb-1">Block Name</label>
