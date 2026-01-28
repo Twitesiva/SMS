@@ -89,6 +89,14 @@ export default function RoomYearMapping() {
     };
 
     const enableAll = async () => {
+        if (!selectedYear || !selectedBlock) {
+            toast.error('Please select Academic Year and Block.');
+            return;
+        }
+        if (filteredRooms.length === 0) {
+            toast.error('No rooms available for the selected filters.');
+            return;
+        }
         const updates = filteredRooms.map(r => ({
             room_id: r.id,
             academic_year: selectedYear,

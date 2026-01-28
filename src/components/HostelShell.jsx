@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useLayoutEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useHostelAuth } from '../store/hostelAuth'
 import logo from '../assets/media/images.png'
+import { ToastContainer } from 'react-toastify'
 import './AdminPortalShell.css'
 import '../pages/staff/StaffPortal.css'
 import '../pages/student/Student.css'
@@ -187,6 +188,7 @@ export default function HostelShell({ children, navGroups, brandTitle = "HOSTEL 
         </div>
       </div>
       <div className="staff-sidebar__footer text-center mt-auto pb-3 d-lg-none"></div>
+      <ToastContainer position="top-right" autoClose={3000} />
     </div>
   )
 }

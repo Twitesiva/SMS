@@ -86,7 +86,14 @@ export default function HostelAllocations() {
     }, [showAllocateModal, showChangeModal, filters, bookingForm.academic_year]);
 
     const handleAllocate = async () => {
-        if (!bookingForm.bed_id) return;
+        if (!bookingForm.academic_year) {
+            toast.error('Please select an academic year.');
+            return;
+        }
+        if (!bookingForm.bed_id) {
+            toast.error('Please select a bed.');
+            return;
+        }
         setSearching(true);
         const { data, error } = await supabase.rpc('allocate_hostel_bed', {
             p_student_id: student.id,
@@ -104,7 +111,14 @@ export default function HostelAllocations() {
     };
 
     const handleChangeBed = async () => {
-        if (!bookingForm.bed_id) return;
+        if (!bookingForm.academic_year) {
+            toast.error('Please select an academic year.');
+            return;
+        }
+        if (!bookingForm.bed_id) {
+            toast.error('Please select a bed.');
+            return;
+        }
         setSearching(true);
         const { data, error } = await supabase.rpc('change_hostel_bed', {
             p_student_id: student.id,
@@ -131,6 +145,10 @@ export default function HostelAllocations() {
     };
 
     const handleAutoAllocate = async () => {
+        if (!bookingForm.academic_year) {
+            toast.error('Please select an academic year.');
+            return;
+        }
         if (!confirm('Are you sure you want to auto-allocate a bed based on student payment?')) return;
         setSearching(true);
         const { data, error } = await supabase.rpc('allocate_hostel_for_paid_student', {

@@ -9,7 +9,8 @@ export default function ConfirmationModal({
     confirmText = "Delete",
     confirmButtonClass = "btn-danger",
     cancelText = "Cancel",
-    isLoading = false
+    isLoading = false,
+    children
 }) {
     if (!isOpen) return null;
 
@@ -22,7 +23,7 @@ export default function ConfirmationModal({
                         <button type="button" className="btn-close" onClick={onClose} aria-label="Close" disabled={isLoading}></button>
                     </div>
                     <div className="modal-body py-4">
-                        <p className="mb-0 text-muted">{message}</p>
+                        {children ? children : <p className="mb-0 text-muted">{message}</p>}
                     </div>
                     <div className="modal-footer border-0 pt-0">
                         <button type="button" className="btn btn-outline-secondary" onClick={onClose} disabled={isLoading}>

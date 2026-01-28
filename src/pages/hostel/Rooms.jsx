@@ -12,10 +12,14 @@ export default function HostelRooms() {
     const [form, setForm] = useState({ id: '', block_id: '', floor_no: 0, room_no: '', room_type: 'NON_AC', bed_count: 1, status: 'AVAILABLE' });
     const [editingId, setEditingId] = useState(null);
     const [deleteModal, setDeleteModal] = useState({ show: false, id: null });
+    const [saveModal, setSaveModal] = useState({ show: false, payload: null, isEdit: false, details: null });
+    const [saving, setSaving] = useState(false);
     
     const [filterBlock, setFilterBlock] = useState('');
     const [filterType, setFilterType] = useState('');
     const [showAllRooms, setShowAllRooms] = useState(false);
+    const selectedBlock = blocks.find((block) => String(block.id) === String(form.block_id));
+    const maxFloor = selectedBlock?.total_floors ?? null;
 
     useEffect(() => {
         fetchData();
@@ -39,32 +43,51 @@ export default function HostelRooms() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const trimmedRoomNo = String(form.room_no || '').trim();
+        const floorValue = Number(form.floor_no);
+        const bedValue = Number(form.bed_count);
+
+        if (!form.block_id) {
+            toast.error('Please select a block.');
+            return;
+        }
+        if (!trimmedRoomNo) {
+            toast.error('Please enter a room number.');
+            return;
+        }
+        if (!Number.isInteger(floorValue) || floorValue < 0) {
+            toast.error('Floor number must be a whole number of 0 or greater.');
+            return;
+        }
+        if (maxFloor !== null && floorValue > Number(maxFloor)) {
+            toast.error(`Floor number cannot exceed ${maxFloor} for the selected block.`);
+            return;
+        }
+        if (!Number.isInteger(bedValue) || bedValue < 1) {
+            toast.error('Bed count must be a whole number of at least 1.');
+            return;
+        }
+
         const payload = { 
             block_id: form.block_id,
             floor_no: parseInt(form.floor_no),
-            room_no: form.room_no,
+            room_no: trimmedRoomNo,
             room_type: form.room_type,
             bed_count: parseInt(form.bed_count),
             status: form.status
         };
+        const blockName = selectedBlock?.block_name || '—';
+        const floorLabel = floorValue === 0 ? 'Ground Floor' : `Floor ${floorValue}`;
+        const typeLabel = form.room_type === 'AC' ? 'AC' : 'Non AC';
+        const details = {
+            blockName,
+            roomNo: trimmedRoomNo,
+            floorLabel,
+            typeLabel,
+            bedValue
+        };
 
-        if (editingId) {
-            const { error } = await supabase.from('hostel_rooms').update(payload).eq('id', editingId);
-            if (error) toast.error(error.message);
-            else {
-                toast.success('Room updated successfully');
-                resetForm();
-                fetchData();
-            }
-        } else {
-            const { error } = await supabase.from('hostel_rooms').insert([payload]);
-            if (error) toast.error(error.message);
-            else {
-                toast.success('Room created successfully');
-                resetForm();
-                fetchData();
-            }
-        }
+        setSaveModal({ show: true, payload, isEdit: Boolean(editingId), details });
     };
 
     const resetForm = () => {
@@ -86,6 +109,30 @@ export default function HostelRooms() {
             setDeleteModal({ show: false, id: null });
             fetchData();
         }
+    };
+
+    const handleConfirmSave = async () => {
+        if (!saveModal.payload) return;
+        setSaving(true);
+        if (saveModal.isEdit) {
+            const { error } = await supabase.from('hostel_rooms').update(saveModal.payload).eq('id', editingId);
+            if (error) toast.error(error.message);
+            else {
+                toast.success('Room updated successfully');
+                resetForm();
+                fetchData();
+            }
+        } else {
+            const { error } = await supabase.from('hostel_rooms').insert([saveModal.payload]);
+            if (error) toast.error(error.message);
+            else {
+                toast.success('Room created successfully');
+                resetForm();
+                fetchData();
+            }
+        }
+        setSaving(false);
+        setSaveModal({ show: false, payload: null, isEdit: false, details: null });
     };
 
     const filteredRooms = rooms.filter(r => {
@@ -136,6 +183,8 @@ export default function HostelRooms() {
                                     className="form-control" 
                                     value={form.floor_no} 
                                     onChange={(e) => setForm({ ...form, floor_no: e.target.value })}
+                                    min="0"
+                                    max={maxFloor ?? undefined}
                                     required 
                                 />
                             </div>
@@ -279,6 +328,25 @@ export default function HostelRooms() {
                     </div>
                 </section>
             </div>
+
+            <ConfirmationModal
+                isOpen={saveModal.show}
+                onClose={() => setSaveModal({ show: false, payload: null, isEdit: false, details: null })}
+                onConfirm={handleConfirmSave}
+                title={saveModal.isEdit ? 'CONFIRM ROOM UPDATE' : 'CONFIRM ROOM CREATION'}
+                confirmText={saveModal.isEdit ? 'Update Room' : 'Add Room'}
+                confirmButtonClass="btn-primary"
+                isLoading={saving}
+            >
+                <div className="d-flex flex-column gap-2">
+                    <div className="fw-bold text-dark">
+                        {saveModal.details?.blockName} | Room {saveModal.details?.roomNo}
+                    </div>
+                    <div className="text-muted">
+                        {saveModal.details?.floorLabel} | Type: {saveModal.details?.typeLabel} | Beds: {saveModal.details?.bedValue}
+                    </div>
+                </div>
+            </ConfirmationModal>
 
             <ConfirmationModal
                 isOpen={deleteModal.show}

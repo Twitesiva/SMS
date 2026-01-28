@@ -27,10 +27,43 @@ export default function HostelBlocks() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const trimmedName = String(form.block_name || '').trim();
+        const totalFloors = Number(form.total_floors);
+
+        if (!trimmedName) {
+            toast.error('Please enter a block name.');
+            return;
+        }
+        if (!Number.isInteger(totalFloors) || totalFloors < 1) {
+            toast.error('Total floors must be a whole number of 1 or more.');
+            return;
+        }
+
+        if (editingId) {
+            const { data: existingRooms, error: roomsError } = await supabase
+                .from('hostel_rooms')
+                .select('floor_no')
+                .eq('block_id', editingId);
+
+            if (roomsError) {
+                toast.error(roomsError.message);
+                return;
+            }
+
+            const maxExistingFloor = Math.max(
+                0,
+                ...((existingRooms || []).map((room) => Number(room.floor_no)).filter((floor) => Number.isFinite(floor)))
+            );
+            if (totalFloors < maxExistingFloor) {
+                toast.error(`Total floors cannot be less than existing floor ${maxExistingFloor}.`);
+                return;
+            }
+        }
+
         const payload = { 
-            block_name: form.block_name, 
+            block_name: trimmedName, 
             gender: form.gender, 
-            total_floors: parseInt(form.total_floors) 
+            total_floors: totalFloors 
         };
 
         if (editingId) {
