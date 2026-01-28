@@ -17,7 +17,7 @@ export default function HostelAllocations() {
     const [years, setYears] = useState([]);
 
     const [bookingForm, setBookingForm] = useState({ academic_year: '', bed_id: '' });
-    const [filters, setFilters] = useState({ block_id: '', room_type: '' });
+    const [filters, setFilters] = useState({ block_id: '', floor_no: '', room_type: '' });
     const [blocks, setBlocks] = useState([]);
 
     // New states for tabs and eligible students
@@ -88,6 +88,7 @@ export default function HostelAllocations() {
             .eq('academic_year', bookingForm.academic_year);
 
         if (filters.block_id) query = query.eq('block_id', filters.block_id);
+        if (filters.floor_no !== '') query = query.eq('floor_no', Number(filters.floor_no));
         if (filters.room_type) query = query.eq('room_type', filters.room_type);
 
         if (student) {
@@ -205,7 +206,7 @@ export default function HostelAllocations() {
             setBookingForm((prev) => ({ ...prev, academic_year: studentData.academic_year }));
         }
 
-        setFilters(prev => ({ ...prev, room_type: s.hostel_type }));
+        setFilters(prev => ({ ...prev, room_type: s.hostel_type, floor_no: '' }));
         fetchCurrentAllocation(s.student_id);
     };
 
@@ -269,12 +270,8 @@ export default function HostelAllocations() {
                                                         <tr key={s.student_id}>
                                                             <td className="fw-bold text-primary">{s.hall_ticket_no}</td>
                                                             <td>{s.full_name}</td>
-                                                            <td><span className="badge bg-light text-dark border">{s.gender}</span></td>
-                                                            <td>
-                                                                <span className={`badge ${s.hostel_type === 'AC' ? 'bg-info text-dark' : 'bg-light text-dark border'}`}>
-                                                                    {s.hostel_type?.replace(/_/g, ' ')}
-                                                                </span>
-                                                            </td>
+                                                            <td>{s.gender}</td>
+                                                            <td>{s.hostel_type?.replace(/_/g, ' ')}</td>
                                                             <td className="small text-muted">{new Date(s.last_payment_date).toLocaleDateString()}</td>
                                                             <td>
                                                                 {allocatedStudentIds.has(s.student_id) ? (
@@ -438,22 +435,33 @@ export default function HostelAllocations() {
                             </div>
                             <div className="modal-body p-4 bg-light">
                                 <div className="row g-3 mb-4 bg-white p-3 rounded border">
-                                    <div className="col-md-4">
+                                    <div className="col-md-3">
                                         <label className="form-label fw-bold small text-muted text-uppercase">Academic Year</label>
                                         <select className="form-select" value={bookingForm.academic_year} onChange={(e) => setBookingForm({ ...bookingForm, academic_year: e.target.value })}>
                                             {years.map(y => <option key={y.academic_year} value={y.academic_year}>{y.academic_year}</option>)}
                                         </select>
                                     </div>
-                                    <div className="col-md-4">
+                                    <div className="col-md-3">
                                         <label className="form-label fw-bold small text-muted text-uppercase">Block</label>
-                                        <select className="form-select" value={filters.block_id} onChange={(e) => setFilters({ ...filters, block_id: e.target.value })}>
+                                        <select className="form-select" value={filters.block_id} onChange={(e) => setFilters({ ...filters, block_id: e.target.value, floor_no: '' })}>
                                             <option value="">All Blocks</option>
                                             {blocks.filter(b => b.gender === (student.gender?.toUpperCase().startsWith('M') ? 'BOYS' : 'GIRLS')).map(b => (
                                                 <option key={b.id} value={b.id}>{b.block_name}</option>
                                             ))}
                                         </select>
                                     </div>
-                                    <div className="col-md-4">
+                                    <div className="col-md-3">
+                                        <label className="form-label fw-bold small text-muted text-uppercase">Floor</label>
+                                        <select className="form-select" value={filters.floor_no} onChange={(e) => setFilters({ ...filters, floor_no: e.target.value })}>
+                                            <option value="">All Floors</option>
+                                            {[...new Set(availableBeds.map(bed => bed.floor_no))].map((floor) => (
+                                                <option key={floor} value={floor}>
+                                                    {Number(floor) === 0 ? 'Ground Floor' : `Floor ${floor}`}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="col-md-3">
                                         <label className="form-label fw-bold small text-muted text-uppercase">Room Type</label>
                                         <select className="form-select" value={filters.room_type} onChange={(e) => setFilters({ ...filters, room_type: e.target.value })}>
                                             <option value="">All Types</option>
