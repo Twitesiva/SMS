@@ -8,24 +8,16 @@ import '../pages/student/Student.css'
 
 const hostelNavGroups = [
   {
-    title: 'Hostel Dashboard',
     static: true,
     items: [
-      { to: '/hostel/dashboard', label: 'Dashboard', icon: 'bi-speedometer2', exact: true }
-    ]
-  },
-  {
-    title: 'Hostel Management',
-    icon: 'bi-building',
-    items: [
+      { to: '/hostel/dashboard', label: 'Dashboard', icon: 'bi-speedometer2', exact: true },
       { to: '/hostel/blocks', label: 'Blocks', icon: 'bi-box' },
-      { to: '/hostel/rooms', label: 'Room Creation', icon: 'bi-door-closed' }, // Updated label
+      { to: '/hostel/rooms', label: 'Room Creation', icon: 'bi-door-closed' },
       { to: '/hostel/room-year-mapping', label: 'Year Mapping', icon: 'bi-calendar-check' },
       { to: '/hostel/allocations', label: 'Allocations', icon: 'bi-person-check' },
       { to: '/hostel/reports', label: 'Reports', icon: 'bi-graph-up' }
     ]
-  },
-  
+  }
 ]
 
 export default function HostelShell({ children, navGroups, brandTitle = "HOSTEL PORTAL" }) {
@@ -106,16 +98,17 @@ export default function HostelShell({ children, navGroups, brandTitle = "HOSTEL 
             const isExpanded = expandedGroups[groupIndex]
 
             if (isStatic) {
-              const item = group.items[0]
               return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className={`staff-sidebar__link ${isRouteActive(pathname, item.to, item.exact) ? 'active' : ''}`}
-                >
-                  <i className={`bi ${item.icon}`}></i>
-                  <span>{item.label}</span>
-                </Link>
+                group.items.map((item) => (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className={`staff-sidebar__link ${isRouteActive(pathname, item.to, item.exact) ? 'active' : ''}`}
+                  >
+                    <i className={`bi ${item.icon}`}></i>
+                    <span>{item.label}</span>
+                  </Link>
+                ))
               )
             }
 

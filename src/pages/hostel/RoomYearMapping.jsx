@@ -125,7 +125,7 @@ export default function RoomYearMapping() {
                     <div className="students-section-shell card card-soft mb-4">
                         <div className="students-section-shell-header mb-3">
                             <div>
-                                <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>Session Setup</h5>
+                                <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>Room Mapping</h5>
                             </div>
                         </div>
 
