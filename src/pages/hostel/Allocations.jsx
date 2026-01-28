@@ -169,7 +169,7 @@ export default function HostelAllocations() {
         // Fetch phone number
         const { data: studentData } = await supabase
             .from('students')
-            .select('phone_number')
+            .select('phone_number, academic_year')
             .eq('id', s.student_id)
             .single();
 
@@ -182,7 +182,11 @@ export default function HostelAllocations() {
             is_hostel: true,
             hostel_type: s.hostel_type
         });
-        
+
+        if (studentData?.academic_year) {
+            setBookingForm((prev) => ({ ...prev, academic_year: studentData.academic_year }));
+        }
+
         setFilters(prev => ({ ...prev, room_type: s.hostel_type })); 
         fetchCurrentAllocation(s.student_id);
     };
@@ -396,10 +400,7 @@ export default function HostelAllocations() {
                                                 <p className="text-muted mb-4">No active hostel allocation found for this student.</p>
                                                 <div className="d-flex gap-3">
                                                     <button className="btn btn-outline-secondary px-4" onClick={() => setShowAllocateModal(true)}>
-                                                        Manual Allocate
-                                                    </button>
-                                                    <button className="btn btn-success px-4" onClick={handleAutoAllocate} disabled={searching}>
-                                                        {searching ? 'Processing...' : 'Auto Allocate (Recommended)'}
+                                                        Allocate
                                                     </button>
                                                 </div>
                                             </div>
@@ -449,9 +450,8 @@ export default function HostelAllocations() {
                                     </div>
                                 </div>
 
-                                <h6 className="fw-bold mb-3 d-flex justify-content-between align-items-center">
+                                <h6 className="fw-bold mb-3">
                                     Available Beds ({availableBeds.length})
-                                    <span className="small text-muted fw-normal">Showing eligible beds for student gender</span>
                                 </h6>
                                 <div className="row g-2 overflow-auto" style={{ maxHeight: '300px' }}>
                                     {availableBeds.length === 0 ? (

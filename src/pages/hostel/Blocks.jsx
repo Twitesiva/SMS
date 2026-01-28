@@ -34,8 +34,8 @@ export default function HostelBlocks() {
             toast.error('Please enter a block name.');
             return;
         }
-        if (!Number.isInteger(totalFloors) || totalFloors < 1) {
-            toast.error('Total floors must be a whole number of 1 or more.');
+        if (!Number.isInteger(totalFloors) || totalFloors < 0) {
+            toast.error('Total floors must be a whole number of 0 or more.');
             return;
         }
 
@@ -148,7 +148,7 @@ export default function HostelBlocks() {
                                     className="form-control"
                                     value={form.total_floors}
                                     onChange={(e) => setForm({ ...form, total_floors: e.target.value })}
-                                    min="1"
+                                    min="0"
                                     required
                                 />
                             </div>
