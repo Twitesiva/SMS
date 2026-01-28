@@ -372,3 +372,8 @@ label.form-label:not(:has(.text-danger)):has(+ textarea[required])::after,
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
+
+.hostel-resident-modal .modal-header,
+.hostel-resident-modal .modal-title {
+  color: #ffffff !important;
+}

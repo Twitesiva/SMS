@@ -262,7 +262,12 @@ export default function HostelReports() {
                         <div className="modal-content border-0 shadow" style={{ overflow: 'hidden' }}>
                             <div className="modal-header text-white" style={modalHeaderStyle}>
                                 <div>
-                                    <h5 className="modal-title fw-bold mb-0 text-white" style={{ textTransform: 'uppercase' }}>Resident Details</h5>
+                                    <h5
+                                        className="modal-title fw-bold mb-0 text-white"
+                                        style={{ textTransform: 'uppercase', color: '#ffffff' }}
+                                    >
+                                        Resident Details
+                                    </h5>
                                 </div>
                                 <button type="button" className="btn-close btn-close-white" onClick={closeResidentModal} aria-label="Close"></button>
                             </div>
