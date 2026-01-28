@@ -11,6 +11,7 @@ export default function RoomYearMapping() {
     const [blocks, setBlocks] = useState([]);
     const [selectedBlock, setSelectedBlock] = useState('');
     const [selectedFloor, setSelectedFloor] = useState('');
+    const [selectedRoom, setSelectedRoom] = useState('');
     const [rooms, setRooms] = useState([]);
     const [mappings, setMappings] = useState({});
     const [loading, setLoading] = useState(false);
@@ -37,6 +38,10 @@ export default function RoomYearMapping() {
             fetchRoomsAndMappings();
         }
     }, [selectedYear, selectedBlock]);
+
+    useEffect(() => {
+        setSelectedRoom('');
+    }, [selectedYear, selectedBlock, selectedFloor]);
 
     const fetchRoomsAndMappings = async () => {
         setLoading(true);
@@ -120,9 +125,19 @@ export default function RoomYearMapping() {
         return Array.from(floors).sort((a, b) => Number(a) - Number(b));
     }, [rooms]);
 
+    const roomOptions = useMemo(() => {
+        const filtered = selectedFloor
+            ? rooms.filter((room) => String(room.floor_no) === String(selectedFloor))
+            : rooms;
+        return filtered
+            .slice()
+            .sort((a, b) => String(a.room_no).localeCompare(String(b.room_no), undefined, { numeric: true }));
+    }, [rooms, selectedFloor]);
+
     const filteredRooms = rooms.filter((room) => {
-        if (!selectedFloor) return true;
-        return String(room.floor_no) === String(selectedFloor);
+        if (selectedFloor && String(room.floor_no) !== String(selectedFloor)) return false;
+        if (selectedRoom && String(room.id) !== String(selectedRoom)) return false;
+        return true;
     });
 
     return (
@@ -169,6 +184,17 @@ export default function RoomYearMapping() {
                                     {floorOptions.map((floor) => (
                                         <option key={floor} value={floor}>
                                             {Number(floor) === 0 ? 'Ground Floor' : `Floor ${floor}`}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="col-md-4">
+                                <label className="form-label fw-bold mb-1">Rooms</label>
+                                <select className="form-select" value={selectedRoom} onChange={(e) => setSelectedRoom(e.target.value)}>
+                                    <option value="">All Rooms</option>
+                                    {roomOptions.map((room) => (
+                                        <option key={room.id} value={room.id}>
+                                            {room.room_no}
                                         </option>
                                     ))}
                                 </select>
