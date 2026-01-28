@@ -280,13 +280,13 @@ export default function HostelDashboard() {
                   )}
                 </div>
               </div>
-              {filteredResidents.length > 2 && !showAll && (
+              {filteredResidents.length > 2 && (
                 <div className="text-center p-3 border-top">
-                  <button 
+                  <button
                     className="btn btn-primary btn-sm"
-                    onClick={() => setShowAll(true)}
+                    onClick={() => setShowAll(!showAll)}
                   >
-                    View All Students
+                    {showAll ? 'Show Less' : 'View All Students'}
                   </button>
                 </div>
               )}

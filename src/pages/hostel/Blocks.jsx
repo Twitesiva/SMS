@@ -81,7 +81,6 @@ export default function HostelBlocks() {
                                 <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>
                                     {editingId ? 'Edit Block' : 'Add New Block'}
                                 </h5>
-                                <p className="students-section-copy mb-0">Define hostel buildings and their gender designation.</p>
                             </div>
                         </div>
 
@@ -196,13 +195,13 @@ export default function HostelBlocks() {
                                 </table>
                             </div>
                         )}
-                        {blocks.length > 2 && !showAllBlocks && !loading && (
+                        {blocks.length > 2 && !loading && (
                             <div className="text-center p-3 border-top">
-                                <button 
+                                <button
                                     className="btn btn-primary btn-sm"
-                                    onClick={() => setShowAllBlocks(true)}
+                                    onClick={() => setShowAllBlocks(!showAllBlocks)}
                                 >
-                                    View All
+                                    {showAllBlocks ? 'Show Less' : 'View All'}
                                 </button>
                             </div>
                         )}

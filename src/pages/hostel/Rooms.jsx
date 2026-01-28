@@ -15,6 +15,7 @@ export default function HostelRooms() {
     
     const [filterBlock, setFilterBlock] = useState('');
     const [filterType, setFilterType] = useState('');
+    const [showAllRooms, setShowAllRooms] = useState(false);
 
     useEffect(() => {
         fetchData();
@@ -91,6 +92,7 @@ export default function HostelRooms() {
         return (filterBlock ? r.block_id.toString() === filterBlock.toString() : true) &&
                (filterType ? r.room_type === filterType : true);
     });
+    const visibleRooms = showAllRooms ? filteredRooms : filteredRooms.slice(0, 2);
 
     return (
         <HostelShell brandTitle="HOSTEL MANAGEMENT">
@@ -104,9 +106,13 @@ export default function HostelRooms() {
                                 <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>
                                     {editingId ? 'Edit Room' : 'Add New Room'}
                                 </h5>
-                                <p className="students-section-copy mb-0">Define rooms within each block and their capacity.</p>
                             </div>
                         </div>
+                        {form.floor_no !== '' && Number(form.floor_no) === 0 && (
+                            <div className="alert alert-info py-2 mb-3" role="alert">
+                                If floor number is 0, it is assigned as Ground Floor.
+                            </div>
+                        )}
 
                         <form onSubmit={handleSubmit} className="students-section-form row g-3">
                             <div className="col-md-4">
@@ -129,7 +135,7 @@ export default function HostelRooms() {
                                     type="number" 
                                     className="form-control" 
                                     value={form.floor_no} 
-                                    onChange={(e) => setForm({ ...form, floor_no: e.target.value })} 
+                                    onChange={(e) => setForm({ ...form, floor_no: e.target.value })}
                                     required 
                                 />
                             </div>
@@ -187,7 +193,7 @@ export default function HostelRooms() {
                     <div className="students-section-shell card card-soft">
                         <div className="students-section-shell-header mb-3 d-flex justify-content-between align-items-center">
                             <h5 className="section-title mb-0" style={{ fontSize: '1.1rem' }}>Room List</h5>
-                            <div className="d-flex gap-2">
+                            <div className="d-flex gap-2 align-items-center">
                                 <select className="form-select form-select-sm" style={{ width: '150px' }} value={filterBlock} onChange={(e) => setFilterBlock(e.target.value)}>
                                     <option value="">All Blocks</option>
                                     {blocks.map(b => (
@@ -207,55 +213,68 @@ export default function HostelRooms() {
                                 subtitle="Fetching blocks and room availability."
                             />
                         ) : (
-                            <div className="table-responsive">
-                                <table className="table align-middle">
-                                    <thead>
-                                        <tr className="text-white text-uppercase fw-bold" style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)', fontSize: '1.1rem' }}>
-                                            <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Block</th>
-                                            <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room No</th>
-                                            <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Floor</th>
-                                            <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Type</th>
-                                            <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Beds</th>
-                                            <th className="py-3 px-3 border-0 text-end" style={{ backgroundColor: 'transparent', color: 'white' }}>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {filteredRooms.length === 0 ? (
-                                            <tr><td colSpan="6" className="text-center py-4">No rooms found</td></tr>
-                                        ) : (
-                                            filteredRooms.map((room) => (
-                                                <tr key={room.id}>
-                                                    <td>{room.hostel_blocks?.block_name}</td>
-                                                    <td className="fw-bold fs-6">{room.room_no}</td>
-                                                    <td>{room.floor_no === 0 ? 'Ground Floor' : room.floor_no}</td>
-                                                    <td>
-                                                        <span className={`students-section-badge ${room.room_type === 'AC' ? 'students-section-badge-course' : 'students-section-badge-category'}`}>
-                                                            {room.room_type?.replace(/_/g, ' ')}
-                                                        </span>
-                                                    </td>
-                                                    <td>{room.bed_count}</td>
-                                                    <td className="text-end">
-                                                        <div className="d-flex justify-content-end gap-2">
-                                                            <button
-                                                                className="btn btn-sm btn-outline-primary students-button-sm"
-                                                                onClick={() => handleEdit(room)}
-                                                            >
-                                                                <i className="bi bi-pencil"></i>
-                                                            </button>
-                                                            <button
-                                                                className="btn btn-sm btn-outline-danger students-button-sm"
-                                                                onClick={() => setDeleteModal({ show: true, id: room.id })}
-                                                            >
-                                                                <i className="bi bi-trash"></i>
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
+                            <>
+                                <div className="table-responsive">
+                                    <table className="table align-middle">
+                                        <thead>
+                                            <tr className="text-white text-uppercase fw-bold" style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)', fontSize: '1.1rem' }}>
+                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Block</th>
+                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room No</th>
+                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Floor</th>
+                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Type</th>
+                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Beds</th>
+                                                <th className="py-3 px-3 border-0 text-end" style={{ backgroundColor: 'transparent', color: 'white' }}>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filteredRooms.length === 0 ? (
+                                                <tr><td colSpan="6" className="text-center py-4">No rooms found</td></tr>
+                                            ) : (
+                                                visibleRooms.map((room) => (
+                                                    <tr key={room.id}>
+                                                        <td>{room.hostel_blocks?.block_name}</td>
+                                                        <td className="fw-bold fs-6">{room.room_no}</td>
+                                                    <td>{Number(room.floor_no) === 0 ? 'Ground Floor' : room.floor_no}</td>
+                                                        <td>
+                                                            <span className={`students-section-badge ${room.room_type === 'AC' ? 'students-section-badge-course' : 'students-section-badge-category'}`}>
+                                                                {room.room_type?.replace(/_/g, ' ')}
+                                                            </span>
+                                                        </td>
+                                                        <td>{room.bed_count}</td>
+                                                        <td className="text-end">
+                                                            <div className="d-flex justify-content-end gap-2">
+                                                                <button
+                                                                    className="btn btn-sm btn-outline-primary students-button-sm"
+                                                                    onClick={() => handleEdit(room)}
+                                                                >
+                                                                    <i className="bi bi-pencil"></i>
+                                                                </button>
+                                                                <button
+                                                                    className="btn btn-sm btn-outline-danger students-button-sm"
+                                                                    onClick={() => setDeleteModal({ show: true, id: room.id })}
+                                                                >
+                                                                    <i className="bi bi-trash"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {filteredRooms.length > 2 && (
+                                    <div className="d-flex justify-content-end mt-3">
+                                        <button
+                                            type="button"
+                                            className="btn btn-sm btn-outline-secondary"
+                                            onClick={() => setShowAllRooms(!showAllRooms)}
+                                        >
+                                            {showAllRooms ? 'Show Less' : 'View All'}
+                                        </button>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 </section>
