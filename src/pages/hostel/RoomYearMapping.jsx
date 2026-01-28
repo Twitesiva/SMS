@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../../supabaseClient';
 import HostelShell from '../../components/HostelShell';
 import HostelPreloader from '../../components/HostelPreloader';
@@ -7,8 +7,10 @@ import { toast } from 'react-toastify';
 export default function RoomYearMapping() {
     const [years, setYears] = useState([]);
     const [selectedYear, setSelectedYear] = useState('');
+    const [selectedStudyYear, setSelectedStudyYear] = useState('');
     const [blocks, setBlocks] = useState([]);
     const [selectedBlock, setSelectedBlock] = useState('');
+    const [selectedFloor, setSelectedFloor] = useState('');
     const [rooms, setRooms] = useState([]);
     const [mappings, setMappings] = useState({});
     const [loading, setLoading] = useState(false);
@@ -87,7 +89,7 @@ export default function RoomYearMapping() {
     };
 
     const enableAll = async () => {
-        const updates = rooms.map(r => ({
+        const updates = filteredRooms.map(r => ({
             room_id: r.id,
             academic_year: selectedYear,
             is_active: true
@@ -101,6 +103,19 @@ export default function RoomYearMapping() {
         }
     };
 
+    const floorOptions = useMemo(() => {
+        const floors = new Set();
+        rooms.forEach((room) => {
+            if (room.floor_no !== null && room.floor_no !== undefined) floors.add(room.floor_no);
+        });
+        return Array.from(floors).sort((a, b) => Number(a) - Number(b));
+    }, [rooms]);
+
+    const filteredRooms = rooms.filter((room) => {
+        if (!selectedFloor) return true;
+        return String(room.floor_no) === String(selectedFloor);
+    });
+
     return (
         <HostelShell brandTitle="HOSTEL MANAGEMENT">
             <div className="desktop-container">
@@ -111,7 +126,6 @@ export default function RoomYearMapping() {
                         <div className="students-section-shell-header mb-3">
                             <div>
                                 <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>Session Setup</h5>
-                                <p className="students-section-copy mb-0">Enable specific rooms for the selected academic year.</p>
                             </div>
                         </div>
 
@@ -124,10 +138,30 @@ export default function RoomYearMapping() {
                                 </select>
                             </div>
                             <div className="col-md-4">
+                                <label className="form-label fw-bold mb-1">Year of Study</label>
+                                <select className="form-select" value={selectedStudyYear} onChange={(e) => setSelectedStudyYear(e.target.value)}>
+                                    <option value="">Select Year</option>
+                                    {[1, 2, 3, 4, 5, 6].map((year) => (
+                                        <option key={year} value={year}>{year}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="col-md-4">
                                 <label className="form-label fw-bold mb-1">Block</label>
                                 <select className="form-select" value={selectedBlock} onChange={(e) => setSelectedBlock(e.target.value)}>
                                     <option value="">Select Block</option>
                                     {blocks.map(b => <option key={b.id} value={b.id}>{b.block_name}</option>)}
+                                </select>
+                            </div>
+                            <div className="col-md-4">
+                                <label className="form-label fw-bold mb-1">Floor</label>
+                                <select className="form-select" value={selectedFloor} onChange={(e) => setSelectedFloor(e.target.value)}>
+                                    <option value="">All Floors</option>
+                                    {floorOptions.map((floor) => (
+                                        <option key={floor} value={floor}>
+                                            {Number(floor) === 0 ? 'Ground Floor' : `Floor ${floor}`}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="col-md-4 d-flex align-items-end">
@@ -160,22 +194,25 @@ export default function RoomYearMapping() {
                                 <div className="table-responsive">
                                     <table className="table align-middle">
                                         <thead>
-                                            <tr className="text-muted small text-uppercase fw-bold">
-                                                <th>Room No</th>
-                                                <th>Floor</th>
-                                                <th>Room Type</th>
-                                                <th>Capacity</th>
-                                                <th className="text-center">Availability Status</th>
-                                            </tr>
+                                        <tr
+                                            className="text-white text-uppercase fw-bold"
+                                            style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)', fontSize: '1.1rem' }}
+                                        >
+                                            <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room No</th>
+                                            <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Floor</th>
+                                            <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room Type</th>
+                                            <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Capacity</th>
+                                            <th className="py-3 px-3 border-0 text-center" style={{ backgroundColor: 'transparent', color: 'white' }}>Availability Status</th>
+                                        </tr>
                                         </thead>
                                         <tbody>
-                                            {rooms.length === 0 ? (
+                                            {filteredRooms.length === 0 ? (
                                                 <tr><td colSpan="5" className="text-center py-4">No rooms found in this block</td></tr>
                                             ) : (
-                                                rooms.map((room) => (
+                                                filteredRooms.map((room) => (
                                                     <tr key={room.id}>
                                                         <td className="fw-bold">{room.room_no}</td>
-                                                        <td>Floor {room.floor_no}</td>
+                                                        <td>{Number(room.floor_no) === 0 ? 'Ground Floor' : `Floor ${room.floor_no}`}</td>
                                                         <td>{room.room_type?.replace(/_/g, ' ')}</td>
                                                         <td>{room.bed_count} Beds</td>
                                                         <td className="text-center">
