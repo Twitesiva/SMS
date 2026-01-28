@@ -19,7 +19,7 @@ const hostelNavGroups = [
     icon: 'bi-building',
     items: [
       { to: '/hostel/blocks', label: 'Blocks', icon: 'bi-box' },
-      { to: '/hostel/rooms', label: 'Rooms', icon: 'bi-door-closed' },
+      { to: '/hostel/rooms', label: 'Room Creation', icon: 'bi-door-closed' }, // Updated label
       { to: '/hostel/room-year-mapping', label: 'Year Mapping', icon: 'bi-calendar-check' },
       { to: '/hostel/allocations', label: 'Allocations', icon: 'bi-person-check' },
       { to: '/hostel/reports', label: 'Reports', icon: 'bi-graph-up' }

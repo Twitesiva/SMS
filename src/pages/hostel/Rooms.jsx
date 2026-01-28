@@ -95,7 +95,7 @@ export default function HostelRooms() {
     return (
         <HostelShell brandTitle="HOSTEL MANAGEMENT">
             <div className="desktop-container">
-                <h4 className="mb-4">Hostel Rooms</h4>
+                <h4 className="mb-4">Room Creation</h4>
 
                 <section className="setup-section mb-4">
                     <div className="students-section-shell card card-soft mb-4">
@@ -109,7 +109,7 @@ export default function HostelRooms() {
                         </div>
 
                         <form onSubmit={handleSubmit} className="students-section-form row g-3">
-                            <div className="col-md-3">
+                            <div className="col-md-4">
                                 <label className="form-label fw-bold mb-1">Block</label>
                                 <select 
                                     className="form-select" 
@@ -156,7 +156,7 @@ export default function HostelRooms() {
                                     <option value="AC">AC</option>
                                 </select>
                             </div>
-                            <div className="col-md-1">
+                            <div className="col-md-2">
                                 <label className="form-label fw-bold mb-1">Beds</label>
                                 <input 
                                     type="number" 
@@ -166,19 +166,6 @@ export default function HostelRooms() {
                                     min="1" 
                                     required 
                                 />
-                            </div>
-                            <div className="col-md-2">
-                                <label className="form-label fw-bold mb-1">Status</label>
-                                <select 
-                                    className="form-select" 
-                                    value={form.status} 
-                                    onChange={(e) => setForm({ ...form, status: e.target.value })}
-                                    required
-                                >
-                                    <option value="AVAILABLE">AVAILABLE</option>
-                                    <option value="MAINTENANCE">MAINTENANCE</option>
-                                    <option value="INACTIVE">INACTIVE</option>
-                                </select>
                             </div>
                             <div className="col-12 mt-3 d-flex gap-2 justify-content-end">
                                 <button type="submit" className="btn btn-primary students-button px-5">
@@ -229,13 +216,12 @@ export default function HostelRooms() {
                                             <th>Floor</th>
                                             <th>Type</th>
                                             <th>Beds</th>
-                                            <th>Status</th>
                                             <th className="text-end">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {filteredRooms.length === 0 ? (
-                                            <tr><td colSpan="7" className="text-center py-4">No rooms found</td></tr>
+                                            <tr><td colSpan="6" className="text-center py-4">No rooms found</td></tr>
                                         ) : (
                                             filteredRooms.map((room) => (
                                                 <tr key={room.id}>
@@ -248,11 +234,6 @@ export default function HostelRooms() {
                                                         </span>
                                                     </td>
                                                     <td>{room.bed_count}</td>
-                                                    <td>
-                                                        <span className={`badge ${room.status === 'AVAILABLE' ? 'bg-success' : room.status === 'MAINTENANCE' ? 'bg-warning' : 'bg-danger'}`}>
-                                                            {room.status}
-                                                        </span>
-                                                    </td>
                                                     <td className="text-end">
                                                         <div className="d-flex justify-content-end gap-2">
                                                             <button

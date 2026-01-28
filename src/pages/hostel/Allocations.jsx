@@ -147,17 +147,24 @@ export default function HostelAllocations() {
         setSearching(false);
     };
 
-    const handleSelectEligibleStudent = (s) => {
+    const handleSelectEligibleStudent = async (s) => {
+        // Fetch phone number
+        const { data: studentData } = await supabase
+            .from('students')
+            .select('phone_number')
+            .eq('id', s.student_id)
+            .single();
+
         setStudent({
             id: s.student_id,
             student_id: s.hall_ticket_no,
             full_name: s.full_name,
             gender: s.gender,
-            phone_number: '—', // View might not have phone, fetch if needed or ignore
-            is_hostel: true, // They paid, so yes
+            phone_number: studentData?.phone_number || '—',
+            is_hostel: true,
             hostel_type: s.hostel_type
         });
-        // We might want to pass hostel_type from view to filters or display
+        
         setFilters(prev => ({ ...prev, room_type: s.hostel_type })); 
         fetchCurrentAllocation(s.student_id);
     };
@@ -224,7 +231,7 @@ export default function HostelAllocations() {
                                                                 <td>{s.full_name}</td>
                                                                 <td><span className="badge bg-light text-dark border">{s.gender}</span></td>
                                                                 <td>
-                                                                    <span className={`badge ${s.hostel_type === 'AC' ? 'bg-info text-dark' : 'bg-secondary'}`}>
+                                                                    <span className={`badge ${s.hostel_type === 'AC' ? 'bg-info text-dark' : 'bg-light text-dark border'}`}>
                                                                         {s.hostel_type?.replace(/_/g, ' ')}
                                                                     </span>
                                                                 </td>
@@ -277,29 +284,25 @@ export default function HostelAllocations() {
                                                 <span className="text-primary fw-bold small">{student.student_id}</span>
                                             </div>
                                         </div>
-                                        <div className="row g-3">
-                                            <div className="col-6">
-                                                <div className="text-muted small text-uppercase">Gender</div>
-                                                <div className="fw-bold fs-6">{student.gender}</div>
+                                        <div className="d-flex flex-column gap-3">
+                                            <div className="d-flex">
+                                                <div className="text-muted small text-uppercase" style={{ minWidth: '120px' }}>Gender</div>
+                                                <div className="fw-bold fs-6">: {student.gender}</div>
                                             </div>
-                                            <div className="col-6">
-                                                <div className="text-muted small text-uppercase">Phone</div>
-                                                <div className="fw-bold fs-6">{student.phone_number}</div>
+                                            <div className="d-flex">
+                                                <div className="text-muted small text-uppercase" style={{ minWidth: '120px' }}>Phone</div>
+                                                <div className="fw-bold fs-6">: {student.phone_number}</div>
                                             </div>
-                                            <div className="col-12">
-                                                <div className="text-muted small text-uppercase mb-2">Hostel Status</div>
-                                                <span className={`badge ${student.is_hostel ? 'bg-success' : 'bg-secondary'}`}>
-                                                    {student.is_hostel ? 'HOSTEL RESIDENT' : 'NON-HOSTEL'}
-                                                </span>
-                                                {student.hostel_type && (
-                                                    <div className="mt-2">
-                                                        <div className="text-muted small text-uppercase mb-1">Fee Payment</div>
-                                                        <span className={`badge ${student.hostel_type === 'AC' ? 'bg-info text-dark' : 'bg-secondary'}`}>
+                                            {student.hostel_type && (
+                                                <div className="d-flex">
+                                                    <div className="text-muted small text-uppercase" style={{ minWidth: '120px' }}>Fee Payment</div>
+                                                    <div className="fw-bold fs-6">
+                                                        : <span className={`badge ${student.hostel_type === 'AC' ? 'bg-info text-dark' : 'bg-light text-dark border'}`}>
                                                             PAID FOR {student.hostel_type?.replace(/_/g, ' ')}
                                                         </span>
                                                     </div>
-                                                )}
-                                            </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -309,41 +312,37 @@ export default function HostelAllocations() {
                                 <div className="students-section-shell card card-soft h-100">
                                     <div className="students-section-shell-header border-bottom pb-3 mb-3 d-flex justify-content-between align-items-center">
                                         <h5 className="section-title mb-0" style={{ fontSize: '1.1rem' }}>Allocation Details</h5>
-                                        {currentAllocation && (
-                                            <span className="badge bg-success">ACTIVE</span>
-                                        )}
+
                                     </div>
                                     
                                     <div className="py-2 flex-grow-1">
                                         {currentAllocation ? (
-                                            <div className="row g-4 align-items-center">
-                                                <div className="col-md-8">
-                                                    <div className="p-3 bg-light rounded border-start border-4 border-primary">
-                                                        <div className="row g-3">
-                                                            <div className="col-6">
-                                                                <div className="text-muted small text-uppercase">Academic Year</div>
-                                                                <div className="fw-bold fs-6">{currentAllocation.academic_year}</div>
+                                            <div className="d-flex flex-column gap-3">
+                                                <div className="p-3 bg-light rounded border-start border-4 border-primary">
+                                                    <div className="d-flex flex-column gap-3">
+                                                        <div className="d-flex">
+                                                            <div className="text-muted small text-uppercase" style={{ minWidth: '130px' }}>Academic Year</div>
+                                                            <div className="fw-bold fs-6">: {currentAllocation.academic_year}</div>
+                                                        </div>
+                                                        <div className="d-flex">
+                                                            <div className="text-muted small text-uppercase" style={{ minWidth: '130px' }}>Block</div>
+                                                            <div className="fw-bold fs-6">: {currentAllocation.hostel_beds?.hostel_rooms?.hostel_blocks?.block_name}</div>
+                                                        </div>
+                                                        <div className="d-flex">
+                                                            <div className="text-muted small text-uppercase" style={{ minWidth: '130px' }}>Room & Bed</div>
+                                                            <div className="fw-bold fs-6 text-primary">
+                                                                : Room {currentAllocation.hostel_beds?.hostel_rooms?.room_no} | Bed {currentAllocation.hostel_beds?.bed_no}
                                                             </div>
-                                                            <div className="col-6">
-                                                                <div className="text-muted small text-uppercase">Block</div>
-                                                                <div className="fw-bold fs-6">{currentAllocation.hostel_beds?.hostel_rooms?.hostel_blocks?.block_name}</div>
-                                                            </div>
-                                                            <div className="col-6">
-                                                                <div className="text-muted small text-uppercase">Room & Bed</div>
-                                                                <div className="fw-bold fs-5 text-primary">
-                                                                    Room {currentAllocation.hostel_beds?.hostel_rooms?.room_no} | Bed {currentAllocation.hostel_beds?.bed_no}
-                                                                </div>
-                                                            </div>
-                                                            <div className="col-6">
-                                                                <div className="text-muted small text-uppercase">Floor / Type</div>
-                                                                <div className="fw-bold fs-6">Floor {currentAllocation.hostel_beds?.hostel_rooms?.floor_no} | {currentAllocation.hostel_beds?.hostel_rooms?.room_type?.replace(/_/g, ' ')}</div>
-                                                            </div>
+                                                        </div>
+                                                        <div className="d-flex">
+                                                            <div className="text-muted small text-uppercase" style={{ minWidth: '130px' }}>Floor / Type</div>
+                                                            <div className="fw-bold fs-6">: Floor {currentAllocation.hostel_beds?.hostel_rooms?.floor_no} | {currentAllocation.hostel_beds?.hostel_rooms?.room_type?.replace(/_/g, ' ')}</div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="col-md-4 d-flex flex-column gap-2">
-                                                    <button className="btn btn-primary w-100" onClick={() => setShowChangeModal(true)}>Change Room</button>
-                                                    <button className="btn btn-outline-danger w-100" onClick={handleVacate}>Vacate</button>
+                                                <div className="d-flex gap-2">
+                                                    <button className="btn btn-primary flex-grow-1" onClick={() => setShowChangeModal(true)}>Change Room</button>
+                                                    <button className="btn btn-outline-danger flex-grow-1" onClick={handleVacate}>Vacate</button>
                                                 </div>
                                             </div>
                                         ) : (
