@@ -176,7 +176,7 @@ export default function RoomYearMapping() {
                                                     <tr key={room.id}>
                                                         <td className="fw-bold">{room.room_no}</td>
                                                         <td>Floor {room.floor_no}</td>
-                                                        <td>{room.room_type}</td>
+                                                        <td>{room.room_type?.replace(/_/g, ' ')}</td>
                                                         <td>{room.bed_count} Beds</td>
                                                         <td className="text-center">
                                                             <div className="form-check form-switch d-inline-block">

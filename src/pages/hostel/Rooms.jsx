@@ -244,7 +244,7 @@ export default function HostelRooms() {
                                                     <td>{room.floor_no}</td>
                                                     <td>
                                                         <span className={`students-section-badge ${room.room_type === 'AC' ? 'students-section-badge-course' : 'students-section-badge-category'}`}>
-                                                            {room.room_type}
+                                                            {room.room_type?.replace(/_/g, ' ')}
                                                         </span>
                                                     </td>
                                                     <td>{room.bed_count}</td>

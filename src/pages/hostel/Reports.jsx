@@ -131,19 +131,19 @@ export default function HostelReports() {
                                 <div className="table-responsive">
                                     <table className="table align-middle small">
                                         <thead>
-                                            <tr className="text-muted text-uppercase fw-bold">
-                                                <th>Block</th>
-                                                <th>Type</th>
-                                                <th className="text-center">Total</th>
-                                                <th className="text-center">Used</th>
-                                                <th className="text-center">Free</th>
+                                            <tr className="text-white text-uppercase fw-bold" style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)' }}>
+                                                <th className="py-2 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Block</th>
+                                                <th className="py-2 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Type</th>
+                                                <th className="py-2 px-3 border-0 text-center" style={{ backgroundColor: 'transparent', color: 'white' }}>Total</th>
+                                                <th className="py-2 px-3 border-0 text-center" style={{ backgroundColor: 'transparent', color: 'white' }}>Used</th>
+                                                <th className="py-2 px-3 border-0 text-center" style={{ backgroundColor: 'transparent', color: 'white' }}>Free</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {summary.map((row, idx) => (
                                                 <tr key={idx}>
                                                     <td className="fw-bold">{row.block_name}</td>
-                                                    <td>{row.room_type}</td>
+                                                    <td>{row.room_type?.replace(/_/g, ' ')}</td>
                                                     <td className="text-center">{row.total_beds}</td>
                                                     <td className="text-center text-danger fw-bold">{row.occupied_beds}</td>
                                                     <td className="text-center text-success fw-bold">{row.available_beds}</td>
@@ -168,11 +168,11 @@ export default function HostelReports() {
                                 <div className="table-responsive" style={{ maxHeight: '500px' }}>
                                     <table className="table align-middle table-sm">
                                         <thead>
-                                            <tr className="text-muted text-uppercase fw-bold" style={{ fontSize: '0.75rem' }}>
-                                                <th>Student</th>
-                                                <th>Block</th>
-                                                <th>Room-Bed</th>
-                                                <th>Allocated</th>
+                                            <tr className="text-white text-uppercase fw-bold" style={{ fontSize: '0.75rem', background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)' }}>
+                                                <th className="py-2 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Student</th>
+                                                <th className="py-2 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Block</th>
+                                                <th className="py-2 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room-Bed</th>
+                                                <th className="py-2 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Allocated</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -188,7 +188,7 @@ export default function HostelReports() {
                                                         <td className="small">{res.block_name}</td>
                                                         <td>
                                                             <span className="fw-bold">{res.room_no}</span> - {res.bed_no}
-                                                            <div className="small text-muted" style={{ fontSize: '0.7rem' }}>{res.room_type}</div>
+                                                            <div className="small text-muted" style={{ fontSize: '0.7rem' }}>{res.room_type?.replace(/_/g, ' ')}</div>
                                                         </td>
                                                         <td className="small">{new Date(res.allocated_at).toLocaleDateString('en-GB')}</td>
                                                     </tr>

@@ -6,7 +6,7 @@ import HostelPreloader from '../../components/HostelPreloader';
 import { toast } from 'react-toastify';
 
 export default function HostelAllocations() {
-    const [search, setSearch] = useState('');
+
     const [searching, setSearching] = useState(false);
     const [student, setStudent] = useState(null);
     const [currentAllocation, setCurrentAllocation] = useState(null);
@@ -21,10 +21,10 @@ export default function HostelAllocations() {
     const [blocks, setBlocks] = useState([]);
     
     // New states for tabs and eligible students
-    const [activeTab, setActiveTab] = useState('ELIGIBLE'); // 'ELIGIBLE' or 'SEARCH'
     const [eligibleStudents, setEligibleStudents] = useState([]);
     const [loadingEligible, setLoadingEligible] = useState(false);
     const [eligibleSearch, setEligibleSearch] = useState('');
+    const [showAllEligible, setShowAllEligible] = useState(false);
     
     useEffect(() => {
         fetchInitialData();
@@ -51,26 +51,7 @@ export default function HostelAllocations() {
         setLoadingEligible(false);
     };
 
-    const searchStudent = async (e) => {
-        e.preventDefault();
-        if (!search.trim()) return;
-        setSearching(true);
-        setStudent(null);
-        setCurrentAllocation(null);
 
-        const { data, error } = await supabase.from('students')
-            .select('id, student_id, full_name, gender, phone_number, is_hostel')
-            .or(`student_id.eq."${search}",full_name.ilike.%${search}%,phone_number.eq."${search}"`)
-            .maybeSingle();
-
-        if (error) toast.error(error.message);
-        else if (!data) toast.info('No student found.');
-        else {
-            setStudent(data);
-            fetchCurrentAllocation(data.id);
-        }
-        setSearching(false);
-    };
 
     const fetchCurrentAllocation = async (studentId) => {
         const { data: alloc } = await supabase.from('hostel_allocations')
@@ -196,53 +177,12 @@ export default function HostelAllocations() {
 
                 <section className="setup-section mb-4">
                     <div className="students-section-shell card card-soft mb-4">
-                        <div className="card-header bg-white border-bottom-0 pt-3 pb-0 px-3">
-                            <ul className="nav nav-tabs card-header-tabs">
-                                <li className="nav-item">
-                                    <button 
-                                        className={`nav-link ${activeTab === 'ELIGIBLE' ? 'active fw-bold' : ''}`}
-                                        onClick={() => { setActiveTab('ELIGIBLE'); setStudent(null); setCurrentAllocation(null); }}
-                                    >
-                                        Eligible Students (Paid)
-                                    </button>
-                                </li>
-                                <li className="nav-item">
-                                    <button 
-                                        className={`nav-link ${activeTab === 'SEARCH' ? 'active fw-bold' : ''}`}
-                                        onClick={() => { setActiveTab('SEARCH'); setStudent(null); setCurrentAllocation(null); }}
-                                    >
-                                        Manual Search
-                                    </button>
-                                </li>
-                            </ul>
-                        </div>
-                        
                         <div className="card-body">
-                            {activeTab === 'SEARCH' ? (
-                                <>
-                                    <div className="students-section-shell-header mb-3">
-                                        <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>Search Student</h5>
-                                        <p className="students-section-copy mb-0">Search by ID, Name or Phone.</p>
-                                    </div>
-                                    <form onSubmit={searchStudent} className="students-section-form d-flex gap-2">
-                                        <input 
-                                            type="text" 
-                                            className="form-control" 
-                                            placeholder="Enter Student ID / Name / Phone" 
-                                            value={search}
-                                            onChange={(e) => setSearch(e.target.value)}
-                                            required
-                                        />
-                                        <button type="submit" className="btn btn-primary px-5 students-button" disabled={searching}>
-                                            {searching ? 'Searching...' : 'Search'}
-                                        </button>
-                                    </form>
-                                </>
-                            ) : (
+
                                 <>
                                     <div className="d-flex justify-content-between align-items-center mb-3">
                                         <div>
-                                            <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>Paid & Eligible Students</h5>
+                                            <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>ELIGIBLE STUDENTS</h5>
                                             <p className="students-section-copy mb-0">Students who have successfully paid hostel fees.</p>
                                         </div>
                                         <div style={{ width: '300px' }}>
@@ -264,28 +204,28 @@ export default function HostelAllocations() {
                                     ) : (
                                         <div className="table-responsive" style={{ maxHeight: '300px' }}>
                                             <table className="table table-hover align-middle">
-                                                <thead className="table-light sticky-top">
-                                                    <tr>
-                                                        <th>Student ID</th>
-                                                        <th>Name</th>
-                                                        <th>Gender</th>
-                                                        <th>Paid Type</th>
-                                                        <th>Payment Date</th>
-                                                        <th>Action</th>
+                                                <thead className="sticky-top">
+                                                    <tr className="text-white text-uppercase fw-bold" style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)' }}>
+                                                        <th className="py-2 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Student ID</th>
+                                                        <th className="py-2 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Name</th>
+                                                        <th className="py-2 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Gender</th>
+                                                        <th className="py-2 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Paid Type</th>
+                                                        <th className="py-2 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Payment Date</th>
+                                                        <th className="py-2 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Action</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {filteredEligibleStudents.length === 0 ? (
                                                         <tr><td colSpan="6" className="text-center py-4 text-muted">No eligible students found matching filter.</td></tr>
                                                     ) : (
-                                                        filteredEligibleStudents.map(s => (
+                                                        filteredEligibleStudents.slice(0, showAllEligible ? undefined : 2).map(s => (
                                                             <tr key={s.student_id}>
                                                                 <td className="fw-bold text-primary">{s.hall_ticket_no}</td>
                                                                 <td>{s.full_name}</td>
                                                                 <td><span className="badge bg-light text-dark border">{s.gender}</span></td>
                                                                 <td>
                                                                     <span className={`badge ${s.hostel_type === 'AC' ? 'bg-info text-dark' : 'bg-secondary'}`}>
-                                                                        {s.hostel_type}
+                                                                        {s.hostel_type?.replace(/_/g, ' ')}
                                                                     </span>
                                                                 </td>
                                                                 <td className="small text-muted">{new Date(s.last_payment_date).toLocaleDateString()}</td>
@@ -304,8 +244,19 @@ export default function HostelAllocations() {
                                             </table>
                                         </div>
                                     )}
+                                    
+                                    {!loadingEligible && filteredEligibleStudents.length > 2 && !showAllEligible && (
+                                        <div className="text-center mt-3">
+                                            <button 
+                                                className="btn btn-outline-primary btn-sm"
+                                                onClick={() => setShowAllEligible(true)}
+                                            >
+                                                View All
+                                            </button>
+                                        </div>
+                                    )}
                                 </>
-                            )}
+
                         </div>
                     </div>
 
@@ -344,7 +295,7 @@ export default function HostelAllocations() {
                                                     <div className="mt-2">
                                                         <div className="text-muted small text-uppercase mb-1">Fee Payment</div>
                                                         <span className={`badge ${student.hostel_type === 'AC' ? 'bg-info text-dark' : 'bg-secondary'}`}>
-                                                            PAID FOR {student.hostel_type}
+                                                            PAID FOR {student.hostel_type?.replace(/_/g, ' ')}
                                                         </span>
                                                     </div>
                                                 )}
@@ -385,7 +336,7 @@ export default function HostelAllocations() {
                                                             </div>
                                                             <div className="col-6">
                                                                 <div className="text-muted small text-uppercase">Floor / Type</div>
-                                                                <div className="fw-bold fs-6">Floor {currentAllocation.hostel_beds?.hostel_rooms?.floor_no} | {currentAllocation.hostel_beds?.hostel_rooms?.room_type}</div>
+                                                                <div className="fw-bold fs-6">Floor {currentAllocation.hostel_beds?.hostel_rooms?.floor_no} | {currentAllocation.hostel_beds?.hostel_rooms?.room_type?.replace(/_/g, ' ')}</div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -472,7 +423,7 @@ export default function HostelAllocations() {
                                                     onClick={() => setBookingForm({ ...bookingForm, bed_id: bed.bed_id })}
                                                 >
                                                     <div className="fw-bold">{bed.room_no} - {bed.bed_no}</div>
-                                                    <div className="small text-muted">{bed.room_type}</div>
+                                                    <div className="small text-muted">{bed.room_type?.replace(/_/g, ' ')}</div>
                                                     <div className="small opacity-75">{bed.block_name}</div>
                                                 </div>
                                             </div>
