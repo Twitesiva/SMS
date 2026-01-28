@@ -19,14 +19,14 @@ export default function ProfileCreation() {
     designation: '',
     qualification: '',
     experience: '',
-    joining_date: '',
-    status: ''
+    joining_date: ''
   })
 
   // Track validation errors and duplicate checks
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
   const [checkingId, setCheckingId] = useState(false)
+  const [photo, setPhoto] = useState(null)
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -77,12 +77,44 @@ export default function ProfileCreation() {
     }
   }
 
+  // Helper: Convert file to Base64 (fallback)
+  const fileToDataUrl = (file) => new Promise((resolve, reject) => {
+    if (!file) { resolve(null); return }
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = () => reject(new Error('Unable to read file'))
+    reader.readAsDataURL(file)
+  })
+
+  // Helper: Upload file to Supabase
+  const uploadFile = async (file) => {
+    if (!file) return null
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `staff_photos/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .upload(fileName, file)
+
+      if (error) throw error
+
+      const { data: publicData } = supabase.storage
+        .from('documents')
+        .getPublicUrl(fileName)
+
+      return publicData.publicUrl
+    } catch (err) {
+      console.warn('Upload failed, falling back to Base64:', err)
+      return await fileToDataUrl(file)
+    }
+  }
+
   // Derive form validity
   const isFormValid = () => {
     const requiredFields = [
       'staff_id', 'full_name', 'gender', 'dob', 'phone',
       'aadhar', 'email', 'address', 'designation',
-      'qualification', 'experience', 'joining_date', 'status'
+      'qualification', 'experience', 'joining_date'
     ]
 
     // Check all required fields are filled
@@ -105,6 +137,10 @@ export default function ProfileCreation() {
     setLoading(true)
 
     try {
+      // 1. Upload photo if exists
+      const photoUrl = photo ? await uploadFile(photo) : null
+
+      // 2. Insert record
       const { error } = await supabase
         .from('teachers')
         .insert([
@@ -121,7 +157,7 @@ export default function ProfileCreation() {
             qualification: formData.qualification,
             experience_years: parseInt(formData.experience) || 0,
             joining_date: formData.joining_date,
-            status: formData.status
+            image_url: photoUrl
           }
         ])
 
@@ -141,9 +177,9 @@ export default function ProfileCreation() {
         designation: '',
         qualification: '',
         experience: '',
-        joining_date: '',
-        status: ''
+        joining_date: ''
       })
+      setPhoto(null)
       setErrors({})
     } catch (err) {
       console.error('Error creating profile:', err)
@@ -184,8 +220,7 @@ export default function ProfileCreation() {
                       designation: '',
                       qualification: '',
                       experience: '',
-                      joining_date: '',
-                      status: ''
+                      joining_date: ''
                     })
                     setErrors({})
                   }}>Reset</button>
@@ -193,6 +228,8 @@ export default function ProfileCreation() {
               </div>
 
               <form className="row g-3" onSubmit={handleSubmit}>
+
+
                 <div className="col-md-6">
                   <label className="form-label">Staff ID <span className="text-danger">*</span></label>
                   <input
@@ -354,19 +391,16 @@ export default function ProfileCreation() {
                 </div>
 
                 <div className="col-md-6">
-                  <label className="form-label">Status <span className="text-danger">*</span></label>
-                  <select
-                    className="form-select"
-                    name="status"
-                    value={formData.status}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="" disabled>Select status</option>
-                    <option value="ACTIVE">Active</option>
-                    <option value="INACTIVE">Inactive</option>
-                  </select>
+                  <label className="form-label">Profile Photo</label>
+                  <input
+                    className="form-control"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setPhoto(e.target.files[0])}
+                  />
+                  <div className="form-text">Max size 2MB. JPG/PNG only.</div>
                 </div>
+
                 <div className="col-12 d-flex justify-content-end gap-2">
                   <button type="submit" className="btn btn-primary" disabled={loading || !isFormValid()}>
                     {loading ? 'Creating...' : 'Create profile'}
