@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 
 export default function HostelReports() {
     const [residents, setResidents] = useState([]);
+    const [allResidents, setAllResidents] = useState([]);
     const [years, setYears] = useState([]);
     const [selectedYear, setSelectedYear] = useState('');
     const [residentBlockFilter, setResidentBlockFilter] = useState('all');
@@ -26,21 +27,61 @@ export default function HostelReports() {
             if (yearsData[0]) {
                 const latest = yearsData[0].academic_year;
                 setSelectedYear(latest);
-                fetchStats(latest);
             }
         }
     };
 
     useEffect(() => {
-        if (selectedYear) fetchStats(selectedYear);
+        if (selectedYear) fetchResidentsForYear(selectedYear);
     }, [selectedYear]);
 
-    const fetchStats = async (year) => {
+    useEffect(() => {
+        if (!selectedYear) return;
+        fetchFilteredResidents();
+    }, [selectedYear, residentBlockFilter, residentRoomFilter, residentFloorFilter, residentTypeFilter, allResidents]);
+
+    useEffect(() => {
+        setResidentBlockFilter('all');
+        setResidentRoomFilter('all');
+        setResidentFloorFilter('all');
+        setResidentTypeFilter('all');
+    }, [selectedYear]);
+
+    const fetchResidentsForYear = async (year) => {
         setLoading(true);
         const residentsRes = await supabase.from('v_hostel_current_students').select('*').eq('academic_year', year);
         if (residentsRes.error) toast.error(residentsRes.error.message);
-        else setResidents(residentsRes.data || []);
+        else {
+            const data = residentsRes.data || [];
+            setAllResidents(data);
+            setResidents(data);
+        }
         
+        setLoading(false);
+    };
+
+    const fetchFilteredResidents = async () => {
+        if (!selectedYear) return;
+        const isDefaultFilters = residentBlockFilter === 'all'
+            && residentRoomFilter === 'all'
+            && residentFloorFilter === 'all'
+            && residentTypeFilter === 'all';
+
+        if (isDefaultFilters) {
+            setResidents(allResidents);
+            return;
+        }
+
+        setLoading(true);
+        let query = supabase.from('v_hostel_current_students').select('*').eq('academic_year', selectedYear);
+
+        if (residentBlockFilter !== 'all') query = query.eq('block_name', residentBlockFilter);
+        if (residentRoomFilter !== 'all') query = query.eq('room_no', residentRoomFilter);
+        if (residentTypeFilter !== 'all') query = query.eq('room_type', residentTypeFilter);
+
+        const { data, error } = await query;
+        if (error) toast.error(error.message);
+        else setResidents(data || []);
         setLoading(false);
     };
 
@@ -70,9 +111,10 @@ export default function HostelReports() {
         document.body.removeChild(link);
     };
 
-    const residentBlockOptions = Array.from(new Set(residents.map(item => item.block_name).filter(Boolean)));
-    const residentRoomOptions = Array.from(new Set(residents.map(item => item.room_no).filter(Boolean))).sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
-    const residentFloorOptions = Array.from(new Set(residents.map(item => item.floor_no ?? item.floor).filter(item => item !== null && item !== undefined && item !== '')))
+    const normalizeValue = (value) => String(value ?? '').trim();
+    const residentBlockOptions = Array.from(new Set(allResidents.map(item => item.block_name).filter(Boolean)));
+    const residentRoomOptions = Array.from(new Set(allResidents.map(item => item.room_no).filter(Boolean))).sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
+    const residentFloorOptions = Array.from(new Set(allResidents.map(item => item.floor_no ?? item.floor).filter(item => item !== null && item !== undefined && item !== '')))
         .sort((a, b) => {
             const numA = Number(a);
             const numB = Number(b);
@@ -83,14 +125,21 @@ export default function HostelReports() {
             if (bIsNum) return 1;
             return String(a).localeCompare(String(b));
         });
-    const residentTypeOptions = Array.from(new Set(residents.map(item => item.room_type).filter(Boolean)));
+    const residentTypeOptions = Array.from(new Set(allResidents.map(item => item.room_type).filter(Boolean)));
+
+    useEffect(() => {
+        if (residentBlockFilter !== 'all' && !residentBlockOptions.includes(residentBlockFilter)) setResidentBlockFilter('all');
+        if (residentRoomFilter !== 'all' && !residentRoomOptions.map(String).includes(residentRoomFilter)) setResidentRoomFilter('all');
+        if (residentFloorFilter !== 'all' && !residentFloorOptions.map(String).includes(residentFloorFilter)) setResidentFloorFilter('all');
+        if (residentTypeFilter !== 'all' && !residentTypeOptions.includes(residentTypeFilter)) setResidentTypeFilter('all');
+    }, [residentBlockOptions, residentRoomOptions, residentFloorOptions, residentTypeOptions, residentBlockFilter, residentRoomFilter, residentFloorFilter, residentTypeFilter]);
 
     const filteredResidents = residents.filter(item => {
-        const blockMatch = residentBlockFilter === 'all' || item.block_name === residentBlockFilter;
-        const roomMatch = residentRoomFilter === 'all' || String(item.room_no) === residentRoomFilter;
+        const blockMatch = residentBlockFilter === 'all' || normalizeValue(item.block_name) === normalizeValue(residentBlockFilter);
+        const roomMatch = residentRoomFilter === 'all' || normalizeValue(item.room_no) === normalizeValue(residentRoomFilter);
         const floorValue = item.floor_no ?? item.floor;
-        const floorMatch = residentFloorFilter === 'all' || String(floorValue) === residentFloorFilter;
-        const typeMatch = residentTypeFilter === 'all' || item.room_type === residentTypeFilter;
+        const floorMatch = residentFloorFilter === 'all' || normalizeValue(floorValue) === normalizeValue(residentFloorFilter);
+        const typeMatch = residentTypeFilter === 'all' || normalizeValue(item.room_type) === normalizeValue(residentTypeFilter);
         return blockMatch && roomMatch && floorMatch && typeMatch;
     });
 

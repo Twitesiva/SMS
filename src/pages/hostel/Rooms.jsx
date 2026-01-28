@@ -31,6 +31,7 @@ export default function HostelRooms() {
         fetchData();
     }, []);
 
+
     const fetchData = async () => {
         setLoading(true);
         const [blocksRes, roomsRes] = await Promise.all([
