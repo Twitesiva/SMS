@@ -2,22 +2,26 @@ import React, { useLayoutEffect, useRef, useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTransportAuth } from '../store/transportAuth'
 import crest from '../assets/media/images.png'
+import { supabase } from '../../supabaseClient'
 import './TransportShell.css'
 
 const navItems = [
   { to: '/transport/dashboard', label: 'Dashboard', icon: 'bi-grid-fill' },
   { to: '/transport/routes', label: 'Route Creations', icon: 'bi-map' },
-  { to: '/transport/view-routes', label: 'View Routes', icon: 'bi-eye' },
+  { to: '/transport/view-routes', label: 'View Routes with Vehicles', icon: 'bi-eye' },
   { to: '/transport/vehicles', label: 'Seats Availability', icon: 'bi-truck-front' },
+  { to: '/transport/allocation', label: 'Transport Allocation', icon: 'bi-person-badge' },
+  { to: '/transport/notifications', label: 'Notifications', icon: 'bi-bell-fill' },
   { to: '/transport/reports', label: 'Reports', icon: 'bi-file-earmark-text' },
 ]
 
-export default function TransportShell({ children }) {
+export default function TransportShell({ children, brandTitle = "TRANSPORT PORTAL" }) {
   const { pathname } = useLocation()
   const navTo = useNavigate()
   const { transportUser, signOut } = useTransportAuth()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [notifCount, setNotifCount] = useState(0)
 
   const handleLogout = () => {
     signOut()
@@ -50,6 +54,55 @@ export default function TransportShell({ children }) {
 
     navEl.addEventListener('scroll', handleScroll)
     return () => navEl.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  const [currentTime, setCurrentTime] = useState(new Date())
+
+  // Update time every minute
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [])
+
+  // Fetch Notification Count
+  useEffect(() => {
+    const fetchNotifCount = async () => {
+      try {
+        const { data: routesData } = await supabase
+          .from('transport_routes')
+          .select(`
+                    seats_available,
+                    student_transport (count)
+                `)
+
+        if (routesData) {
+          let count = 0
+          routesData.forEach(route => {
+            const capacity = route.seats_available || 0
+            // Note: supabase count result behaves differently based on version/query. 
+            // Using 'student_transport (count)' returns array of objects with count.
+            // But actually, 'count' property is usually on the object if grouped? 
+            // Wait, earlier I used select(`..., student_transport(count)`).
+            // Supabase js returns data structure: { student_transport: [{ count: 5 }] }
+            const used = route.student_transport ? route.student_transport[0]?.count || 0 : 0
+
+            if (used > capacity) {
+              count += (used - capacity)
+            }
+          })
+          setNotifCount(count)
+        }
+      } catch (error) {
+        console.error(error)
+      }
+    }
+
+    fetchNotifCount()
+    // Poll every 30 seconds
+    const interval = setInterval(fetchNotifCount, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   return (
@@ -110,10 +163,27 @@ export default function TransportShell({ children }) {
             >
               <i className={`bi ${mobileOpen ? 'bi-x-lg' : 'bi-list'}`}></i>
             </button>
-            <div className="transport-header__portal">Transport Portal</div>
+            <div className="transport-header__portal">{brandTitle}</div>
           </div>
 
           <div className="transport-header__right">
+            <div className="d-flex align-items-center gap-3 me-3 text-white border-end pe-3">
+              {/* Notification Bell */}
+              <Link to="/transport/notifications" className="position-relative me-3 text-white">
+                <i className="bi bi-bell fs-5"></i>
+                {notifCount > 0 && (
+                  <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style={{ fontSize: '0.6rem' }}>
+                    {notifCount}
+                    <span className="visually-hidden">unread notifications</span>
+                  </span>
+                )}
+              </Link>
+
+              <div className="text-end small d-none d-md-block" style={{ lineHeight: '1.2', borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '1rem' }}>
+                <div>{currentTime.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                <div className="opacity-75">{currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}</div>
+              </div>
+            </div>
             <button className="transport-header__logout" type="button" onClick={handleLogout}>
               <i className="bi bi-box-arrow-right"></i> Logout
             </button>

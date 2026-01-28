@@ -119,6 +119,7 @@ import TransportVehicles from "./pages/transport/TransportVehicles.jsx";
 import TransportPasses from "./pages/transport/TransportPasses.jsx";
 import TransportAllocation from "./pages/transport/TransportAllocation.jsx";
 import TransportReports from "./pages/transport/TransportReports.jsx";
+import TransportNotifications from "./pages/transport/TransportNotifications.jsx";
 import Practical from "./pages/exam/Practical.jsx";
 import HostelLogin from "./pages/hostel/HostelLogin.jsx";
 import HostelDashboard from "./pages/hostel/HostelDashboard.jsx";
@@ -272,6 +273,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isTransportAuthed} redirectTo="/transport/login">
               <TransportReports />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/transport/notifications"
+          element={
+            <GuardedRoute isAuthed={isTransportAuthed} redirectTo="/transport/login">
+              <TransportNotifications />
             </GuardedRoute>
           }
         />

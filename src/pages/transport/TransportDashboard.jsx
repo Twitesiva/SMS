@@ -1,14 +1,34 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { useTransportAuth } from '../../store/transportAuth'
 import TransportShell from '../../components/TransportShell'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom' // Added useNavigate
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement
+} from 'chart.js'
+import { Bar, Doughnut } from 'react-chartjs-2'
 
-
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement
+)
 
 export default function TransportDashboard() {
   const { transportUser } = useTransportAuth()
+  const navigate = useNavigate() // Initialize hook
   const [routes, setRoutes] = useState([])
   const [vehicles, setVehicles] = useState([])
   const [boardingPointsCount, setBoardingPointsCount] = useState(0)
@@ -19,26 +39,50 @@ export default function TransportDashboard() {
       try {
         setLoading(true)
 
-        // 1. Fetch Routes with Boarding Points Count
+        // 1. Fetch Routes
         const { data: routesData, error: routesError } = await supabase
           .from('transport_routes')
-          .select('*, transport_route_boarding_points(count)')
-          .order('created_at', { ascending: false })
+          .select(`
+            *,
+            transport_route_boarding_points (count)
+          `)
+          .order('route_no', { ascending: true })
 
         if (routesError) throw routesError
 
-        // 2. Fetch Vehicles (try independent table first, fall back to extracting from routes if empty/error?)
+        // 2. Fetch Vehicles
         const { data: vehiclesData, error: vehiclesError } = await supabase
           .from('transport_vehicles')
           .select('*')
           .order('created_at', { ascending: false })
 
-        // 3. Get total boarding points
+        // 3. Fetch Confirmed Students Count
+        const { data: confirmedStudents, error: studentsError } = await supabase
+          .from('student_transport')
+          .select('route_id')
+          .eq('status', 'CONFIRMED')
+
+        if (studentsError) throw studentsError
+
+        // Calculate reserved count per route
+        const reservedCounts = {}
+        if (confirmedStudents) {
+          confirmedStudents.forEach(s => {
+            reservedCounts[s.route_id] = (reservedCounts[s.route_id] || 0) + 1
+          })
+        }
+
+        // 4. Get total boarding points
         const { count: bpCount, error: bpError } = await supabase
           .from('transport_route_boarding_points')
           .select('*', { count: 'exact', head: true })
 
-        setRoutes(routesData || [])
+        const processedRoutes = (routesData || []).map(route => ({
+          ...route,
+          reserved_count: reservedCounts[route.id] || 0
+        }))
+
+        setRoutes(processedRoutes)
         setVehicles(vehiclesData || [])
         setBoardingPointsCount(bpCount || 0)
 
@@ -53,9 +97,12 @@ export default function TransportDashboard() {
     fetchData()
   }, [])
 
-  const academicYears = useMemo(() => {
-    const years = new Set(routes.map(r => r.academic_year).filter(Boolean))
-    return years.size
+  const totalReserved = useMemo(() => {
+    return routes.reduce((sum, route) => sum + (route.reserved_count || 0), 0)
+  }, [routes])
+
+  const totalSeats = useMemo(() => {
+    return routes.reduce((sum, route) => sum + (route.seats_available || 0), 0)
   }, [routes])
 
   const vehicleCount = useMemo(() => {
@@ -64,25 +111,132 @@ export default function TransportDashboard() {
     return fromRoutes.size;
   }, [vehicles, routes]);
 
+  const handleChartClick = (event, elements) => {
+    if (elements && elements.length > 0) {
+      navigate('/transport/vehicles')
+    }
+  }
+
+  // Chart Data Preparation
+  const barChartData = {
+
+    labels: routes.map(r => r.route_no),
+    datasets: [
+      {
+        label: 'Reserved',
+        data: routes.map(r => r.reserved_count || 0),
+        backgroundColor: '#4e73df', // Admin dashboard blue
+        maxBarThickness: 50,
+      },
+      {
+        label: 'Available',
+        data: routes.map(r => Math.max(0, (r.seats_available || 0) - (r.reserved_count || 0))),
+        backgroundColor: '#e2e6ea', // Light gray 
+        maxBarThickness: 50,
+      },
+    ],
+  }
+
+  const barChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    onClick: handleChartClick, // Added click handler
+    plugins: {
+      legend: {
+        display: true,
+        position: 'bottom',
+        align: 'center',
+        labels: {
+          boxWidth: 10,
+          usePointStyle: true,
+          pointStyle: 'circle',
+          color: '#000'
+        }
+      },
+      title: {
+        display: false,
+      },
+      tooltip: {
+        mode: 'index',
+        intersect: false,
+      }
+    },
+    scales: {
+      y: {
+        stacked: true,
+        beginAtZero: true,
+        grid: {
+          borderDash: [2],
+          drawBorder: false,
+        },
+        ticks: {
+          stepSize: 1,
+          precision: 0,
+          color: '#000'
+        }
+      },
+      x: {
+        stacked: true,
+        grid: {
+          display: false,
+        },
+        ticks: {
+          color: '#000'
+        }
+      }
+    },
+  }
+
+  const pieChartData = {
+
+    labels: ['Reserved Seats', 'Available Seats'],
+    datasets: [
+      {
+        data: [totalReserved, Math.max(0, totalSeats - totalReserved)],
+        backgroundColor: [
+          '#606c88', // Darker theme color for used
+          '#e9ecef', // Light gray for available
+        ],
+        borderWidth: 0,
+        hoverOffset: 4,
+      },
+    ],
+  }
+
+  const pieChartOptions = {
+    cutout: '70%',
+    onClick: handleChartClick, // Added click handler
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          usePointStyle: true,
+          padding: 20,
+          color: '#000'
+        }
+      }
+    },
+    maintainAspectRatio: false,
+  }
+
   const metrics = [
     {
       label: "Total Routes",
       value: loading ? '-' : routes.length,
       icon: "bi-map",
-      path: "/transport/routes"
+      path: "/transport/view-routes",
     },
     {
       label: "Total Vehicles",
       value: loading ? '-' : vehicleCount,
-      icon: "bi-truck-front", // or bi-bus-front if available
-      path: "/transport/vehicles" // Note: This route might need to be created/verified
+      icon: "bi-truck-front",
+      path: "/transport/view-routes",
     },
-
     {
-      label: "Academic Years",
-      value: loading ? '-' : academicYears,
-      icon: "bi-calendar-event",
-      path: "/transport/routes"
+      label: "Total Reserved",
+      value: loading ? '-' : totalReserved,
+      icon: "bi-person-check",
+      path: "/transport/allocation",
     }
   ]
 
@@ -91,13 +245,9 @@ export default function TransportDashboard() {
       <div className="desktop-container admin-content" style={{ overflowX: 'hidden' }}>
         <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
           <h4 className="mb-0">Transport Dashboard</h4>
-          <div className="d-flex gap-2">
-            <Link className="btn btn-primary" to="/transport/routes">
-              <i className="bi bi-map me-2"></i>Manage Routes
-            </Link>
-          </div>
         </div>
 
+        {/* Metrics Section */}
         <section className="mb-5">
           <div className="dashboard-cards">
             {metrics.map((metric) => (
@@ -120,93 +270,52 @@ export default function TransportDashboard() {
           </div>
         </section>
 
+        {/* Analytics Section */}
         <section className="mb-5">
           <div className="row g-4">
-            {/* Recent Routes */}
-            <div className="col-12 col-lg-8">
-              <div className="dashboard-chart-card card-shadow h-100">
-                <div className="dashboard-chart-header">
-                  <h3>Recent Routes</h3>
-                  <p className="mb-0 fw-bold">Latest route additions</p>
+            {/* Bar Chart: Students per Route */}
+            <div className="col-12 col-lg-7">
+              <div className="card shadow-sm border-0 h-100">
+                <div className="card-header bg-white py-3">
+                  <h6 className="m-0 fw-bold text-primary">Reserved Seats Routwise</h6>
                 </div>
-                <div className="card-body px-0">
-                  {loading ? (
-                    <p className="text-muted">Loading...</p>
-                  ) : routes.length === 0 ? (
-                    <p className="text-muted mb-0">No routes saved yet. Start by adding one.</p>
-                  ) : (
-                    <div className="d-flex flex-column gap-3">
-                      {routes.slice(0, 5).map((route) => (
-                        <div key={route.id} className="d-flex align-items-center justify-content-between p-3 border rounded bg-light-subtle">
-                          <div>
-                            <div className="d-flex align-items-center gap-2 mb-1">
-                              <span className="badge bg-primary">Route {route.route_no}</span>
-                              <span className="fw-semibold">{route.route_name}</span>
-                            </div>
-                            <div className="text-muted small">
-                              {route.transport_route_boarding_points?.[0]?.count || 0} boarding points ·{' '}
-                              <span className="text-dark">{route.academic_year}</span>
-                              {route.vehicle_register_no && ` · Vehicle: ${route.vehicle_register_no}`}
-                            </div>
-                          </div>
-                          <Link to="/transport/routes" className="btn btn-sm btn-outline-secondary">
-                            View
-                          </Link>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                <div className="card-body">
+                  <div style={{ height: '300px' }}>
+                    <Bar data={barChartData} options={barChartOptions} />
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Recent Vehicles */}
-            <div className="col-12 col-lg-4">
-              <div className="dashboard-chart-card card-shadow h-100">
-                <div className="dashboard-chart-header">
-                  <h3>Recent Vehicles</h3>
-                  <p className="mb-0 fw-bold">Fleet status overview</p>
+            {/* Pie Chart: Overall Seat Usage */}
+            <div className="col-12 col-lg-5">
+              <div className="card shadow-sm border-0 h-100">
+                <div className="card-header bg-white py-3">
+                  <h6 className="m-0 fw-bold text-primary">Overall Reserved Seats</h6>
                 </div>
-                <div className="card-body px-0">
-                  {loading ? (
-                    <p className="text-muted">Loading...</p>
-                  ) : (vehicles.length === 0 && vehicleCount === 0) ? (
-                    <p className="text-muted mb-0">No vehicles added yet.</p>
-                  ) : (
-                    <div className="d-flex flex-column gap-2">
-                      {vehicles.length > 0 ? (
-                        // Display from transport_vehicles table
-                        vehicles.slice(0, 5).map(vehicle => (
-                          <div key={vehicle.id} className="d-flex align-items-center justify-content-between border-bottom pb-2 mb-2 last-no-border">
-                            <div>
-                              <div className="fw-semibold">{vehicle.vehicle_no}</div>
-                              <div className="small text-muted">
-                                {vehicle.status}
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        // Display from routes logic if table is empty
-                        routes.filter(r => r.vehicle_register_no).slice(0, 5).map(route => (
-                          <div key={`v-${route.id}`} className="d-flex align-items-center justify-content-between border-bottom pb-2 mb-2 last-no-border">
-                            <div>
-                              <div className="fw-semibold">{route.vehicle_register_no}</div>
-                              <div className="small text-muted">
-                                Assigned to Route {route.route_no}
-                              </div>
-                            </div>
-                            <span className="badge bg-success-subtle text-success border border-success-subtle">Active</span>
-                          </div>
-                        ))
-                      )}
+                <div className="card-body">
+                  <div style={{ height: '250px', position: 'relative' }}>
+                    <Doughnut data={pieChartData} options={pieChartOptions} />
+                    <div style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -60%)',
+                      textAlign: 'center'
+                    }}>
+                      <div className="h3 mb-0 fw-bold">{Math.round((totalReserved / (totalSeats || 1)) * 100)}%</div>
+                      <div className="small text-muted"></div>
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
             </div>
+
+
+
           </div>
         </section>
+
       </div>
     </TransportShell>
   )
