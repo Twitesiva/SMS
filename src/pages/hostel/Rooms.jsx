@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../../supabaseClient';
 import HostelShell from '../../components/HostelShell';
 import ConfirmationModal from '../../components/ConfirmationModal';
@@ -20,6 +20,12 @@ export default function HostelRooms() {
     const [showAllRooms, setShowAllRooms] = useState(false);
     const selectedBlock = blocks.find((block) => String(block.id) === String(form.block_id));
     const maxFloor = selectedBlock?.total_floors ?? null;
+    const floorOptions = useMemo(() => {
+        if (!selectedBlock) return [];
+        const max = Number(selectedBlock.total_floors);
+        if (!Number.isFinite(max) || max < 0) return [];
+        return Array.from({ length: max + 1 }, (_, index) => index);
+    }, [selectedBlock]);
 
     useEffect(() => {
         fetchData();
@@ -53,6 +59,10 @@ export default function HostelRooms() {
         }
         if (!trimmedRoomNo) {
             toast.error('Please enter a room number.');
+            return;
+        }
+        if (form.floor_no === '') {
+            toast.error('Please select a floor.');
             return;
         }
         if (!Number.isInteger(floorValue) || floorValue < 0) {
@@ -167,7 +177,7 @@ export default function HostelRooms() {
                                 <select 
                                     className="form-select" 
                                     value={form.block_id} 
-                                    onChange={(e) => setForm({ ...form, block_id: e.target.value })}
+                                    onChange={(e) => setForm({ ...form, block_id: e.target.value, floor_no: '' })}
                                     required
                                 >
                                     <option value="">Select Block</option>
@@ -178,15 +188,19 @@ export default function HostelRooms() {
                             </div>
                             <div className="col-md-2">
                                 <label className="form-label fw-bold mb-1">Floor No</label>
-                                <input 
-                                    type="number" 
-                                    className="form-control" 
-                                    value={form.floor_no} 
+                                <select
+                                    className="form-select"
+                                    value={form.floor_no}
                                     onChange={(e) => setForm({ ...form, floor_no: e.target.value })}
-                                    min="0"
-                                    max={maxFloor ?? undefined}
-                                    required 
-                                />
+                                    required
+                                >
+                                    <option value="">Select Floor</option>
+                                    {floorOptions.map((floor) => (
+                                        <option key={floor} value={floor}>
+                                            {floor === 0 ? 'Ground Floor' : `Floor ${floor}`}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                             <div className="col-md-2">
                                 <label className="form-label fw-bold mb-1">Room No</label>
@@ -268,8 +282,8 @@ export default function HostelRooms() {
                                         <thead>
                                             <tr className="text-white text-uppercase fw-bold" style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)', fontSize: '1.1rem' }}>
                                                 <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Block</th>
-                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room No</th>
                                                 <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Floor</th>
+                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room No</th>
                                                 <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Type</th>
                                                 <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Beds</th>
                                                 <th className="py-3 px-3 border-0 text-end" style={{ backgroundColor: 'transparent', color: 'white' }}>Actions</th>
@@ -282,8 +296,8 @@ export default function HostelRooms() {
                                                 visibleRooms.map((room) => (
                                                     <tr key={room.id}>
                                                         <td>{room.hostel_blocks?.block_name}</td>
+                                                        <td>{Number(room.floor_no) === 0 ? 'Ground Floor' : room.floor_no}</td>
                                                         <td className="fw-bold fs-6">{room.room_no}</td>
-                                                    <td>{Number(room.floor_no) === 0 ? 'Ground Floor' : room.floor_no}</td>
                                                         <td>
                                                             <span className={`students-section-badge ${room.room_type === 'AC' ? 'students-section-badge-course' : 'students-section-badge-category'}`}>
                                                                 {room.room_type?.replace(/_/g, ' ')}

@@ -12,7 +12,7 @@ const hostelNavGroups = [
     static: true,
     items: [
       { to: '/hostel/dashboard', label: 'Dashboard', icon: 'bi-speedometer2', exact: true },
-      { to: '/hostel/blocks', label: 'Blocks', icon: 'bi-box' },
+      { to: '/hostel/blocks', label: 'Add New Block with Floors', icon: 'bi-box' },
       { to: '/hostel/rooms', label: 'Room Creation', icon: 'bi-door-closed' },
       { to: '/hostel/room-year-mapping', label: 'Year Mapping', icon: 'bi-calendar-check' },
       { to: '/hostel/allocations', label: 'Allocations', icon: 'bi-person-check' },

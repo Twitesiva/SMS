@@ -112,7 +112,7 @@ export default function HostelBlocks() {
                         <div className="students-section-shell-header mb-3">
                             <div>
                                 <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>
-                                    {editingId ? 'Edit Block' : 'Add New Block'}
+                                    {editingId ? 'Edit Block' : 'Add New Block with Floors'}
                                 </h5>
                             </div>
                         </div>
@@ -179,8 +179,8 @@ export default function HostelBlocks() {
                     </div>
 
                     <div className="students-section-shell card card-soft">
-                        <div className="students-section-shell-header mb-3">
-                            <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>Block List</h5>
+                        <div className="mb-3">
+                            <h5 className="section-title fw-bold mb-1" style={{ fontSize: '1.3rem' }}>Block List</h5>
                         </div>
                         {loading ? (
                             <HostelPreloader

@@ -106,7 +106,8 @@ export default function RoomYearMapping() {
         const { error } = await supabase.from('hostel_room_year_mapping').upsert(updates, { onConflict: 'room_id, academic_year' });
         if (error) toast.error(error.message);
         else {
-            toast.success(`All rooms enabled for ${selectedBlock}`);
+            const blockName = blocks.find((b) => String(b.id) === String(selectedBlock))?.block_name || selectedBlock;
+            toast.success(`All rooms enabled for ${blockName}`);
             fetchRoomsAndMappings();
         }
     };
@@ -149,7 +150,7 @@ export default function RoomYearMapping() {
                                 <label className="form-label fw-bold mb-1">Year of Study</label>
                                 <select className="form-select" value={selectedStudyYear} onChange={(e) => setSelectedStudyYear(e.target.value)}>
                                     <option value="">Select Year</option>
-                                    {[1, 2, 3, 4, 5, 6].map((year) => (
+                                    {[1, 2, 3, 4].map((year) => (
                                         <option key={year} value={year}>{year}</option>
                                     ))}
                                 </select>
