@@ -271,8 +271,16 @@ export default function HostelAllocations() {
                         <div className="row g-4">
                             <div className="col-md-5">
                                 <div className="students-section-shell card card-soft h-100">
-                                    <div className="students-section-shell-header border-bottom pb-3 mb-3">
+                                    <div className="students-section-shell-header border-bottom pb-3 mb-3 d-flex justify-content-between align-items-center">
                                         <h5 className="section-title mb-0" style={{ fontSize: '1.1rem' }}>Student Profile</h5>
+                                        <div className="d-flex gap-2">
+                                            <button className="btn btn-sm btn-outline-primary border-0" title="Edit Student">
+                                                <i className="bi bi-pencil-square fs-5"></i>
+                                            </button>
+                                            <button className="btn btn-sm btn-outline-danger border-0" title="Delete Student">
+                                                <i className="bi bi-trash-fill fs-5"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                     <div className="py-2">
                                         <div className="d-flex align-items-center mb-4">
@@ -312,7 +320,26 @@ export default function HostelAllocations() {
                                 <div className="students-section-shell card card-soft h-100">
                                     <div className="students-section-shell-header border-bottom pb-3 mb-3 d-flex justify-content-between align-items-center">
                                         <h5 className="section-title mb-0" style={{ fontSize: '1.1rem' }}>Allocation Details</h5>
-
+                                        <div className="d-flex align-items-center gap-2">
+                                            {currentAllocation && (
+                                                <>
+                                                    <button 
+                                                        className="btn btn-sm btn-outline-primary border-0" 
+                                                        onClick={() => setShowChangeModal(true)}
+                                                        title="Edit Allocation"
+                                                    >
+                                                        <i className="bi bi-pencil-square fs-5"></i>
+                                                    </button>
+                                                    <button 
+                                                        className="btn btn-sm btn-outline-danger border-0" 
+                                                        onClick={handleVacate}
+                                                        title="Delete Allocation (Vacate)"
+                                                    >
+                                                        <i className="bi bi-trash-fill fs-5"></i>
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
                                     
                                     <div className="py-2 flex-grow-1">
@@ -371,7 +398,7 @@ export default function HostelAllocations() {
                 <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1055 }}>
                     <div className="modal-dialog modal-lg modal-dialog-centered">
                         <div className="modal-content border-0 shadow-lg">
-                            <div className="modal-header bg-primary text-white p-4">
+                            <div className="modal-header p-4 modal-header-gradient">
                                 <h5 className="modal-title fw-bold">
                                     {showAllocateModal ? 'New Bed Allocation' : 'Change Bed Allocation'}
                                 </h5>
@@ -450,6 +477,13 @@ export default function HostelAllocations() {
                 .select-card { transition: all 0.2s; }
                 .select-card:hover { border-color: var(--bs-primary) !important; transform: translateY(-2px); }
                 .select-card.border-primary { border-width: 2px !important; }
+                .modal-header-gradient {
+                    background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%) !important;
+                    color: white !important;
+                }
+                .modal-header-gradient .modal-title {
+                    color: white !important;
+                }
             `}</style>
         </HostelShell>
     );

@@ -227,7 +227,7 @@ export default function HostelRooms() {
                                                 <tr key={room.id}>
                                                     <td>{room.hostel_blocks?.block_name}</td>
                                                     <td className="fw-bold fs-6">{room.room_no}</td>
-                                                    <td>{room.floor_no}</td>
+                                                    <td>{room.floor_no === 0 ? 'Ground Floor' : room.floor_no}</td>
                                                     <td>
                                                         <span className={`students-section-badge ${room.room_type === 'AC' ? 'students-section-badge-course' : 'students-section-badge-category'}`}>
                                                             {room.room_type?.replace(/_/g, ' ')}
