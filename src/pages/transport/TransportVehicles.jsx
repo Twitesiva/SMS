@@ -3,6 +3,8 @@ import TransportShell from '../../components/TransportShell'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
 
+
+
 export default function TransportVehicles() {
   const [routes, setRoutes] = useState([])
   const [academicYears, setAcademicYears] = useState([])
@@ -41,17 +43,14 @@ export default function TransportVehicles() {
     try {
       const { data, error } = await supabase
         .from('transport_routes')
-        .select(`
-          *,
-          student_transport (count)
-        `)
-        .order('id', { ascending: false })
+        .select('*')
+        .order('route_no', { ascending: true })
 
       if (error) throw error
 
       const processedRoutes = (data || []).map(route => ({
         ...route,
-        reserved_count: route.student_transport ? route.student_transport[0]?.count || 0 : 0
+        reserved_count: route.reserved_seats || 0
       }))
 
       setRoutes(processedRoutes)
@@ -115,6 +114,99 @@ export default function TransportVehicles() {
     setSelectedRouteDetails(null)
   }
 
+  // --- Chart Data Preparation ---
+  const filteredRoutes = routes.filter(r => !selectedYear || r.academic_year === selectedYear)
+
+  // 1. Availability Status by Route (Top 5)
+  const topRoutes = filteredRoutes.slice(0, 5)
+
+  const occupancyChartData = {
+    labels: topRoutes.map(r => r.route_no),
+    datasets: [
+      {
+        label: 'Reserved',
+        data: topRoutes.map(r => r.reserved_count),
+        backgroundColor: '#4361ee', // Blue
+        borderRadius: 4,
+        barPercentage: 0.6,
+      },
+      {
+        label: 'Available',
+        data: topRoutes.map(r => (r.seats_available || 0) - r.reserved_count),
+        backgroundColor: '#e9ecef', // Light gray
+        borderRadius: 4,
+        barPercentage: 0.6,
+      }
+    ]
+  }
+
+  const occupancyChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'top', align: 'end', labels: { boxWidth: 10, usePointStyle: true } },
+      title: { display: false }
+    },
+    scales: {
+      x: { stacked: true, grid: { display: false } },
+      y: { stacked: true, grid: { borderDash: [2, 4] }, beginAtZero: true }
+    }
+  }
+
+  // 2. Total Capacity Analysis
+  const totalCapacity = filteredRoutes.reduce((acc, curr) => acc + (curr.seats_available || 0), 0)
+  const totalReserved = filteredRoutes.reduce((acc, curr) => acc + curr.reserved_count, 0)
+  const totalAvailable = totalCapacity - totalReserved
+
+  const capacityChartData = {
+    labels: ['Reserved', 'Available'],
+    datasets: [
+      {
+        data: [totalReserved, totalAvailable],
+        backgroundColor: ['#2ec4b6', '#ff9f1c'], // Teal and Orange
+        borderWidth: 0
+      }
+    ]
+  }
+
+  const capacityChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'right', labels: { usePointStyle: true } }
+    },
+    cutout: '70%'
+  }
+
+  // 3. Route density (Percentage Full)
+  const densityChartData = {
+    labels: topRoutes.map(r => r.route_no),
+    datasets: [
+      {
+        label: 'Occupancy %',
+        data: topRoutes.map(r => {
+          const cap = r.seats_available || 0
+          return cap > 0 ? ((r.reserved_count / cap) * 100).toFixed(1) : 0
+        }),
+        backgroundColor: '#3a0ca3', // Dark Blue
+        borderRadius: 4,
+        barPercentage: 0.5,
+      }
+    ]
+  }
+
+  const densityChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+    },
+    scales: {
+      y: { beginAtZero: true, max: 100, grid: { borderDash: [2, 4] } },
+      x: { grid: { display: false } }
+    }
+  }
+
   return (
     <TransportShell brandTitle="Transport Management" brandSubtitle="Seats Availability">
       <div className="container-fluid px-0">
@@ -123,7 +215,7 @@ export default function TransportVehicles() {
           <div className="col-12">
             <div className="transport-card shadow-sm border-0">
               <div className="transport-card__header py-3 d-flex justify-content-between align-items-center px-4 text-white">
-                <h5 className="mb-0 fw-bold">Seats Availability ({routes.filter(r => !selectedYear || r.academic_year === selectedYear).length})</h5>
+                <h5 className="mb-0 fw-bold">Seats Availability</h5>
               </div>
 
               <div className="p-3 bg-light border-bottom">
@@ -153,9 +245,9 @@ export default function TransportVehicles() {
                         <th style={{ width: '10%' }} className="ps-4 py-3 fw-bold text-white text-uppercase border-end-0 fs-6">Route No</th>
                         <th style={{ width: '25%' }} className="py-3 fw-bold text-white text-uppercase border-start-0 border-end-0 fs-6">Route Name</th>
                         <th style={{ width: '20%' }} className="py-3 fw-bold text-white text-uppercase border-start-0 border-end-0 fs-6">Vehicle No</th>
-                        <th style={{ width: '10%' }} className="py-3 fw-bold text-white text-uppercase border-start-0 border-end-0 fs-6">Total Seats</th>
-                        <th style={{ width: '10%' }} className="py-3 fw-bold text-white text-uppercase border-start-0 border-end-0 fs-6">Reserved</th>
-                        <th style={{ width: '10%' }} className="py-3 fw-bold text-white text-uppercase border-start-0 border-end-0 fs-6">Available</th>
+                        <th style={{ width: '10%' }} className="py-3 text-center fw-bold text-white text-uppercase border-start-0 border-end-0 fs-6">Total Seats</th>
+                        <th style={{ width: '10%' }} className="py-3 text-center fw-bold text-white text-uppercase border-start-0 border-end-0 fs-6">Reserved</th>
+                        <th style={{ width: '10%' }} className="py-3 text-center fw-bold text-white text-uppercase border-start-0 border-end-0 fs-6">Available</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -169,10 +261,10 @@ export default function TransportVehicles() {
                             <td className="ps-4 fw-bold text-dark">{route.route_no}</td>
                             <td className="text-dark">{route.route_name}</td>
                             <td className="text-muted small">{route.vehicle_register_no || '-'}</td>
-                            <td className="text-muted small">{route.seats_available || 0}</td>
-                            <td className="text-muted small">{route.reserved_count}</td>
-                            <td className={`small fw-bold ${((route.seats_available || 0) - route.reserved_count) > 0 ? 'text-success' : 'text-danger'}`}>
-                              {(route.seats_available || 0) - route.reserved_count}
+                            <td className="text-muted small text-center">{route.seats_available || 0}</td>
+                            <td className="text-muted small text-center">{route.reserved_count}</td>
+                            <td className={`small fw-bold text-center ${Math.max(0, (route.seats_available || 0) - route.reserved_count) > 0 ? 'text-success' : 'text-danger'}`}>
+                              {Math.max(0, (route.seats_available || 0) - route.reserved_count)}
                             </td>
                           </tr>
                         ))

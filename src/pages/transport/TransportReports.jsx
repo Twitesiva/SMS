@@ -1,209 +1,285 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import TransportShell from '../../components/TransportShell'
 import { supabase } from '../../../supabaseClient'
 import { toast } from 'react-toastify'
 
 export default function TransportReports() {
-    const [searchTerm, setSearchTerm] = useState('')
-    const [routeDetails, setRouteDetails] = useState(null)
-    const [isLoading, setIsLoading] = useState(false)
+    const [allocations, setAllocations] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [studentSearch, setStudentSearch] = useState('')
+    const [routeSearch, setRouteSearch] = useState('')
+    const [boardingPointSearch, setBoardingPointSearch] = useState('')
 
-    const handleSearch = async () => {
-        if (!searchTerm) return
+    useEffect(() => {
+        fetchAllocations()
+    }, [])
 
-        setIsLoading(true)
-        setRouteDetails(null)
+    useEffect(() => {
+        setBoardingPointSearch('')
+    }, [routeSearch])
 
+    const fetchAllocations = async () => {
         try {
-            // First find the route
-            const { data: routeData, error: routeError } = await supabase
-                .from('transport_routes')
-                .select('*')
-                .ilike('route_no', searchTerm)
-                .single()
-
-            if (routeError) {
-                if (routeError.code === 'PGRST116') {
-                    toast.error('Route number not found.')
-                } else {
-                    console.error('Error fetching route:', routeError)
-                    toast.error('Error searching for route.')
-                }
-                setIsLoading(false)
-                return
-            }
-
-            if (!routeData) {
-                toast.error('Route not found.')
-                setIsLoading(false)
-                return
-            }
-
-            // Now get students registered for this route
-            const { data: studentsData, error: studentsError } = await supabase
+            setLoading(true)
+            const { data, error } = await supabase
                 .from('student_transport')
                 .select(`
                     id,
-                    student_id,
+                    created_at,
+                    route_id,
                     boarding_point_id,
+                    status,
                     students (
-                        full_name,
-                        student_id,
-                        course_name,
-                        group_name,
+                        id,
+                        full_name, 
+                        student_id, 
+                        course_name, 
+                        group_name, 
                         academic_year
                     ),
+                    transport_routes (
+                        id,
+                        route_no, 
+                        route_name,
+                        vehicle_register_no,
+                        seats_available
+                    ),
                     transport_route_boarding_points (
+                        id,
                         name,
                         departure_time
                     )
                 `)
-                .eq('route_id', routeData.id)
+                .eq('status', 'CONFIRMED')
+                .order('created_at', { ascending: false })
 
-            if (studentsError) {
-                console.error('Error fetching registered students:', studentsError)
-                toast.error('Error fetching student details.')
-                setIsLoading(false)
-                return
-            }
-
-            setRouteDetails({
-                route: routeData,
-                students: studentsData || []
-            })
-
+            if (error) throw error
+            setAllocations(data || [])
 
         } catch (error) {
-            console.error('Unexpected error:', error)
-            toast.error('An unexpected error occurred.')
+            console.error('Error fetching allocations:', error)
+            toast.error('Failed to load reports data')
         } finally {
-            setIsLoading(false)
+            setLoading(false)
         }
     }
 
-    const handleKeyPress = (e) => {
-        if (e.key === 'Enter') {
-            handleSearch()
-        }
-    }
+    const uniqueRoutes = useMemo(() => {
+        const routes = allocations
+            .map(item => item.transport_routes?.route_no)
+            .filter(Boolean)
+        return [...new Set(routes)].sort()
+    }, [allocations])
 
+    const uniqueBoardingPoints = useMemo(() => {
+        let filtered = allocations
+        if (routeSearch) {
+            filtered = allocations.filter(item => item.transport_routes?.route_no === routeSearch)
+        }
+        const points = filtered
+            .map(item => item.transport_route_boarding_points?.name)
+            .filter(Boolean)
+        return [...new Set(points)].sort()
+    }, [allocations, routeSearch])
+
+    const filteredAllocations = allocations.filter(item => {
+        const sSearch = studentSearch.toLowerCase()
+        const rSearch = routeSearch.toLowerCase()
+        const bSearch = boardingPointSearch
+
+        const studentName = item.students?.full_name?.toLowerCase() || ''
+        const studentId = item.students?.student_id?.toLowerCase() || ''
+        const routeNo = item.transport_routes?.route_no?.toLowerCase() || ''
+        const boardingPoint = item.transport_route_boarding_points?.name || ''
+
+        const matchesStudent = !sSearch || studentName.includes(sSearch) || studentId.includes(sSearch)
+        const matchesRoute = !rSearch || routeNo === rSearch
+        const matchesBoardingPoint = !bSearch || boardingPoint === bSearch
+
+        return matchesStudent && matchesRoute && matchesBoardingPoint
+    })
+
+    const selectedRouteDetails = useMemo(() => {
+        if (!routeSearch) return null
+        return allocations.find(item => item.transport_routes?.route_no === routeSearch)?.transport_routes
+    }, [routeSearch, allocations])
+
+    const routeStats = useMemo(() => {
+        if (!selectedRouteDetails || !routeSearch) return null
+
+        const totalSeats = selectedRouteDetails.seats_available || 0
+        const reserved = allocations.filter(a => a.transport_routes?.route_no === routeSearch).length
+        const available = totalSeats - reserved
+
+        return { totalSeats, reserved, available }
+    }, [selectedRouteDetails, routeSearch, allocations])
 
     return (
-        <TransportShell>
-            <div className="container-fluid py-4">
-                <div className="row mb-4">
+        <TransportShell brandTitle="Transport Management" brandSubtitle="Transport Reports">
+            <div className="container-fluid px-0">
+                <div className="row justify-content-center">
                     <div className="col-12">
-                        <h2 className="mb-2">Transport Reports</h2>
-                        <p className="text-muted">Enter a route number to view registered students and route details.</p>
-                    </div>
-                </div>
-
-                <div className="card shadow-sm border-0 mb-4">
-                    <div className="card-body p-4">
-                        <div className="row g-3">
-                            <div className="col-md-6">
-                                <label className="form-label fw-bold">Search Route</label>
-                                <div className="input-group">
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        placeholder="Enter Route Number (e.g., RR02)"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        onKeyPress={handleKeyPress}
-                                    />
-                                    <button
-                                        className="btn btn-primary px-4"
-                                        onClick={handleSearch}
-                                        disabled={isLoading}
-                                    >
-                                        {isLoading ? 'Searching...' : 'Search'}
-                                    </button>
-                                </div>
+                        <div className="transport-card shadow-sm border-0">
+                            <div className="transport-card__header py-3 px-4 text-white">
+                                <h5 className="mb-0 fw-bold">Transport Reports</h5>
                             </div>
-                        </div>
-                    </div>
-                </div>
 
-                {routeDetails && (
-                    <div className="fade-in">
-                        {/* Route Summary Card */}
-                        <div className="card shadow-sm border-0 mb-4 bg-primary bg-opacity-10">
-                            <div className="card-body p-4">
-                                <h4 className="card-title text-primary fw-bold mb-4">Route Information : {routeDetails.route.route_name}</h4>
-                                <div className="row g-4">
-                                    <div className="col-md-3">
-                                        <small className="text-muted d-block text-uppercase fw-bold mb-1">Route Number</small>
-                                        <span className="fs-5 fw-bold text-dark">{routeDetails.route.route_no}</span>
+                            <div className="p-3 bg-light border-bottom">
+                                <div className="row g-3">
+                                    <div className="col-md-4">
+                                        <label className="form-label text-muted small fw-bold text-uppercase">Filter by Route Number</label>
+                                        <div className="input-group">
+                                            <span className="input-group-text bg-white border"><i className="bi bi-bus-front"></i></span>
+                                            <select
+                                                className="form-select border"
+                                                value={routeSearch}
+                                                onChange={(e) => setRouteSearch(e.target.value)}
+                                            >
+                                                <option value="">Select Route No</option>
+                                                {uniqueRoutes.map(route => (
+                                                    <option key={route} value={route}>{route}</option>
+                                                ))}
+                                            </select>
+                                        </div>
                                     </div>
-                                    <div className="col-md-3">
-                                        <small className="text-muted d-block text-uppercase fw-bold mb-1">Bus Register No</small>
-                                        <span className="fs-5 fw-bold text-dark">{routeDetails.route.vehicle_register_no || 'N/A'}</span>
+                                    <div className="col-md-4">
+                                        <label className="form-label text-muted small fw-bold text-uppercase">Filter by Boarding Point</label>
+                                        <div className="input-group">
+                                            <span className="input-group-text bg-white border"><i className="bi bi-geo-alt"></i></span>
+                                            <select
+                                                className="form-select border"
+                                                value={boardingPointSearch}
+                                                onChange={(e) => setBoardingPointSearch(e.target.value)}
+                                            >
+                                                <option value="">Select Boarding Point</option>
+                                                {uniqueBoardingPoints.map(point => (
+                                                    <option key={point} value={point}>{point}</option>
+                                                ))}
+                                            </select>
+                                        </div>
                                     </div>
-                                    <div className="col-md-3">
-                                        <small className="text-muted d-block text-uppercase fw-bold mb-1">Total Seats</small>
-                                        <span className="fs-5 fw-bold text-dark">{routeDetails.route.seats_available || 'N/A'}</span>
-                                    </div>
-                                    <div className="col-md-3">
-                                        <small className="text-muted d-block text-uppercase fw-bold mb-1">Total Registered</small>
-                                        <span className="fs-5 fw-bold text-primary">{routeDetails.students.length}</span>
+                                    <div className="col-md-4">
+                                        <label className="form-label text-muted small fw-bold text-uppercase">Search by Student ID</label>
+                                        <div className="input-group">
+                                            <span className="input-group-text bg-white border"><i className="bi bi-search"></i></span>
+                                            <input
+                                                type="text"
+                                                className="form-control border"
+                                                placeholder="Enter Student ID..."
+                                                value={studentSearch}
+                                                onChange={(e) => setStudentSearch(e.target.value)}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
 
-                        {/* Students Table */}
-                        <div className="card shadow-sm border-0">
-                            <div className="card-header bg-white py-3">
-                                <h5 className="mb-0 fw-bold">Registered Student List</h5>
+                                {/* Route Details Display */}
+                                {selectedRouteDetails && (
+                                    <div className="row mt-3">
+                                        <div className="col-12">
+                                            <div className="bg-white rounded border p-3">
+                                                <div className="row g-3">
+                                                    {/* Left Column: Route Basic Info */}
+                                                    <div className="col-12 col-md-6 border-end-md">
+                                                        <div className="d-flex flex-column gap-2">
+                                                            <div className="d-flex align-items-center">
+                                                                <span className="text-uppercase fw-semibold" style={{ minWidth: '160px' }}>ROUTE NUMBER</span>
+                                                                <span className="mx-2">:</span>
+                                                                <span>{selectedRouteDetails.route_no}</span>
+                                                            </div>
+                                                            <div className="d-flex align-items-center">
+                                                                <span className="text-uppercase fw-semibold" style={{ minWidth: '160px' }}>ROUTE NAME</span>
+                                                                <span className="mx-2">:</span>
+                                                                <span>{selectedRouteDetails.route_name}</span>
+                                                            </div>
+                                                            <div className="d-flex align-items-center">
+                                                                <span className="text-uppercase fw-semibold" style={{ minWidth: '160px' }}>VEHICLE NUMBER</span>
+                                                                <span className="mx-2">:</span>
+                                                                <span>{selectedRouteDetails.vehicle_register_no || '-'}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Right Column: Capacity Stats */}
+                                                    <div className="col-12 col-md-6 ps-md-4">
+                                                        {routeStats && (
+                                                            <div className="d-flex flex-column gap-2">
+                                                                <div className="d-flex align-items-center">
+                                                                    <span className="text-uppercase fw-semibold" style={{ minWidth: '160px' }}>TOTAL SEATS</span>
+                                                                    <span className="mx-2">:</span>
+                                                                    <span>{routeStats.totalSeats}</span>
+                                                                </div>
+                                                                <div className="d-flex align-items-center">
+                                                                    <span className="text-uppercase fw-semibold" style={{ minWidth: '160px' }}>RESERVED</span>
+                                                                    <span className="mx-2">:</span>
+                                                                    <span>{routeStats.reserved}</span>
+                                                                </div>
+                                                                <div className="d-flex align-items-center">
+                                                                    <span className="text-uppercase fw-semibold" style={{ minWidth: '160px' }}>AVAILABLE</span>
+                                                                    <span className="mx-2">:</span>
+                                                                    <span className={routeStats.available <= 0 ? 'text-danger fw-bold' : ''}>{routeStats.available}</span>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                            <div className="table-responsive">
-                                <table className="table table-hover align-middle mb-0">
-                                    <thead className="table-light">
-                                        <tr>
-                                            <th className="py-3 ps-4">S.No</th>
-                                            <th className="py-3">Student Name</th>
-                                            <th className="py-3">Boarding Point</th>
-                                            <th className="py-3">Time</th>
-                                            <th className="py-3">Class Info</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {routeDetails.students.length > 0 ? (
-                                            routeDetails.students.map((record, index) => (
-                                                <tr key={record.id}>
-                                                    <td className="ps-4 fw-bold text-secondary">{index + 1}</td>
-                                                    <td>
-                                                        <div className="fw-bold text-dark">{record.students?.full_name}</div>
-                                                        <div className="small text-muted">{record.students?.student_id}</div>
-                                                    </td>
-                                                    <td className="fw-medium">{record.transport_route_boarding_points?.name}</td>
-                                                    <td>
-                                                        <span className="badge bg-light text-dark border">
-                                                            {record.transport_route_boarding_points?.departure_time}
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        <div className="small">
-                                                            <div>{record.students?.course_name || '-'}</div>
-                                                            <div className="text-muted">{record.students?.academic_year}</div>
+
+                            <div className="card-body p-0">
+                                <div className="table-responsive">
+                                    <table className="table table-bordered table-hover align-middle mb-0">
+                                        <thead className="transport-card__header text-white">
+                                            <tr>
+                                                <th className="ps-4 py-3 fw-bold text-white text-uppercase border-end-0 fs-6" style={{ width: '60px' }}>S.No</th>
+                                                <th className="py-3 fw-bold text-white text-uppercase border-start-0 border-end-0 fs-6">Student ID</th>
+                                                <th className="py-3 fw-bold text-white text-uppercase border-start-0 border-end-0 fs-6">Student Name</th>
+                                                <th className="py-3 fw-bold text-white text-uppercase border-start-0 border-end-0 fs-6">Route No</th>
+                                                <th className="py-3 fw-bold text-white text-uppercase border-start-0 border-end-0 fs-6">Boarding Point</th>
+                                                <th className="py-3 fw-bold text-white text-uppercase border-start-0 fs-6">Boarding Time</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {loading ? (
+                                                <tr>
+                                                    <td colSpan="6" className="text-center py-5">
+                                                        <div className="spinner-border text-primary" role="status">
+                                                            <span className="visually-hidden">Loading...</span>
                                                         </div>
                                                     </td>
                                                 </tr>
-                                            ))
-                                        ) : (
-                                            <tr>
-                                                <td colSpan="5" className="text-center py-5 text-muted">
-                                                    No students registered for this route yet.
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
+                                            ) : filteredAllocations.length > 0 ? (
+                                                filteredAllocations.map((item, index) => (
+                                                    <tr key={item.id || index}>
+                                                        <td className="ps-4 fw-bold text-dark">{index + 1}</td>
+                                                        <td className="text-dark fw-bold">{item.students?.student_id || '-'}</td>
+                                                        <td className="text-dark fw-semibold">{item.students?.full_name}</td>
+                                                        <td className="text-dark fw-bold">{item.transport_routes?.route_no}</td>
+                                                        <td className="text-dark">{item.transport_route_boarding_points?.name}</td>
+                                                        <td className="text-dark font-monospace">{item.transport_route_boarding_points?.departure_time}</td>
+                                                    </tr>
+                                                ))
+                                            ) : (
+                                                <tr>
+                                                    <td colSpan="6" className="text-center py-5 text-muted">
+                                                        <div className="d-flex flex-column align-items-center opacity-50">
+                                                            <i className="bi bi-person-x fs-4 mb-2"></i>
+                                                            <p className="mb-0 small">No records found matching your search.</p>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
+
                         </div>
                     </div>
-                )}
+                </div>
             </div>
         </TransportShell>
     )

@@ -78,14 +78,17 @@ export default function StudentTransport() {
                         route_name,
                         route_no,
                         vehicle_register_no,
-                        academic_year
+                        academic_year,
+                        seats_available,
+                        reserved_seats,
+                        student_transport (count)
                     )
                 `)
                 .order('name')
 
             if (error) throw error
             setBoardingPoints(data || [])
-            setBoardingPoints(data || [])
+
             // setFilteredPoints(data || []) // Don't show by default
         } catch (error) {
             console.error('Error fetching transport data:', error)
@@ -118,7 +121,7 @@ export default function StudentTransport() {
                 .from('student_transport')
                 .select(`
                     *,
-                    transport_routes (route_name, route_no),
+                    transport_routes (route_name, route_no, reserved_seats),
                     transport_route_boarding_points (name, departure_time)
                 `)
                 .eq('student_id', student.id)
@@ -139,55 +142,92 @@ export default function StudentTransport() {
     const handleConfirmRegistration = async () => {
         if (!student || !selectedPoint) return
         const point = selectedPoint
-
-        // Use student's academic year if available, otherwise use route's or current (assuming logic)
-        // For now, let's use the route's academic year as transport is usually tied to it
         const academicYear = point.transport_routes?.academic_year || student.academic_year
+
+        // Check if route is full using reserved_seats
+        const route = point.transport_routes
+        const capacity = Number(route?.seats_available || 0)
+        // Use reserved_seats if available, otherwise fallback to count (though user asked for reserved_seats)
+        const currentReserved = route?.reserved_seats !== undefined ? Number(route.reserved_seats) : (route?.student_transport?.[0]?.count || 0)
+
+        const isFull = currentReserved >= capacity
+        const status = isFull ? 'NOT CONFIRMED' : 'CONFIRMED'
 
         setRegisteringId(point.id)
         try {
-            // Check if already registered (double check)
             if (existingRegistration) {
-                // Determine if we should update or block. User said "registration", usually implies new.
-                // Or maybe update if they want to change route.
-                // Let's allow update for flexibility, but warn/ask? 
-                // For this implementation, I'll do an upsert or delete-then-insert style update logic
-                // But specifically for 'student_transport', let's assume one route per student per year.
+                // Update Logic
+                const oldRouteId = existingRegistration.route_id
+                const oldStatus = existingRegistration.status
+                const oldReserved = existingRegistration.transport_routes?.reserved_seats || 0
 
                 const { error: updateError } = await supabase
                     .from('student_transport')
                     .update({
                         route_id: point.route_id,
                         boarding_point_id: point.id,
-                        academic_year: academicYear
+                        academic_year: academicYear,
+                        status: status
                     })
                     .eq('id', existingRegistration.id)
 
                 if (updateError) throw updateError
-                toast.success('Transport route updated successfully')
+
+                // Handle Counter Updates
+                // 1. Decrement Old if it was confirmed
+                if (oldStatus === 'CONFIRMED' && oldRouteId) {
+                    // Check if we moved to a new route OR status changed (e.g. became waitlisted on new route)
+                    // If route is same and status is same (CONFIRMED -> CONFIRMED), no change needed.
+                    if (oldRouteId !== point.route_id || status !== oldStatus) {
+                        await supabase.from('transport_routes')
+                            .update({ reserved_seats: Math.max(0, oldReserved - 1) })
+                            .eq('id', oldRouteId)
+                    }
+                }
+
+                // 2. Increment New if it is confirmed
+                if (status === 'CONFIRMED') {
+                    // Increment if route switched or status switched (Waitlist -> Confirmed)
+                    if (oldRouteId !== point.route_id || oldStatus !== 'CONFIRMED') {
+                        await supabase.from('transport_routes')
+                            .update({ reserved_seats: currentReserved + 1 })
+                            .eq('id', point.route_id)
+                    }
+                }
+
+                toast.success(isFull ? 'Added to waiting list successfully' : 'Transport route updated successfully')
             } else {
+                // Insert Logic
                 const { error: insertError } = await supabase
                     .from('student_transport')
                     .insert([{
                         student_id: student.id,
                         route_id: point.route_id,
                         boarding_point_id: point.id,
-                        academic_year: academicYear
+                        academic_year: academicYear,
+                        status: status
                     }])
 
                 if (insertError) throw insertError
 
-                // specific logic to update student status
                 await supabase
                     .from('students')
                     .update({ is_transport: true })
                     .eq('id', student.id)
 
-                toast.success('Registered for transport successfully')
+                // Increment Sequence if Confirmed
+                if (status === 'CONFIRMED') {
+                    await supabase.from('transport_routes')
+                        .update({ reserved_seats: currentReserved + 1 })
+                        .eq('id', point.route_id)
+                }
+
+                toast.success(isFull ? 'Added to waiting list successfully' : 'Registered for transport successfully')
             }
 
-            // Refresh registration status
-            checkExistingRegistration()
+            // Refresh data
+            await fetchTransportData()
+            await checkExistingRegistration()
             setShowModal(false)
             setSelectedPoint(null)
 
@@ -205,19 +245,20 @@ export default function StudentTransport() {
                 <div className="students-section-shell-header d-flex justify-content-between align-items-center">
                     <div>
                         <h2 className="mb-1">Transport Registration</h2>
-                        <p className="students-section-copy mb-0">Search and select your boarding point</p>
                     </div>
                 </div>
 
                 <div className="card students-section-card mb-4">
                     <div className="card-body p-4">
                         {existingRegistration && (
-                            <div className="alert alert-success border-success bg-opacity-10 d-flex align-items-start mb-4 gap-3 p-4 rounded-3 shadow-sm" style={{ backgroundColor: '#e8f5e9' }}>
-                                <div className="p-2 bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }}>
-                                    <i className="bi bi-bus-front-fill fs-5"></i>
+                            <div className={`alert ${existingRegistration.status === 'CONFIRMED' ? 'alert-success border-success' : 'alert-warning border-warning'} bg-opacity-10 d-flex align-items-start mb-4 gap-3 p-4 rounded-3 shadow-sm`}>
+                                <div className={`p-2 ${existingRegistration.status === 'CONFIRMED' ? 'bg-success' : 'bg-warning'} text-white rounded-circle d-flex align-items-center justify-content-center`} style={{ width: '40px', height: '40px' }}>
+                                    <i className={`bi ${existingRegistration.status === 'CONFIRMED' ? 'bi-check-lg' : 'bi-clock-history'} fs-5`}></i>
                                 </div>
                                 <div className="flex-grow-1">
-                                    <h5 className="alert-heading fw-bold mb-3 text-success">Active Transport Registration</h5>
+                                    <h5 className="alert-heading fw-bold mb-3 text-dark">
+                                        Transport Registration Status: {existingRegistration.status === 'CONFIRMED' ? 'Confirmed' : 'Waitlisted'}
+                                    </h5>
 
                                     <div className="row g-3">
                                         <div className="col-md-6">
@@ -235,15 +276,17 @@ export default function StudentTransport() {
                                             <div className="text-dark"><i className="bi bi-clock me-1"></i> {existingRegistration.transport_route_boarding_points?.departure_time}</div>
                                         </div>
 
-                                        <div className="col-12 mt-3 pt-3 border-top border-success border-opacity-25">
+                                        <div className="col-12 mt-3 pt-3 border-top border-opacity-25" style={{ borderColor: 'inherit' }}>
                                             <div className="d-flex justify-content-between align-items-center">
                                                 <div>
                                                     <div className="text-muted small text-uppercase fw-bold">Annual Fee</div>
-                                                    <div className="fs-4 fw-bold text-success">
+                                                    <div className="fs-4 fw-bold text-dark">
                                                         {transportFee ? `₹${Number(transportFee).toLocaleString()}` : <span className="text-muted fs-6">Not set</span>}
                                                     </div>
                                                 </div>
-                                                <span className="badge bg-success px-3 py-2 rounded-pill">Confirmed</span>
+                                                <span className={`badge ${existingRegistration.status === 'CONFIRMED' ? 'bg-success' : 'bg-warning text-dark'} px-3 py-2 rounded-pill`}>
+                                                    {existingRegistration.status || 'Registered'}
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
@@ -395,22 +438,46 @@ export default function StudentTransport() {
                                         </div>
                                     </div>
 
+                                    {(() => {
+                                        const route = selectedPoint.transport_routes
+                                        const capacity = Number(route?.seats_available || 0)
+                                        const reserved = route?.reserved_seats !== undefined ? Number(route.reserved_seats) : (route?.student_transport?.[0]?.count || 0)
+                                        const isFull = reserved >= capacity
+
+                                        return isFull ? (
+                                            <div className="alert alert-warning border-warning bg-warning bg-opacity-10 d-flex align-items-center mb-0 mt-3" role="alert">
+                                                <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                                                <div className="small fw-bold text-dark">This route is currently full. You can join the waiting list.</div>
+                                            </div>
+                                        ) : null
+                                    })()}
+
                                 </div>
                                 <div className="modal-footer border-0 pt-0">
                                     <button type="button" className="btn btn-light" onClick={() => setShowModal(false)}>Cancel</button>
-                                    <button
-                                        type="button"
-                                        className="btn btn-primary px-4"
-                                        onClick={handleConfirmRegistration}
-                                        disabled={!!registeringId}
-                                    >
-                                        {registeringId ? (
-                                            <>
-                                                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                                Confirming...
-                                            </>
-                                        ) : 'Confirm Registration'}
-                                    </button>
+
+                                    {(() => {
+                                        const route = selectedPoint.transport_routes
+                                        const capacity = Number(route?.seats_available || 0)
+                                        const reserved = route?.reserved_seats !== undefined ? Number(route.reserved_seats) : (route?.student_transport?.[0]?.count || 0)
+                                        const isFull = reserved >= capacity
+
+                                        return (
+                                            <button
+                                                type="button"
+                                                className={`btn ${isFull ? 'btn-warning text-dark' : 'btn-primary'} px-4`}
+                                                onClick={handleConfirmRegistration}
+                                                disabled={!!registeringId}
+                                            >
+                                                {registeringId ? (
+                                                    <>
+                                                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                                        {isFull ? 'Joining Waitlist...' : 'Confirming...'}
+                                                    </>
+                                                ) : (isFull ? 'Confirm & Join Waitlist' : 'Confirm Registration')}
+                                            </button>
+                                        )
+                                    })()}
                                 </div>
                             </div>
                         </div>

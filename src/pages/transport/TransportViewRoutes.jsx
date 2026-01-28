@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import TransportShell from '../../components/TransportShell'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
@@ -19,11 +20,16 @@ export default function TransportViewRoutes() {
   const [routes, setRoutes] = useState([])
   const [academicYears, setAcademicYears] = useState([])
   const [selectedYear, setSelectedYear] = useState('')
+  const navigate = useNavigate()
 
   // Modal State
   const [showModal, setShowModal] = useState(false)
   const [modalLoading, setModalLoading] = useState(false)
   const [selectedRouteDetails, setSelectedRouteDetails] = useState(null)
+
+  // Delete Confirmation State
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [routeToDelete, setRouteToDelete] = useState(null)
 
   useEffect(() => {
     fetchAcademicYears()
@@ -59,7 +65,7 @@ export default function TransportViewRoutes() {
           *,
           student_transport (count)
         `)
-        .order('id', { ascending: false })
+        .order('route_no', { ascending: true })
 
       if (error) throw error
 
@@ -130,6 +136,38 @@ export default function TransportViewRoutes() {
     setSelectedRouteDetails(null)
   }
 
+  const handleEdit = (e, route) => {
+    e.stopPropagation()
+    navigate('/transport/routes', { state: { editRoute: route } })
+  }
+
+  const handleDelete = async (e, id) => {
+    e.stopPropagation()
+    setRouteToDelete(id)
+    setShowDeleteModal(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!routeToDelete) return
+
+    try {
+      const { error } = await supabase
+        .from('transport_routes')
+        .delete()
+        .eq('id', routeToDelete)
+
+      if (error) throw error
+
+      setRoutes(prev => prev.filter(r => r.id !== routeToDelete))
+      showToast('Route deleted successfully', 'success')
+      setShowDeleteModal(false)
+      setRouteToDelete(null)
+    } catch (error) {
+      console.error('Error deleting route:', error)
+      showToast('Failed to delete route', 'error')
+    }
+  }
+
 
 
   return (
@@ -170,8 +208,7 @@ export default function TransportViewRoutes() {
                         <th style={{ width: '10%' }} className="ps-4 py-3 fw-bold text-white text-uppercase border-end-0 fs-6">Route No</th>
                         <th style={{ width: '25%' }} className="py-3 fw-bold text-white text-uppercase border-start-0 border-end-0 fs-6">Route Name</th>
                         <th style={{ width: '20%' }} className="py-3 fw-bold text-white text-uppercase border-start-0 border-end-0 fs-6">Vehicle No</th>
-
-
+                        <th style={{ width: '15%' }} className="py-3 fw-bold text-white text-uppercase border-start-0 fs-6 text-end pe-4">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -185,8 +222,26 @@ export default function TransportViewRoutes() {
                             <td className="ps-4 fw-bold text-dark">{route.route_no}</td>
                             <td className="text-dark">{route.route_name}</td>
                             <td className="text-muted small">{route.vehicle_register_no || '-'}</td>
-
-
+                            <td className="text-end pe-4">
+                              <div className="d-flex justify-content-end gap-2">
+                                <button
+                                  className="btn btn-outline-primary rounded p-0"
+                                  onClick={(e) => handleEdit(e, route)}
+                                  title="Edit Route"
+                                  style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}
+                                >
+                                  <i className="bi bi-pencil"></i>
+                                </button>
+                                <button
+                                  className="btn btn-outline-danger rounded p-0"
+                                  onClick={(e) => handleDelete(e, route.id)}
+                                  title="Delete Route"
+                                  style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}
+                                >
+                                  <i className="bi bi-trash"></i>
+                                </button>
+                              </div>
+                            </td>
                           </tr>
                         ))
                       ) : (
@@ -288,6 +343,46 @@ export default function TransportViewRoutes() {
               </div>
               <div className="modal-footer border-0 bg-light">
                 <button type="button" className="btn btn-secondary px-4" onClick={closeModal}>Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1060 }} tabIndex="-1">
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content border-0 shadow">
+              <div className="modal-header border-0 pb-0">
+                <h5 className="modal-title fw-bold text-uppercase">CONFIRM DELETE</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setShowDeleteModal(false)}
+                  aria-label="Close"
+                ></button>
+              </div>
+              <div className="modal-body py-4">
+                <p className="mb-0">
+                  Are you sure you want to delete this route?
+                </p>
+              </div>
+              <div className="modal-footer border-0 pt-0 justify-content-end gap-2">
+                <button
+                  type="button"
+                  className="btn btn-light border px-4"
+                  onClick={() => setShowDeleteModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger px-4"
+                  onClick={confirmDelete}
+                >
+                  Confirm Delete
+                </button>
               </div>
             </div>
           </div>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import TransportShell from '../../components/TransportShell'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
@@ -20,6 +20,7 @@ export default function TransportRoutes() {
   const [loading, setLoading] = useState(false)
   const [recentRoutes, setRecentRoutes] = useState([])
   const navigate = useNavigate()
+  const location = useLocation()
 
   const [editingRouteId, setEditingRouteId] = useState(null)
 
@@ -34,6 +35,43 @@ export default function TransportRoutes() {
     fetchAcademicYears()
     fetchRecentRoutes()
   }, [])
+
+  useEffect(() => {
+    if (location.state?.editRoute) {
+      loadForEdit(location.state.editRoute)
+    }
+  }, [location.state])
+
+  const loadForEdit = async (route) => {
+    setEditingRouteId(route.id)
+    setForm(prev => ({
+      ...prev,
+      routeNo: route.route_no,
+      routeName: route.route_name,
+      academicYear: route.academic_year,
+      vehicleRegisterNo: route.vehicle_register_no || '',
+      seatsAvailable: route.seats_available || '',
+      boardingPoints: []
+    }))
+
+    try {
+      const { data, error } = await supabase
+        .from('transport_route_boarding_points')
+        .select('*')
+        .eq('route_id', route.id)
+        .order('stop_order', { ascending: true })
+
+      if (error) throw error
+
+      if (data) {
+        const points = data.map(p => ({ name: p.name, time: p.departure_time }))
+        setForm(prev => ({ ...prev, boardingPoints: points }))
+      }
+    } catch (error) {
+      console.error('Error loading boarding points:', error)
+      showToast('Error loading boarding points', 'error')
+    }
+  }
 
   const fetchRecentRoutes = async () => {
     try {
@@ -458,7 +496,6 @@ export default function TransportRoutes() {
                           <th className="ps-4 py-3 text-secondary small text-uppercase">Route No</th>
                           <th className="py-3 text-secondary small text-uppercase">Route Name</th>
                           <th className="py-3 text-secondary small text-uppercase">Vehicle No</th>
-                          <th className="py-3 text-secondary small text-uppercase">Academic Year</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -467,9 +504,6 @@ export default function TransportRoutes() {
                             <td className="ps-4 fw-bold text-dark">{route.route_no}</td>
                             <td className="text-dark">{route.route_name}</td>
                             <td className="text-muted small">{route.vehicle_register_no || '-'}</td>
-                            <td className="text-muted small">
-                              <span className="badge bg-light text-dark border">{route.academic_year}</span>
-                            </td>
                           </tr>
                         ))}
                       </tbody>
