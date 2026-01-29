@@ -18,8 +18,8 @@ export default function RoomYearMapping() {
     const [loading, setLoading] = useState(false);
     const [allocatedRooms, setAllocatedRooms] = useState([]);
     const [allocatedLoading, setAllocatedLoading] = useState(false);
-    const [allocatedFilters, setAllocatedFilters] = useState({ academic_year: '', floor_no: '', room_type: '' });
     const [showAllAllocated, setShowAllAllocated] = useState(false);
+    const [allocatedDetailModal, setAllocatedDetailModal] = useState({ show: false, row: null });
     const [editModal, setEditModal] = useState({ show: false, room: null });
     const [editForm, setEditForm] = useState({
         room_no: '',
@@ -93,7 +93,7 @@ export default function RoomYearMapping() {
         setAllocatedLoading(true);
         let query = supabase
             .from('hostel_room_year_mapping')
-            .select('room_id, academic_year, year_of_study, is_active, hostel_rooms ( id, room_no, floor_no, room_type, bed_count, block_id )')
+            .select('room_id, academic_year, year_of_study, is_active, hostel_rooms ( id, room_no, floor_no, room_type, bed_count, block_id, hostel_blocks ( block_name ) )')
             .eq('is_active', true);
 
         if (selectedYear) query = query.eq('academic_year', selectedYear);
@@ -118,16 +118,7 @@ export default function RoomYearMapping() {
         fetchAllocatedRooms();
     }, [selectedYear, selectedStudyYear, selectedBlock, selectedFloor, selectedRoom]);
 
-    const filteredAllocatedRooms = useMemo(() => {
-        return allocatedRooms.filter((row) => {
-            if (allocatedFilters.academic_year && row.academic_year !== allocatedFilters.academic_year) return false;
-            if (allocatedFilters.floor_no !== '' && String(row.hostel_rooms?.floor_no) !== String(allocatedFilters.floor_no)) return false;
-            if (allocatedFilters.room_type && row.hostel_rooms?.room_type !== allocatedFilters.room_type) return false;
-            return true;
-        });
-    }, [allocatedRooms, allocatedFilters]);
-
-    const visibleAllocatedRooms = showAllAllocated ? filteredAllocatedRooms : filteredAllocatedRooms.slice(0, 3);
+    const visibleAllocatedRooms = showAllAllocated ? allocatedRooms : allocatedRooms.slice(0, 3);
 
     const toggleMapping = async (roomId) => {
         if (!selectedStudyYear) {
@@ -467,54 +458,6 @@ export default function RoomYearMapping() {
                                     Allocated Rooms{selectedYear ? ` - ${selectedYear}` : ''}
                                 </h5>
                             </div>
-                            <div className="row g-3 mb-3">
-                                <div className="col-md-4">
-                                    <label className="form-label fw-bold mb-1">Academic Year</label>
-                                    <select
-                                        className="form-select"
-                                        value={allocatedFilters.academic_year}
-                                        onChange={(e) => setAllocatedFilters((prev) => ({ ...prev, academic_year: e.target.value }))}
-                                    >
-                                        <option value="">All Years</option>
-                                        {years.map((y) => (
-                                            <option key={y.academic_year} value={y.academic_year}>{y.academic_year}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="col-md-4">
-                                    <label className="form-label fw-bold mb-1">Floor</label>
-                                    <select
-                                        className="form-select"
-                                        value={allocatedFilters.floor_no}
-                                        onChange={(e) => setAllocatedFilters((prev) => ({ ...prev, floor_no: e.target.value }))}
-                                    >
-                                        <option value="">All Floors</option>
-                                        {floorOptions.map((floor) => (
-                                            <option key={floor} value={floor}>
-                                                {(() => {
-                                                    const f = Number(floor);
-                                                    if (f === 0) return 'Ground Floor';
-                                                    if (f === 1) return 'First Floor';
-                                                    if (f === 2) return 'Second Floor';
-                                                    return `Floor ${f}`;
-                                                })()}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="col-md-4">
-                                    <label className="form-label fw-bold mb-1">Room Type</label>
-                                    <select
-                                        className="form-select"
-                                        value={allocatedFilters.room_type}
-                                        onChange={(e) => setAllocatedFilters((prev) => ({ ...prev, room_type: e.target.value }))}
-                                    >
-                                        <option value="">All Types</option>
-                                        <option value="NON_AC">NON AC</option>
-                                        <option value="AC">AC</option>
-                                    </select>
-                                </div>
-                            </div>
                             {allocatedLoading ? (
                                 <HostelPreloader
                                     title="Loading allocated rooms"
@@ -529,17 +472,16 @@ export default function RoomYearMapping() {
                                                 style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)', fontSize: '1.1rem' }}
                                             >
                                                 <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Academic Year</th>
+                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Block</th>
                                                 <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Floor</th>
-                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room Type</th>
-                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room No</th>
-                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Capacity</th>
-                                                <th className="py-3 px-3 border-0 text-center" style={{ backgroundColor: 'transparent', color: 'white' }}>Availability Status</th>
+                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room Count</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {visibleAllocatedRooms.map((row) => (
-                                                <tr key={row.id}>
+                                                <tr key={row.id} style={{ cursor: 'pointer' }} onClick={() => setAllocatedDetailModal({ show: true, row })}>
                                                     <td>{row.academic_year}</td>
+                                                    <td>{row.hostel_rooms?.hostel_blocks?.block_name}</td>
                                                     <td>{(() => {
                                                         const f = Number(row.hostel_rooms?.floor_no);
                                                         if (f === 0) return 'Ground Floor';
@@ -547,19 +489,14 @@ export default function RoomYearMapping() {
                                                         if (f === 2) return 'Second Floor';
                                                         return `Floor ${f}`;
                                                     })()}</td>
-                                                    <td>{row.hostel_rooms?.room_type?.replace(/_/g, ' ')}</td>
-                                                    <td className="fw-bold">{row.hostel_rooms?.room_no}</td>
-                                                    <td>{row.hostel_rooms?.bed_count} Beds</td>
-                                                    <td className="text-center">
-                                                        <span className="fw-bold text-success">ACTIVE</span>
-                                                    </td>
+                                                    <td>{row.hostel_rooms?.bed_count}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
                                     </table>
                                 </div>
                             )}
-                            {filteredAllocatedRooms.length > 3 && (
+                            {allocatedRooms.length > 3 && (
                                 <div className="d-flex justify-content-end mt-3">
                                     <button
                                         type="button"
@@ -574,6 +511,71 @@ export default function RoomYearMapping() {
                     )}
                 </section>
             </div>
+            {allocatedDetailModal.show && allocatedDetailModal.row && (
+                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1055 }}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content allocated-room-details-modal">
+                            <div
+                                className="modal-header"
+                                style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)', color: 'white' }}
+                            >
+                                <h5 className="modal-title fw-bold">Allocated Room Details</h5>
+                                <button
+                                    type="button"
+                                    className="btn-close btn-close-white"
+                                    onClick={() => setAllocatedDetailModal({ show: false, row: null })}
+                                    aria-label="Close"
+                                ></button>
+                            </div>
+                            <div className="modal-body">
+                                <div className="bg-light rounded p-4 border">
+                                    <div className="d-flex flex-column gap-3">
+                                        <div className="d-flex align-items-center">
+                                            <small className="text-muted text-uppercase fw-bold" style={{ width: '160px', fontSize: '0.85rem' }}>Academic Year</small>
+                                            <span className="fw-bold text-dark fs-6">: {allocatedDetailModal.row.academic_year}</span>
+                                        </div>
+                                        <div className="d-flex align-items-center">
+                                            <small className="text-muted text-uppercase fw-bold" style={{ width: '160px', fontSize: '0.85rem' }}>Block</small>
+                                            <span className="fw-bold text-dark fs-6">: {allocatedDetailModal.row.hostel_rooms?.hostel_blocks?.block_name}</span>
+                                        </div>
+                                        <div className="d-flex align-items-center">
+                                            <small className="text-muted text-uppercase fw-bold" style={{ width: '160px', fontSize: '0.85rem' }}>Floor</small>
+                                            <span className="fw-bold text-dark fs-6">: {(() => {
+                                                const f = Number(allocatedDetailModal.row.hostel_rooms?.floor_no);
+                                                if (f === 0) return 'Ground Floor';
+                                                if (f === 1) return 'First Floor';
+                                                if (f === 2) return 'Second Floor';
+                                                return `Floor ${f}`;
+                                            })()}</span>
+                                        </div>
+                                        <div className="d-flex align-items-center">
+                                            <small className="text-muted text-uppercase fw-bold" style={{ width: '160px', fontSize: '0.85rem' }}>Room Type</small>
+                                            <span className="fw-bold text-dark fs-6">: {allocatedDetailModal.row.hostel_rooms?.room_type?.replace(/_/g, ' ')}</span>
+                                        </div>
+                                        <div className="d-flex align-items-center">
+                                            <small className="text-muted text-uppercase fw-bold" style={{ width: '160px', fontSize: '0.85rem' }}>Room No</small>
+                                            <span className="fw-bold text-dark fs-6">: {allocatedDetailModal.row.hostel_rooms?.room_no}</span>
+                                        </div>
+                                        <div className="d-flex align-items-center">
+                                            <small className="text-muted text-uppercase fw-bold" style={{ width: '160px', fontSize: '0.85rem' }}>Bed Count</small>
+                                            <span className="fw-bold text-dark fs-6">: {allocatedDetailModal.row.hostel_rooms?.bed_count}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-secondary"
+                                    onClick={() => setAllocatedDetailModal({ show: false, row: null })}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
             {editModal.show && (
                 <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1055 }} tabIndex="-1">
                     <div className="modal-dialog modal-dialog-centered">
@@ -656,16 +658,21 @@ export default function RoomYearMapping() {
                     </div>
                 </div>
             )}
-            <ConfirmationModal
-                isOpen={deleteModal.show}
-                onClose={() => setDeleteModal({ show: false, room: null })}
-                onConfirm={handleDeleteRoom}
-                title="Confirm Room Deletion"
-                confirmText="Delete Room"
-                confirmButtonClass="btn-danger"
-                isLoading={deleting}
-                message={`Are you sure you want to delete room ${deleteModal.room?.room_no || ''}? This will remove all related mappings.`}
-            />
+                <ConfirmationModal
+                    isOpen={deleteModal.show}
+                    onClose={() => setDeleteModal({ show: false, room: null })}
+                    onConfirm={handleDeleteRoom}
+                    title="Confirm Room Deletion"
+                    confirmText="Delete Room"
+                    confirmButtonClass="btn-danger"
+                    isLoading={deleting}
+                    message={`Are you sure you want to delete room ${deleteModal.room?.room_no || ''}? This will remove all related mappings.`}
+                />
+                <style>{`
+                    .allocated-room-details-modal .modal-title {
+                        color: #ffffff !important;
+                    }
+                `}</style>
         </HostelShell>
     );
 }
