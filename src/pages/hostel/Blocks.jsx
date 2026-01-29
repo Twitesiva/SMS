@@ -12,6 +12,9 @@ export default function HostelBlocks() {
     const [editingId, setEditingId] = useState(null);
     const [deleteModal, setDeleteModal] = useState({ show: false, id: null });
     const [showAllBlocks, setShowAllBlocks] = useState(false);
+    const [detailModal, setDetailModal] = useState({ show: false, block: null });
+    const [saveModal, setSaveModal] = useState({ show: false, payload: null, isEdit: false });
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         fetchBlocks();
@@ -60,30 +63,13 @@ export default function HostelBlocks() {
             }
         }
 
-        const payload = { 
-            block_name: trimmedName, 
-            gender: form.gender, 
-            total_floors: totalFloors 
+        const payload = {
+            block_name: trimmedName,
+            gender: form.gender,
+            total_floors: totalFloors
         };
 
-        if (editingId) {
-            const { error } = await supabase.from('hostel_blocks').update(payload).eq('id', editingId);
-            if (error) toast.error(error.message);
-            else {
-                toast.success('Block updated successfully');
-                setEditingId(null);
-                setForm({ id: '', block_name: '', gender: 'BOYS', total_floors: 1 });
-                fetchBlocks();
-            }
-        } else {
-            const { error } = await supabase.from('hostel_blocks').insert([payload]);
-            if (error) toast.error(error.message);
-            else {
-                toast.success('Block created successfully');
-                setForm({ id: '', block_name: '', gender: 'BOYS', total_floors: 1 });
-                fetchBlocks();
-            }
-        }
+        setSaveModal({ show: true, payload, isEdit: Boolean(editingId) });
     };
 
     const handleEdit = (block) => {
@@ -102,12 +88,50 @@ export default function HostelBlocks() {
         }
     };
 
+    const handleConfirmSave = async () => {
+        if (!saveModal.payload) return;
+        setSaving(true);
+
+        try {
+            if (saveModal.isEdit) {
+                const { error } = await supabase.from('hostel_blocks').update(saveModal.payload).eq('id', editingId);
+                if (error) throw error;
+                toast.success('Block updated successfully');
+                setEditingId(null);
+            } else {
+                const { error } = await supabase.from('hostel_blocks').insert([saveModal.payload]);
+                if (error) throw error;
+                toast.success('Block created successfully');
+            }
+            setForm({ id: '', block_name: '', gender: 'BOYS', total_floors: 1 });
+            fetchBlocks();
+        } catch (error) {
+            toast.error(error.message);
+        } finally {
+            setSaving(false);
+            setSaveModal({ show: false, payload: null, isEdit: false });
+        }
+    };
+
+    const formatFloorLabel = (floorNo) => {
+        const value = Number(floorNo);
+        if (!Number.isFinite(value) || value < 0) return '';
+        if (value === 0) return 'Ground Floor';
+        if (value === 1) return 'First Floor';
+        if (value === 2) return 'Second Floor';
+        if (value === 3) return 'Third Floor';
+        return `Floor ${value}`;
+    };
+
     const formatFloorRange = (totalFloors) => {
         const value = Number(totalFloors);
         if (!Number.isFinite(value) || value < 0) return '';
         const count = value + 1;
-        if (value === 0) return 'Ground only';
-        return `Ground + ${value} floor${value === 1 ? '' : 's'} (${count} total)`;
+        return `${count} floor${count === 1 ? '' : 's'}`;
+    };
+
+    const openDetails = (block) => {
+        setDetailModal({ show: true, block });
     };
 
     return (
@@ -209,7 +233,7 @@ export default function HostelBlocks() {
                                             <tr><td colSpan="4" className="text-center py-4">No blocks found</td></tr>
                                         ) : (
                                             blocks.slice(0, showAllBlocks ? undefined : 2).map((block) => (
-                                                <tr key={block.id}>
+                                                <tr key={block.id} style={{ cursor: 'pointer' }} onClick={() => openDetails(block)}>
                                                     <td className="fw-bold">{block.block_name}</td>
                                                     <td>
                                                         <span className={`students-section-badge ${block.gender === 'BOYS' ? 'students-section-badge-category' : 'students-section-badge-course'}`}>
@@ -221,13 +245,19 @@ export default function HostelBlocks() {
                                                         <div className="d-flex justify-content-end gap-2">
                                                             <button
                                                                 className="btn btn-sm btn-outline-primary students-button-sm"
-                                                                onClick={() => handleEdit(block)}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleEdit(block);
+                                                                }}
                                                             >
                                                                 <i className="bi bi-pencil"></i>
                                                             </button>
                                                             <button
                                                                 className="btn btn-sm btn-outline-danger students-button-sm"
-                                                                onClick={() => setDeleteModal({ show: true, id: block.id })}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setDeleteModal({ show: true, id: block.id });
+                                                                }}
                                                             >
                                                                 <i className="bi bi-trash"></i>
                                                             </button>
@@ -260,6 +290,116 @@ export default function HostelBlocks() {
                 onConfirm={handleDelete}
                 message="Are you sure you want to delete this block? This may affect associated rooms and beds."
             />
+
+            <ConfirmationModal
+                isOpen={saveModal.show}
+                onClose={() => setSaveModal({ show: false, payload: null, isEdit: false })}
+                onConfirm={handleConfirmSave}
+                title={saveModal.isEdit ? 'CONFIRM BLOCK UPDATE' : 'CONFIRM NEW BLOCK'}
+                confirmText={saveModal.isEdit ? 'Update Block' : 'Add Block'}
+                confirmButtonClass="btn-primary"
+                isLoading={saving}
+            >
+                <div className="row g-3">
+                    <div className="col-12">
+                        <div className="p-3 bg-light border rounded">
+                            <div className="fw-bold text-uppercase small text-muted mb-1">Block Name</div>
+                            <div className="fs-5 fw-semibold">{saveModal.payload?.block_name}</div>
+                        </div>
+                    </div>
+                    <div className="col-md-6">
+                        <div className="p-3 border rounded h-100">
+                            <div className="fw-bold text-uppercase small text-muted mb-1">Gender</div>
+                            <span className={`students-section-badge ${saveModal.payload?.gender === 'BOYS' ? 'students-section-badge-category' : 'students-section-badge-course'}`}>
+                                {saveModal.payload?.gender}
+                            </span>
+                        </div>
+                    </div>
+                    <div className="col-md-6">
+                        <div className="p-3 border rounded h-100">
+                            <div className="fw-bold text-uppercase small text-muted mb-1">Total Floors</div>
+                            <div className="fw-semibold">{formatFloorRange(saveModal.payload?.total_floors)}</div>
+                        </div>
+                    </div>
+                    <div className="col-12">
+                        <div className="p-3 border rounded">
+                            <div className="fw-bold text-uppercase small text-muted mb-1">Floors</div>
+                            <div className="text-muted d-flex flex-column gap-1">
+                                {Array.from(
+                                    { length: Number(saveModal.payload?.total_floors ?? 0) + 1 },
+                                    (_, index) => (
+                                        <span key={index}>{formatFloorLabel(index)}</span>
+                                    )
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </ConfirmationModal>
+
+            {detailModal.show && detailModal.block && (
+                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1055 }}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title fw-bold">Block Details</h5>
+                                <button
+                                    type="button"
+                                    className="btn-close"
+                                    onClick={() => setDetailModal({ show: false, block: null })}
+                                    aria-label="Close"
+                                ></button>
+                            </div>
+                            <div className="modal-body">
+                                <div className="row g-3">
+                                    <div className="col-12">
+                                        <div className="p-3 bg-light border rounded">
+                                            <div className="fw-bold text-uppercase small text-muted mb-1">Block Name</div>
+                                            <div className="fs-5 fw-semibold">{detailModal.block.block_name}</div>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-6">
+                                        <div className="p-3 border rounded h-100">
+                                            <div className="fw-bold text-uppercase small text-muted mb-1">Gender</div>
+                                            <span className={`students-section-badge ${detailModal.block.gender === 'BOYS' ? 'students-section-badge-category' : 'students-section-badge-course'}`}>
+                                                {detailModal.block.gender}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-6">
+                                        <div className="p-3 border rounded h-100">
+                                            <div className="fw-bold text-uppercase small text-muted mb-1">Total Floors</div>
+                                            <div className="fw-semibold">{formatFloorRange(detailModal.block.total_floors)}</div>
+                                        </div>
+                                    </div>
+                                    <div className="col-12">
+                                        <div className="p-3 border rounded">
+                                            <div className="fw-bold text-uppercase small text-muted mb-1">Floors</div>
+                                            <div className="text-muted d-flex flex-column gap-1">
+                                                {Array.from(
+                                                    { length: Number(detailModal.block.total_floors) + 1 },
+                                                    (_, index) => (
+                                                        <span key={index}>{formatFloorLabel(index)}</span>
+                                                    )
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-secondary"
+                                    onClick={() => setDetailModal({ show: false, block: null })}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </HostelShell>
     );
 }
