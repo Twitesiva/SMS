@@ -130,6 +130,7 @@ import HostelRooms from "./pages/hostel/Rooms.jsx";
 import RoomYearMapping from "./pages/hostel/RoomYearMapping.jsx";
 import HostelAllocations from "./pages/hostel/Allocations.jsx";
 import HostelReports from "./pages/hostel/Reports.jsx";
+import HostelStudents from "./pages/hostel/Students.jsx";
 
 
 export default function App() {
@@ -215,6 +216,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isHostelAuthed} redirectTo="/hostel/login">
               <HostelReports />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/hostel/students"
+          element={
+            <GuardedRoute isAuthed={isHostelAuthed} redirectTo="/hostel/login">
+              <HostelStudents />
             </GuardedRoute>
           }
         />
