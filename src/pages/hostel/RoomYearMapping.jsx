@@ -18,6 +18,8 @@ export default function RoomYearMapping() {
     const [loading, setLoading] = useState(false);
     const [allocatedRooms, setAllocatedRooms] = useState([]);
     const [allocatedLoading, setAllocatedLoading] = useState(false);
+    const [allocatedFilters, setAllocatedFilters] = useState({ academic_year: '', floor_no: '', room_type: '' });
+    const [showAllAllocated, setShowAllAllocated] = useState(false);
     const [editModal, setEditModal] = useState({ show: false, room: null });
     const [editForm, setEditForm] = useState({
         room_no: '',
@@ -108,22 +110,24 @@ export default function RoomYearMapping() {
             return;
         }
 
-        const uniqueRooms = [];
-        const seen = new Set();
-        (data || []).forEach((row) => {
-            const room = row.hostel_rooms;
-            if (!room || seen.has(room.id)) return;
-            seen.add(room.id);
-            uniqueRooms.push(room);
-        });
-
-        setAllocatedRooms(uniqueRooms);
+        setAllocatedRooms(data || []);
         setAllocatedLoading(false);
     };
 
     useEffect(() => {
         fetchAllocatedRooms();
     }, [selectedYear, selectedStudyYear, selectedBlock, selectedFloor, selectedRoom]);
+
+    const filteredAllocatedRooms = useMemo(() => {
+        return allocatedRooms.filter((row) => {
+            if (allocatedFilters.academic_year && row.academic_year !== allocatedFilters.academic_year) return false;
+            if (allocatedFilters.floor_no !== '' && String(row.hostel_rooms?.floor_no) !== String(allocatedFilters.floor_no)) return false;
+            if (allocatedFilters.room_type && row.hostel_rooms?.room_type !== allocatedFilters.room_type) return false;
+            return true;
+        });
+    }, [allocatedRooms, allocatedFilters]);
+
+    const visibleAllocatedRooms = showAllAllocated ? filteredAllocatedRooms : filteredAllocatedRooms.slice(0, 3);
 
     const toggleMapping = async (roomId) => {
         if (!selectedStudyYear) {
@@ -463,6 +467,54 @@ export default function RoomYearMapping() {
                                     Allocated Rooms{selectedYear ? ` - ${selectedYear}` : ''}
                                 </h5>
                             </div>
+                            <div className="row g-3 mb-3">
+                                <div className="col-md-4">
+                                    <label className="form-label fw-bold mb-1">Academic Year</label>
+                                    <select
+                                        className="form-select"
+                                        value={allocatedFilters.academic_year}
+                                        onChange={(e) => setAllocatedFilters((prev) => ({ ...prev, academic_year: e.target.value }))}
+                                    >
+                                        <option value="">All Years</option>
+                                        {years.map((y) => (
+                                            <option key={y.academic_year} value={y.academic_year}>{y.academic_year}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="col-md-4">
+                                    <label className="form-label fw-bold mb-1">Floor</label>
+                                    <select
+                                        className="form-select"
+                                        value={allocatedFilters.floor_no}
+                                        onChange={(e) => setAllocatedFilters((prev) => ({ ...prev, floor_no: e.target.value }))}
+                                    >
+                                        <option value="">All Floors</option>
+                                        {floorOptions.map((floor) => (
+                                            <option key={floor} value={floor}>
+                                                {(() => {
+                                                    const f = Number(floor);
+                                                    if (f === 0) return 'Ground Floor';
+                                                    if (f === 1) return 'First Floor';
+                                                    if (f === 2) return 'Second Floor';
+                                                    return `Floor ${f}`;
+                                                })()}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="col-md-4">
+                                    <label className="form-label fw-bold mb-1">Room Type</label>
+                                    <select
+                                        className="form-select"
+                                        value={allocatedFilters.room_type}
+                                        onChange={(e) => setAllocatedFilters((prev) => ({ ...prev, room_type: e.target.value }))}
+                                    >
+                                        <option value="">All Types</option>
+                                        <option value="NON_AC">NON AC</option>
+                                        <option value="AC">AC</option>
+                                    </select>
+                                </div>
+                            </div>
                             {allocatedLoading ? (
                                 <HostelPreloader
                                     title="Loading allocated rooms"
@@ -476,6 +528,7 @@ export default function RoomYearMapping() {
                                                 className="text-white text-uppercase fw-bold"
                                                 style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)', fontSize: '1.1rem' }}
                                             >
+                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Academic Year</th>
                                                 <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Floor</th>
                                                 <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room Type</th>
                                                 <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room No</th>
@@ -484,18 +537,19 @@ export default function RoomYearMapping() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {allocatedRooms.map((room) => (
-                                                <tr key={room.id}>
+                                            {visibleAllocatedRooms.map((row) => (
+                                                <tr key={row.id}>
+                                                    <td>{row.academic_year}</td>
                                                     <td>{(() => {
-                                                        const f = Number(room.floor_no);
+                                                        const f = Number(row.hostel_rooms?.floor_no);
                                                         if (f === 0) return 'Ground Floor';
                                                         if (f === 1) return 'First Floor';
                                                         if (f === 2) return 'Second Floor';
                                                         return `Floor ${f}`;
                                                     })()}</td>
-                                                    <td>{room.room_type?.replace(/_/g, ' ')}</td>
-                                                    <td className="fw-bold">{room.room_no}</td>
-                                                    <td>{room.bed_count} Beds</td>
+                                                    <td>{row.hostel_rooms?.room_type?.replace(/_/g, ' ')}</td>
+                                                    <td className="fw-bold">{row.hostel_rooms?.room_no}</td>
+                                                    <td>{row.hostel_rooms?.bed_count} Beds</td>
                                                     <td className="text-center">
                                                         <span className="fw-bold text-success">ACTIVE</span>
                                                     </td>
@@ -503,6 +557,17 @@ export default function RoomYearMapping() {
                                             ))}
                                         </tbody>
                                     </table>
+                                </div>
+                            )}
+                            {filteredAllocatedRooms.length > 3 && (
+                                <div className="d-flex justify-content-end mt-3">
+                                    <button
+                                        type="button"
+                                        className="btn btn-sm btn-outline-secondary"
+                                        onClick={() => setShowAllAllocated(!showAllAllocated)}
+                                    >
+                                        {showAllAllocated ? 'Show Less' : 'View All'}
+                                    </button>
                                 </div>
                             )}
                         </div>
