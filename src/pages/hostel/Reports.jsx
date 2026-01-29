@@ -56,7 +56,7 @@ export default function HostelReports() {
             setAllResidents(data);
             setResidents(data);
         }
-        
+
         setLoading(false);
     };
 
@@ -176,10 +176,10 @@ export default function HostelReports() {
                 <div className="row g-4">
                     <div className="col-12">
                         <div className="students-section-shell card card-soft h-100" style={{ borderRadius: '18px', border: '1px solid rgba(32, 58, 67, 0.1)' }}>
-                            <div className="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
-                                <div>
+                            <div className="p-4">
+                                <div className="mb-4">
                                     <h5
-                                        className="section-title mb-1"
+                                        className="section-title mb-0"
                                         style={{
                                             fontSize: '1.1rem',
                                             color: '#ffffff',
@@ -193,59 +193,71 @@ export default function HostelReports() {
                                         Resident Details
                                     </h5>
                                 </div>
-                                <div style={filterRowStyle}>
-                                    <select
-                                        className="form-select form-select-sm"
-                                        value={selectedYear}
-                                        onChange={(e) => setSelectedYear(e.target.value)}
-                                        style={filterSelectStyle}
-                                    >
-                                        {years.map(y => <option key={y.academic_year} value={y.academic_year}>{y.academic_year}</option>)}
-                                    </select>
-                                    <select
-                                        className="form-select form-select-sm"
-                                        value={residentBlockFilter}
-                                        onChange={(e) => setResidentBlockFilter(e.target.value)}
-                                        style={filterSelectStyle}
-                                    >
-                                        <option value="all">All Blocks</option>
-                                        {residentBlockOptions.map(block => (
-                                            <option key={block} value={block}>{block}</option>
-                                        ))}
-                                    </select>
-                                    <select
-                                        className="form-select form-select-sm"
-                                        value={residentFloorFilter}
-                                        onChange={(e) => setResidentFloorFilter(e.target.value)}
-                                        style={filterSelectStyle}
-                                    >
-                                        <option value="all">All Floors</option>
-                                        {residentFloorOptions.map(floor => (
-                                            <option key={floor} value={String(floor)}>{formatFloorLabel(floor)}</option>
-                                        ))}
-                                    </select>
-                                    <select
-                                        className="form-select form-select-sm"
-                                        value={residentRoomFilter}
-                                        onChange={(e) => setResidentRoomFilter(e.target.value)}
-                                        style={filterSelectStyle}
-                                    >
-                                        <option value="all">All Rooms</option>
-                                        {residentRoomOptions.map(room => (
-                                            <option key={room} value={String(room)}>{room}</option>
-                                        ))}
-                                    </select>
-                                    <select
-                                        className="form-select form-select-sm"
-                                        value={residentTypeFilter}
-                                        onChange={(e) => setResidentTypeFilter(e.target.value)}
-                                        style={filterSelectStyle}
-                                    >
-                                        <option value="all">All Types</option>
-                                        {residentTypeOptions.map(type => (
-                                            <option key={type} value={type}>{type.replace(/_/g, ' ')}</option>
-                                        ))}
-                                    </select>
+
+                                <div className="row g-3 mb-4">
+                                    <div className="col-md-2">
+                                        <label className="form-label small text-muted text-uppercase fw-bold">Academic Year</label>
+                                        <select
+                                            className="form-select"
+                                            value={selectedYear}
+                                            onChange={(e) => setSelectedYear(e.target.value)}
+                                        >
+                                            <option value="">Select Year</option>
+                                            {years.map(y => <option key={y.academic_year} value={y.academic_year}>{y.academic_year}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="col-md-2">
+                                        <label className="form-label small text-muted text-uppercase fw-bold">Block</label>
+                                        <select
+                                            className="form-select"
+                                            value={residentBlockFilter}
+                                            onChange={(e) => setResidentBlockFilter(e.target.value)}
+                                        >
+                                            <option value="all">All Blocks</option>
+                                            {residentBlockOptions.map(block => (
+                                                <option key={block} value={block}>{block}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="col-md-2">
+                                        <label className="form-label small text-muted text-uppercase fw-bold">Floor</label>
+                                        <select
+                                            className="form-select"
+                                            value={residentFloorFilter}
+                                            onChange={(e) => setResidentFloorFilter(e.target.value)}
+                                        >
+                                            <option value="all">All Floors</option>
+                                            {residentFloorOptions.map(floor => (
+                                                <option key={floor} value={String(floor)}>{formatFloorLabel(floor)}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="col-md-2">
+                                        <label className="form-label small text-muted text-uppercase fw-bold">Room</label>
+                                        <select
+                                            className="form-select"
+                                            value={residentRoomFilter}
+                                            onChange={(e) => setResidentRoomFilter(e.target.value)}
+                                        >
+                                            <option value="all">All Rooms</option>
+                                            {residentRoomOptions.map(room => (
+                                                <option key={room} value={String(room)}>{room}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="col-md-3">
+                                        <label className="form-label small text-muted text-uppercase fw-bold">Room Type</label>
+                                        <select
+                                            className="form-select"
+                                            value={residentTypeFilter}
+                                            onChange={(e) => setResidentTypeFilter(e.target.value)}
+                                        >
+                                            <option value="all">All Types</option>
+                                            {residentTypeOptions.map(type => (
+                                                <option key={type} value={type}>{type.replace(/_/g, ' ')}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                             {loading ? (

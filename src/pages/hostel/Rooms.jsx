@@ -14,7 +14,7 @@ export default function HostelRooms() {
     const [deleteModal, setDeleteModal] = useState({ show: false, id: null });
     const [saveModal, setSaveModal] = useState({ show: false, payload: null, isEdit: false, details: null });
     const [saving, setSaving] = useState(false);
-    
+
     const [filterBlock, setFilterBlock] = useState('');
     const [filterType, setFilterType] = useState('');
     const [showAllRooms, setShowAllRooms] = useState(false);
@@ -44,7 +44,7 @@ export default function HostelRooms() {
 
         if (roomsRes.error) toast.error(roomsRes.error.message);
         else setRooms(roomsRes.data || []);
-        
+
         setLoading(false);
     };
 
@@ -79,7 +79,7 @@ export default function HostelRooms() {
             return;
         }
 
-        const payload = { 
+        const payload = {
             block_id: form.block_id,
             floor_no: parseInt(form.floor_no),
             room_no: trimmedRoomNo,
@@ -125,30 +125,52 @@ export default function HostelRooms() {
     const handleConfirmSave = async () => {
         if (!saveModal.payload) return;
         setSaving(true);
-        if (saveModal.isEdit) {
-            const { error } = await supabase.from('hostel_rooms').update(saveModal.payload).eq('id', editingId);
-            if (error) toast.error(error.message);
-            else {
+
+        try {
+            if (saveModal.isEdit) {
+                const { error } = await supabase.from('hostel_rooms').update(saveModal.payload).eq('id', editingId);
+                if (error) throw error;
                 toast.success('Room updated successfully');
-                resetForm();
-                fetchData();
+            } else {
+                const { data: roomData, error: roomError } = await supabase
+                    .from('hostel_rooms')
+                    .insert([saveModal.payload])
+                    .select()
+                    .single();
+
+                if (roomError) throw roomError;
+
+                if (roomData.bed_count > 0) {
+                    const beds = Array.from({ length: roomData.bed_count }, (_, i) => ({
+                        room_id: roomData.id,
+                        bed_no: String(i + 1),
+                        status: 'AVAILABLE'
+                    }));
+
+                    const { error: bedError } = await supabase.from('hostel_beds').insert(beds);
+                    if (bedError) {
+                        console.error('Error creating beds:', bedError);
+                        toast.warning('Room created but beds could not be generated.');
+                    } else {
+                        toast.success('Room and beds created successfully');
+                    }
+                } else {
+                    toast.success('Room created successfully');
+                }
             }
-        } else {
-            const { error } = await supabase.from('hostel_rooms').insert([saveModal.payload]);
-            if (error) toast.error(error.message);
-            else {
-                toast.success('Room created successfully');
-                resetForm();
-                fetchData();
-            }
+            resetForm();
+            fetchData();
+        } catch (error) {
+            toast.error(error.message);
+        } finally {
+            setSaving(false);
+            setSaveModal({ show: false, payload: null, isEdit: false, details: null });
         }
-        setSaving(false);
-        setSaveModal({ show: false, payload: null, isEdit: false, details: null });
     };
 
     const filteredRooms = rooms.filter(r => {
         return (filterBlock ? r.block_id.toString() === filterBlock.toString() : true) &&
-               (filterType ? r.room_type === filterType : true);
+            (filterType ? r.room_type === filterType : true);
     });
     const visibleRooms = showAllRooms ? filteredRooms : filteredRooms.slice(0, 2);
 
@@ -175,9 +197,9 @@ export default function HostelRooms() {
                         <form onSubmit={handleSubmit} className="students-section-form row g-3">
                             <div className="col-md-4">
                                 <label className="form-label fw-bold mb-1">Block</label>
-                                <select 
-                                    className="form-select" 
-                                    value={form.block_id} 
+                                <select
+                                    className="form-select"
+                                    value={form.block_id}
                                     onChange={(e) => setForm({ ...form, block_id: e.target.value, floor_no: '' })}
                                     required
                                 >
@@ -205,20 +227,20 @@ export default function HostelRooms() {
                             </div>
                             <div className="col-md-2">
                                 <label className="form-label fw-bold mb-1">Room No</label>
-                                <input 
-                                    type="text" 
-                                    className="form-control" 
+                                <input
+                                    type="text"
+                                    className="form-control"
                                     placeholder="e.g. 101"
-                                    value={form.room_no} 
-                                    onChange={(e) => setForm({ ...form, room_no: e.target.value })} 
-                                    required 
+                                    value={form.room_no}
+                                    onChange={(e) => setForm({ ...form, room_no: e.target.value })}
+                                    required
                                 />
                             </div>
                             <div className="col-md-2">
                                 <label className="form-label fw-bold mb-1">Type</label>
-                                <select 
-                                    className="form-select" 
-                                    value={form.room_type} 
+                                <select
+                                    className="form-select"
+                                    value={form.room_type}
                                     onChange={(e) => setForm({ ...form, room_type: e.target.value })}
                                     required
                                 >
@@ -228,13 +250,13 @@ export default function HostelRooms() {
                             </div>
                             <div className="col-md-2">
                                 <label className="form-label fw-bold mb-1">Beds</label>
-                                <input 
-                                    type="number" 
-                                    className="form-control" 
-                                    value={form.bed_count} 
-                                    onChange={(e) => setForm({ ...form, bed_count: e.target.value })} 
-                                    min="1" 
-                                    required 
+                                <input
+                                    type="number"
+                                    className="form-control"
+                                    value={form.bed_count}
+                                    onChange={(e) => setForm({ ...form, bed_count: e.target.value })}
+                                    min="1"
+                                    required
                                 />
                             </div>
                             <div className="col-12 mt-3 d-flex gap-2 justify-content-end">
