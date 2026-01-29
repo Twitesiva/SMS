@@ -443,11 +443,6 @@ export default function RoomYearMapping() {
                                     ))}
                                 </select>
                             </div>
-                            <div className="col-md-4 d-flex align-items-end">
-                                <button className="btn btn-outline-primary students-button w-100" onClick={enableAll} disabled={!selectedYear || !selectedBlock || !selectedStudyYear || loading}>
-                                    Allocate rooms for this block
-                                </button>
-                            </div>
                         </div>
                     </div>
 
