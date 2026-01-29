@@ -194,20 +194,18 @@ export default function HostelReports() {
                         <div className="students-section-shell card card-soft h-100" style={{ borderRadius: '18px', border: '1px solid rgba(32, 58, 67, 0.1)' }}>
                             <div className="p-4">
                                 <div className="mb-4">
-                                    <h5
-                                        className="section-title mb-0"
+                                    <div
+                                        className="d-flex align-items-center p-3"
                                         style={{
-                                            fontSize: '1.1rem',
-                                            color: '#ffffff',
                                             background: headerGradient,
-                                            padding: '6px 14px',
-                                            borderRadius: '999px',
-                                            display: 'inline-flex',
-                                            alignItems: 'center'
+                                            borderRadius: '14px',
+                                            color: '#ffffff'
                                         }}
                                     >
-                                        Resident Details
-                                    </h5>
+                                        <h5 className="section-title mb-0 text-white" style={{ fontSize: '1.1rem' }}>
+                                            Resident Details
+                                        </h5>
+                                    </div>
                                 </div>
 
                                 <div className="row g-3 mb-4">
@@ -336,14 +334,14 @@ export default function HostelReports() {
                                 <div className="table-responsive" style={{ maxHeight: '500px' }}>
                                     <table className="table align-middle table-sm" style={{ borderCollapse: 'separate', borderSpacing: '0 10px', marginBottom: 0 }}>
                                         <thead>
-                                            <tr className="text-white text-uppercase fw-bold" style={{ fontSize: '18px', background: headerGradient, letterSpacing: '0.08em' }}>
-                                                <th className="py-2 px-3 border-0 rounded-start" style={{ backgroundColor: 'transparent', color: 'white' }}>Student Name</th>
-                                                <th className="py-2 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Block</th>
-                                                <th className="py-2 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room</th>
-                                                <th className="py-2 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Floor</th>
-                                                <th className="py-2 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Bed</th>
-                                                <th className="py-2 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Type</th>
-                                                <th className="py-2 px-3 border-0 rounded-end" style={{ backgroundColor: 'transparent', color: 'white' }}>Allocated</th>
+                                            <tr className="text-white text-uppercase fw-bold" style={{ background: headerGradient, fontSize: '1.1rem' }}>
+                                                <th className="py-3 px-3 border-0 rounded-start" style={{ backgroundColor: 'transparent', color: 'white' }}>Student Name</th>
+                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Block</th>
+                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room</th>
+                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Floor</th>
+                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Bed</th>
+                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Type</th>
+                                                <th className="py-3 px-3 border-0 rounded-end" style={{ backgroundColor: 'transparent', color: 'white' }}>Allocated</th>
                                             </tr>
                                         </thead>
                                         <tbody>
