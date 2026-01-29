@@ -24,15 +24,19 @@ export default function HostelAllocations() {
     const [eligibleStudents, setEligibleStudents] = useState([]);
     const [loadingEligible, setLoadingEligible] = useState(false);
     const [eligibleSearch, setEligibleSearch] = useState('');
+    const [eligibleHostelType, setEligibleHostelType] = useState('');
+    const [eligibleYear, setEligibleYear] = useState('');
     const [showAllEligible, setShowAllEligible] = useState(false);
 
     // Track allocated students
-    const [allocatedStudentIds, setAllocatedStudentIds] = useState(new Set());
+    const [availableFloors, setAvailableFloors] = useState([]);
+
+    // Track allocated students
+    const [allocationMap, setAllocationMap] = useState({});
 
     useEffect(() => {
         fetchInitialData();
     }, []);
-
     const fetchInitialData = async () => {
         const [yearsData, blocksData] = await Promise.all([
             supabase.from('academic_year').select('academic_year').order('academic_year', { ascending: false }),
@@ -52,19 +56,41 @@ export default function HostelAllocations() {
         if (error) {
             toast.error('Failed to load eligible students');
         } else {
-            setEligibleStudents(data || []);
-            // Check allocation status for these students
-            if (data?.length > 0) {
-                const ids = data.map(s => s.student_id);
+            let enrichedData = data || [];
+
+            if (enrichedData.length > 0) {
+                const ids = enrichedData.map(s => s.student_id);
+
+                // Fetch year of study for these students
+                const { data: studentDetails } = await supabase
+                    .from('students')
+                    .select('id, year_of_study')
+                    .in('id', ids);
+
+                const yearMap = {};
+                studentDetails?.forEach(s => {
+                    yearMap[s.id] = s.year_of_study;
+                });
+
+                enrichedData = enrichedData.map(s => ({
+                    ...s,
+                    year_of_study: yearMap[s.student_id]
+                }));
+
                 const { data: allocs } = await supabase
                     .from('hostel_allocations')
-                    .select('student_id')
+                    .select('student_id, hostel_beds(hostel_rooms(room_no))')
                     .in('student_id', ids)
                     .eq('status', 'ACTIVE');
 
-                const allocatedSet = new Set(allocs?.map(a => a.student_id));
-                setAllocatedStudentIds(allocatedSet);
+                const newMap = {};
+                allocs?.forEach(a => {
+                    const roomNo = a.hostel_beds?.hostel_rooms?.room_no;
+                    if (roomNo) newMap[a.student_id] = `Room ${roomNo}`;
+                });
+                setAllocationMap(newMap);
             }
+            setEligibleStudents(enrichedData);
         }
         setLoadingEligible(false);
     };
@@ -83,21 +109,71 @@ export default function HostelAllocations() {
 
     const fetchAvailableBeds = async () => {
         if (!bookingForm.academic_year) return;
-        let query = supabase.from('v_hostel_available_beds')
-            .select('*')
-            .eq('academic_year', bookingForm.academic_year);
 
-        if (filters.block_id) query = query.eq('block_id', filters.block_id);
-        if (filters.floor_no !== '') query = query.eq('floor_no', Number(filters.floor_no));
-        if (filters.room_type) query = query.eq('room_type', filters.room_type);
+        // 1. Fetch Rooms matching filters (EXCEPT FLOOR) to get all potential floors
+        let roomQuery = supabase.from('hostel_rooms')
+            .select(`
+                *,
+                hostel_blocks!inner ( * ),
+                hostel_beds ( * )
+            `)
+            .order('room_no');
+
+        if (filters.block_id) roomQuery = roomQuery.eq('block_id', filters.block_id);
+        // REMOVED: if (filters.floor_no !== '') roomQuery = roomQuery.eq('floor_no', Number(filters.floor_no)); 
+        if (filters.room_type) roomQuery = roomQuery.eq('room_type', filters.room_type);
 
         if (student) {
             const gender = student.gender?.toUpperCase().startsWith('M') ? 'BOYS' : 'GIRLS';
-            query = query.eq('block_gender', gender);
+            roomQuery = roomQuery.eq('hostel_blocks.gender', gender);
         }
 
-        const { data } = await query.order('block_name').order('room_no');
-        setAvailableBeds(data || []);
+        const { data: rooms, error: roomError } = await roomQuery;
+        if (roomError) {
+            toast.error(roomError.message);
+            return;
+        }
+
+        // 2. Fetch allocations for this year to map occupancy
+        const { data: allocations, error: allocError } = await supabase.from('hostel_allocations')
+            .select('bed_id')
+            .eq('academic_year', bookingForm.academic_year)
+            .eq('status', 'ACTIVE');
+
+        if (allocError) {
+            toast.error(allocError.message);
+            return;
+        }
+
+        const occupiedBedIds = new Set(allocations.map(a => a.bed_id));
+
+        // 3. Process rooms to include isOccupied flag for each bed
+        const processedRooms = rooms.map(room => ({
+            ...room,
+            beds: (room.hostel_beds || [])
+                .map(bed => ({
+                    ...bed,
+                    isOccupied: occupiedBedIds.has(bed.id)
+                }))
+                .sort((a, b) => String(a.bed_no).localeCompare(String(b.bed_no), undefined, { numeric: true }))
+        }));
+
+        // 4. Determine available floors from ALL matched rooms
+        const uniqueFloors = [...new Set(processedRooms.map(r => r.floor_no))].sort((a, b) => a - b);
+        setAvailableFloors(uniqueFloors);
+
+        // 5. Filter rooms by selected floor for display
+        let displayedRooms = processedRooms;
+        if (filters.floor_no !== '') {
+            displayedRooms = processedRooms.filter(r => r.floor_no === Number(filters.floor_no));
+        }
+
+        setAvailableBeds(displayedRooms);
+
+        // Auto-select floor if only one floor is available
+        if (uniqueFloors.length === 1 && filters.floor_no === '') {
+            setFilters(prev => ({ ...prev, floor_no: uniqueFloors[0] }));
+        }
     };
 
     useEffect(() => {
@@ -185,10 +261,10 @@ export default function HostelAllocations() {
     };
 
     const handleSelectEligibleStudent = async (s) => {
-        // Fetch phone number
+        // Fetch phone number and year_of_study
         const { data: studentData } = await supabase
             .from('students')
-            .select('phone_number, academic_year')
+            .select('phone_number, academic_year, year_of_study')
             .eq('id', s.student_id)
             .single();
 
@@ -199,24 +275,55 @@ export default function HostelAllocations() {
             gender: s.gender,
             phone_number: studentData?.phone_number || '—',
             is_hostel: true,
-            hostel_type: s.hostel_type
+            hostel_type: s.hostel_type,
+            year_of_study: studentData?.year_of_study
         });
+
+        let newFilters = { room_type: s.hostel_type, floor_no: '', block_id: '' };
 
         if (studentData?.academic_year) {
             setBookingForm((prev) => ({ ...prev, academic_year: studentData.academic_year }));
+
+            // Autofetch Block and Floor based on Year Mapping
+            if (studentData.year_of_study) {
+                const { data: mappingData } = await supabase
+                    .from('hostel_room_year_mapping')
+                    .select('block_id, floor_no')
+                    .eq('academic_year', studentData.academic_year)
+                    .eq('year_of_study', studentData.year_of_study)
+                    .eq('is_active', true);
+
+                if (mappingData && mappingData.length > 0) {
+                    // Find unique blocks
+                    const uniqueBlocks = [...new Set(mappingData.map(m => m.block_id))];
+                    if (uniqueBlocks.length === 1) {
+                        newFilters.block_id = uniqueBlocks[0];
+
+                        // If block is unique, check for unique floors
+                        const uniqueFloors = [...new Set(mappingData.map(m => m.floor_no))];
+                        if (uniqueFloors.length === 1) {
+                            newFilters.floor_no = uniqueFloors[0];
+                        }
+                    }
+                }
+            }
         }
 
-        setFilters(prev => ({ ...prev, room_type: s.hostel_type, floor_no: '' }));
+        setFilters(prev => ({ ...prev, ...newFilters }));
         fetchCurrentAllocation(s.student_id);
     };
 
     const filteredEligibleStudents = eligibleStudents.filter(s => {
         const q = eligibleSearch.toLowerCase();
-        return (
-            s.full_name?.toLowerCase().includes(q) ||
-            s.hall_ticket_no?.toLowerCase().includes(q)
-        );
+        const matchesSearch = s.full_name?.toLowerCase().includes(q) ||
+            s.hall_ticket_no?.toLowerCase().includes(q);
+        const matchesType = eligibleHostelType ? s.hostel_type === eligibleHostelType : true;
+        const matchesYear = eligibleYear ? String(s.year_of_study) === String(eligibleYear) : true;
+
+        return matchesSearch && matchesType && matchesYear;
     });
+
+    const uniqueYears = [...new Set(eligibleStudents.map(s => s.year_of_study).filter(Boolean))].sort((a, b) => a - b);
 
     return (
         <HostelShell brandTitle="HOSTEL MANAGEMENT">
@@ -228,19 +335,49 @@ export default function HostelAllocations() {
                         <div className="card-body">
 
                             <>
-                                <div className="d-flex justify-content-between align-items-center mb-3">
-                                    <div>
-                                        <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>ELIGIBLE STUDENTS</h5>
-                                        <p className="students-section-copy mb-0">Students who have successfully paid hostel fees.</p>
+                                <div className="d-flex flex-column gap-3 mb-4">
+                                    <div className="d-flex justify-content-between align-items-center p-3 rounded" style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)' }}>
+                                        <div>
+                                            <h5 className="section-title mb-1 text-white" style={{ fontSize: '1.1rem' }}>ELIGIBLE STUDENTS</h5>
+                                            <p className="students-section-copy mb-0 text-white-50">Students who have successfully paid hostel fees.</p>
+                                        </div>
+                                        <div style={{ width: '300px' }}>
+                                            <input
+                                                type="search"
+                                                className="form-control"
+                                                placeholder="Filter by name or ID..."
+                                                value={eligibleSearch}
+                                                onChange={(e) => setEligibleSearch(e.target.value)}
+                                            />
+                                        </div>
                                     </div>
-                                    <div style={{ width: '300px' }}>
-                                        <input
-                                            type="search"
-                                            className="form-control"
-                                            placeholder="Filter by name or ID..."
-                                            value={eligibleSearch}
-                                            onChange={(e) => setEligibleSearch(e.target.value)}
-                                        />
+
+                                    <div className="d-flex gap-4 px-2">
+                                        <div style={{ width: '150px' }}>
+                                            <label className="form-label text-uppercase fw-bold text-muted small mb-1" style={{ fontSize: '0.75rem' }}>Hostel Type</label>
+                                            <select
+                                                className="form-select form-select-sm"
+                                                value={eligibleHostelType}
+                                                onChange={(e) => setEligibleHostelType(e.target.value)}
+                                            >
+                                                <option value="">All Types</option>
+                                                <option value="AC">AC</option>
+                                                <option value="NON_AC">NON AC</option>
+                                            </select>
+                                        </div>
+                                        <div style={{ width: '150px' }}>
+                                            <label className="form-label text-uppercase fw-bold text-muted small mb-1" style={{ fontSize: '0.75rem' }}>Year of Study</label>
+                                            <select
+                                                className="form-select form-select-sm"
+                                                value={eligibleYear}
+                                                onChange={(e) => setEligibleYear(e.target.value)}
+                                            >
+                                                <option value="">All Years</option>
+                                                {uniqueYears.map(year => (
+                                                    <option key={year} value={year}>{year}</option>
+                                                ))}
+                                            </select>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -256,9 +393,10 @@ export default function HostelAllocations() {
                                                 <tr className="text-white text-uppercase fw-bold" style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)', fontSize: '1.1rem' }}>
                                                     <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Student ID</th>
                                                     <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Name</th>
-                                                    <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Gender</th>
-                                                    <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Paid Type</th>
-                                                    <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Payment Date</th>
+                                                    <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Year of Study</th>
+                                                    <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Hostel Type</th>
+
+                                                    <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Status</th>
                                                     <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Action</th>
                                                 </tr>
                                             </thead>
@@ -266,42 +404,46 @@ export default function HostelAllocations() {
                                                 {filteredEligibleStudents.length === 0 ? (
                                                     <tr><td colSpan="6" className="text-center py-4 text-muted">No eligible students found matching filter.</td></tr>
                                                 ) : (
-                                                    filteredEligibleStudents.slice(0, showAllEligible ? undefined : 2).map(s => (
-                                                        <tr key={s.student_id}>
-                                                            <td className="fw-bold text-primary">{s.hall_ticket_no}</td>
-                                                            <td>{s.full_name}</td>
-                                                            <td>{s.gender}</td>
-                                                            <td>{s.hostel_type?.replace(/_/g, ' ')}</td>
-                                                            <td className="small text-muted">{new Date(s.last_payment_date).toLocaleDateString()}</td>
-                                                            <td>
-                                                                {allocatedStudentIds.has(s.student_id) ? (
-                                                                    <div className="d-flex gap-2">
+                                                    filteredEligibleStudents.slice(0, showAllEligible ? undefined : 2).map(s => {
+                                                        const allocatedRoom = allocationMap[s.student_id];
+                                                        return (
+                                                            <tr key={s.student_id}>
+                                                                <td className="fw-bold text-primary">{s.hall_ticket_no}</td>
+                                                                <td>{s.full_name}</td>
+                                                                <td>{s.year_of_study}</td>
+                                                                <td>{s.hostel_type?.replace(/_/g, ' ')}</td>
+
+                                                                <td>
+                                                                    {allocatedRoom ? (
+                                                                        <span className="badge bg-success bg-opacity-10 text-success border border-success px-3 py-2 rounded-pill">
+                                                                            {allocatedRoom}
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="badge bg-warning bg-opacity-10 text-warning border border-warning px-3 py-2 rounded-pill">
+                                                                            Pending
+                                                                        </span>
+                                                                    )}
+                                                                </td>
+                                                                <td>
+                                                                    {allocatedRoom ? (
                                                                         <button
-                                                                            className="btn btn-sm btn-outline-primary"
+                                                                            className="btn btn-sm btn-outline-primary px-4 fw-bold shadow-sm"
                                                                             onClick={() => handleSelectEligibleStudent(s)}
-                                                                            title="Edit Allocation"
                                                                         >
-                                                                            <i className="bi bi-pencil-square"></i>
+                                                                            Edit
                                                                         </button>
+                                                                    ) : (
                                                                         <button
-                                                                            className="btn btn-sm btn-outline-danger"
+                                                                            className="btn btn-sm btn-primary px-3 shadow-sm"
                                                                             onClick={() => handleSelectEligibleStudent(s)}
-                                                                            title="Vacate / Delete"
                                                                         >
-                                                                            <i className="bi bi-trash"></i>
+                                                                            Allocate Room
                                                                         </button>
-                                                                    </div>
-                                                                ) : (
-                                                                    <button
-                                                                        className="btn btn-sm btn-primary"
-                                                                        onClick={() => handleSelectEligibleStudent(s)}
-                                                                    >
-                                                                        Allocate Room
-                                                                    </button>
-                                                                )}
-                                                            </td>
-                                                        </tr>
-                                                    ))
+                                                                    )}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })
                                                 )}
                                             </tbody>
                                         </table>
@@ -380,14 +522,22 @@ export default function HostelAllocations() {
                                                             <span className="fw-bold text-dark fs-6">: {currentAllocation.hostel_beds?.hostel_rooms?.hostel_blocks?.block_name}</span>
                                                         </div>
                                                         <div className="d-flex align-items-center">
-                                                            <small className="text-muted text-uppercase fw-bold" style={{ width: '130px', fontSize: '0.85rem' }}>Room & Bed</small>
-                                                            <span className="fw-bold text-dark fs-6">
-                                                                : Room {currentAllocation.hostel_beds?.hostel_rooms?.room_no} <span className="text-muted px-1">|</span> Bed {currentAllocation.hostel_beds?.bed_no}
-                                                            </span>
+                                                            <small className="text-muted text-uppercase fw-bold" style={{ width: '130px', fontSize: '0.85rem' }}>Floor</small>
+                                                            <span className="fw-bold text-dark fs-6">: {(() => {
+                                                                const f = Number(currentAllocation.hostel_beds?.hostel_rooms?.floor_no);
+                                                                if (f === 0) return 'Ground Floor';
+                                                                if (f === 1) return 'First Floor';
+                                                                if (f === 2) return 'Second Floor';
+                                                                return `Floor ${f}`;
+                                                            })()}</span>
                                                         </div>
                                                         <div className="d-flex align-items-center">
-                                                            <small className="text-muted text-uppercase fw-bold" style={{ width: '130px', fontSize: '0.85rem' }}>Floor</small>
-                                                            <span className="fw-bold text-dark fs-6">: Floor {currentAllocation.hostel_beds?.hostel_rooms?.floor_no}</span>
+                                                            <small className="text-muted text-uppercase fw-bold" style={{ width: '130px', fontSize: '0.85rem' }}>Room</small>
+                                                            <span className="fw-bold text-dark fs-6">: {currentAllocation.hostel_beds?.hostel_rooms?.room_no}</span>
+                                                        </div>
+                                                        <div className="d-flex align-items-center">
+                                                            <small className="text-muted text-uppercase fw-bold" style={{ width: '130px', fontSize: '0.85rem' }}>Bed</small>
+                                                            <span className="fw-bold text-dark fs-6">: {currentAllocation.hostel_beds?.bed_no}</span>
                                                         </div>
                                                         <div className="d-flex align-items-center">
                                                             <small className="text-muted text-uppercase fw-bold" style={{ width: '130px', fontSize: '0.85rem' }}>Room Type</small>
@@ -451,17 +601,6 @@ export default function HostelAllocations() {
                                         </select>
                                     </div>
                                     <div className="col-md-3">
-                                        <label className="form-label fw-bold small text-muted text-uppercase">Floor</label>
-                                        <select className="form-select" value={filters.floor_no} onChange={(e) => setFilters({ ...filters, floor_no: e.target.value })}>
-                                            <option value="">All Floors</option>
-                                            {[...new Set(availableBeds.map(bed => bed.floor_no))].map((floor) => (
-                                                <option key={floor} value={floor}>
-                                                    {Number(floor) === 0 ? 'Ground Floor' : `Floor ${floor}`}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="col-md-3">
                                         <label className="form-label fw-bold small text-muted text-uppercase">Room Type</label>
                                         <select className="form-select" value={filters.room_type} onChange={(e) => setFilters({ ...filters, room_type: e.target.value })}>
                                             <option value="">All Types</option>
@@ -469,30 +608,73 @@ export default function HostelAllocations() {
                                             <option value="NON_AC">Non AC</option>
                                         </select>
                                     </div>
+                                    <div className="col-md-3">
+                                        <label className="form-label fw-bold small text-muted text-uppercase">Floor</label>
+                                        <select className="form-select" value={filters.floor_no} onChange={(e) => setFilters({ ...filters, floor_no: e.target.value })}>
+                                            <option value="">All Floors</option>
+                                            {availableFloors.map((floor) => (
+                                                <option key={floor} value={floor}>
+                                                    {Number(floor) === 0 ? 'Ground Floor' : `Floor ${floor}`}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </div>
 
                                 <h6 className="fw-bold mb-3">
-                                    Available Beds ({availableBeds.length})
+                                    Available Rooms with Beds
                                 </h6>
-                                <div className="row g-2 overflow-auto" style={{ maxHeight: '300px' }}>
+                                <div className="table-responsive" style={{ maxHeight: '300px' }}>
                                     {availableBeds.length === 0 ? (
-                                        <div className="col-12 py-5 text-center bg-white rounded border">
-                                            <p className="mb-0 text-muted">No available beds matching your filters.</p>
+                                        <div className="py-5 text-center bg-white rounded border">
+                                            <p className="mb-0 text-muted">No rooms matching your filters.</p>
                                         </div>
                                     ) : (
-                                        availableBeds.map(bed => (
-                                            <div className="col-md-4 col-lg-3" key={bed.bed_id}>
-                                                <div
-                                                    className={`card h-100 p-2 text-center shadow-sm select-card ${bookingForm.bed_id === bed.bed_id ? 'border-primary bg-primary bg-opacity-10' : 'border-light'}`}
-                                                    style={{ cursor: 'pointer' }}
-                                                    onClick={() => setBookingForm({ ...bookingForm, bed_id: bed.bed_id })}
-                                                >
-                                                    <div className="fw-bold">{bed.room_no} - {bed.bed_no}</div>
-                                                    <div className="small text-muted">{bed.room_type?.replace(/_/g, ' ')}</div>
-                                                    <div className="small opacity-75">{bed.block_name}</div>
-                                                </div>
-                                            </div>
-                                        ))
+                                        <table className="table table-bordered table-sm align-middle text-center">
+                                            <thead className="sticky-top">
+                                                <tr className="text-white text-uppercase fw-bold" style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)', fontSize: '1.3rem' }}>
+                                                    <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white', width: '15%' }}>Floor</th>
+                                                    <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white', width: '20%' }}>Room No</th>
+                                                    <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Availability</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {availableBeds.map(room => (
+                                                    <tr key={room.id}>
+                                                        <td className="fw-bold bg-white">{(() => {
+                                                            const f = Number(room.floor_no);
+                                                            if (f === 0) return 'Ground Floor';
+                                                            if (f === 1) return 'First Floor';
+                                                            if (f === 2) return 'Second Floor';
+                                                            return `Floor ${f}`;
+                                                        })()}</td>
+                                                        <td className="fw-bold bg-white">{room.room_no}</td>
+                                                        <td className="text-start">
+                                                            <div className="d-flex flex-wrap gap-2">
+                                                                {room.beds.map(bed => (
+                                                                    <button
+                                                                        key={bed.id}
+                                                                        type="button"
+                                                                        className={`btn btn-sm ${bed.isOccupied
+                                                                            ? 'btn-danger opacity-75'
+                                                                            : bookingForm.bed_id === bed.id
+                                                                                ? 'btn-success'
+                                                                                : 'btn-outline-success'
+                                                                            }`}
+                                                                        style={{ width: '40px' }}
+                                                                        disabled={bed.isOccupied}
+                                                                        onClick={() => !bed.isOccupied && setBookingForm({ ...bookingForm, bed_id: bed.id })}
+                                                                        title={bed.isOccupied ? 'Occupied' : `Bed ${bed.bed_no}`}
+                                                                    >
+                                                                        {bed.bed_no}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
                                     )}
                                 </div>
                             </div>

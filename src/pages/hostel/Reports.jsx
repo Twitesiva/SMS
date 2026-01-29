@@ -24,10 +24,6 @@ export default function HostelReports() {
         const { data: yearsData } = await supabase.from('academic_year').select('academic_year').order('academic_year', { ascending: false });
         if (yearsData) {
             setYears(yearsData);
-            if (yearsData[0]) {
-                const latest = yearsData[0].academic_year;
-                setSelectedYear(latest);
-            }
         }
     };
 
@@ -269,7 +265,7 @@ export default function HostelReports() {
                                 <div className="table-responsive" style={{ maxHeight: '500px' }}>
                                     <table className="table align-middle table-sm" style={{ borderCollapse: 'separate', borderSpacing: '0 10px', marginBottom: 0 }}>
                                         <thead>
-                                            <tr className="text-white text-uppercase fw-bold" style={{ fontSize: '0.72rem', background: headerGradient, letterSpacing: '0.08em' }}>
+                                            <tr className="text-white text-uppercase fw-bold" style={{ fontSize: '18px', background: headerGradient, letterSpacing: '0.08em' }}>
                                                 <th className="py-2 px-3 border-0 rounded-start" style={{ backgroundColor: 'transparent', color: 'white' }}>Student Name</th>
                                                 <th className="py-2 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Block</th>
                                                 <th className="py-2 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room</th>
@@ -281,7 +277,11 @@ export default function HostelReports() {
                                         </thead>
                                         <tbody>
                                             {filteredResidents.length === 0 ? (
-                                                <tr><td colSpan="7" className="text-center py-4">No active residents in this session.</td></tr>
+                                                <tr>
+                                                    <td colSpan="7" className="text-center py-4">
+                                                        {!selectedYear ? "Please select an academic year." : "No active residents in this session."}
+                                                    </td>
+                                                </tr>
                                             ) : (
                                                 filteredResidents.map((res, idx) => (
                                                     <tr
@@ -320,80 +320,68 @@ export default function HostelReports() {
                     onClick={closeResidentModal}
                 >
                     <div className="modal-dialog modal-lg modal-dialog-centered" role="document" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-content border-0 shadow" style={{ overflow: 'hidden' }}>
-                            <div className="modal-header text-white" style={modalHeaderStyle}>
-                                <div>
-                                    <h5
-                                        className="modal-title fw-bold mb-0 text-white"
-                                        style={{ textTransform: 'uppercase', color: '#ffffff' }}
-                                    >
-                                        Resident Details
-                                    </h5>
-                                </div>
+                        <div className="modal-content border-0 shadow-lg">
+                            <div className="modal-header p-3" style={modalHeaderStyle}>
+                                <h5 className="modal-title fw-bold text-uppercase text-white" style={{ letterSpacing: '1px' }}>Resident Details</h5>
                                 <button type="button" className="btn-close btn-close-white" onClick={closeResidentModal} aria-label="Close"></button>
                             </div>
-                            <div className="modal-body" style={{ background: '#f8fafc' }}>
-                                <div className="row g-3">
-                                    <div className="col-md-6">
-                                        <div className="p-3 bg-white border rounded-3 h-100">
-                                            <div className="text-muted small text-uppercase">Student Name</div>
-                                            <div className="fw-semibold">{selectedResident.student_name || '-'}</div>
+                            <div className="modal-body p-4 bg-white">
+                                {/* Student Profile Section */}
+                                <div className="mb-4">
+                                    <h6 className="text-uppercase text-muted fw-bold mb-3 small" style={{ letterSpacing: '1px' }}>Student Profile</h6>
+                                    <div className="bg-light rounded p-4 border relative">
+                                        <div className="d-flex flex-column gap-3">
+                                            <div className="d-flex align-items-center">
+                                                <small className="text-muted text-uppercase fw-bold" style={{ width: '130px', fontSize: '0.85rem' }}>Student Name</small>
+                                                <span className="fw-bold text-dark fs-6">: {selectedResident.student_name || '-'}</span>
+                                            </div>
+                                            <div className="d-flex align-items-center">
+                                                <small className="text-muted text-uppercase fw-bold" style={{ width: '130px', fontSize: '0.85rem' }}>Student ID</small>
+                                                <span className="fw-bold text-dark fs-6">: {selectedResident.student_id || '-'}</span>
+                                            </div>
+                                            <div className="d-flex align-items-center">
+                                                <small className="text-muted text-uppercase fw-bold" style={{ width: '130px', fontSize: '0.85rem' }}>Academic Year</small>
+                                                <span className="fw-bold text-dark fs-6">: {selectedResident.academic_year || selectedYear || '-'}</span>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="col-md-6">
-                                        <div className="p-3 bg-white border rounded-3 h-100">
-                                            <div className="text-muted small text-uppercase">Student ID</div>
-                                            <div className="fw-semibold">{selectedResident.student_id || '-'}</div>
-                                        </div>
-                                    </div>
-                                    <div className="col-md-6">
-                                        <div className="p-3 bg-white border rounded-3 h-100">
-                                            <div className="text-muted small text-uppercase">Academic Year</div>
-                                            <div className="fw-semibold">{selectedResident.academic_year || selectedYear || '-'}</div>
-                                        </div>
-                                    </div>
-                                    <div className="col-md-6">
-                                        <div className="p-3 bg-white border rounded-3 h-100">
-                                            <div className="text-muted small text-uppercase">Block</div>
-                                            <div className="fw-semibold">{selectedResident.block_name || '-'}</div>
-                                        </div>
-                                    </div>
-                                    <div className="col-md-4">
-                                        <div className="p-3 bg-white border rounded-3 h-100">
-                                            <div className="text-muted small text-uppercase">Room</div>
-                                            <div className="fw-semibold">{selectedResident.room_no || '-'}</div>
-                                        </div>
-                                    </div>
-                                    <div className="col-md-4">
-                                        <div className="p-3 bg-white border rounded-3 h-100">
-                                            <div className="text-muted small text-uppercase">Floor</div>
-                                            <div className="fw-semibold">{formatFloorLabel(selectedResident.floor_no ?? selectedResident.floor)}</div>
-                                        </div>
-                                    </div>
-                                    <div className="col-md-4">
-                                        <div className="p-3 bg-white border rounded-3 h-100">
-                                            <div className="text-muted small text-uppercase">Bed</div>
-                                            <div className="fw-semibold">{selectedResident.bed_no || '-'}</div>
-                                        </div>
-                                    </div>
-                                    <div className="col-md-6">
-                                        <div className="p-3 bg-white border rounded-3 h-100">
-                                            <div className="text-muted small text-uppercase">Room Type</div>
-                                            <div className="fw-semibold">{formatRoomType(selectedResident.room_type)}</div>
-                                        </div>
-                                    </div>
-                                    <div className="col-md-6">
-                                        <div className="p-3 bg-white border rounded-3 h-100">
-                                            <div className="text-muted small text-uppercase">Allocated</div>
-                                            <div className="fw-semibold">
-                                                {selectedResident.allocated_at ? new Date(selectedResident.allocated_at).toLocaleDateString('en-GB') : '-'}
+                                </div>
+
+                                {/* Allocation Details Section */}
+                                <div className="mb-0">
+                                    <h6 className="text-uppercase text-muted fw-bold mb-3 small" style={{ letterSpacing: '1px' }}>Allocation Details</h6>
+                                    <div className="bg-light rounded p-4 border relative">
+                                        <div className="d-flex flex-column gap-3">
+                                            <div className="d-flex align-items-center">
+                                                <small className="text-muted text-uppercase fw-bold" style={{ width: '130px', fontSize: '0.85rem' }}>Block</small>
+                                                <span className="fw-bold text-dark fs-6">: {selectedResident.block_name || '-'}</span>
+                                            </div>
+                                            <div className="d-flex align-items-center">
+                                                <small className="text-muted text-uppercase fw-bold" style={{ width: '130px', fontSize: '0.85rem' }}>Floor</small>
+                                                <span className="fw-bold text-dark fs-6">: {formatFloorLabel(selectedResident.floor_no ?? selectedResident.floor)}</span>
+                                            </div>
+                                            <div className="d-flex align-items-center">
+                                                <small className="text-muted text-uppercase fw-bold" style={{ width: '130px', fontSize: '0.85rem' }}>Room</small>
+                                                <span className="fw-bold text-dark fs-6">: {selectedResident.room_no || '-'}</span>
+                                            </div>
+                                            <div className="d-flex align-items-center">
+                                                <small className="text-muted text-uppercase fw-bold" style={{ width: '130px', fontSize: '0.85rem' }}>Bed</small>
+                                                <span className="fw-bold text-dark fs-6">: {selectedResident.bed_no || '-'}</span>
+                                            </div>
+                                            <div className="d-flex align-items-center">
+                                                <small className="text-muted text-uppercase fw-bold" style={{ width: '130px', fontSize: '0.85rem' }}>Room Type</small>
+                                                <span className="fw-bold text-dark fs-6">: {formatRoomType(selectedResident.room_type)}</span>
+                                            </div>
+                                            <div className="d-flex align-items-center">
+                                                <small className="text-muted text-uppercase fw-bold" style={{ width: '130px', fontSize: '0.85rem' }}>Allocated Date</small>
+                                                <span className="fw-bold text-dark fs-6">: {selectedResident.allocated_at ? new Date(selectedResident.allocated_at).toLocaleDateString('en-GB') : '-'}</span>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div className="modal-footer bg-light">
-                                <button type="button" className="btn btn-secondary" onClick={closeResidentModal}>Close</button>
+                            <div className="modal-footer bg-light border-0">
+                                <button type="button" className="btn btn-secondary px-4" onClick={closeResidentModal}>Close</button>
                             </div>
                         </div>
                     </div>
