@@ -226,17 +226,6 @@ export default function HostelRooms() {
                                 </select>
                             </div>
                             <div className="col-md-2">
-                                <label className="form-label fw-bold mb-1">Room No</label>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    placeholder="e.g. 101"
-                                    value={form.room_no}
-                                    onChange={(e) => setForm({ ...form, room_no: e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div className="col-md-2">
                                 <label className="form-label fw-bold mb-1">Type</label>
                                 <select
                                     className="form-select"
@@ -247,6 +236,17 @@ export default function HostelRooms() {
                                     <option value="NON_AC">Non AC</option>
                                     <option value="AC">AC</option>
                                 </select>
+                            </div>
+                            <div className="col-md-2">
+                                <label className="form-label fw-bold mb-1">Room No</label>
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    placeholder="e.g. 101"
+                                    value={form.room_no}
+                                    onChange={(e) => setForm({ ...form, room_no: e.target.value })}
+                                    required
+                                />
                             </div>
                             <div className="col-md-2">
                                 <label className="form-label fw-bold mb-1">Beds</label>
@@ -306,8 +306,8 @@ export default function HostelRooms() {
                                             <tr className="text-white text-uppercase fw-bold" style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)', fontSize: '1.1rem' }}>
                                                 <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Block</th>
                                                 <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Floor</th>
-                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room No</th>
                                                 <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Type</th>
+                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room No</th>
                                                 <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Beds</th>
                                                 <th className="py-3 px-3 border-0 text-end" style={{ backgroundColor: 'transparent', color: 'white' }}>Actions</th>
                                             </tr>
@@ -320,12 +320,12 @@ export default function HostelRooms() {
                                                     <tr key={room.id}>
                                                         <td>{room.hostel_blocks?.block_name}</td>
                                                         <td>{Number(room.floor_no) === 0 ? 'Ground Floor' : room.floor_no}</td>
-                                                        <td className="fw-bold fs-6">{room.room_no}</td>
                                                         <td>
                                                             <span className={`students-section-badge ${room.room_type === 'AC' ? 'students-section-badge-course' : 'students-section-badge-category'}`}>
                                                                 {room.room_type?.replace(/_/g, ' ')}
                                                             </span>
                                                         </td>
+                                                        <td className="fw-bold fs-6">{room.room_no}</td>
                                                         <td>{room.bed_count}</td>
                                                         <td className="text-end">
                                                             <div className="d-flex justify-content-end gap-2">
