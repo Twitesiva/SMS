@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 export default function HostelReports() {
     const [residents, setResidents] = useState([]);
     const [allResidents, setAllResidents] = useState([]);
+    const [allCapacity, setAllCapacity] = useState([]);
     const [years, setYears] = useState([]);
     const [selectedYear, setSelectedYear] = useState('');
     const [residentBlockFilter, setResidentBlockFilter] = useState('all');
@@ -52,8 +53,27 @@ export default function HostelReports() {
             setAllResidents(data);
             setResidents(data);
         }
-
+        await fetchCapacityForYear(year);
         setLoading(false);
+    };
+
+    const fetchCapacityForYear = async (year) => {
+        const { data, error } = await supabase
+            .from('hostel_room_year_mapping')
+            .select(`
+                floor_no,
+                hostel_blocks!inner (block_name),
+                hostel_rooms!inner (bed_count, room_no, room_type)
+            `)
+            .eq('academic_year', year)
+            .eq('is_active', true);
+
+        if (error) {
+            console.error('Error fetching capacity:', error);
+            toast.error("Failed to fetch capacity data");
+        } else {
+            setAllCapacity(data || []);
+        }
     };
 
     const fetchFilteredResidents = async () => {
@@ -255,6 +275,57 @@ export default function HostelReports() {
                                         </select>
                                     </div>
                                 </div>
+                                {(() => {
+                                    // Capacity Filtering Logic
+                                    const filteredCapacity = allCapacity.filter(item => {
+                                        const blockName = item.hostel_blocks?.block_name;
+                                        const roomNo = item.hostel_rooms?.room_no;
+                                        const roomType = item.hostel_rooms?.room_type;
+                                        const floorVal = item.floor_no;
+
+                                        const blockMatch = residentBlockFilter === 'all' || normalizeValue(blockName) === normalizeValue(residentBlockFilter);
+                                        const roomMatch = residentRoomFilter === 'all' || normalizeValue(roomNo) === normalizeValue(residentRoomFilter);
+                                        const floorMatch = residentFloorFilter === 'all' || normalizeValue(floorVal) === normalizeValue(residentFloorFilter);
+                                        const typeMatch = residentTypeFilter === 'all' || normalizeValue(roomType) === normalizeValue(residentTypeFilter);
+
+                                        return blockMatch && roomMatch && floorMatch && typeMatch;
+                                    });
+
+                                    const totalBeds = filteredCapacity.reduce((sum, item) => sum + (item.hostel_rooms?.bed_count || 0), 0);
+                                    const reservedBeds = filteredResidents.length;
+                                    const availableBeds = Math.max(0, totalBeds - reservedBeds);
+
+                                    const statRowStyle = {
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        fontSize: '1rem', // Increased font size
+                                        color: '#000000', // Black color
+                                        fontWeight: 'bold',
+                                        marginBottom: '8px'
+                                    };
+
+                                    const labelStyle = {
+                                        minWidth: '150px',
+                                        textTransform: 'uppercase'
+                                    };
+
+                                    return (
+                                        <div className="d-flex flex-column gap-1 mb-4">
+                                            <div style={statRowStyle}>
+                                                <div style={labelStyle}>Total Beds</div>
+                                                <div>: {totalBeds}</div>
+                                            </div>
+                                            <div style={statRowStyle}>
+                                                <div style={labelStyle}>Reserved Beds</div>
+                                                <div>: {reservedBeds}</div>
+                                            </div>
+                                            <div style={statRowStyle}>
+                                                <div style={labelStyle}>Available Beds</div>
+                                                <div>: {availableBeds}</div>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
                             </div>
                             {loading ? (
                                 <HostelPreloader
