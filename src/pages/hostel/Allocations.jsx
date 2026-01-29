@@ -338,10 +338,17 @@ export default function HostelAllocations() {
 
                             <>
                                 <div className="d-flex flex-column gap-3 mb-4">
-                                    <div className="d-flex justify-content-between align-items-center p-3 rounded" style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)' }}>
+                                    <div
+                                        className="d-flex justify-content-between align-items-center p-3"
+                                        style={{
+                                            background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)',
+                                            borderRadius: '14px',
+                                            overflow: 'hidden',
+                                            margin: '0 6px'
+                                        }}
+                                    >
                                         <div>
                                             <h5 className="section-title mb-1 text-white" style={{ fontSize: '1.1rem' }}>ELIGIBLE STUDENTS</h5>
-                                            <p className="students-section-copy mb-0 text-white-50">Students who have successfully paid hostel fees.</p>
                                         </div>
                                         <div style={{ width: '300px' }}>
                                             <input
@@ -354,11 +361,11 @@ export default function HostelAllocations() {
                                         </div>
                                     </div>
 
-                                    <div className="d-flex gap-4 px-2">
-                                        <div style={{ width: '150px' }}>
-                                            <label className="form-label text-uppercase fw-bold text-muted small mb-1" style={{ fontSize: '0.75rem' }}>Hostel Type</label>
+                                    <div className="row g-3 px-2">
+                                        <div className="col-md-4">
+                                            <label className="form-label fw-bold mb-1">Hostel Type</label>
                                             <select
-                                                className="form-select form-select-sm"
+                                                className="form-select"
                                                 value={eligibleHostelType}
                                                 onChange={(e) => setEligibleHostelType(e.target.value)}
                                             >
@@ -367,10 +374,10 @@ export default function HostelAllocations() {
                                                 <option value="NON_AC">NON AC</option>
                                             </select>
                                         </div>
-                                        <div style={{ width: '150px' }}>
-                                            <label className="form-label text-uppercase fw-bold text-muted small mb-1" style={{ fontSize: '0.75rem' }}>Year of Study</label>
+                                        <div className="col-md-4">
+                                            <label className="form-label fw-bold mb-1">Year of Study</label>
                                             <select
-                                                className="form-select form-select-sm"
+                                                className="form-select"
                                                 value={eligibleYear}
                                                 onChange={(e) => setEligibleYear(e.target.value)}
                                             >
@@ -380,10 +387,10 @@ export default function HostelAllocations() {
                                                 ))}
                                             </select>
                                         </div>
-                                        <div style={{ width: '150px' }}>
-                                            <label className="form-label text-uppercase fw-bold text-muted small mb-1" style={{ fontSize: '0.75rem' }}>Gender</label>
+                                        <div className="col-md-4">
+                                            <label className="form-label fw-bold mb-1">Gender</label>
                                             <select
-                                                className="form-select form-select-sm"
+                                                className="form-select"
                                                 value={eligibleGender}
                                                 onChange={(e) => setEligibleGender(e.target.value)}
                                             >
