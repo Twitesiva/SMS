@@ -10,6 +10,7 @@ export default function HostelRooms() {
     const [blocks, setBlocks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [form, setForm] = useState({ id: '', block_id: '', floor_no: 0, room_no: '', room_type: 'NON_AC', bed_count: 1, status: 'AVAILABLE' });
+    const [roomRows, setRoomRows] = useState([{ key: Date.now(), room_type: 'NON_AC', room_no: '', bed_count: 1 }]);
     const [editingId, setEditingId] = useState(null);
     const [deleteModal, setDeleteModal] = useState({ show: false, id: null });
     const [saveModal, setSaveModal] = useState({ show: false, payload: null, isEdit: false, details: null });
@@ -26,6 +27,15 @@ export default function HostelRooms() {
         if (!Number.isFinite(max) || max < 0) return [];
         return Array.from({ length: max + 1 }, (_, index) => index);
     }, [selectedBlock]);
+    const formatFloorLabel = (floorNo) => {
+        const value = Number(floorNo);
+        if (!Number.isFinite(value) || value < 0) return '';
+        if (value === 0) return 'Ground Floor';
+        if (value === 1) return 'First Floor';
+        if (value === 2) return 'Second Floor';
+        if (value === 3) return 'Third Floor';
+        return `Floor ${value}`;
+    };
 
     useEffect(() => {
         fetchData();
@@ -50,16 +60,10 @@ export default function HostelRooms() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const trimmedRoomNo = String(form.room_no || '').trim();
         const floorValue = Number(form.floor_no);
-        const bedValue = Number(form.bed_count);
 
         if (!form.block_id) {
             toast.error('Please select a block.');
-            return;
-        }
-        if (!trimmedRoomNo) {
-            toast.error('Please enter a room number.');
             return;
         }
         if (form.floor_no === '') {
@@ -74,41 +78,101 @@ export default function HostelRooms() {
             toast.error(`Floor number cannot exceed ${maxFloor} for the selected block.`);
             return;
         }
-        if (!Number.isInteger(bedValue) || bedValue < 1) {
-            toast.error('Bed count must be a whole number of at least 1.');
+
+        if (editingId) {
+            const trimmedRoomNo = String(form.room_no || '').trim();
+            const bedValue = Number(form.bed_count);
+            if (!trimmedRoomNo) {
+                toast.error('Please enter a room number.');
+                return;
+            }
+            if (!Number.isInteger(bedValue) || bedValue < 1) {
+                toast.error('Bed count must be a whole number of at least 1.');
+                return;
+            }
+
+            const payload = {
+                block_id: form.block_id,
+                floor_no: parseInt(form.floor_no),
+                room_no: trimmedRoomNo,
+                room_type: form.room_type,
+                bed_count: parseInt(form.bed_count),
+                status: form.status
+            };
+            const blockName = selectedBlock?.block_name || '—';
+            const floorLabel = floorValue === 0 ? 'Ground Floor' : `Floor ${floorValue}`;
+            const typeLabel = form.room_type === 'AC' ? 'AC' : 'Non AC';
+            const details = {
+                blockName,
+                roomNo: trimmedRoomNo,
+                floorLabel,
+                typeLabel,
+                bedValue
+            };
+
+            setSaveModal({ show: true, payload, isEdit: true, details });
             return;
         }
 
-        const payload = {
+        const sanitizedRows = roomRows
+            .map((row) => ({
+                key: row.key,
+                room_no: String(row.room_no || '').trim(),
+                room_type: row.room_type || 'NON_AC',
+                bed_count: Number(row.bed_count)
+            }))
+            .filter((row) => row.room_no !== '');
+
+        if (sanitizedRows.length === 0) {
+            toast.error('Please enter at least one room.');
+            return;
+        }
+
+        const duplicateCheck = new Set();
+        for (const row of sanitizedRows) {
+            if (!Number.isInteger(row.bed_count) || row.bed_count < 1) {
+                toast.error('Bed count must be a whole number of at least 1.');
+                return;
+            }
+            const key = row.room_no.toLowerCase();
+            if (duplicateCheck.has(key)) {
+                toast.error(`Duplicate room number: ${row.room_no}`);
+                return;
+            }
+            duplicateCheck.add(key);
+        }
+
+        const payload = sanitizedRows.map((row) => ({
             block_id: form.block_id,
             floor_no: parseInt(form.floor_no),
-            room_no: trimmedRoomNo,
-            room_type: form.room_type,
-            bed_count: parseInt(form.bed_count),
+            room_no: row.room_no,
+            room_type: row.room_type,
+            bed_count: parseInt(row.bed_count),
             status: form.status
-        };
+        }));
+
         const blockName = selectedBlock?.block_name || '—';
         const floorLabel = floorValue === 0 ? 'Ground Floor' : `Floor ${floorValue}`;
-        const typeLabel = form.room_type === 'AC' ? 'AC' : 'Non AC';
-        const details = {
+        const details = payload.map((row) => ({
             blockName,
-            roomNo: trimmedRoomNo,
+            roomNo: row.room_no,
             floorLabel,
-            typeLabel,
-            bedValue
-        };
+            typeLabel: row.room_type === 'AC' ? 'AC' : 'Non AC',
+            bedValue: row.bed_count
+        }));
 
-        setSaveModal({ show: true, payload, isEdit: Boolean(editingId), details });
+        setSaveModal({ show: true, payload, isEdit: false, details });
     };
-
     const resetForm = () => {
         setEditingId(null);
         setForm({ id: '', block_id: '', floor_no: 0, room_no: '', room_type: 'NON_AC', bed_count: 1, status: 'AVAILABLE' });
+        setRoomRows([{ key: Date.now(), room_type: 'NON_AC', room_no: '', bed_count: 1 }]);
     };
 
     const handleEdit = (room) => {
         setForm(room);
         setEditingId(room.id);
+        setRoomRows([{ key: Date.now(), room_type: 'NON_AC', room_no: '', bed_count: 1 }]);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -134,28 +198,32 @@ export default function HostelRooms() {
             } else {
                 const { data: roomData, error: roomError } = await supabase
                     .from('hostel_rooms')
-                    .insert([saveModal.payload])
-                    .select()
-                    .single();
+                    .insert(saveModal.payload)
+                    .select();
 
                 if (roomError) throw roomError;
 
-                if (roomData.bed_count > 0) {
-                    const beds = Array.from({ length: roomData.bed_count }, (_, i) => ({
-                        room_id: roomData.id,
-                        bed_no: String(i + 1),
-                        status: 'AVAILABLE'
-                    }));
+                const beds = [];
+                (roomData || []).forEach((room) => {
+                    for (let i = 0; i < Number(room.bed_count || 0); i += 1) {
+                        beds.push({
+                            room_id: room.id,
+                            bed_no: String(i + 1),
+                            status: 'AVAILABLE'
+                        });
+                    }
+                });
 
+                if (beds.length > 0) {
                     const { error: bedError } = await supabase.from('hostel_beds').insert(beds);
                     if (bedError) {
                         console.error('Error creating beds:', bedError);
                         toast.warning('Room created but beds could not be generated.');
                     } else {
-                        toast.success('Room and beds created successfully');
+                        toast.success('Rooms and beds created successfully');
                     }
                 } else {
-                    toast.success('Room created successfully');
+                    toast.success('Rooms created successfully');
                 }
             }
             resetForm();
@@ -188,11 +256,7 @@ export default function HostelRooms() {
                                 </h5>
                             </div>
                         </div>
-                        {form.floor_no !== '' && Number(form.floor_no) === 0 && (
-                            <div className="alert alert-info py-2 mb-3" role="alert">
-                                If floor number is 0, it is assigned as Ground Floor.
-                            </div>
-                        )}
+
 
                         <form onSubmit={handleSubmit} className="students-section-form row g-3">
                             <div className="col-md-4">
@@ -225,43 +289,126 @@ export default function HostelRooms() {
                                     ))}
                                 </select>
                             </div>
-                            <div className="col-md-2">
-                                <label className="form-label fw-bold mb-1">Type</label>
-                                <select
-                                    className="form-select"
-                                    value={form.room_type}
-                                    onChange={(e) => setForm({ ...form, room_type: e.target.value })}
-                                    required
-                                >
-                                    <option value="NON_AC">Non AC</option>
-                                    <option value="AC">AC</option>
-                                </select>
-                            </div>
-                            <div className="col-md-2">
-                                <label className="form-label fw-bold mb-1">Room No</label>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    placeholder="e.g. 101"
-                                    value={form.room_no}
-                                    onChange={(e) => setForm({ ...form, room_no: e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div className="col-md-2">
-                                <label className="form-label fw-bold mb-1">Beds</label>
-                                <input
-                                    type="number"
-                                    className="form-control"
-                                    value={form.bed_count}
-                                    onChange={(e) => setForm({ ...form, bed_count: e.target.value })}
-                                    min="1"
-                                    required
-                                />
-                            </div>
+                            {editingId ? (
+                                <>
+                                    <div className="col-md-2">
+                                        <label className="form-label fw-bold mb-1">Type</label>
+                                        <select
+                                            className="form-select"
+                                            value={form.room_type}
+                                            onChange={(e) => setForm({ ...form, room_type: e.target.value })}
+                                            required
+                                        >
+                                            <option value="NON_AC">Non AC</option>
+                                            <option value="AC">AC</option>
+                                        </select>
+                                    </div>
+                                    <div className="col-md-2">
+                                        <label className="form-label fw-bold mb-1">Room No</label>
+                                        <input
+                                            type="text"
+                                            className="form-control"
+                                            placeholder="e.g. 101"
+                                            value={form.room_no}
+                                            onChange={(e) => setForm({ ...form, room_no: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="col-md-2">
+                                        <label className="form-label fw-bold mb-1">Beds</label>
+                                        <input
+                                            type="number"
+                                            className="form-control"
+                                            value={form.bed_count}
+                                            onChange={(e) => setForm({ ...form, bed_count: e.target.value })}
+                                            min="1"
+                                            required
+                                        />
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="col-12">
+                                    <div className="row g-3">
+                                        {roomRows.map((row, index) => (
+                                            <div className="col-12" key={row.key}>
+                                                <div className="row g-3 align-items-end">
+                                                    <div className="col-md-3">
+                                                        <label className="form-label fw-bold mb-1">Type</label>
+                                                        <select
+                                                            className="form-select"
+                                                            value={row.room_type}
+                                                            onChange={(e) => {
+                                                                const next = [...roomRows];
+                                                                next[index] = { ...next[index], room_type: e.target.value };
+                                                                setRoomRows(next);
+                                                            }}
+                                                            required
+                                                        >
+                                                            <option value="NON_AC">Non AC</option>
+                                                            <option value="AC">AC</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="col-md-4">
+                                                        <label className="form-label fw-bold mb-1">Room No</label>
+                                                        <input
+                                                            type="text"
+                                                            className="form-control"
+                                                            placeholder="e.g. 101"
+                                                            value={row.room_no}
+                                                            onChange={(e) => {
+                                                                const next = [...roomRows];
+                                                                next[index] = { ...next[index], room_no: e.target.value };
+                                                                setRoomRows(next);
+                                                            }}
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div className="col-md-3">
+                                                        <label className="form-label fw-bold mb-1">Beds</label>
+                                                        <input
+                                                            type="number"
+                                                            className="form-control"
+                                                            value={row.bed_count}
+                                                            onChange={(e) => {
+                                                                const next = [...roomRows];
+                                                                next[index] = { ...next[index], bed_count: e.target.value };
+                                                                setRoomRows(next);
+                                                            }}
+                                                            min="1"
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div className="col-md-2 d-flex justify-content-end">
+                                                        <button
+                                                            type="button"
+                                                            className="btn btn-outline-danger"
+                                                            onClick={() => {
+                                                                const next = roomRows.filter((_, i) => i !== index);
+                                                                setRoomRows(next.length > 0 ? next : [{ key: Date.now(), room_type: 'NON_AC', room_no: '', bed_count: 1 }]);
+                                                            }}
+                                                            disabled={roomRows.length === 1}
+                                                        >
+                                                            Remove
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="mt-3">
+                                        <button
+                                            type="button"
+                                            className="btn btn-outline-primary"
+                                            onClick={() => setRoomRows([...roomRows, { key: Date.now(), room_type: 'NON_AC', room_no: '', bed_count: 1 }])}
+                                        >
+                                            Add another room
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                             <div className="col-12 mt-3 d-flex gap-2 justify-content-end">
                                 <button type="submit" className="btn btn-primary students-button px-5">
-                                    {editingId ? 'Update Room' : 'Add Room'}
+                                    {editingId ? 'Update Room' : 'Add Rooms'}
                                 </button>
                                 {editingId && (
                                     <button
@@ -319,7 +466,7 @@ export default function HostelRooms() {
                                                 visibleRooms.map((room) => (
                                                     <tr key={room.id}>
                                                         <td>{room.hostel_blocks?.block_name}</td>
-                                                        <td>{Number(room.floor_no) === 0 ? 'Ground Floor' : room.floor_no}</td>
+                                                        <td>{formatFloorLabel(room.floor_no)}</td>
                                                         <td>
                                                             <span className={`students-section-badge ${room.room_type === 'AC' ? 'students-section-badge-course' : 'students-section-badge-category'}`}>
                                                                 {room.room_type?.replace(/_/g, ' ')}
@@ -371,18 +518,34 @@ export default function HostelRooms() {
                 onClose={() => setSaveModal({ show: false, payload: null, isEdit: false, details: null })}
                 onConfirm={handleConfirmSave}
                 title={saveModal.isEdit ? 'CONFIRM ROOM UPDATE' : 'CONFIRM ROOM CREATION'}
-                confirmText={saveModal.isEdit ? 'Update Room' : 'Add Room'}
+                confirmText={saveModal.isEdit ? 'Update Room' : 'Add Rooms'}
                 confirmButtonClass="btn-primary"
                 isLoading={saving}
             >
-                <div className="d-flex flex-column gap-2">
-                    <div className="fw-bold text-dark">
-                        {saveModal.details?.blockName} | Room {saveModal.details?.roomNo}
+                {Array.isArray(saveModal.details) ? (
+                    <div className="d-flex flex-column gap-2">
+                        <div className="fw-bold text-dark">Rooms: {saveModal.details.length}</div>
+                        <div className="text-muted">
+                            {saveModal.details.slice(0, 5).map((detail) => (
+                                <div key={`${detail.roomNo}-${detail.typeLabel}`}>
+                                    {detail.blockName} | Room {detail.roomNo} | {detail.floorLabel} | Type: {detail.typeLabel} | Beds: {detail.bedValue}
+                                </div>
+                            ))}
+                            {saveModal.details.length > 5 && (
+                                <div>...and {saveModal.details.length - 5} more</div>
+                            )}
+                        </div>
                     </div>
-                    <div className="text-muted">
-                        {saveModal.details?.floorLabel} | Type: {saveModal.details?.typeLabel} | Beds: {saveModal.details?.bedValue}
+                ) : (
+                    <div className="d-flex flex-column gap-2">
+                        <div className="fw-bold text-dark">
+                            {saveModal.details?.blockName} | Room {saveModal.details?.roomNo}
+                        </div>
+                        <div className="text-muted">
+                            {saveModal.details?.floorLabel} | Type: {saveModal.details?.typeLabel} | Beds: {saveModal.details?.bedValue}
+                        </div>
                     </div>
-                </div>
+                )}
             </ConfirmationModal>
 
             <ConfirmationModal
@@ -394,3 +557,4 @@ export default function HostelRooms() {
         </HostelShell>
     );
 }
+
