@@ -147,11 +147,14 @@ export default function RoomYearMapping() {
                 .eq('id', existing.id);
             error = res.error;
         } else {
+            const room = rooms.find(r => r.id === roomId);
             const res = await supabase.from('hostel_room_year_mapping')
                 .insert([{
                     room_id: roomId,
                     academic_year: selectedYear,
                     year_of_study: Number(selectedStudyYear),
+                    block_id: room?.block_id ?? null,
+                    floor_no: room?.floor_no ?? null,
                     is_active: newValue
                 }]);
             error = res.error;
@@ -177,6 +180,8 @@ export default function RoomYearMapping() {
             room_id: r.id,
             academic_year: selectedYear,
             year_of_study: Number(selectedStudyYear),
+            block_id: r.block_id,
+            floor_no: r.floor_no,
             is_active: true
         }));
         
