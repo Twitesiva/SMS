@@ -26,6 +26,7 @@ export default function HostelAllocations() {
     const [eligibleSearch, setEligibleSearch] = useState('');
     const [eligibleHostelType, setEligibleHostelType] = useState('');
     const [eligibleYear, setEligibleYear] = useState('');
+    const [eligibleGender, setEligibleGender] = useState('');
     const [showAllEligible, setShowAllEligible] = useState(false);
 
     // Track allocated students
@@ -319,8 +320,9 @@ export default function HostelAllocations() {
             s.hall_ticket_no?.toLowerCase().includes(q);
         const matchesType = eligibleHostelType ? s.hostel_type === eligibleHostelType : true;
         const matchesYear = eligibleYear ? String(s.year_of_study) === String(eligibleYear) : true;
+        const matchesGender = eligibleGender ? String(s.gender).toUpperCase() === eligibleGender : true;
 
-        return matchesSearch && matchesType && matchesYear;
+        return matchesSearch && matchesType && matchesYear && matchesGender;
     });
 
     const uniqueYears = [...new Set(eligibleStudents.map(s => s.year_of_study).filter(Boolean))].sort((a, b) => a - b);
@@ -376,6 +378,18 @@ export default function HostelAllocations() {
                                                 {uniqueYears.map(year => (
                                                     <option key={year} value={year}>{year}</option>
                                                 ))}
+                                            </select>
+                                        </div>
+                                        <div style={{ width: '150px' }}>
+                                            <label className="form-label text-uppercase fw-bold text-muted small mb-1" style={{ fontSize: '0.75rem' }}>Gender</label>
+                                            <select
+                                                className="form-select form-select-sm"
+                                                value={eligibleGender}
+                                                onChange={(e) => setEligibleGender(e.target.value)}
+                                            >
+                                                <option value="">All</option>
+                                                <option value="BOYS">BOYS</option>
+                                                <option value="GIRLS">GIRLS</option>
                                             </select>
                                         </div>
                                     </div>
