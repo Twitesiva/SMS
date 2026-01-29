@@ -118,7 +118,31 @@ export default function RoomYearMapping() {
         fetchAllocatedRooms();
     }, [selectedYear, selectedStudyYear, selectedBlock, selectedFloor, selectedRoom]);
 
-    const visibleAllocatedRooms = showAllAllocated ? allocatedRooms : allocatedRooms.slice(0, 3);
+    const groupedAllocatedRooms = useMemo(() => {
+        const grouped = new Map();
+        (allocatedRooms || []).forEach((row) => {
+            const blockId = row.hostel_rooms?.block_id ?? '';
+            const floorNo = row.hostel_rooms?.floor_no ?? '';
+            const key = `${row.academic_year}::${blockId}::${floorNo}`;
+            if (!grouped.has(key)) {
+                grouped.set(key, {
+                    key,
+                    academic_year: row.academic_year,
+                    block_name: row.hostel_rooms?.hostel_blocks?.block_name ?? '',
+                    floor_no: floorNo,
+                    rooms: []
+                });
+            }
+            grouped.get(key).rooms.push({
+                room_no: row.hostel_rooms?.room_no,
+                room_type: row.hostel_rooms?.room_type,
+                bed_count: row.hostel_rooms?.bed_count
+            });
+        });
+        return Array.from(grouped.values());
+    }, [allocatedRooms]);
+
+    const visibleAllocatedRooms = showAllAllocated ? groupedAllocatedRooms : groupedAllocatedRooms.slice(0, 3);
 
     const toggleMapping = async (roomId) => {
         if (!selectedStudyYear) {
@@ -479,24 +503,24 @@ export default function RoomYearMapping() {
                                         </thead>
                                         <tbody>
                                             {visibleAllocatedRooms.map((row) => (
-                                                <tr key={row.id} style={{ cursor: 'pointer' }} onClick={() => setAllocatedDetailModal({ show: true, row })}>
+                                                <tr key={row.key} style={{ cursor: 'pointer' }} onClick={() => setAllocatedDetailModal({ show: true, row })}>
                                                     <td>{row.academic_year}</td>
-                                                    <td>{row.hostel_rooms?.hostel_blocks?.block_name}</td>
+                                                    <td>{row.block_name}</td>
                                                     <td>{(() => {
-                                                        const f = Number(row.hostel_rooms?.floor_no);
+                                                        const f = Number(row.floor_no);
                                                         if (f === 0) return 'Ground Floor';
                                                         if (f === 1) return 'First Floor';
                                                         if (f === 2) return 'Second Floor';
                                                         return `Floor ${f}`;
                                                     })()}</td>
-                                                    <td>{row.hostel_rooms?.bed_count}</td>
+                                                    <td>{row.rooms.length}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
                                     </table>
                                 </div>
                             )}
-                            {allocatedRooms.length > 3 && (
+                            {groupedAllocatedRooms.length > 3 && (
                                 <div className="d-flex justify-content-end mt-3">
                                     <button
                                         type="button"
@@ -536,29 +560,41 @@ export default function RoomYearMapping() {
                                         </div>
                                         <div className="d-flex align-items-center">
                                             <small className="text-muted text-uppercase fw-bold" style={{ width: '160px', fontSize: '0.85rem' }}>Block</small>
-                                            <span className="fw-bold text-dark fs-6">: {allocatedDetailModal.row.hostel_rooms?.hostel_blocks?.block_name}</span>
+                                            <span className="fw-bold text-dark fs-6">: {allocatedDetailModal.row.block_name}</span>
                                         </div>
                                         <div className="d-flex align-items-center">
                                             <small className="text-muted text-uppercase fw-bold" style={{ width: '160px', fontSize: '0.85rem' }}>Floor</small>
                                             <span className="fw-bold text-dark fs-6">: {(() => {
-                                                const f = Number(allocatedDetailModal.row.hostel_rooms?.floor_no);
+                                                const f = Number(allocatedDetailModal.row.floor_no);
                                                 if (f === 0) return 'Ground Floor';
                                                 if (f === 1) return 'First Floor';
                                                 if (f === 2) return 'Second Floor';
                                                 return `Floor ${f}`;
                                             })()}</span>
                                         </div>
-                                        <div className="d-flex align-items-center">
-                                            <small className="text-muted text-uppercase fw-bold" style={{ width: '160px', fontSize: '0.85rem' }}>Room Type</small>
-                                            <span className="fw-bold text-dark fs-6">: {allocatedDetailModal.row.hostel_rooms?.room_type?.replace(/_/g, ' ')}</span>
-                                        </div>
-                                        <div className="d-flex align-items-center">
-                                            <small className="text-muted text-uppercase fw-bold" style={{ width: '160px', fontSize: '0.85rem' }}>Room No</small>
-                                            <span className="fw-bold text-dark fs-6">: {allocatedDetailModal.row.hostel_rooms?.room_no}</span>
-                                        </div>
-                                        <div className="d-flex align-items-center">
-                                            <small className="text-muted text-uppercase fw-bold" style={{ width: '160px', fontSize: '0.85rem' }}>Bed Count</small>
-                                            <span className="fw-bold text-dark fs-6">: {allocatedDetailModal.row.hostel_rooms?.bed_count}</span>
+                                        <div>
+                                            <small className="text-muted text-uppercase fw-bold" style={{ width: '160px', fontSize: '0.85rem', display: 'inline-block' }}>Rooms</small>
+                                            <div className="mt-2">
+                                                <div className="row g-2">
+                                                    {allocatedDetailModal.row.rooms.map((room, index) => (
+                                                        <div className="col-md-6" key={`${room.room_no}-${index}`}>
+                                                            <div className="p-3 border rounded bg-white h-100">
+                                                                <div className="fs-6 fw-semibold">Room No : {room.room_no}</div>
+                                                                <div className="mt-2 d-flex flex-column gap-1">
+                                                                    <div>
+                                                                        <span className="text-muted small">Type</span>
+                                                                        <span className="ms-2 fw-semibold">: {room.room_type?.replace(/_/g, ' ')}</span>
+                                                                    </div>
+                                                                    <div>
+                                                                        <span className="text-muted small">Beds</span>
+                                                                        <span className="ms-2 fw-semibold">: {room.bed_count}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
