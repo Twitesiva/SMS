@@ -338,6 +338,59 @@
   gap: 0.9rem;
 }
 
+.hostel-fee-group {
+  grid-column: 1 / -1;
+  background: #ffffff;
+  border: 1px solid #e1e8f5;
+  border-radius: 14px;
+  padding: 0.9rem;
+  box-shadow: 0 14px 26px rgba(31, 45, 61, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.hostel-fee-group__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f6f9ff;
+  border: 1px solid #e1e8f5;
+  border-radius: 12px;
+  padding: 0.6rem 0.9rem;
+  color: #3f4c6b;
+}
+
+.hostel-fee-group__cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.hostel-fee-tile {
+  border: 1px solid #e1e8f5;
+  border-radius: 12px;
+  padding: 0.85rem;
+  background: linear-gradient(160deg, #f0f4ff 0%, #ffffff 75%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.hostel-fee-tile__label {
+  text-transform: uppercase;
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: #000000;
+  letter-spacing: 0.08em;
+}
+
+.hostel-fee-tile__value {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
 .hostel-fee-card {
   border: 1px solid #e1e8f5;
   border-radius: 14px;
@@ -390,4 +443,10 @@
   }
   .hostel-dashboard__header { flex-direction: column; }
   .hostel-panel__head { flex-direction: column; align-items: flex-start; }
+}
+
+@media (max-width: 700px) {
+  .hostel-fee-group__cards {
+    grid-template-columns: 1fr;
+  }
 }
