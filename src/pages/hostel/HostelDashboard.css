@@ -225,6 +225,10 @@
   border-bottom: 1px solid #edf2fb;
 }
 
+.hostel-table--students .hostel-table__row {
+  grid-template-columns: 1fr 1.5fr 0.6fr 0.9fr 0.9fr 1fr;
+}
+
 .hostel-table__row--head {
   font-weight: 800;
   text-transform: uppercase;
@@ -355,6 +359,10 @@
 @media (max-width: 1100px) {
   .hostel-table__row {
     grid-template-columns: 1fr 1.1fr 1.2fr 0.7fr 0.9fr 0.9fr 0.9fr 0.9fr;
+  }
+
+  .hostel-table--students .hostel-table__row {
+    grid-template-columns: 1fr 1.3fr 0.6fr 0.9fr 0.9fr 1fr;
   }
 }
 

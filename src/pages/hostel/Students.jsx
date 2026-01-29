@@ -16,6 +16,7 @@ export default function HostelStudents() {
     const [search, setSearch] = useState('')
     const [yearFilter, setYearFilter] = useState('')
     const [showAll, setShowAll] = useState(true) // Default show all for the dedicated list page
+    const headerGradient = 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)'
 
     useEffect(() => {
         const loadHostelData = async () => {
@@ -171,10 +172,20 @@ export default function HostelStudents() {
                     />
                 ) : (
                     <section className="hostel-panel dashboard-chart-card card-shadow" id="residents">
-                        <div className="hostel-panel__head">
+                        <div
+                            className="hostel-panel__head"
+                            style={{
+                                background: headerGradient,
+                                borderRadius: '14px',
+                                padding: '14px 18px',
+                                color: '#ffffff'
+                            }}
+                        >
                             <div>
-                                <h2 className="mb-0">Hostel Registered Students</h2>
-                                <div className="text-muted small mt-1">Total: {filteredResidents.length} Students</div>
+                                <h2 className="mb-0 text-white">Hostel Registered Students</h2>
+                                <div className="small mt-1 total-students">
+                                    Total: {filteredResidents.length} Students
+                                </div>
                             </div>
                             <div className="hostel-panel__controls">
                                 <input
@@ -197,17 +208,15 @@ export default function HostelStudents() {
                             </div>
                         </div>
 
-                        <div className="hostel-table" role="table">
+                        <div className="hostel-table hostel-table--students" role="table">
                             <div className="hostel-table__head" role="rowgroup">
                                 <div role="row" className="hostel-table__row hostel-table__row--head">
                                     <div role="columnheader">Student ID</div>
                                     <div role="columnheader">Name</div>
-                                    <div role="columnheader">Course / Group</div>
                                     <div role="columnheader">Year</div>
                                     <div role="columnheader">Hostel Type</div>
-                                    <div role="columnheader">Fee</div>
-                                    <div role="columnheader">Paid</div>
-                                    <div role="columnheader" className="text-end">Fee Status</div>
+                                    <div role="columnheader">Fee Status</div>
+                                    <div role="columnheader">Allocation</div>
                                 </div>
                             </div>
 
@@ -231,22 +240,15 @@ export default function HostelStudents() {
                                                     <div className="fw-semibold">{resident.full_name || '—'}</div>
                                                     <div className="hostel-subtle">{resident.phone_number || '—'}</div>
                                                 </div>
-                                                <div role="cell">
-                                                    <div>{resident.displayCourse}</div>
-                                                    <div className="hostel-subtle">{resident.displayGroup}</div>
-                                                </div>
                                                 <div role="cell">{resident.year_of_study || '—'}</div>
                                                 <div role="cell">
-                                                    <span className="badge bg-light text-dark border">
-                                                        {resident.hostel_ac ? 'AC' : 'Non-AC'}
-                                                    </span>
+                                                    {resident.hostel_ac ? 'AC' : 'Non-AC'}
                                                 </div>
-                                                <div role="cell">{currency(resident.hostelFee)}</div>
-                                                <div role="cell">{currency(resident.totalPaid)}</div>
-                                                <div role="cell" className="text-end">
-                                                    <span className={`hostel-status hostel-status--${feeStatus.toLowerCase().replace(' ', '-')}`}>
-                                                        {feeStatus}
-                                                    </span>
+                                                <div role="cell">
+                                                    {feeStatus}
+                                                </div>
+                                                <div role="cell">
+                                                    {resident.isAllocated ? 'Allocated' : 'Not Allocated'}
                                                 </div>
                                             </div>
                                         )
@@ -257,6 +259,13 @@ export default function HostelStudents() {
                     </section>
                 )}
             </div>
+            <style>{`
+                .hostel-panel__head .total-students {
+                    color: #ffffff !important;
+                    font-size: 1.15rem;
+                    font-weight: 700;
+                }
+            `}</style>
         </HostelShell>
     )
 }
