@@ -133,16 +133,27 @@ export default function RoomYearMapping() {
                     block_id: blockId,
                     block_name: row.hostel_rooms?.hostel_blocks?.block_name ?? '',
                     floor_no: floorNo,
-                    rooms: []
+                    rooms: [],
+                    year_of_study_set: new Set()
                 });
             }
-            grouped.get(key).rooms.push({
+            const group = grouped.get(key);
+            if (row.year_of_study !== null && row.year_of_study !== undefined) {
+                group.year_of_study_set.add(String(row.year_of_study));
+            }
+            group.rooms.push({
                 room_no: row.hostel_rooms?.room_no,
                 room_type: row.hostel_rooms?.room_type,
                 bed_count: row.hostel_rooms?.bed_count
             });
         });
-        return Array.from(grouped.values());
+        return Array.from(grouped.values()).map((group) => {
+            const years = Array.from(group.year_of_study_set);
+            return {
+                ...group,
+                year_of_study: years.length === 1 ? years[0] : ''
+            };
+        });
     }, [allocatedRooms]);
 
     const visibleAllocatedRooms = showAllAllocated ? groupedAllocatedRooms : groupedAllocatedRooms.slice(0, 3);
@@ -152,6 +163,9 @@ export default function RoomYearMapping() {
         if (row.block_id) setSelectedBlock(row.block_id);
         if (row.floor_no !== null && row.floor_no !== undefined) setSelectedFloor(row.floor_no);
         setSelectedRoom('');
+        if (row.year_of_study) {
+            setSelectedStudyYear(String(row.year_of_study));
+        }
     };
 
     const handleAllocatedDelete = async () => {
