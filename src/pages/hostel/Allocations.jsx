@@ -439,15 +439,7 @@ export default function HostelAllocations() {
                                                                 <td>{s.hostel_type?.replace(/_/g, ' ')}</td>
 
                                                                 <td>
-                                                                    {allocatedRoom ? (
-                                                                        <span className="badge bg-success bg-opacity-10 text-success border border-success px-3 py-2 rounded-pill">
-                                                                            {allocatedRoom}
-                                                                        </span>
-                                                                    ) : (
-                                                                        <span className="badge bg-warning bg-opacity-10 text-warning border border-warning px-3 py-2 rounded-pill">
-                                                                            Pending
-                                                                        </span>
-                                                                    )}
+                                                                    {allocatedRoom || 'Pending'}
                                                                 </td>
                                                                 <td>
                                                                     {allocatedRoom ? (
