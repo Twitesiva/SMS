@@ -454,10 +454,13 @@ export default function RoomYearMapping() {
                     {!selectedYear || !selectedBlock || !selectedStudyYear ? null : (
                         <>
                             <div className="students-section-shell card card-soft">
-                                <div className="students-section-shell-header mb-4">
+                                <div className="students-section-shell-header mb-4 d-flex justify-content-between align-items-center">
                                     <h5 className="section-title mb-0" style={{ fontSize: '1.2rem' }}>
                                         Rooms Availability - {selectedYear}
                                     </h5>
+                                    <button type="button" className="btn btn-light btn-sm fw-semibold" onClick={handleBack}>
+                                        Cancel
+                                    </button>
                                 </div>
 
                                 {loading ? (
