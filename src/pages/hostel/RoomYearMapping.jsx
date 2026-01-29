@@ -33,10 +33,23 @@ export default function RoomYearMapping() {
     const [savingEdit, setSavingEdit] = useState(false);
     const [deleteModal, setDeleteModal] = useState({ show: false, room: null });
     const [deleting, setDeleting] = useState(false);
+    const hasSelection = Boolean(
+        selectedYear || selectedStudyYear || selectedBlock || selectedFloor || selectedRoom
+    );
 
     useEffect(() => {
         fetchInitialData();
     }, []);
+
+    const handleBack = () => {
+        setSelectedYear('');
+        setSelectedStudyYear('');
+        setSelectedBlock('');
+        setSelectedFloor('');
+        setSelectedRoom('');
+        setRooms([]);
+        setMappings({});
+    };
 
     const fetchInitialData = async () => {
         const [yearsRes, blocksRes] = await Promise.all([
@@ -360,7 +373,15 @@ export default function RoomYearMapping() {
     return (
         <HostelShell brandTitle="HOSTEL MANAGEMENT">
             <div className="desktop-container">
-                <h4 className="mb-4">Room Year Mapping</h4>
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                    <h4 className="mb-0">Room Year Mapping</h4>
+                    {hasSelection && (
+                        <button type="button" className="btn btn-outline-secondary" onClick={handleBack}>
+                            <i className="bi bi-arrow-left me-2"></i>
+                            Cancel
+                        </button>
+                    )}
+                </div>
 
                 <section className="setup-section mb-4">
                     <div className="students-section-shell card card-soft mb-4">
