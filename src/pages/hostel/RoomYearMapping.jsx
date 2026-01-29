@@ -20,6 +20,8 @@ export default function RoomYearMapping() {
     const [allocatedLoading, setAllocatedLoading] = useState(false);
     const [showAllAllocated, setShowAllAllocated] = useState(false);
     const [allocatedDetailModal, setAllocatedDetailModal] = useState({ show: false, row: null });
+    const [allocatedDeleteModal, setAllocatedDeleteModal] = useState({ show: false, row: null });
+    const [deletingAllocated, setDeletingAllocated] = useState(false);
     const [editModal, setEditModal] = useState({ show: false, room: null });
     const [editForm, setEditForm] = useState({
         room_no: '',
@@ -128,6 +130,7 @@ export default function RoomYearMapping() {
                 grouped.set(key, {
                     key,
                     academic_year: row.academic_year,
+                    block_id: blockId,
                     block_name: row.hostel_rooms?.hostel_blocks?.block_name ?? '',
                     floor_no: floorNo,
                     rooms: []
@@ -143,6 +146,33 @@ export default function RoomYearMapping() {
     }, [allocatedRooms]);
 
     const visibleAllocatedRooms = showAllAllocated ? groupedAllocatedRooms : groupedAllocatedRooms.slice(0, 3);
+
+    const handleAllocatedEdit = (row) => {
+        setSelectedYear(row.academic_year || '');
+        if (row.block_id) setSelectedBlock(row.block_id);
+        if (row.floor_no !== null && row.floor_no !== undefined) setSelectedFloor(row.floor_no);
+        setSelectedRoom('');
+    };
+
+    const handleAllocatedDelete = async () => {
+        if (!allocatedDeleteModal.row) return;
+        setDeletingAllocated(true);
+        const row = allocatedDeleteModal.row;
+        const { error } = await supabase
+            .from('hostel_room_year_mapping')
+            .delete()
+            .eq('academic_year', row.academic_year)
+            .eq('block_id', row.block_id)
+            .eq('floor_no', row.floor_no);
+        if (error) toast.error(error.message);
+        else {
+            toast.success('Allocated rooms removed');
+            fetchRoomsAndMappings();
+            fetchAllocatedRooms();
+        }
+        setDeletingAllocated(false);
+        setAllocatedDeleteModal({ show: false, row: null });
+    };
 
     const toggleMapping = async (roomId) => {
         if (!selectedStudyYear) {
@@ -499,6 +529,7 @@ export default function RoomYearMapping() {
                                                 <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Block</th>
                                                 <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Floor</th>
                                                 <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room Count</th>
+                                                <th className="py-3 px-3 border-0 text-end" style={{ backgroundColor: 'transparent', color: 'white' }}>Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -514,6 +545,31 @@ export default function RoomYearMapping() {
                                                         return `Floor ${f}`;
                                                     })()}</td>
                                                     <td>{row.rooms.length}</td>
+                                                    <td className="text-end">
+                                                        <div className="d-flex justify-content-end gap-2">
+                                                            <button
+                                                                type="button"
+                                                                className="btn btn-sm btn-outline-primary students-button-sm"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleAllocatedEdit(row);
+                                                                }}
+                                                            >
+                                                                <i className="bi bi-pencil"></i>
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className="btn btn-sm btn-outline-danger students-button-sm"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setAllocatedDeleteModal({ show: true, row });
+                                                                }}
+                                                                disabled={deletingAllocated}
+                                                            >
+                                                                <i className="bi bi-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -694,16 +750,26 @@ export default function RoomYearMapping() {
                     </div>
                 </div>
             )}
-                <ConfirmationModal
-                    isOpen={deleteModal.show}
-                    onClose={() => setDeleteModal({ show: false, room: null })}
-                    onConfirm={handleDeleteRoom}
-                    title="Confirm Room Deletion"
-                    confirmText="Delete Room"
-                    confirmButtonClass="btn-danger"
-                    isLoading={deleting}
-                    message={`Are you sure you want to delete room ${deleteModal.room?.room_no || ''}? This will remove all related mappings.`}
-                />
+            <ConfirmationModal
+                isOpen={deleteModal.show}
+                onClose={() => setDeleteModal({ show: false, room: null })}
+                onConfirm={handleDeleteRoom}
+                title="Confirm Room Deletion"
+                confirmText="Delete Room"
+                confirmButtonClass="btn-danger"
+                isLoading={deleting}
+                message={`Are you sure you want to delete room ${deleteModal.room?.room_no || ''}? This will remove all related mappings.`}
+            />
+            <ConfirmationModal
+                isOpen={allocatedDeleteModal.show}
+                onClose={() => setAllocatedDeleteModal({ show: false, row: null })}
+                onConfirm={handleAllocatedDelete}
+                title="Remove Allocated Rooms"
+                confirmText="Remove"
+                confirmButtonClass="btn-danger"
+                isLoading={deletingAllocated}
+                message="Are you sure you want to remove all allocated rooms for this academic year, block, and floor?"
+            />
                 <style>{`
                     .allocated-room-details-modal .modal-title {
                         color: #ffffff !important;
