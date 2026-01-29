@@ -567,19 +567,21 @@ export default function HostelRooms() {
             {detailModal.show && detailModal.room && (
                 <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1055 }}>
                     <div className="modal-dialog modal-dialog-centered">
-                        <div className="modal-content">
-                            <div className="modal-header">
+                        <div className="modal-content room-details-modal">
+                            <div
+                                className="modal-header"
+                                style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)', color: 'white' }}
+                            >
                                 <h5 className="modal-title fw-bold">Room Details</h5>
                                 <button
                                     type="button"
-                                    className="btn-close"
+                                    className="btn-close btn-close-white"
                                     onClick={() => setDetailModal({ show: false, room: null })}
                                     aria-label="Close"
                                 ></button>
                             </div>
                             <div className="modal-body">
                                 <div className="mb-3">
-                                    <h6 className="text-uppercase text-muted fw-bold mb-3 small letter-spacing-1">Room Details</h6>
                                     <div className="bg-light rounded p-4 border">
                                         <div className="d-flex flex-column gap-3">
                                             <div className="d-flex align-items-center">
@@ -619,6 +621,11 @@ export default function HostelRooms() {
                     </div>
                 </div>
             )}
+            <style>{`
+                .room-details-modal .modal-title {
+                    color: #ffffff !important;
+                }
+            `}</style>
         </HostelShell>
     );
 }
