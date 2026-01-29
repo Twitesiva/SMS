@@ -15,6 +15,7 @@ export default function HostelRooms() {
     const [deleteModal, setDeleteModal] = useState({ show: false, id: null });
     const [saveModal, setSaveModal] = useState({ show: false, payload: null, isEdit: false, details: null });
     const [saving, setSaving] = useState(false);
+    const [detailModal, setDetailModal] = useState({ show: false, room: null });
 
     const [filterBlock, setFilterBlock] = useState('');
     const [filterType, setFilterType] = useState('');
@@ -100,12 +101,11 @@ export default function HostelRooms() {
                 status: form.status
             };
             const blockName = selectedBlock?.block_name || '—';
-            const floorLabel = floorValue === 0 ? 'Ground Floor' : `Floor ${floorValue}`;
             const typeLabel = form.room_type === 'AC' ? 'AC' : 'Non AC';
             const details = {
                 blockName,
                 roomNo: trimmedRoomNo,
-                floorLabel,
+                floorNo: floorValue,
                 typeLabel,
                 bedValue
             };
@@ -152,11 +152,10 @@ export default function HostelRooms() {
         }));
 
         const blockName = selectedBlock?.block_name || '—';
-        const floorLabel = floorValue === 0 ? 'Ground Floor' : `Floor ${floorValue}`;
         const details = payload.map((row) => ({
             blockName,
             roomNo: row.room_no,
-            floorLabel,
+            floorNo: floorValue,
             typeLabel: row.room_type === 'AC' ? 'AC' : 'Non AC',
             bedValue: row.bed_count
         }));
@@ -241,6 +240,7 @@ export default function HostelRooms() {
             (filterType ? r.room_type === filterType : true);
     });
     const visibleRooms = showAllRooms ? filteredRooms : filteredRooms.slice(0, 2);
+    const openDetails = (room) => setDetailModal({ show: true, room });
 
     return (
         <HostelShell brandTitle="HOSTEL MANAGEMENT">
@@ -453,38 +453,34 @@ export default function HostelRooms() {
                                             <tr className="text-white text-uppercase fw-bold" style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)', fontSize: '1.1rem' }}>
                                                 <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Block</th>
                                                 <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Floor</th>
-                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Type</th>
-                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room No</th>
-                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Beds</th>
                                                 <th className="py-3 px-3 border-0 text-end" style={{ backgroundColor: 'transparent', color: 'white' }}>Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {filteredRooms.length === 0 ? (
-                                                <tr><td colSpan="6" className="text-center py-4">No rooms found</td></tr>
+                                                <tr><td colSpan="3" className="text-center py-4">No rooms found</td></tr>
                                             ) : (
                                                 visibleRooms.map((room) => (
-                                                    <tr key={room.id}>
+                                                    <tr key={room.id} style={{ cursor: 'pointer' }} onClick={() => openDetails(room)}>
                                                         <td>{room.hostel_blocks?.block_name}</td>
                                                         <td>{formatFloorLabel(room.floor_no)}</td>
-                                                        <td>
-                                                            <span className={`students-section-badge ${room.room_type === 'AC' ? 'students-section-badge-course' : 'students-section-badge-category'}`}>
-                                                                {room.room_type?.replace(/_/g, ' ')}
-                                                            </span>
-                                                        </td>
-                                                        <td className="fw-bold fs-6">{room.room_no}</td>
-                                                        <td>{room.bed_count}</td>
                                                         <td className="text-end">
                                                             <div className="d-flex justify-content-end gap-2">
                                                                 <button
                                                                     className="btn btn-sm btn-outline-primary students-button-sm"
-                                                                    onClick={() => handleEdit(room)}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleEdit(room);
+                                                                    }}
                                                                 >
                                                                     <i className="bi bi-pencil"></i>
                                                                 </button>
                                                                 <button
                                                                     className="btn btn-sm btn-outline-danger students-button-sm"
-                                                                    onClick={() => setDeleteModal({ show: true, id: room.id })}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setDeleteModal({ show: true, id: room.id });
+                                                                    }}
                                                                 >
                                                                     <i className="bi bi-trash"></i>
                                                                 </button>
@@ -523,26 +519,38 @@ export default function HostelRooms() {
                 isLoading={saving}
             >
                 {Array.isArray(saveModal.details) ? (
-                    <div className="d-flex flex-column gap-2">
-                        <div className="fw-bold text-dark">Rooms: {saveModal.details.length}</div>
-                        <div className="text-muted">
+                    <div className="d-flex flex-column gap-3">
+                        <div className="d-flex justify-content-between align-items-center">
+                            <div className="fw-bold text-dark">Rooms to create</div>
+                            <span className="badge bg-primary">{saveModal.details.length}</span>
+                        </div>
+                        <div className="list-group">
                             {saveModal.details.slice(0, 5).map((detail) => (
-                                <div key={`${detail.roomNo}-${detail.typeLabel}`}>
-                                    {detail.blockName} | Room {detail.roomNo} | {detail.floorLabel} | Type: {detail.typeLabel} | Beds: {detail.bedValue}
+                                <div className="list-group-item" key={`${detail.roomNo}-${detail.typeLabel}`}>
+                                    <div className="fw-semibold mb-1">{detail.blockName}</div>
+                                    <div className="text-muted small d-flex flex-column gap-1">
+                                        <span>Room: {detail.roomNo}</span>
+                                        <span>Floor: {formatFloorLabel(detail.floorNo)}</span>
+                                        <span>Type: {detail.typeLabel}</span>
+                                        <span>Beds: {detail.bedValue}</span>
+                                    </div>
                                 </div>
                             ))}
                             {saveModal.details.length > 5 && (
-                                <div>...and {saveModal.details.length - 5} more</div>
+                                <div className="list-group-item text-muted small">
+                                    ...and {saveModal.details.length - 5} more rooms
+                                </div>
                             )}
                         </div>
                     </div>
                 ) : (
-                    <div className="d-flex flex-column gap-2">
-                        <div className="fw-bold text-dark">
-                            {saveModal.details?.blockName} | Room {saveModal.details?.roomNo}
-                        </div>
-                        <div className="text-muted">
-                            {saveModal.details?.floorLabel} | Type: {saveModal.details?.typeLabel} | Beds: {saveModal.details?.bedValue}
+                    <div className="p-3 border rounded bg-light">
+                        <div className="fw-semibold mb-1">{saveModal.details?.blockName}</div>
+                        <div className="text-muted small d-flex flex-column gap-1">
+                            <span>Room: {saveModal.details?.roomNo}</span>
+                            <span>Floor: {formatFloorLabel(saveModal.details?.floorNo)}</span>
+                            <span>Type: {saveModal.details?.typeLabel}</span>
+                            <span>Beds: {saveModal.details?.bedValue}</span>
                         </div>
                     </div>
                 )}
@@ -554,6 +562,66 @@ export default function HostelRooms() {
                 onConfirm={handleDelete}
                 message="Are you sure you want to delete this room? All associated beds and active allocations will be affected."
             />
+            {detailModal.show && detailModal.room && (
+                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1055 }}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title fw-bold">Room Details</h5>
+                                <button
+                                    type="button"
+                                    className="btn-close"
+                                    onClick={() => setDetailModal({ show: false, room: null })}
+                                    aria-label="Close"
+                                ></button>
+                            </div>
+                            <div className="modal-body">
+                                <div className="row g-3">
+                                    <div className="col-12">
+                                        <div className="p-3 bg-light border rounded">
+                                            <div className="fw-bold text-uppercase small text-muted mb-1">Block</div>
+                                            <div className="fs-5 fw-semibold">{detailModal.room.hostel_blocks?.block_name}</div>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-6">
+                                        <div className="p-3 border rounded h-100">
+                                            <div className="fw-bold text-uppercase small text-muted mb-1">Floor</div>
+                                            <div className="fw-semibold">{formatFloorLabel(detailModal.room.floor_no)}</div>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-6">
+                                        <div className="p-3 border rounded h-100">
+                                            <div className="fw-bold text-uppercase small text-muted mb-1">Room No</div>
+                                            <div className="fw-semibold">{detailModal.room.room_no}</div>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-6">
+                                        <div className="p-3 border rounded h-100">
+                                            <div className="fw-bold text-uppercase small text-muted mb-1">Type</div>
+                                            <div className="fw-semibold">{detailModal.room.room_type?.replace(/_/g, ' ')}</div>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-6">
+                                        <div className="p-3 border rounded h-100">
+                                            <div className="fw-bold text-uppercase small text-muted mb-1">Beds</div>
+                                            <div className="fw-semibold">{detailModal.room.bed_count}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-secondary"
+                                    onClick={() => setDetailModal({ show: false, room: null })}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </HostelShell>
     );
 }
