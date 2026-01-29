@@ -213,10 +213,11 @@ export default function HostelStudents() {
                                 <div role="row" className="hostel-table__row hostel-table__row--head">
                                     <div role="columnheader">Student ID</div>
                                     <div role="columnheader">Name</div>
+                                    <div role="columnheader">Mobile</div>
                                     <div role="columnheader">Year</div>
                                     <div role="columnheader">Hostel Type</div>
                                     <div role="columnheader">Fee Status</div>
-                                    <div role="columnheader">Allocation</div>
+                                    <div role="columnheader">Allocation Status</div>
                                 </div>
                             </div>
 
@@ -238,17 +239,21 @@ export default function HostelStudents() {
                                                 <div role="cell" className="mono">{resident.student_id}</div>
                                                 <div role="cell">
                                                     <div className="fw-semibold">{resident.full_name || '—'}</div>
-                                                    <div className="hostel-subtle">{resident.phone_number || '—'}</div>
                                                 </div>
+                                                <div role="cell">{resident.phone_number || '—'}</div>
                                                 <div role="cell">{resident.year_of_study || '—'}</div>
                                                 <div role="cell">
-                                                    {resident.hostel_ac ? 'AC' : 'Non-AC'}
+                                                    {resident.hostel_ac ? 'AC' : 'NON-AC'}
                                                 </div>
                                                 <div role="cell">
-                                                    {feeStatus}
+                                                    <span className={`hostel-status hostel-status--${feeStatus.toLowerCase().replace(' ', '-')}`}>
+                                                        {feeStatus}
+                                                    </span>
                                                 </div>
                                                 <div role="cell">
-                                                    {resident.isAllocated ? 'Allocated' : 'Not Allocated'}
+                                                    <span className={`hostel-status ${resident.isAllocated ? 'hostel-status--allocated' : 'hostel-status--not-allocated'}`}>
+                                                        {resident.isAllocated ? 'Allocated' : 'Not Allocated'}
+                                                    </span>
                                                 </div>
                                             </div>
                                         )
@@ -269,3 +274,4 @@ export default function HostelStudents() {
         </HostelShell>
     )
 }
+
