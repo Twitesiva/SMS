@@ -2,7 +2,29 @@ import React, { useEffect, useMemo, useState } from 'react'
 import HostelShell from '../../components/HostelShell'
 import HostelPreloader from '../../components/HostelPreloader'
 import { supabase } from '../../../supabaseClient'
+import { Link, useNavigate } from 'react-router-dom'
 import './HostelDashboard.css'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement
+} from 'chart.js'
+import { Bar, Doughnut } from 'react-chartjs-2'
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement
+)
 
 const currency = (value) => {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return '—'
@@ -10,12 +32,19 @@ const currency = (value) => {
 }
 
 export default function HostelDashboard() {
+  const navigate = useNavigate()
   const [residents, setResidents] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [yearFilter, setYearFilter] = useState('')
   const [showAll, setShowAll] = useState(false)
+  const [fees, setFees] = useState([]) // New state for fees
+
+  // New state for charts
+  const [blocks, setBlocks] = useState([])
+  const [blockStats, setBlockStats] = useState({})
+  const [totalCapacity, setTotalCapacity] = useState(0)
 
   useEffect(() => {
     const loadHostelData = async () => {
@@ -23,25 +52,83 @@ export default function HostelDashboard() {
       setError('')
 
       try {
-        const { data: students, error: studentsError } = await supabase
-          .from('students')
-          .select(`
+        // Parallel fetching
+        const [
+          { data: students, error: studentsError },
+          { data: blocksData, error: blocksError },
+          { data: roomsData, error: roomsError },
+          { data: allocsData, error: allocsError },
+          { data: courses },
+          { data: groups },
+          { data: hostelFees }
+        ] = await Promise.all([
+          supabase.from('students').select(`
             id, student_id, full_name, academic_year, year_of_study,
             group_name, course_name, course_id, group_id,
             phone_number, current_semester, status, admission_year, hostel_ac,
             courses:course_id (course_name, course_code),
             groups:group_id (group_name, group_code)
-          `)
-          .eq('is_hostel', true)
-          .order('created_at', { ascending: false })
+          `).eq('is_hostel', true).order('created_at', { ascending: false }),
 
-        if (studentsError) throw studentsError
+          supabase.from('hostel_blocks').select('id, block_name'),
 
-        const [{ data: courses }, { data: groups }] = await Promise.all([
+          supabase.from('hostel_rooms').select('id, block_id, bed_count').eq('status', 'AVAILABLE'),
+
+          supabase.from('hostel_allocations').select(`
+            student_id, 
+            status,
+            hostel_beds!inner (
+                hostel_rooms!inner (
+                    block_id
+                )
+            )
+          `).eq('status', 'ACTIVE'),
+
           supabase.from('courses').select('course_id, course_name, course_code'),
-          supabase.from('groups').select('group_id, group_name, group_code')
+          supabase.from('groups').select('group_id, group_name, group_code'),
+          supabase.from('hostel_fees').select('id, academic_year, hostel_type, hostel_fee')
         ])
 
+        if (studentsError) throw studentsError
+        if (blocksError) throw blocksError
+        if (roomsError) throw roomsError
+        if (allocsError) throw allocsError
+
+        setFees(hostelFees || [])
+
+        // Process Chart Data
+        const stats = {}
+        let capacitySum = 0
+
+        // Initialize stats for each block
+        blocksData?.forEach(b => {
+          stats[b.id] = { name: b.block_name, allocated: 0, capacity: 0 }
+        })
+
+        // Sum Capacity
+        roomsData?.forEach(r => {
+          if (stats[r.block_id]) {
+            const caps = Number(r.bed_count || 0)
+            stats[r.block_id].capacity += caps
+            capacitySum += caps
+          }
+        })
+        setTotalCapacity(capacitySum)
+
+        // Sum Allocations
+        const allocatedStudentIds = new Set()
+        allocsData?.forEach(a => {
+          allocatedStudentIds.add(a.student_id)
+          const blockId = a.hostel_beds?.hostel_rooms?.block_id
+          if (blockId && stats[blockId]) {
+            stats[blockId].allocated += 1
+          }
+        })
+
+        setBlocks(blocksData || [])
+        setBlockStats(stats)
+
+        // Maps for Students Table
         const courseById = new Map()
         const courseByCode = new Map()
         courses?.forEach((c) => {
@@ -56,63 +143,30 @@ export default function HostelDashboard() {
           if (g.group_code) groupByCode.set(String(g.group_code).toLowerCase(), g.group_name || g.group_code || '—')
         })
 
-        const { data: hostelFees, error: feesError } = await supabase
-          .from('hostel_fees')
-          .select('id, academic_year, hostel_type, hostel_fee')
-
-        if (feesError) throw feesError
-
         const feeLookup = new Map()
         hostelFees?.forEach((fee) => {
           const key = `${fee.academic_year || ''}-${fee.hostel_type || 'NON_AC'}`
           feeLookup.set(key, Number(fee.hostel_fee))
         })
 
+        // Fetch Payments
         const studentIds = students?.map((s) => s.id) || []
         let payments = []
-        let allocations = []
-
         if (studentIds.length > 0) {
-          const { data: paymentRows, error: paymentsError } = await supabase
+          const { data: paymentRows } = await supabase
             .from('student_fee_payments')
-            .select('student_id, amount_paid, payment_status, fee_type, payment_mode, created_at')
+            .select('student_id, amount_paid, payment_status, fee_type')
             .in('student_id', studentIds)
             .ilike('fee_type', '%hostel%')
-
-          if (paymentsError) throw paymentsError
           payments = paymentRows || []
-
-          const { data: allocationRows, error: allocationsError } = await supabase
-            .from('hostel_allocations')
-            .select('student_id, status')
-            .in('student_id', studentIds)
-            .eq('status', 'ACTIVE')
-
-          if (allocationsError) throw allocationsError
-          allocations = allocationRows || []
         }
-
-        const allocatedStudentIds = new Set(
-          allocations.map((alloc) => alloc.student_id).filter(Boolean)
-        )
 
         const merged = (students || []).map((student) => {
           const courseCodeKey = (student.course_name || student.courses?.course_code || '').toString().toLowerCase()
           const groupCodeKey = (student.group_name || student.groups?.group_code || '').toString().toLowerCase()
 
-          const displayCourse =
-            courseById.get(student.course_id) ||
-            courseByCode.get(courseCodeKey) ||
-            student?.courses?.course_name ||
-            student.course_name ||
-            '—'
-
-          const displayGroup =
-            groupById.get(student.group_id) ||
-            groupByCode.get(groupCodeKey) ||
-            student?.groups?.group_name ||
-            student.group_name ||
-            '—'
+          const displayCourse = courseById.get(student.course_id) || courseByCode.get(courseCodeKey) || student?.courses?.course_name || student.course_name || '—'
+          const displayGroup = groupById.get(student.group_id) || groupByCode.get(groupCodeKey) || student?.groups?.group_name || student.group_name || '—'
           const studentType = student.hostel_ac ? 'AC' : 'NON_AC'
           const key = `${student.academic_year || ''}-${studentType}`
           const hostelFee = feeLookup.get(key) ?? null
@@ -128,7 +182,6 @@ export default function HostelDashboard() {
             hostelFee,
             totalPaid,
             balance,
-            hasPaymentRecord: payments.some((pay) => pay.student_id === student.id),
             isAllocated: allocatedStudentIds.has(student.id)
           }
         })
@@ -160,167 +213,179 @@ export default function HostelDashboard() {
     const totalResidents = residents.length
     const allocated = residents.filter((r) => r.isAllocated).length
     const unallocated = Math.max(totalResidents - allocated, 0)
+    return [
+      {
+        label: 'Total Hostelers',
+        value: totalResidents,
+        icon: 'bi-people',
 
-    return { totalResidents, allocated, unallocated }
+      },
+      {
+        label: 'Bed Allocated',
+        value: allocated,
+        icon: 'bi-house-check',
+
+      },
+      {
+        label: 'Non Allocated',
+        value: unallocated,
+        icon: 'bi-house-dash',
+
+      }
+    ]
   }, [residents])
+
+  // Chart Logic
+  const labels = blocks.map(b => b.block_name)
+  const allocatedData = blocks.map(b => blockStats[b.id]?.allocated || 0)
+  const availableData = blocks.map(b => Math.max(0, (blockStats[b.id]?.capacity || 0) - (blockStats[b.id]?.allocated || 0)))
+
+  const totalAllocated = allocatedData.reduce((a, b) => a + b, 0)
+  const totalAvailable = Math.max(0, totalCapacity - totalAllocated)
+
+  const barChartData = {
+    labels: labels,
+    datasets: [
+      {
+        label: 'Allocated',
+        data: allocatedData,
+        backgroundColor: '#4e73df',
+        maxBarThickness: 50,
+      },
+      {
+        label: 'Available',
+        data: availableData,
+        backgroundColor: '#e2e6ea',
+        maxBarThickness: 50,
+      },
+    ],
+  }
+
+  const barChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: true, position: 'bottom', labels: { usePointStyle: true, boxWidth: 10, pointStyle: 'circle' } },
+      tooltip: { mode: 'index', intersect: false }
+    },
+    scales: {
+      y: { stacked: true, beginAtZero: true, grid: { borderDash: [2], drawBorder: false }, ticks: { stepSize: 1, precision: 0 } },
+      x: { stacked: true, grid: { display: false } }
+    }
+  }
+
+  const pieChartData = {
+    labels: ['Allocated Beds', 'Empty Beds'],
+    datasets: [
+      {
+        data: [totalAllocated, totalAvailable],
+        backgroundColor: ['#606c88', '#e9ecef'],
+        borderWidth: 0,
+        hoverOffset: 4,
+      },
+    ],
+  }
+
+  const pieChartOptions = {
+    cutout: '70%',
+    plugins: {
+      legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } }
+    },
+    maintainAspectRatio: false,
+  }
+
+  const handleChartClick = () => {
+    navigate('/hostel/allocations')
+  }
 
   return (
     <HostelShell>
-      <div className="hostel-dashboard" aria-live="polite">
-        <h1 className="mb-4">Hostel dashboard</h1>
+      <div className="desktop-container admin-content" aria-live="polite">
+        <h4 className="mb-4">Hostel Dashboard</h4>
 
-        {error && <div className="hostel-alert" role="alert">{error}</div>}
+        {error && <div className="alert alert-danger" role="alert">{error}</div>}
 
         {loading ? (
-          <HostelPreloader
-            title="Loading hostel dashboard"
-            subtitle="Syncing residents, fees, and balances."
-            cardCount={4}
-          />
+          <HostelPreloader title="Loading hostel dashboard" subtitle="Fetching insights..." cardCount={3} />
         ) : (
           <>
-            <section className="hostel-metrics dashboard-cards" id="overview">
-              {[{
-                label: 'Total hostelers',
-                value: metrics.totalResidents,
-                icon: 'bi-people'
-              }, {
-                label: 'Bed allocated',
-                value: metrics.allocated,
-                icon: 'bi-house-check'
-              }, {
-                label: 'Non allocated',
-                value: metrics.unallocated,
-                icon: 'bi-house-dash'
-              }].map((item) => (
-                <article key={item.label} className="dashboard-card card-shadow dashboard-card-link hostel-metric-card">
-                  <div className="dashboard-card-icon"><i className={`bi ${item.icon}`}></i></div>
-                  <div>
-                    <p className="hostel-metric-label dashboard-card-label">{item.label}</p>
-                    <p className="hostel-metric-value dashboard-card-value">{item.value}</p>
+            {/* Metrics Section */}
+            <section className="mb-5">
+              <div className="dashboard-cards">
+                {metrics.map((metric) => (
+                  <div key={metric.label} className="dashboard-card card-shadow dashboard-card-link" onClick={() => navigate('/hostel/reports')}>
+                    <div className="dashboard-card-icon"><i className={`bi ${metric.icon}`}></i></div>
+                    <div>
+                      <div className="dashboard-card-value">{metric.value}</div>
+                      <div className="dashboard-card-label">{metric.label}</div>
+                      <p className="mb-0 fw-bold small text-muted">{metric.detail}</p>
+                    </div>
                   </div>
-                </article>
-              ))}
+                ))}
+              </div>
             </section>
 
-            <section className="hostel-panel dashboard-chart-card card-shadow" id="residents">
-              <div className="hostel-panel__head">
-                <div>
-                  <h2 className="mb-0">Hostel Students</h2>
-                </div>
-                <div className="hostel-panel__controls">
-                  <input
-                    type="search"
-                    className="hostel-input"
-                    placeholder="Search name, ID, course"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                  <select
-                    className="hostel-select"
-                    value={yearFilter}
-                    onChange={(e) => setYearFilter(e.target.value)}
-                  >
-                    <option value="">Year of study</option>
-                    {[1, 2, 3, 4, 5, 6].map((year) => (
-                      <option key={year} value={year}>{year}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="hostel-table" role="table">
-                <div className="hostel-table__head" role="rowgroup">
-                  <div role="row" className="hostel-table__row hostel-table__row--head">
-                    <div role="columnheader">Student ID</div>
-                    <div role="columnheader">Name</div>
-                    <div role="columnheader">Course / Group</div>
-                    <div role="columnheader">Year</div>
-                    <div role="columnheader">Hostel fee</div>
-                    <div role="columnheader">Paid</div>
-                    <div role="columnheader" className="text-end">Status</div>
+            {/* Charts Section */}
+            <section className="mb-5">
+              <div className="row g-4">
+                <div className="col-12 col-lg-7">
+                  <div className="card shadow-sm border-0 h-100">
+                    <div className="card-header bg-white py-3">
+                      <h6 className="m-0 fw-bold text-primary">Reserved Beds Blockwise</h6>
+                    </div>
+                    <div className="card-body">
+                      <div style={{ height: '300px' }}>
+                        <Bar data={barChartData} options={{ ...barChartOptions, onClick: handleChartClick }} />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="hostel-table__body" role="rowgroup">
-                  {filteredResidents.length === 0 ? (
-                    <div className="hostel-empty">No hostel students found for the selected filters.</div>
-                  ) : (
-                    filteredResidents.slice(0, showAll ? undefined : 2).map((resident) => {
-                      const feeStatus = resident.balance === null
-                        ? 'Missing fee config'
-                        : resident.balance === 0
-                          ? 'Cleared'
-                          : resident.totalPaid > 0
-                            ? 'Partial'
-                            : 'Pending'
-
-                      return (
-                        <div role="row" className="hostel-table__row" key={resident.id}>
-                          <div role="cell" className="mono">{resident.student_id}</div>
-                          <div role="cell">
-                            <div className="fw-semibold">{resident.full_name || '—'}</div>
-                            <div className="hostel-subtle">{resident.phone_number || '—'}</div>
-                          </div>
-                          <div role="cell">
-                            <div>{resident.displayCourse}</div>
-                            <div className="hostel-subtle">{resident.displayGroup}</div>
-                          </div>
-                          <div role="cell">{resident.year_of_study || '—'}</div>
-                          <div role="cell">{currency(resident.hostelFee)}</div>
-                          <div role="cell">{currency(resident.totalPaid)}</div>
-                          <div role="cell" className="text-end">
-                            <span className={`hostel-status hostel-status--${feeStatus.toLowerCase().replace(' ', '-')}`}>
-                              {feeStatus}
-                            </span>
-                          </div>
+                <div className="col-12 col-lg-5">
+                  <div className="card shadow-sm border-0 h-100">
+                    <div className="card-header bg-white py-3">
+                      <h6 className="m-0 fw-bold text-primary">Overall Bed Allocation</h6>
+                    </div>
+                    <div className="card-body">
+                      <div style={{ height: '250px', position: 'relative' }}>
+                        <Doughnut data={pieChartData} options={{ ...pieChartOptions, onClick: handleChartClick }} />
+                        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -60%)', textAlign: 'center' }}>
+                          <div className="h3 mb-0 fw-bold">{totalCapacity > 0 ? Math.round((totalAllocated / totalCapacity) * 100) : 0}%</div>
                         </div>
-                      )
-                    })
-                  )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-              {filteredResidents.length > 2 && (
-                <div className="text-center p-3 border-top">
-                  <button
-                    className="btn btn-primary btn-sm"
-                    onClick={() => setShowAll(!showAll)}
-                  >
-                    {showAll ? 'Show Less' : 'View All Students'}
-                  </button>
-                </div>
-              )}
             </section>
+
+            {/* Existing Table Section */}
+
 
             <section className="hostel-panel dashboard-chart-card card-shadow" id="fees">
-              <div className="hostel-panel__head">
-                <div>
-                  <h2 className="mb-0">Hostel Fees</h2>
-                </div>
-              </div>
-
+              <div className="hostel-panel__head"><div><h2 className="mb-0">Hostel Fees</h2></div></div>
               <div className="hostel-fees-grid">
-                {residents.length === 0 ? (
-                  <div className="hostel-empty">Hostel fees will appear when residents data loads.</div>
+                {fees.length === 0 ? (
+                  <div className="hostel-empty">No fee structures found.</div>
                 ) : (
-                  Array.from(
-                    residents.reduce((acc, res) => {
-                      if (res.hostelFee !== null) {
-                        const studentType = res.hostel_ac ? 'AC' : 'NON_AC'
-                        const key = `${res.academic_year}-${studentType}`
-                        acc.set(key, {
-                          academic_year: res.academic_year,
-                          hostel_type: studentType,
-                          hostelFee: res.hostelFee,
-                        })
-                      }
-                      return acc
-                    }, new Map())
-                  ).map(([key, fee]) => (
-                    <div key={key} className="hostel-fee-card">
-                      <div className="hostel-fee-card__title">{fee.academic_year || 'Academic year N/A'}</div>
-                      <div className="hostel-fee-card__meta">{fee.hostel_type === 'AC' ? 'AC' : 'Non AC'}</div>
-                      <div className="hostel-fee-card__value">{currency(fee.hostelFee)}</div>
+                  Object.entries(fees.reduce((acc, fee) => {
+                    const year = fee.academic_year || 'Unknown Year'
+                    if (!acc[year]) acc[year] = { AC: 0, NON_AC: 0 }
+                    // Check exact string or normalize
+                    const type = (fee.hostel_type || '').toUpperCase().includes('NON') ? 'NON_AC' : 'AC'
+                    acc[year][type] = fee.hostel_fee
+                    return acc
+                  }, {})).map(([year, amounts]) => (
+                    <div key={year} className="hostel-fee-card dashboard-card card-shadow p-3">
+                      <div className="fw-bold text-primary mb-2 text-uppercase" style={{ fontSize: '1.1rem' }}>{year}</div>
+                      <div className="d-flex justify-content-between align-items-center mb-1 border-bottom pb-1">
+                        <span className="text-muted small fw-bold">AC</span>
+                        <span className="fw-bold text-dark">{currency(amounts.AC || 0)}</span>
+                      </div>
+                      <div className="d-flex justify-content-between align-items-center pt-1">
+                        <span className="text-muted small fw-bold">NON AC</span>
+                        <span className="fw-bold text-dark">{currency(amounts.NON_AC || 0)}</span>
+                      </div>
                     </div>
                   ))
                 )}
