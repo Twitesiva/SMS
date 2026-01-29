@@ -184,7 +184,7 @@ export default function RoomYearMapping() {
             floor_no: r.floor_no,
             is_active: true
         }));
-        
+
         const { error } = await supabase.from('hostel_room_year_mapping').upsert(updates, { onConflict: 'room_id, academic_year, year_of_study' });
         if (error) toast.error(error.message);
         else {
@@ -337,7 +337,13 @@ export default function RoomYearMapping() {
                                     <option value="">All Floors</option>
                                     {floorOptions.map((floor) => (
                                         <option key={floor} value={floor}>
-                                            {Number(floor) === 0 ? 'Ground Floor' : `Floor ${floor}`}
+                                            {(() => {
+                                                const f = Number(floor);
+                                                if (f === 0) return 'Ground Floor';
+                                                if (f === 1) return 'First Floor';
+                                                if (f === 2) return 'Second Floor';
+                                                return `Floor ${f}`;
+                                            })()}
                                         </option>
                                     ))}
                                 </select>
@@ -384,17 +390,17 @@ export default function RoomYearMapping() {
                                     <div className="table-responsive">
                                         <table className="table align-middle">
                                             <thead>
-                                            <tr
-                                                className="text-white text-uppercase fw-bold"
-                                                style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)', fontSize: '1.1rem' }}
-                                            >
-                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room No</th>
-                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Floor</th>
-                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room Type</th>
-                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Capacity</th>
-                                                <th className="py-3 px-3 border-0 text-center" style={{ backgroundColor: 'transparent', color: 'white' }}>Availability Status</th>
-                                                <th className="py-3 px-3 border-0 text-end" style={{ backgroundColor: 'transparent', color: 'white' }}>Actions</th>
-                                            </tr>
+                                                <tr
+                                                    className="text-white text-uppercase fw-bold"
+                                                    style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)', fontSize: '1.1rem' }}
+                                                >
+                                                    <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room No</th>
+                                                    <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Floor</th>
+                                                    <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room Type</th>
+                                                    <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Capacity</th>
+                                                    <th className="py-3 px-3 border-0 text-center" style={{ backgroundColor: 'transparent', color: 'white' }}>Availability Status</th>
+                                                    <th className="py-3 px-3 border-0 text-end" style={{ backgroundColor: 'transparent', color: 'white' }}>Actions</th>
+                                                </tr>
                                             </thead>
                                             <tbody>
                                                 {filteredRooms.length === 0 ? (
@@ -403,14 +409,20 @@ export default function RoomYearMapping() {
                                                     filteredRooms.map((room) => (
                                                         <tr key={room.id}>
                                                             <td className="fw-bold">{room.room_no}</td>
-                                                            <td>{Number(room.floor_no) === 0 ? 'Ground Floor' : `Floor ${room.floor_no}`}</td>
+                                                            <td>{(() => {
+                                                                const f = Number(room.floor_no);
+                                                                if (f === 0) return 'Ground Floor';
+                                                                if (f === 1) return 'First Floor';
+                                                                if (f === 2) return 'Second Floor';
+                                                                return `Floor ${f}`;
+                                                            })()}</td>
                                                             <td>{room.room_type?.replace(/_/g, ' ')}</td>
                                                             <td>{room.bed_count} Beds</td>
                                                             <td className="text-center">
                                                                 <div className="form-check form-switch d-inline-block">
-                                                                    <input 
-                                                                        className="form-check-input" 
-                                                                        type="checkbox" 
+                                                                    <input
+                                                                        className="form-check-input"
+                                                                        type="checkbox"
                                                                         style={{ width: '2.5rem', height: '1.25rem', cursor: 'pointer' }}
                                                                         checked={mappings[room.id] === true}
                                                                         onChange={() => toggleMapping(room.id)}
@@ -463,22 +475,28 @@ export default function RoomYearMapping() {
                                         <div className="table-responsive">
                                             <table className="table align-middle">
                                                 <thead>
-                                                <tr
-                                                    className="text-white text-uppercase fw-bold"
-                                                    style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)', fontSize: '1.1rem' }}
-                                                >
-                                                    <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room No</th>
-                                                    <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Floor</th>
-                                                    <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room Type</th>
-                                                    <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Capacity</th>
-                                                    <th className="py-3 px-3 border-0 text-center" style={{ backgroundColor: 'transparent', color: 'white' }}>Availability Status</th>
-                                                </tr>
+                                                    <tr
+                                                        className="text-white text-uppercase fw-bold"
+                                                        style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)', fontSize: '1.1rem' }}
+                                                    >
+                                                        <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room No</th>
+                                                        <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Floor</th>
+                                                        <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room Type</th>
+                                                        <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Capacity</th>
+                                                        <th className="py-3 px-3 border-0 text-center" style={{ backgroundColor: 'transparent', color: 'white' }}>Availability Status</th>
+                                                    </tr>
                                                 </thead>
                                                 <tbody>
                                                     {allocatedRooms.map((room) => (
                                                         <tr key={room.id}>
                                                             <td className="fw-bold">{room.room_no}</td>
-                                                            <td>{Number(room.floor_no) === 0 ? 'Ground Floor' : `Floor ${room.floor_no}`}</td>
+                                                            <td>{(() => {
+                                                                const f = Number(room.floor_no);
+                                                                if (f === 0) return 'Ground Floor';
+                                                                if (f === 1) return 'First Floor';
+                                                                if (f === 2) return 'Second Floor';
+                                                                return `Floor ${f}`;
+                                                            })()}</td>
                                                             <td>{room.room_type?.replace(/_/g, ' ')}</td>
                                                             <td>{room.bed_count} Beds</td>
                                                             <td className="text-center">
