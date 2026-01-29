@@ -156,7 +156,7 @@ export default function AllBooks() {
   const filteredBooks = useMemo(() => {
     let result = books
     const term = searchTerm.trim().toLowerCase()
-    
+
     if (term) {
       result = result.filter((book) => {
         const haystack = [
@@ -462,9 +462,9 @@ export default function AllBooks() {
                 filteredBooks.map((book) => {
                   const copyInfo = copyCounts[String(book.id)] || { total: 0, available: 0, issued: 0, damaged: 0, missing: 0 }
                   return (
-                    <tr 
-                      key={book.id} 
-                      onClick={() => handleBookClick(book)} 
+                    <tr
+                      key={book.id}
+                      onClick={() => handleBookClick(book)}
                       style={{ cursor: 'pointer' }}
                       className="library-book-row"
                     >
@@ -474,34 +474,34 @@ export default function AllBooks() {
                       <td>{book.shelf_code || '-'}</td>
                       <td>{book.author || 'Unknown'}</td>
                       <td>{book.published_year || '-'}</td>
-                  <td>
-                    <span className="library-catalogue-count">{copyInfo.total}</span>
-                  </td>
-                  <td>
-                    <span className="library-catalogue-count">
-                      {copyInfo.issued}
-                    </span>
-                  </td>
-                  <td>
-                    <span className="library-catalogue-count">
-                      {copyInfo.damaged}
-                    </span>
-                  </td>
-                  <td>
-                    <span className="library-catalogue-count">
-                      {copyInfo.missing}
-                    </span>
-                  </td>
-                  <td>
-                    <span className="library-catalogue-count">
-                      {copyInfo.available}
-                    </span>
-                  </td>
-                  <td className="text-end">
-                    <div className="library-catalogue-actions">
-                      <button
-                        type="button"
-                        className="library-action-button library-action-button--edit"
+                      <td>
+                        <span className="library-catalogue-count">{copyInfo.total}</span>
+                      </td>
+                      <td>
+                        <span className="library-catalogue-count">
+                          {copyInfo.issued}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="library-catalogue-count">
+                          {copyInfo.damaged}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="library-catalogue-count">
+                          {copyInfo.missing}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="library-catalogue-count">
+                          {copyInfo.available}
+                        </span>
+                      </td>
+                      <td className="text-end">
+                        <div className="library-catalogue-actions">
+                          <button
+                            type="button"
+                            className="library-action-button library-action-button--edit"
                             onClick={(e) => {
                               e.stopPropagation()
                               openEdit(book)
@@ -695,37 +695,37 @@ export default function AllBooks() {
                 <div className="modal-header d-flex flex-column align-items-center border-bottom-0 pt-4 pb-0 position-relative">
                   <div className="text-center w-100">
                     <div className="mb-4 px-4">
-                      <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.85rem', letterSpacing: '0.15em' }}>
+                      <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.75rem', letterSpacing: '0.05em' }}>
                         Book Title
                       </div>
-                      <h3 className="fw-bold text-dark mb-0" style={{ fontSize: '2rem' }}>
+                      <h3 className="fw-bold text-dark mb-0 fs-4">
                         {selectedBook.title}
                       </h3>
                     </div>
-                    
+
                     <div className="row g-0 border-top border-bottom py-3 bg-light w-100">
                       <div className="col-6 border-end px-2">
-                        <div className="text-uppercase fw-extrabold text-muted mb-1" style={{ fontSize: '0.75rem', letterSpacing: '0.12em' }}>
+                        <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.7rem', letterSpacing: '0.05em' }}>
                           Author
                         </div>
-                        <div className="fw-bold text-primary" style={{ fontSize: '1.25rem' }}>
+                        <div className="fw-bold text-primary fs-5">
                           {selectedBook.author || 'Unknown'}
                         </div>
                       </div>
                       <div className="col-6 px-2">
-                        <div className="text-uppercase fw-extrabold text-muted mb-1" style={{ fontSize: '0.75rem', letterSpacing: '0.12em' }}>
+                        <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.7rem', letterSpacing: '0.05em' }}>
                           Shelf Reference
                         </div>
-                        <div className="fw-bold text-dark" style={{ fontSize: '1.25rem' }}>
+                        <div className="fw-bold text-dark fs-5">
                           {selectedBook.shelf_code || '--'}
                         </div>
                       </div>
                     </div>
                   </div>
-                  <button 
-                    type="button" 
-                    className="btn-close position-absolute" 
-                    style={{ right: '1.25rem', top: '1.25rem' }} 
+                  <button
+                    type="button"
+                    className="btn-close position-absolute"
+                    style={{ right: '1.25rem', top: '1.25rem' }}
                     onClick={() => setSelectedBook(null)}
                   ></button>
                 </div>
@@ -740,53 +740,53 @@ export default function AllBooks() {
                       {/* Stats Row */}
                       <div className="row g-2 justify-content-center">
                         <div className="col-4 col-sm">
-                          <div 
+                          <div
                             className={`p-2 border rounded text-center h-100 d-flex flex-column justify-content-center ${modalTab === 'all' ? 'bg-primary text-white' : 'bg-light'}`}
                             style={{ cursor: 'pointer' }}
                             onClick={() => setModalTab('all')}
                           >
-                            <div className={`small text-uppercase fw-bold ${modalTab === 'all' ? 'text-white-50' : 'text-muted'}`} style={{fontSize: '0.75rem'}}>Total</div>
-                            <div className="fs-3 fw-bold">{bookDetails.copies.length}</div>
+                            <div className={`small text-uppercase fw-bold ${modalTab === 'all' ? 'text-white-50' : 'text-muted'}`} style={{ fontSize: '0.7rem' }}>Total</div>
+                            <div className="fs-4 fw-bold">{bookDetails.copies.length}</div>
                           </div>
                         </div>
                         <div className="col-4 col-sm">
-                          <div 
+                          <div
                             className={`p-2 border rounded text-center h-100 d-flex flex-column justify-content-center ${modalTab === 'issued' ? 'bg-primary text-white' : 'bg-light'}`}
                             style={{ cursor: 'pointer' }}
                             onClick={() => setModalTab('issued')}
                           >
-                            <div className={`small text-uppercase fw-bold ${modalTab === 'issued' ? 'text-white-50' : 'text-muted'}`} style={{fontSize: '0.75rem'}}>Issued</div>
-                            <div className={`fs-3 fw-bold ${modalTab === 'issued' ? 'text-white' : 'text-primary'}`}>{bookDetails.loans.length}</div>
+                            <div className={`small text-uppercase fw-bold ${modalTab === 'issued' ? 'text-white-50' : 'text-muted'}`} style={{ fontSize: '0.7rem' }}>Issued</div>
+                            <div className={`fs-4 fw-bold ${modalTab === 'issued' ? 'text-white' : 'text-primary'}`}>{bookDetails.loans.length}</div>
                           </div>
                         </div>
                         <div className="col-4 col-sm">
-                          <div 
+                          <div
                             className={`p-2 border rounded text-center h-100 d-flex flex-column justify-content-center ${modalTab === 'missed' ? 'bg-primary text-white' : 'bg-light'}`}
                             style={{ cursor: 'pointer' }}
                             onClick={() => setModalTab('missed')}
                           >
-                            <div className={`small text-uppercase fw-bold ${modalTab === 'missed' ? 'text-white-50' : 'text-muted'}`} style={{fontSize: '0.75rem'}}>Missed</div>
-                            <div className={`fs-3 fw-bold ${modalTab === 'missed' ? 'text-white' : 'text-danger'}`}>
+                            <div className={`small text-uppercase fw-bold ${modalTab === 'missed' ? 'text-white-50' : 'text-muted'}`} style={{ fontSize: '0.7rem' }}>Missed</div>
+                            <div className={`fs-4 fw-bold ${modalTab === 'missed' ? 'text-white' : 'text-danger'}`}>
                               {bookDetails.copies.filter(c => (c.availability || '').toUpperCase() === 'MISSING').length}
                             </div>
                           </div>
                         </div>
-                         <div className="col-4 col-sm">
-                          <div 
+                        <div className="col-4 col-sm">
+                          <div
                             className={`p-2 border rounded text-center h-100 d-flex flex-column justify-content-center ${modalTab === 'damaged' ? 'bg-primary text-white' : 'bg-light'}`}
                             style={{ cursor: 'pointer' }}
                             onClick={() => setModalTab('damaged')}
                           >
-                            <div className={`small text-uppercase fw-bold ${modalTab === 'damaged' ? 'text-white-50' : 'text-muted'}`} style={{fontSize: '0.75rem'}}>Damaged</div>
-                            <div className={`fs-3 fw-bold ${modalTab === 'damaged' ? 'text-white' : 'text-warning text-dark'}`}>
+                            <div className={`small text-uppercase fw-bold ${modalTab === 'damaged' ? 'text-white-50' : 'text-muted'}`} style={{ fontSize: '0.7rem' }}>Damaged</div>
+                            <div className={`fs-4 fw-bold ${modalTab === 'damaged' ? 'text-white' : 'text-warning text-dark'}`}>
                               {bookDetails.copies.filter(c => (c.availability || '').toUpperCase() === 'DAMAGED').length}
                             </div>
                           </div>
                         </div>
                         <div className="col-4 col-sm">
                           <div className="p-2 border rounded bg-light text-center h-100 d-flex flex-column justify-content-center">
-                            <div className="small text-muted text-uppercase fw-bold" style={{fontSize: '0.75rem'}}>Balance</div>
-                            <div className="fs-3 fw-bold text-success">
+                            <div className="small text-muted text-uppercase fw-bold" style={{ fontSize: '0.7rem' }}>Balance</div>
+                            <div className="fs-4 fw-bold text-success">
                               {bookDetails.copies.length - bookDetails.loans.length - bookDetails.copies.filter(c => ['MISSING', 'DAMAGED'].includes((c.availability || '').toUpperCase())).length}
                             </div>
                           </div>
@@ -796,16 +796,17 @@ export default function AllBooks() {
                       {/* Filtered Sections */}
                       {(modalTab === 'all' || modalTab === 'issued') && (
                         <div>
-                          <h4 className="fw-bold mb-3 border-bottom pb-2">Active Loans</h4>
+                          <h6 className="text-uppercase fw-bold text-secondary mb-3 pt-2 border-bottom pb-2">Active Loans</h6>
                           {bookDetails.loans.length > 0 ? (
                             <div className="table-responsive">
                               <table className="table table-sm table-hover align-middle library-issue-details-table">
-                                <thead className="table-light">
+                                <thead className="table-light text-uppercase small text-muted">
                                   <tr>
                                     <th>Student ID</th>
                                     <th>Student Name</th>
                                     <th>Loan Date</th>
                                     <th>Due Date</th>
+                                    <th>Status</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -817,24 +818,27 @@ export default function AllBooks() {
                                       <td className={loan.due_date < todayString ? 'text-danger fw-bold' : 'fw-semibold'}>
                                         {formatDate(loan.due_date)}
                                       </td>
+                                      <td>
+                                        <span className="badge bg-primary bg-opacity-10 text-primary">ISSUED</span>
+                                      </td>
                                     </tr>
                                   ))}
                                 </tbody>
                               </table>
                             </div>
                           ) : (
-                            <p className="text-muted fst-italic mb-0">No active loans for this title.</p>
+                            <p className="text-muted small fst-italic mb-0">No active loans for this title.</p>
                           )}
                         </div>
                       )}
 
                       {(modalTab === 'all' || modalTab === 'missed') && (
-                        <div className="mb-4">
-                          <h4 className="fw-bold mb-3 border-bottom pb-2 text-danger">Missed Copies</h4>
+                        <div className="mb-2">
+                          <h6 className="text-uppercase fw-bold text-danger mb-3 pt-2 border-bottom pb-2">Missed Copies</h6>
                           {bookDetails.copies.filter(c => (c.availability || '').toUpperCase() === 'MISSING').length > 0 ? (
                             <div className="table-responsive">
                               <table className="table table-sm table-hover align-middle library-issue-details-table">
-                                <thead className="table-light">
+                                <thead className="table-light text-uppercase small text-muted">
                                   <tr>
                                     <th>Student ID</th>
                                     <th>Student Name</th>
@@ -866,18 +870,18 @@ export default function AllBooks() {
                               </table>
                             </div>
                           ) : (
-                            <p className="text-muted fst-italic mb-0">No missed copies reported.</p>
+                            <p className="text-muted small fst-italic mb-0">No missed copies reported.</p>
                           )}
                         </div>
                       )}
 
                       {(modalTab === 'all' || modalTab === 'damaged') && (
                         <div>
-                          <h4 className="fw-bold mb-3 border-bottom pb-2 text-warning text-dark">Damaged Copies</h4>
+                          <h6 className="text-uppercase fw-bold text-warning text-dark mb-3 pt-2 border-bottom pb-2">Damaged Copies</h6>
                           {bookDetails.copies.filter(c => (c.availability || '').toUpperCase() === 'DAMAGED').length > 0 ? (
                             <div className="table-responsive">
                               <table className="table table-sm table-hover align-middle">
-                                <thead className="table-light">
+                                <thead className="table-light text-uppercase small text-muted">
                                   <tr>
                                     <th>Student ID</th>
                                     <th>Student Name</th>
@@ -909,7 +913,7 @@ export default function AllBooks() {
                               </table>
                             </div>
                           ) : (
-                            <p className="text-muted fst-italic mb-0">No damaged copies reported.</p>
+                            <p className="text-muted small fst-italic mb-0">No damaged copies reported.</p>
                           )}
                         </div>
                       )}
