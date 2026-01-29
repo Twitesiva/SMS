@@ -320,7 +320,11 @@ export default function HostelAllocations() {
             s.hall_ticket_no?.toLowerCase().includes(q);
         const matchesType = eligibleHostelType ? s.hostel_type === eligibleHostelType : true;
         const matchesYear = eligibleYear ? String(s.year_of_study) === String(eligibleYear) : true;
-        const matchesGender = eligibleGender ? String(s.gender).toUpperCase() === eligibleGender : true;
+        const normalizedGender = String(s.gender || '').trim().toUpperCase();
+        const mappedGender = normalizedGender.startsWith('M') ? 'BOYS'
+            : normalizedGender.startsWith('F') ? 'GIRLS'
+                : normalizedGender;
+        const matchesGender = eligibleGender ? mappedGender === eligibleGender : true;
 
         return matchesSearch && matchesType && matchesYear && matchesGender;
     });
