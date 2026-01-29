@@ -9,8 +9,8 @@ export default function HostelRooms() {
     const [rooms, setRooms] = useState([]);
     const [blocks, setBlocks] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [form, setForm] = useState({ id: '', block_id: '', floor_no: 0, room_no: '', room_type: 'NON_AC', bed_count: 1, status: 'AVAILABLE' });
-    const [roomRows, setRoomRows] = useState([{ key: Date.now(), room_type: 'NON_AC', room_no: '', bed_count: 1 }]);
+    const [form, setForm] = useState({ id: '', block_id: '', floor_no: 0, room_no: '', room_type: '', bed_count: 1, status: 'AVAILABLE' });
+    const [roomRows, setRoomRows] = useState([{ key: Date.now(), room_type: '', room_no: '', bed_count: 1 }]);
     const [editingId, setEditingId] = useState(null);
     const [deleteModal, setDeleteModal] = useState({ show: false, id: null });
     const [saveModal, setSaveModal] = useState({ show: false, payload: null, isEdit: false, details: null });
@@ -164,14 +164,14 @@ export default function HostelRooms() {
     };
     const resetForm = () => {
         setEditingId(null);
-        setForm({ id: '', block_id: '', floor_no: 0, room_no: '', room_type: 'NON_AC', bed_count: 1, status: 'AVAILABLE' });
-        setRoomRows([{ key: Date.now(), room_type: 'NON_AC', room_no: '', bed_count: 1 }]);
+        setForm({ id: '', block_id: '', floor_no: 0, room_no: '', room_type: '', bed_count: 1, status: 'AVAILABLE' });
+        setRoomRows([{ key: Date.now(), room_type: '', room_no: '', bed_count: 1 }]);
     };
 
     const handleEdit = (room) => {
         setForm(room);
         setEditingId(room.id);
-        setRoomRows([{ key: Date.now(), room_type: 'NON_AC', room_no: '', bed_count: 1 }]);
+        setRoomRows([{ key: Date.now(), room_type: '', room_no: '', bed_count: 1 }]);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -292,13 +292,14 @@ export default function HostelRooms() {
                             {editingId ? (
                                 <>
                                     <div className="col-md-2">
-                                        <label className="form-label fw-bold mb-1">Type</label>
+                                        <label className="form-label fw-bold mb-1">Hostel Type</label>
                                         <select
                                             className="form-select"
                                             value={form.room_type}
                                             onChange={(e) => setForm({ ...form, room_type: e.target.value })}
                                             required
                                         >
+                                            <option value="">Select Hostel Type</option>
                                             <option value="NON_AC">Non AC</option>
                                             <option value="AC">AC</option>
                                         </select>
@@ -333,7 +334,7 @@ export default function HostelRooms() {
                                             <div className="col-12" key={row.key}>
                                                 <div className="row g-3 align-items-end">
                                                     <div className="col-md-3">
-                                                        <label className="form-label fw-bold mb-1">Type</label>
+                                                        <label className="form-label fw-bold mb-1">Hostel Type</label>
                                                         <select
                                                             className="form-select"
                                                             value={row.room_type}
@@ -344,6 +345,7 @@ export default function HostelRooms() {
                                                             }}
                                                             required
                                                         >
+                                                            <option value="">Select Hostel Type</option>
                                                             <option value="NON_AC">Non AC</option>
                                                             <option value="AC">AC</option>
                                                         </select>
@@ -384,7 +386,7 @@ export default function HostelRooms() {
                                                             className="btn btn-outline-danger"
                                                             onClick={() => {
                                                                 const next = roomRows.filter((_, i) => i !== index);
-                                                                setRoomRows(next.length > 0 ? next : [{ key: Date.now(), room_type: 'NON_AC', room_no: '', bed_count: 1 }]);
+                                                                setRoomRows(next.length > 0 ? next : [{ key: Date.now(), room_type: '', room_no: '', bed_count: 1 }]);
                                                             }}
                                                             disabled={roomRows.length === 1}
                                                         >
@@ -399,7 +401,7 @@ export default function HostelRooms() {
                                         <button
                                             type="button"
                                             className="btn btn-outline-primary"
-                                            onClick={() => setRoomRows([...roomRows, { key: Date.now(), room_type: 'NON_AC', room_no: '', bed_count: 1 }])}
+                                            onClick={() => setRoomRows([...roomRows, { key: Date.now(), room_type: '', room_no: '', bed_count: 1 }])}
                                         >
                                             Add another room
                                         </button>
@@ -576,35 +578,30 @@ export default function HostelRooms() {
                                 ></button>
                             </div>
                             <div className="modal-body">
-                                <div className="row g-3">
-                                    <div className="col-12">
-                                        <div className="p-3 bg-light border rounded">
-                                            <div className="fw-bold text-uppercase small text-muted mb-1">Block</div>
-                                            <div className="fs-5 fw-semibold">{detailModal.room.hostel_blocks?.block_name}</div>
-                                        </div>
-                                    </div>
-                                    <div className="col-md-6">
-                                        <div className="p-3 border rounded h-100">
-                                            <div className="fw-bold text-uppercase small text-muted mb-1">Floor</div>
-                                            <div className="fw-semibold">{formatFloorLabel(detailModal.room.floor_no)}</div>
-                                        </div>
-                                    </div>
-                                    <div className="col-md-6">
-                                        <div className="p-3 border rounded h-100">
-                                            <div className="fw-bold text-uppercase small text-muted mb-1">Room No</div>
-                                            <div className="fw-semibold">{detailModal.room.room_no}</div>
-                                        </div>
-                                    </div>
-                                    <div className="col-md-6">
-                                        <div className="p-3 border rounded h-100">
-                                            <div className="fw-bold text-uppercase small text-muted mb-1">Type</div>
-                                            <div className="fw-semibold">{detailModal.room.room_type?.replace(/_/g, ' ')}</div>
-                                        </div>
-                                    </div>
-                                    <div className="col-md-6">
-                                        <div className="p-3 border rounded h-100">
-                                            <div className="fw-bold text-uppercase small text-muted mb-1">Beds</div>
-                                            <div className="fw-semibold">{detailModal.room.bed_count}</div>
+                                <div className="mb-3">
+                                    <h6 className="text-uppercase text-muted fw-bold mb-3 small letter-spacing-1">Room Details</h6>
+                                    <div className="bg-light rounded p-4 border">
+                                        <div className="d-flex flex-column gap-3">
+                                            <div className="d-flex align-items-center">
+                                                <small className="text-muted text-uppercase fw-bold" style={{ width: '140px', fontSize: '0.85rem' }}>Block</small>
+                                                <span className="fw-bold text-dark fs-6">: {detailModal.room.hostel_blocks?.block_name}</span>
+                                            </div>
+                                            <div className="d-flex align-items-center">
+                                                <small className="text-muted text-uppercase fw-bold" style={{ width: '140px', fontSize: '0.85rem' }}>Floor</small>
+                                                <span className="fw-bold text-dark fs-6">: {formatFloorLabel(detailModal.room.floor_no)}</span>
+                                            </div>
+                                            <div className="d-flex align-items-center">
+                                                <small className="text-muted text-uppercase fw-bold" style={{ width: '140px', fontSize: '0.85rem' }}>Room No</small>
+                                                <span className="fw-bold text-dark fs-6">: {detailModal.room.room_no}</span>
+                                            </div>
+                                            <div className="d-flex align-items-center">
+                                                <small className="text-muted text-uppercase fw-bold" style={{ width: '140px', fontSize: '0.85rem' }}>Hostel Type</small>
+                                                <span className="fw-bold text-dark fs-6">: {detailModal.room.room_type?.replace(/_/g, ' ')}</span>
+                                            </div>
+                                            <div className="d-flex align-items-center">
+                                                <small className="text-muted text-uppercase fw-bold" style={{ width: '140px', fontSize: '0.85rem' }}>Beds</small>
+                                                <span className="fw-bold text-dark fs-6">: {detailModal.room.bed_count}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

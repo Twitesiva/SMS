@@ -145,6 +145,11 @@ export default function HostelBlocks() {
         return `${count} floor${count === 1 ? '' : 's'}`;
     };
 
+    const getFloorList = (totalFloors) => Array.from(
+        { length: Number(totalFloors) + 1 },
+        (_, index) => formatFloorLabel(index)
+    );
+
     const openDetails = (block) => {
         setDetailModal({ show: true, block });
     };
@@ -165,7 +170,7 @@ export default function HostelBlocks() {
                         </div>
 
                         <div className="alert alert-info py-2 mb-3" role="alert">
-                            Floors run from 0 (Ground) up to the last floor you enter.
+                            Floors start from 0 (Ground) up to the last floor you enter.
                         </div>
 
                         <form onSubmit={handleSubmit} className="students-section-form row g-3 align-items-end">
@@ -376,37 +381,40 @@ export default function HostelBlocks() {
                                 ></button>
                             </div>
                             <div className="modal-body">
-                                <div className="row g-3">
-                                    <div className="col-12">
-                                        <div className="p-3 bg-light border rounded">
-                                            <div className="fw-bold text-uppercase small text-muted mb-1">Block Name</div>
-                                            <div className="fs-5 fw-semibold">{detailModal.block.block_name}</div>
-                                        </div>
-                                    </div>
-                                    <div className="col-md-6">
-                                        <div className="p-3 border rounded h-100">
-                                            <div className="fw-bold text-uppercase small text-muted mb-1">Gender</div>
-                                            <span className={`students-section-badge ${detailModal.block.gender === 'BOYS' ? 'students-section-badge-category' : 'students-section-badge-course'}`}>
-                                                {detailModal.block.gender}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="col-md-6">
-                                        <div className="p-3 border rounded h-100">
-                                            <div className="fw-bold text-uppercase small text-muted mb-1">Total Floors</div>
-                                            <div className="fw-semibold">{formatFloorRange(detailModal.block.total_floors)}</div>
-                                        </div>
-                                    </div>
-                                    <div className="col-12">
-                                        <div className="p-3 border rounded">
-                                            <div className="fw-bold text-uppercase small text-muted mb-1">Floors</div>
-                                            <div className="text-muted d-flex flex-column gap-1">
-                                                {Array.from(
-                                                    { length: Number(detailModal.block.total_floors) + 1 },
-                                                    (_, index) => (
-                                                        <span key={index}>{formatFloorLabel(index)}</span>
-                                                    )
-                                                )}
+                                <div className="mb-3">
+                                    <h6 className="text-uppercase text-muted fw-bold mb-3 small letter-spacing-1">Block Details</h6>
+                                    <div className="bg-light rounded p-4 border">
+                                        <div className="d-flex flex-column gap-3">
+                                            <div className="d-flex align-items-center">
+                                                <small className="text-muted text-uppercase fw-bold" style={{ width: '140px', fontSize: '0.85rem' }}>Block Name</small>
+                                                <span className="fw-bold text-dark fs-6">: {detailModal.block.block_name}</span>
+                                            </div>
+                                            <div className="d-flex align-items-center">
+                                                <small className="text-muted text-uppercase fw-bold" style={{ width: '140px', fontSize: '0.85rem' }}>Gender</small>
+                                                <span className="fw-bold text-dark fs-6">: {detailModal.block.gender}</span>
+                                            </div>
+                                            <div className="d-flex align-items-center">
+                                                <small className="text-muted text-uppercase fw-bold" style={{ width: '140px', fontSize: '0.85rem' }}>Total Floors</small>
+                                                <span className="fw-bold text-dark fs-6">: {formatFloorRange(detailModal.block.total_floors)}</span>
+                                            </div>
+                                            <div className="d-flex align-items-start">
+                                                <small className="text-muted text-uppercase fw-bold" style={{ width: '140px', fontSize: '0.85rem' }}>Floors</small>
+                                                <div className="fw-bold text-dark fs-6">
+                                                    {(() => {
+                                                        const floors = getFloorList(detailModal.block.total_floors);
+                                                        if (floors.length === 0) return null;
+                                                        return (
+                                                            <>
+                                                                <div>: {floors[0]}</div>
+                                                                {floors.slice(1).map((floor, index) => (
+                                                                    <div key={`${floor}-${index}`} style={{ paddingLeft: '12px' }}>
+                                                                        {floor}
+                                                                    </div>
+                                                                ))}
+                                                            </>
+                                                        );
+                                                    })()}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
