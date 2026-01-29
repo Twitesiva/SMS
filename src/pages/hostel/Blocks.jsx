@@ -34,22 +34,22 @@ export default function HostelBlocks() {
         const floorStart = Number(form.floor_start);
         const floorEnd = Number(form.floor_end);
 
-            if (!trimmedName) {
-                toast.error('Please enter a block name.');
-                return;
-            }
-            if (!form.gender) {
-                toast.error('Please select a gender.');
-                return;
-            }
-            if (floorStart !== 0) {
-                toast.error('Floor start must be 0.');
-                return;
-            }
-            if (!Number.isInteger(floorEnd) || floorEnd < 0) {
-                toast.error('Last floor must be a whole number of 0 or more.');
-                return;
-            }
+        if (!trimmedName) {
+            toast.error('Please enter a block name.');
+            return;
+        }
+        if (!form.gender) {
+            toast.error('Please select a gender.');
+            return;
+        }
+        if (floorStart !== 0) {
+            toast.error('Floor start must be 0.');
+            return;
+        }
+        if (!Number.isInteger(floorEnd) || floorEnd < 0) {
+            toast.error('Last floor must be a whole number of 0 or more.');
+            return;
+        }
 
         if (editingId) {
             const { data: existingRooms, error: roomsError } = await supabase
@@ -131,10 +131,18 @@ export default function HostelBlocks() {
     const formatFloorLabel = (floorNo) => {
         const value = Number(floorNo);
         if (!Number.isFinite(value) || value < 0) return '';
-        if (value === 0) return 'Ground Floor';
-        if (value === 1) return 'First Floor';
-        if (value === 2) return 'Second Floor';
-        if (value === 3) return 'Third Floor';
+
+        const ordinals = [
+            'Ground', 'First', 'Second', 'Third', 'Fourth', 'Fifth',
+            'Sixth', 'Seventh', 'Eighth', 'Ninth', 'Tenth',
+            'Eleventh', 'Twelfth', 'Thirteenth', 'Fourteenth',
+            'Fifteenth', 'Sixteenth', 'Seventeenth', 'Eighteenth',
+            'Nineteenth', 'Twentieth'
+        ];
+
+        if (value < ordinals.length) {
+            return `${ordinals[value]} Floor`;
+        }
         return `Floor ${value}`;
     };
 
@@ -265,11 +273,7 @@ export default function HostelBlocks() {
                                             blocks.slice(0, showAllBlocks ? undefined : 2).map((block) => (
                                                 <tr key={block.id} style={{ cursor: 'pointer' }} onClick={() => openDetails(block)}>
                                                     <td className="fw-bold">{block.block_name}</td>
-                                                    <td>
-                                                        <span className={`students-section-badge ${block.gender === 'BOYS' ? 'students-section-badge-category' : 'students-section-badge-course'}`}>
-                                                            {block.gender}
-                                                        </span>
-                                                    </td>
+                                                    <td className="fw-bold">{block.gender}</td>
                                                     <td>{formatFloorRange(block.total_floors)}</td>
                                                     <td className="text-end">
                                                         <div className="d-flex justify-content-end gap-2">
@@ -321,51 +325,74 @@ export default function HostelBlocks() {
                 message="Are you sure you want to delete this block? This may affect associated rooms and beds."
             />
 
-            <ConfirmationModal
-                isOpen={saveModal.show}
-                onClose={() => setSaveModal({ show: false, payload: null, isEdit: false })}
-                onConfirm={handleConfirmSave}
-                title={saveModal.isEdit ? 'CONFIRM BLOCK UPDATE' : 'CONFIRM NEW BLOCK'}
-                confirmText={saveModal.isEdit ? 'Update Block' : 'Add Block'}
-                confirmButtonClass="btn-primary"
-                isLoading={saving}
-            >
-                <div className="row g-3">
-                    <div className="col-12">
-                        <div className="p-3 bg-light border rounded">
-                            <div className="fw-bold text-uppercase small text-muted mb-1">Block Name</div>
-                            <div className="fs-5 fw-semibold">{saveModal.payload?.block_name}</div>
-                        </div>
-                    </div>
-                    <div className="col-md-6">
-                        <div className="p-3 border rounded h-100">
-                            <div className="fw-bold text-uppercase small text-muted mb-1">Gender</div>
-                            <span className={`students-section-badge ${saveModal.payload?.gender === 'BOYS' ? 'students-section-badge-category' : 'students-section-badge-course'}`}>
-                                {saveModal.payload?.gender}
-                            </span>
-                        </div>
-                    </div>
-                    <div className="col-md-6">
-                        <div className="p-3 border rounded h-100">
-                            <div className="fw-bold text-uppercase small text-muted mb-1">Total Floors</div>
-                            <div className="fw-semibold">{formatFloorRange(saveModal.payload?.total_floors)}</div>
-                        </div>
-                    </div>
-                    <div className="col-12">
-                        <div className="p-3 border rounded">
-                            <div className="fw-bold text-uppercase small text-muted mb-1">Floors</div>
-                            <div className="text-muted d-flex flex-column gap-1">
-                                {Array.from(
-                                    { length: Number(saveModal.payload?.total_floors ?? 0) + 1 },
-                                    (_, index) => (
-                                        <span key={index}>{formatFloorLabel(index)}</span>
-                                    )
-                                )}
+            {saveModal.show && (
+                <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1055 }}>
+                    <div className="modal-dialog modal-dialog-centered modal-lg">
+                        <div className="modal-content border-0 shadow-lg block-details-modal">
+                            <div className="modal-header" style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)', color: 'white' }}>
+                                <h5 className="modal-title fw-bold text-uppercase" style={{ color: '#ffffff' }}>
+                                    {saveModal.isEdit ? 'CONFIRM BLOCK UPDATE' : 'CONFIRM NEW BLOCK'}
+                                </h5>
+                                <button
+                                    type="button"
+                                    className="btn-close btn-close-white"
+                                    onClick={() => setSaveModal({ show: false, payload: null, isEdit: false })}
+                                    aria-label="Close"
+                                ></button>
+                            </div>
+                            <div className="modal-body p-4 bg-white">
+                                <div className="p-3 bg-light border rounded">
+                                    <div className="d-flex flex-column gap-3">
+                                        <div className="d-flex align-items-center">
+                                            <small className="text-muted text-uppercase fw-bold" style={{ width: '140px', fontSize: '0.85rem' }}>Block Name</small>
+                                            <span className="fw-bold text-dark fs-6">: {saveModal.payload?.block_name}</span>
+                                        </div>
+                                        <div className="d-flex align-items-center">
+                                            <small className="text-muted text-uppercase fw-bold" style={{ width: '140px', fontSize: '0.85rem' }}>Gender</small>
+                                            <span className="fw-bold text-dark fs-6">: {saveModal.payload?.gender}</span>
+                                        </div>
+                                        <div className="d-flex align-items-center">
+                                            <small className="text-muted text-uppercase fw-bold" style={{ width: '140px', fontSize: '0.85rem' }}>Total Floors</small>
+                                            <span className="fw-bold text-dark fs-6">: {formatFloorRange(saveModal.payload?.total_floors)}</span>
+                                        </div>
+                                        <div className="d-flex align-items-start">
+                                            <small className="text-muted text-uppercase fw-bold mt-1" style={{ width: '140px', fontSize: '0.85rem' }}>Floors</small>
+                                            <div className="fw-bold text-dark fs-6 d-flex">
+                                                <ul className="mb-0 ps-3">
+                                                    {Array.from(
+                                                        { length: Number(saveModal.payload?.total_floors ?? 0) + 1 },
+                                                        (_, index) => (
+                                                            <li key={index}>{formatFloorLabel(index)}</li>
+                                                        )
+                                                    )}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="modal-footer bg-light border-0">
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-secondary px-4"
+                                    onClick={() => setSaveModal({ show: false, payload: null, isEdit: false })}
+                                    disabled={saving}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn btn-primary px-4"
+                                    onClick={handleConfirmSave}
+                                    disabled={saving}
+                                >
+                                    {saving ? 'Saving...' : (saveModal.isEdit ? 'Update Block' : 'Add Block')}
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
-            </ConfirmationModal>
+            )}
 
             {detailModal.show && detailModal.block && (
                 <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1055 }}>
