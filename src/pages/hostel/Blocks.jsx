@@ -8,7 +8,7 @@ import { toast } from 'react-toastify';
 export default function HostelBlocks() {
     const [blocks, setBlocks] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [form, setForm] = useState({ id: '', block_name: '', gender: 'BOYS', total_floors: 1 });
+    const [form, setForm] = useState({ id: '', block_name: '', gender: '', floor_start: 0, floor_end: 0 });
     const [editingId, setEditingId] = useState(null);
     const [deleteModal, setDeleteModal] = useState({ show: false, id: null });
     const [showAllBlocks, setShowAllBlocks] = useState(false);
@@ -31,16 +31,25 @@ export default function HostelBlocks() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         const trimmedName = String(form.block_name || '').trim();
-        const totalFloors = Number(form.total_floors);
+        const floorStart = Number(form.floor_start);
+        const floorEnd = Number(form.floor_end);
 
-        if (!trimmedName) {
-            toast.error('Please enter a block name.');
-            return;
-        }
-        if (!Number.isInteger(totalFloors) || totalFloors < 0) {
-            toast.error('Total floors must be a whole number of 0 or more.');
-            return;
-        }
+            if (!trimmedName) {
+                toast.error('Please enter a block name.');
+                return;
+            }
+            if (!form.gender) {
+                toast.error('Please select a gender.');
+                return;
+            }
+            if (floorStart !== 0) {
+                toast.error('Floor start must be 0.');
+                return;
+            }
+            if (!Number.isInteger(floorEnd) || floorEnd < 0) {
+                toast.error('Last floor must be a whole number of 0 or more.');
+                return;
+            }
 
         if (editingId) {
             const { data: existingRooms, error: roomsError } = await supabase
@@ -57,7 +66,7 @@ export default function HostelBlocks() {
                 0,
                 ...((existingRooms || []).map((room) => Number(room.floor_no)).filter((floor) => Number.isFinite(floor)))
             );
-            if (totalFloors < maxExistingFloor) {
+            if (floorEnd < maxExistingFloor) {
                 toast.error(`Total floors cannot be less than existing floor ${maxExistingFloor}.`);
                 return;
             }
@@ -66,14 +75,20 @@ export default function HostelBlocks() {
         const payload = {
             block_name: trimmedName,
             gender: form.gender,
-            total_floors: totalFloors
+            total_floors: floorEnd
         };
 
         setSaveModal({ show: true, payload, isEdit: Boolean(editingId) });
     };
 
     const handleEdit = (block) => {
-        setForm(block);
+        setForm({
+            id: block.id,
+            block_name: block.block_name,
+            gender: block.gender,
+            floor_start: 0,
+            floor_end: Number(block.total_floors ?? 0)
+        });
         setEditingId(block.id);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -103,7 +118,7 @@ export default function HostelBlocks() {
                 if (error) throw error;
                 toast.success('Block created successfully');
             }
-            setForm({ id: '', block_name: '', gender: 'BOYS', total_floors: 1 });
+            setForm({ id: '', block_name: '', gender: '', floor_start: 0, floor_end: 0 });
             fetchBlocks();
         } catch (error) {
             toast.error(error.message);
@@ -150,7 +165,7 @@ export default function HostelBlocks() {
                         </div>
 
                         <div className="alert alert-info py-2 mb-3" role="alert">
-                            Floor numbering starts at 0 (Ground Floor). Enter the highest floor number for this block.
+                            Floors run from 0 (Ground) up to the last floor you enter.
                         </div>
 
                         <form onSubmit={handleSubmit} className="students-section-form row g-3 align-items-end">
@@ -173,17 +188,27 @@ export default function HostelBlocks() {
                                     onChange={(e) => setForm({ ...form, gender: e.target.value })}
                                     required
                                 >
+                                    <option value="">Select Gender</option>
                                     <option value="BOYS">BOYS</option>
                                     <option value="GIRLS">GIRLS</option>
                                 </select>
                             </div>
                             <div className="col-md-2">
-                                <label className="form-label fw-bold mb-1">Total Floors</label>
+                                <label className="form-label fw-bold mb-1">Start Floor (Fixed: 0)</label>
                                 <input
                                     type="number"
                                     className="form-control"
-                                    value={form.total_floors}
-                                    onChange={(e) => setForm({ ...form, total_floors: e.target.value })}
+                                    value={form.floor_start}
+                                    readOnly
+                                />
+                            </div>
+                            <div className="col-md-2">
+                                <label className="form-label fw-bold mb-1">Last Floor Number</label>
+                                <input
+                                    type="number"
+                                    className="form-control"
+                                    value={form.floor_end}
+                                    onChange={(e) => setForm({ ...form, floor_end: e.target.value })}
                                     min="0"
                                     required
                                 />
@@ -198,7 +223,7 @@ export default function HostelBlocks() {
                                         className="btn btn-outline-secondary students-button flex-fill"
                                         onClick={() => {
                                             setEditingId(null);
-                                            setForm({ id: '', block_name: '', gender: 'BOYS', total_floors: 1 });
+                                            setForm({ id: '', block_name: '', gender: '', floor_start: 0, floor_end: 0 });
                                         }}
                                     >
                                         Cancel
