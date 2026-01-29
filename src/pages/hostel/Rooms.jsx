@@ -284,7 +284,7 @@ export default function HostelRooms() {
                                     <option value="">Select Floor</option>
                                     {floorOptions.map((floor) => (
                                         <option key={floor} value={floor}>
-                                            {floor === 0 ? 'Ground Floor' : `Floor ${floor}`}
+                                            {formatFloorLabel(floor)}
                                         </option>
                                     ))}
                                 </select>

@@ -102,6 +102,14 @@ export default function HostelBlocks() {
         }
     };
 
+    const formatFloorRange = (totalFloors) => {
+        const value = Number(totalFloors);
+        if (!Number.isFinite(value) || value < 0) return '';
+        const count = value + 1;
+        if (value === 0) return 'Ground only';
+        return `Ground + ${value} floor${value === 1 ? '' : 's'} (${count} total)`;
+    };
+
     return (
         <HostelShell brandTitle="HOSTEL MANAGEMENT">
             <div className="desktop-container">
@@ -117,11 +125,9 @@ export default function HostelBlocks() {
                             </div>
                         </div>
 
-                        {Number(form.total_floors) === 0 && (
-                            <div className="alert alert-info py-2 mb-3" role="alert">
-                                If total floors is 0, it is assigned as Ground Floor only.
-                            </div>
-                        )}
+                        <div className="alert alert-info py-2 mb-3" role="alert">
+                            Floor numbering starts at 0 (Ground Floor). Enter the highest floor number for this block.
+                        </div>
 
                         <form onSubmit={handleSubmit} className="students-section-form row g-3 align-items-end">
                             <div className="col-md-4">
@@ -210,7 +216,7 @@ export default function HostelBlocks() {
                                                             {block.gender}
                                                         </span>
                                                     </td>
-                                                    <td>{block.total_floors}</td>
+                                                    <td>{formatFloorRange(block.total_floors)}</td>
                                                     <td className="text-end">
                                                         <div className="d-flex justify-content-end gap-2">
                                                             <button
