@@ -457,7 +457,6 @@ export default function RoomYearMapping() {
                                                     <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room No</th>
                                                     <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Capacity</th>
                                                     <th className="py-3 px-3 border-0 text-center" style={{ backgroundColor: 'transparent', color: 'white' }}>Availability Status</th>
-                                                    <th className="py-3 px-3 border-0 text-end" style={{ backgroundColor: 'transparent', color: 'white' }}>Actions</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -488,25 +487,6 @@ export default function RoomYearMapping() {
                                                                     <span className={`ms-2 fw-bold ${mappings[room.id] ? 'text-success' : 'text-danger'}`}>
                                                                         {mappings[room.id] ? 'ACTIVE' : 'INACTIVE'}
                                                                     </span>
-                                                                </div>
-                                                            </td>
-                                                            <td className="text-end">
-                                                                <div className="d-flex justify-content-end gap-2">
-                                                                    <button
-                                                                        type="button"
-                                                                        className="btn btn-sm btn-outline-primary students-button-sm"
-                                                                        onClick={() => handleEditRoom(room)}
-                                                                    >
-                                                                        <i className="bi bi-pencil"></i>
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        className="btn btn-sm btn-outline-danger students-button-sm"
-                                                                        onClick={() => setDeleteModal({ show: true, room })}
-                                                                        disabled={deleting}
-                                                                    >
-                                                                        <i className="bi bi-trash"></i>
-                                                                    </button>
                                                                 </div>
                                                             </td>
                                                         </tr>
