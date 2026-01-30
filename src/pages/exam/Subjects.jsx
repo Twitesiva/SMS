@@ -396,12 +396,24 @@ export default function SubjectsSection({
                   </label>
                   <input
                     className="form-control"
-                    placeholder="0"
+                    placeholder="e.g., 3"
                     type="number"
-                    min="0"
+                    min="0.5"
                     step="0.5"
                     value={categoryCredits}
-                    onChange={(e) => setCategoryCredits(Math.max(0, Number(e.target.value)))}
+                    onChange={(e) => {
+                      const raw = e.target.value
+                      if (raw === '') {
+                        setCategoryCredits('')
+                        return
+                      }
+                      const numeric = Number(raw)
+                      if (!Number.isFinite(numeric) || numeric <= 0) {
+                        setCategoryCredits('')
+                        return
+                      }
+                      setCategoryCredits(numeric)
+                    }}
                     onKeyDown={e => {
                       if (e.key === 'Enter') {
                         e.preventDefault()
@@ -424,7 +436,7 @@ export default function SubjectsSection({
                       className="btn btn-outline-secondary students-button"
                       onClick={() => {
                         setCategoryName('');
-                        setCategoryCredits(0);
+                        setCategoryCredits('');
                         setEditingCategory('');
                       }}
                     >
@@ -451,7 +463,7 @@ export default function SubjectsSection({
                       className="btn btn-sm btn-outline-primary students-button students-button-sm flex-fill"
                       onClick={() => {
                         setCategoryName(cat);
-                        setCategoryCredits(categoryCreditsMap[cat] || 0);
+                        setCategoryCredits(categoryCreditsMap[cat] || '');
                         setEditingCategory(cat);
                       }}
                     >

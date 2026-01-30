@@ -278,9 +278,17 @@ const mapSubCategory = (row = {}) => ({
   subjects: parseSubjectList(row.subjects_name),
 });
 
+const normalizeCredits = (credits) => {
+  const numeric = Number(credits);
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    throw new Error("Credits must be greater than 0");
+  }
+  return numeric;
+};
+
 const toSubCategoryRow = ({ name, credits }) => ({
   category_name: name,
-  credits: credits ?? 0,
+  credits: credits ?? null,
 });
 
 const mapSubject = (row = {}) => {
@@ -877,14 +885,15 @@ export const api = {
   },
 
   addSubCategory: async ({ name, credits }) => {
+    const normalizedCredits = normalizeCredits(credits);
     await ensureNoDuplicate(
       TABLES.subCategories,
-      toSubCategoryRow({ name, credits, subjects: [] })
+      toSubCategoryRow({ name, credits: normalizedCredits, subjects: [] })
     );
     const row = await runQuery(
       supabase
         .from(TABLES.subCategories)
-        .insert(toSubCategoryRow({ name, credits, subjects: [] }))
+        .insert(toSubCategoryRow({ name, credits: normalizedCredits, subjects: [] }))
         .select("category_id, category_name, credits")
         .single(),
       "Unable to add sub-category"
@@ -893,9 +902,10 @@ export const api = {
   },
 
   updateSubCategory: async (id, { name, credits, subjects }) => {
+    const normalizedCredits = normalizeCredits(credits);
     await ensureNoDuplicate(
       TABLES.subCategories,
-      toSubCategoryRow({ name, credits, subjects }),
+      toSubCategoryRow({ name, credits: normalizedCredits, subjects }),
       {
         excludeId: id,
       }
@@ -903,7 +913,7 @@ export const api = {
     const row = await runQuery(
       supabase
         .from(TABLES.subCategories)
-        .update(toSubCategoryRow({ name, credits, subjects }))
+        .update(toSubCategoryRow({ name, credits: normalizedCredits, subjects }))
         .eq("category_id", id)
         .select("category_id, category_name, credits")
         .single(),
