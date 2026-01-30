@@ -189,7 +189,6 @@ export default function AdmissionsOverview() {
               </div>
               <div>
                 <div className="dashboard-card-value">{applications.length}</div>
-                <div className="dashboard-card-label">Applied Admissions</div>
                 <p className="mb-0 fw-bold">Total applications</p>
               </div>
             </div>
@@ -200,8 +199,7 @@ export default function AdmissionsOverview() {
               </div>
               <div>
                 <div className="dashboard-card-value">{pendingCount}</div>
-                <div className="dashboard-card-label">Pending Admissions</div>
-                <p className="mb-0 fw-bold">Awaiting approval</p>
+                <p className="mb-0 fw-bold">Pending admissions</p>
               </div>
             </div>
 
@@ -211,7 +209,6 @@ export default function AdmissionsOverview() {
               </div>
               <div>
                 <div className="dashboard-card-value">{approvedCount}</div>
-                <div className="dashboard-card-label">Approved Admissions</div>
                 <p className="mb-0 fw-bold">Confirmed admissions</p>
               </div>
             </div>
