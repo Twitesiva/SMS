@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import crestPrimary from '../../assets/media/images.png'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
+import LibraryPreloader from '../../components/LibraryPreloader'
 
 const initialForm = {
   fineAmount: '100',
@@ -11,14 +12,14 @@ const initialForm = {
 export default function ChargesAndPenalties() {
   const [form, setForm] = useState(initialForm)
   const [settingsId, setSettingsId] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [editing, setEditing] = useState(false)
 
   const [customCharges, setCustomCharges] = useState([])
   const [newCharge, setNewCharge] = useState({ name: '', amount: '' })
-  const [loadingCustom, setLoadingCustom] = useState(false)
+  const [loadingCustom, setLoadingCustom] = useState(true)
   const [addingCustom, setAddingCustom] = useState(false)
 
   const parsed = {
@@ -81,6 +82,20 @@ export default function ChargesAndPenalties() {
     loadCharges()
     loadCustomCharges()
   }, [])
+
+  const showSkeleton = (loading || loadingCustom) && !settingsId && customCharges.length === 0
+
+  if (showSkeleton) {
+    return (
+      <LibraryPreloader
+        title="Loading charges & penalties"
+        subtitle="Syncing fine rules and custom categories."
+        statCount={2}
+        panelCount={2}
+        rowCount={4}
+      />
+    )
+  }
 
   const handleChange = (key) => (event) => {
     setForm((prev) => ({ ...prev, [key]: event.target.value }))

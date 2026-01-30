@@ -514,7 +514,7 @@
 .public-apply-form .form-control,
 .public-apply-form .form-select {
   border-radius: 12px;
-  border: 1px solid #e2e8f3;
+  border: 1px solid #000000;
   padding: 0.8rem 1rem;
   font-size: 1.02rem;
   color: #000000;
@@ -522,11 +522,31 @@
   transition: all 0.2s ease;
 }
 
+.public-apply-select--locked {
+  background: #fcfdfe !important;
+  background-image: none !important;
+  background-position: right 0.75rem center;
+  background-size: 0 0;
+  padding-right: 1rem;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.public-apply-select--locked::-ms-expand {
+  display: none;
+}
+
 .public-apply-form .form-control:focus,
 .public-apply-form .form-select:focus {
   background-color: #ffffff;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  border-color: #000000;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.12);
+}
+
+.public-apply-form .form-control:disabled,
+.public-apply-form .form-select:disabled {
+  border-color: #000000;
 }
 
 .public-apply-form .form-control[readOnly] {

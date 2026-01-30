@@ -363,8 +363,18 @@ export default function HostelDashboard() {
 
 
             <section className="hostel-panel dashboard-chart-card card-shadow" id="fees">
-              <div className="hostel-panel__head"><div><h2 className="mb-0">Hostel Fees</h2></div></div>
-              <div className="hostel-fees-grid">
+              <div
+                className="hostel-panel__head"
+                style={{
+                  background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)',
+                  borderRadius: '14px',
+                  padding: '14px 18px',
+                  color: '#ffffff'
+                }}
+              >
+                <div><h2 className="mb-0 text-white">Hostel Fees</h2></div>
+              </div>
+              <div className="hostel-fees-grid mt-3">
                 {fees.length === 0 ? (
                   <div className="hostel-empty">No fee structures found.</div>
                 ) : (
@@ -376,15 +386,20 @@ export default function HostelDashboard() {
                     acc[year][type] = fee.hostel_fee
                     return acc
                   }, {})).map(([year, amounts]) => (
-                    <div key={year} className="hostel-fee-card dashboard-card card-shadow p-3">
-                      <div className="fw-bold text-primary mb-2 text-uppercase" style={{ fontSize: '1.1rem' }}>{year}</div>
-                      <div className="d-flex justify-content-between align-items-center mb-1 border-bottom pb-1">
-                        <span className="text-muted small fw-bold">AC</span>
-                        <span className="fw-bold text-dark">{currency(amounts.AC || 0)}</span>
+                    <div key={year} className="hostel-fee-group">
+                      <div className="hostel-fee-group__header">
+                        <span className="text-uppercase fw-bold small">Academic Year</span>
+                        <span className="fw-semibold">{year}</span>
                       </div>
-                      <div className="d-flex justify-content-between align-items-center pt-1">
-                        <span className="text-muted small fw-bold">NON AC</span>
-                        <span className="fw-bold text-dark">{currency(amounts.NON_AC || 0)}</span>
+                      <div className="hostel-fee-group__cards">
+                        <div className="hostel-fee-tile">
+                          <div className="hostel-fee-tile__label">AC</div>
+                          <div className="hostel-fee-tile__value">{currency(amounts.AC || 0)}</div>
+                        </div>
+                        <div className="hostel-fee-tile">
+                          <div className="hostel-fee-tile__label">NON AC</div>
+                          <div className="hostel-fee-tile__value">{currency(amounts.NON_AC || 0)}</div>
+                        </div>
                       </div>
                     </div>
                   ))

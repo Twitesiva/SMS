@@ -2,6 +2,7 @@
 import crestPrimary from '../../assets/media/images.png'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
+import LibraryPreloader from '../../components/LibraryPreloader'
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '-'
@@ -12,6 +13,7 @@ export default function Circulation() {
   const [activeLoans, setActiveLoans] = useState([])
   const [showAllLoans, setShowAllLoans] = useState(false)
   const [depositAmount, setDepositAmount] = useState(0)
+  const [loading, setLoading] = useState(true)
 
   const [selectedBook, setSelectedBook] = useState(null)
   const [modalTab, setModalTab] = useState('all') // 'all', 'issued', 'damaged'
@@ -124,28 +126,33 @@ export default function Circulation() {
     }
   }
 
-  useEffect(() => {
-    loadLoans()
-  }, [])
+  const loadDeposit = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('global_settings')
+        .select('deposit_amount')
+        .order('id', { ascending: true })
+        .limit(1)
+        .single()
+      if (error) throw error
+      const amt = Number(data?.deposit_amount || 0)
+      setDepositAmount(Number.isFinite(amt) ? amt : 0)
+    } catch (err) {
+      console.error('Failed to load deposit amount', err)
+      setDepositAmount(0)
+    }
+  }
 
   useEffect(() => {
-    const loadDeposit = async () => {
+    const loadInitial = async () => {
+      setLoading(true)
       try {
-        const { data, error } = await supabase
-          .from('global_settings')
-          .select('deposit_amount')
-          .order('id', { ascending: true })
-          .limit(1)
-          .single()
-        if (error) throw error
-        const amt = Number(data?.deposit_amount || 0)
-        setDepositAmount(Number.isFinite(amt) ? amt : 0)
-      } catch (err) {
-        console.error('Failed to load deposit amount', err)
-        setDepositAmount(0)
+        await Promise.all([loadLoans(), loadDeposit()])
+      } finally {
+        setLoading(false)
       }
     }
-    loadDeposit()
+    loadInitial()
   }, [])
 
   const issueCount = useMemo(
@@ -408,6 +415,18 @@ export default function Circulation() {
       setReturning(false)
     }
   }
+  if (loading && activeLoans.length === 0) {
+    return (
+      <LibraryPreloader
+        title="Loading circulation desk"
+        subtitle="Preparing issue and return registers."
+        statCount={2}
+        panelCount={2}
+        rowCount={4}
+      />
+    )
+  }
+
   return (
     <div className="desktop-container" style={{ overflowX: 'hidden' }}>
 

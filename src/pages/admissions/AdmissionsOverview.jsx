@@ -3,6 +3,7 @@ import { supabase } from '../../../supabaseClient'
 import { api } from '../../lib/mockApi'
 import crestPrimary from '../../assets/media/images.png'
 import AdmissionShell from '../../components/AdmissionShell'
+import '../exam/Dashboard.css'
 import './Admissions.css'
 
 const formatDate = (value) => {
@@ -146,6 +147,20 @@ export default function AdmissionsOverview() {
 
   const clearFilters = () => setFilters({ group_id: '', course_id: '' })
 
+  const pendingCount = useMemo(() => (
+    applications.filter((app) => {
+      const adm = Array.isArray(app.admission) ? app.admission[0] : app.admission
+      return (adm?.admission_status || 'Pending') !== 'APPROVED'
+    }).length
+  ), [applications])
+
+  const approvedCount = useMemo(() => (
+    applications.filter((app) => {
+      const adm = Array.isArray(app.admission) ? app.admission[0] : app.admission
+      return (adm?.admission_status || 'Pending') === 'APPROVED'
+    }).length
+  ), [applications])
+
   return (
     <AdmissionShell
       navGroups={navGroups}
@@ -166,78 +181,39 @@ export default function AdmissionsOverview() {
         </div>
 
         {/* Stats Row */}
-        <div className="row g-4 align-items-stretch mb-4">
-          {/* Applied Admissions */}
-          <div className="col-12 col-md-4">
-            <div className="card card-soft p-4 h-100">
-              <div className="d-flex justify-content-between align-items-start">
-                <div>
-                  <div className="text-uppercase text-muted small">Applied Admissions</div>
-                  <div className="display-6 fw-bold">{applications.length}</div>
-                  <div className="text-muted small">
-                    Showing {filteredApplications.length} after filters
-                  </div>
-                </div>
-                <div className="display-6 text-muted">
-                  <i className="bi bi-people"></i>
-                </div>
+        <section className="mb-4">
+          <div className="dashboard-cards">
+            <div className="dashboard-card card-shadow dashboard-card-link">
+              <div className="dashboard-card-icon">
+                <i className="bi bi-people"></i>
+              </div>
+              <div>
+                <div className="dashboard-card-value">{applications.length}</div>
+                <p className="mb-0 fw-bold">Total applications</p>
+              </div>
+            </div>
+
+            <div className="dashboard-card card-shadow dashboard-card-link">
+              <div className="dashboard-card-icon">
+                <i className="bi bi-clock-history"></i>
+              </div>
+              <div>
+                <div className="dashboard-card-value">{pendingCount}</div>
+                <p className="mb-0 fw-bold">Pending admissions</p>
+              </div>
+            </div>
+
+            <div className="dashboard-card card-shadow dashboard-card-link">
+              <div className="dashboard-card-icon">
+                <i className="bi bi-person-check"></i>
+              </div>
+              <div>
+                <div className="dashboard-card-value">{approvedCount}</div>
+                <p className="mb-0 fw-bold">Confirmed admissions</p>
               </div>
             </div>
           </div>
-
-          {/* Pending Admissions */}
-          <div className="col-12 col-md-4">
-            <div className="card card-soft p-4 h-100">
-              <div className="d-flex justify-content-between align-items-start">
-                <div>
-                  <div className="text-uppercase text-muted small">Pending Admissions</div>
-                  <div className="display-6 fw-bold">
-                    {applications.filter(app => {
-                      const adm = Array.isArray(app.admission) ? app.admission[0] : app.admission
-                      return (adm?.admission_status || 'Pending') !== 'APPROVED'
-                    }).length}
-                  </div>
-                  <div className="text-muted small">
-                    Showing {filteredApplications.filter(app => {
-                      const adm = Array.isArray(app.admission) ? app.admission[0] : app.admission
-                      return (adm?.admission_status || 'Pending') !== 'APPROVED'
-                    }).length} after filters
-                  </div>
-                </div>
-                <div className="display-6 text-muted">
-                  <i className="bi bi-clock-history"></i>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Approved Admissions */}
-          <div className="col-12 col-md-4">
-            <div className="card card-soft p-4 h-100">
-              <div className="d-flex justify-content-between align-items-start">
-                <div>
-                  <div className="text-uppercase text-muted small">Approved Admissions</div>
-                  <div className="display-6 fw-bold">
-                    {applications.filter(app => {
-                      const adm = Array.isArray(app.admission) ? app.admission[0] : app.admission
-                      return (adm?.admission_status || 'Pending') === 'APPROVED'
-                    }).length}
-                  </div>
-                  <div className="text-muted small">
-                    Showing {filteredApplications.filter(app => {
-                      const adm = Array.isArray(app.admission) ? app.admission[0] : app.admission
-                      return (adm?.admission_status || 'Pending') === 'APPROVED'
-                    }).length} after filters
-                  </div>
-                </div>
-                <div className="display-6 text-muted">
-                  <i className="bi bi-person-check"></i>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
+        </section>
 
         {/* Filters Row */}
         <div className="card card-soft p-4 mb-4">

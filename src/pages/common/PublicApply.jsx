@@ -52,6 +52,7 @@ export default function PublicApply() {
   const [loading, setLoading] = useState(false)
   const [courses, setCourses] = useState([])
   const [groups, setGroups] = useState([])
+  const isCourseLocked = Boolean(location.state?.selectedCourse)
   const handle = (k, v) => setForm(p => ({ ...p, [k]: v }))
   const selectClass = (val) => (val ? 'form-select public-apply-select is-filled' : 'form-select public-apply-select')
 
@@ -197,6 +198,38 @@ export default function PublicApply() {
     }
     if (!isDigits(form.parent_no, 10)) {
       showToast('Enter a valid 10-digit parent mobile number.', { type: 'warning', title: 'Invalid mobile' })
+      setLoading(false)
+      return
+    }
+    const cleanMobile = String(form.phone_number || '').trim()
+    const cleanParent = String(form.parent_no || '').trim()
+    if (cleanMobile && cleanParent && cleanMobile === cleanParent) {
+      showToast('Student and parent mobile numbers cannot be the same.', { type: 'warning', title: 'Invalid mobile' })
+      setLoading(false)
+      return
+    }
+    try {
+      const [appsCheck, studentsCheck] = await Promise.all([
+        supabase
+          .from('applications')
+          .select('id', { count: 'exact', head: true })
+          .eq('phone_number', cleanMobile),
+        supabase
+          .from('students')
+          .select('id', { count: 'exact', head: true })
+          .eq('phone_number', cleanMobile)
+      ])
+      if (appsCheck.error) throw appsCheck.error
+      if (studentsCheck.error) throw studentsCheck.error
+      const existingCount = (appsCheck.count || 0) + (studentsCheck.count || 0)
+      if (existingCount > 0) {
+        showToast('Student mobile number already exists.', { type: 'warning', title: 'Duplicate mobile' })
+        setLoading(false)
+        return
+      }
+    } catch (err) {
+      console.error('Duplicate mobile check failed:', err)
+      showToast('Unable to validate mobile number right now. Please try again.', { type: 'warning', title: 'Validation failed' })
       setLoading(false)
       return
     }
@@ -357,10 +390,6 @@ export default function PublicApply() {
               <div className="public-apply-hero__eyebrow">ADMISSIONS {form.admission_year}</div>
               <h1 className="public-apply-hero__title">Vijayam College of Arts & Science</h1>
               <p className="public-apply-hero__location">CHITTOR</p>
-              <p className="public-apply-hero__subtitle">
-                Manage catalogues, lending, and returns with confidence. Explore programmes, registration steps,
-                and real-time updates from the library control center while preparing your application.
-              </p>
             </div>
           </div>
           <div className="public-apply-hero__actions">
@@ -460,7 +489,7 @@ export default function PublicApply() {
 
                     <div className="col-md-3">
                       <label className="form-label"><i className="bi bi-diagram-3"></i>Group</label>
-                      <select className={selectClass(form.group_id)} value={form.group_id} onChange={e => handle('group_id', e.target.value)} required>
+                      <select className={`${selectClass(form.group_id)}${isCourseLocked ? ' public-apply-select--locked' : ''}`} value={form.group_id} onChange={e => handle('group_id', e.target.value)} required disabled={isCourseLocked}>
                         <option value="">Select Group</option>
                         {groups.map(g => (
                           <option key={g.id} value={g.id}>{g.name || g.group_name || g.code}</option>
@@ -469,7 +498,7 @@ export default function PublicApply() {
                     </div>
                     <div className="col-md-4">
                       <label className="form-label"><i className="bi bi-journal-bookmark"></i>Course</label>
-                      <select className={selectClass(form.course_id)} value={form.course_id} onChange={e => handle('course_id', e.target.value)} required>
+                      <select className={`${selectClass(form.course_id)}${isCourseLocked ? ' public-apply-select--locked' : ''}`} value={form.course_id} onChange={e => handle('course_id', e.target.value)} required disabled={isCourseLocked}>
                         <option value="">Select Course</option>
                         {courses
                           .filter((course) => {

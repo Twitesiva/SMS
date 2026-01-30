@@ -496,6 +496,14 @@
   gap: 1.5rem;
 }
 
+.library-dashboard-page .dashboard-card-link:hover,
+.library-dashboard-page .dashboard-card-link:focus-visible {
+  transform: scale(1.02);
+  box-shadow: 0 28px 45px rgba(15, 23, 42, 0.22);
+  outline: 3px solid rgba(96, 108, 136, 0.35);
+  outline-offset: 2px;
+}
+
 .library-dashboard-hero {
   border-radius: 28px;
   padding: 2rem;
@@ -1000,4 +1008,183 @@
   font-weight: inherit;
   letter-spacing: inherit;
   color: #5b6a80;
+}
+
+.library-reports-preview-table thead th {
+  background: #606c88 !important;
+  color: #ffffff !important;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid #606c88;
+}
+
+.library-reports-modal .modal-header,
+.library-reports-modal .modal-title,
+.library-reports-modal .modal-header * {
+  color: #ffffff !important;
+}
+
+.library-books-modal .modal-header,
+.library-books-modal .modal-title,
+.library-books-modal .modal-header * {
+  color: #ffffff !important;
+}
+
+.library-books-modal-table thead th {
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%) !important;
+  color: #ffffff !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Library skeleton loader */
+.library-skeleton-page {
+  display: grid;
+  gap: 1.5rem;
+  padding-top: 1.5rem;
+}
+
+.library-skeleton {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.library-skeleton__header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.2rem 1.4rem;
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(235, 241, 247, 0.95));
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  box-shadow: 0 18px 30px rgba(15, 23, 42, 0.08);
+}
+
+.library-skeleton__spinner {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 3px solid rgba(32, 75, 107, 0.2);
+  border-top-color: #0f4b6b;
+  animation: libraryLoaderSpin 0.9s linear infinite;
+  flex-shrink: 0;
+}
+
+.library-skeleton__title {
+  font-size: 0.75rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #0f2a3f;
+}
+
+.library-skeleton__subtitle {
+  color: #5a6b80;
+  font-size: 0.95rem;
+}
+
+.library-skeleton__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.library-skeleton__card {
+  border-radius: 18px;
+  padding: 1.1rem;
+  background: linear-gradient(145deg, #ffffff, #eef3f8);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 16px 35px rgba(15, 23, 42, 0.1);
+  display: grid;
+  gap: 0.65rem;
+}
+
+.library-skeleton__line {
+  height: 10px;
+  border-radius: 999px;
+}
+
+.library-skeleton__line--title {
+  width: 60%;
+}
+
+.library-skeleton__line--value {
+  width: 40%;
+  height: 18px;
+}
+
+.library-skeleton__line--meta {
+  width: 70%;
+}
+
+.library-skeleton__line--header {
+  width: 45%;
+  height: 12px;
+}
+
+.library-skeleton__panels {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.library-skeleton__panel {
+  border-radius: 24px;
+  padding: 1.3rem;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 28px 55px rgba(15, 23, 42, 0.1);
+  display: grid;
+  gap: 1rem;
+}
+
+.library-skeleton__panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.library-skeleton__table {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.library-skeleton__table-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.library-skeleton__cell {
+  height: 12px;
+  border-radius: 999px;
+}
+
+.library-skeleton__cell--short {
+  width: 70%;
+}
+
+.library-skeleton__shimmer {
+  background: linear-gradient(90deg, rgba(226, 232, 240, 0.8) 0%, rgba(255, 255, 255, 0.95) 50%, rgba(226, 232, 240, 0.8) 100%);
+  background-size: 200% 100%;
+  animation: libraryLoaderShimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes libraryLoaderSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes libraryLoaderShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }

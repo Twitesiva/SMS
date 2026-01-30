@@ -33,10 +33,23 @@ export default function RoomYearMapping() {
     const [savingEdit, setSavingEdit] = useState(false);
     const [deleteModal, setDeleteModal] = useState({ show: false, room: null });
     const [deleting, setDeleting] = useState(false);
+    const hasSelection = Boolean(
+        selectedYear || selectedStudyYear || selectedBlock || selectedFloor || selectedRoom
+    );
 
     useEffect(() => {
         fetchInitialData();
     }, []);
+
+    const handleBack = () => {
+        setSelectedYear('');
+        setSelectedStudyYear('');
+        setSelectedBlock('');
+        setSelectedFloor('');
+        setSelectedRoom('');
+        setRooms([]);
+        setMappings({});
+    };
 
     const fetchInitialData = async () => {
         const [yearsRes, blocksRes] = await Promise.all([
@@ -360,7 +373,15 @@ export default function RoomYearMapping() {
     return (
         <HostelShell brandTitle="HOSTEL MANAGEMENT">
             <div className="desktop-container">
-                <h4 className="mb-4">Room Year Mapping</h4>
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                    <h4 className="mb-0">Room Year Mapping</h4>
+                    {hasSelection && (
+                        <button type="button" className="btn btn-outline-secondary" onClick={handleBack}>
+                            <i className="bi bi-arrow-left me-2"></i>
+                            Cancel
+                        </button>
+                    )}
+                </div>
 
                 <section className="setup-section mb-4">
                     <div className="students-section-shell card card-soft mb-4">
@@ -422,21 +443,19 @@ export default function RoomYearMapping() {
                                     ))}
                                 </select>
                             </div>
-                            <div className="col-md-4 d-flex align-items-end">
-                                <button className="btn btn-outline-primary students-button w-100" onClick={enableAll} disabled={!selectedYear || !selectedBlock || !selectedStudyYear || loading}>
-                                    Allocate rooms for this block
-                                </button>
-                            </div>
                         </div>
                     </div>
 
                     {!selectedYear || !selectedBlock || !selectedStudyYear ? null : (
                         <>
                             <div className="students-section-shell card card-soft">
-                                <div className="students-section-shell-header mb-4">
+                                <div className="students-section-shell-header mb-4 d-flex justify-content-between align-items-center">
                                     <h5 className="section-title mb-0" style={{ fontSize: '1.2rem' }}>
                                         Rooms Availability - {selectedYear}
                                     </h5>
+                                    <button type="button" className="btn btn-light btn-sm fw-semibold" onClick={handleBack}>
+                                        Cancel
+                                    </button>
                                 </div>
 
                                 {loading ? (
@@ -457,7 +476,6 @@ export default function RoomYearMapping() {
                                                     <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room No</th>
                                                     <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Capacity</th>
                                                     <th className="py-3 px-3 border-0 text-center" style={{ backgroundColor: 'transparent', color: 'white' }}>Availability Status</th>
-                                                    <th className="py-3 px-3 border-0 text-end" style={{ backgroundColor: 'transparent', color: 'white' }}>Actions</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -488,25 +506,6 @@ export default function RoomYearMapping() {
                                                                     <span className={`ms-2 fw-bold ${mappings[room.id] ? 'text-success' : 'text-danger'}`}>
                                                                         {mappings[room.id] ? 'ACTIVE' : 'INACTIVE'}
                                                                     </span>
-                                                                </div>
-                                                            </td>
-                                                            <td className="text-end">
-                                                                <div className="d-flex justify-content-end gap-2">
-                                                                    <button
-                                                                        type="button"
-                                                                        className="btn btn-sm btn-outline-primary students-button-sm"
-                                                                        onClick={() => handleEditRoom(room)}
-                                                                    >
-                                                                        <i className="bi bi-pencil"></i>
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        className="btn btn-sm btn-outline-danger students-button-sm"
-                                                                        onClick={() => setDeleteModal({ show: true, room })}
-                                                                        disabled={deleting}
-                                                                    >
-                                                                        <i className="bi bi-trash"></i>
-                                                                    </button>
                                                                 </div>
                                                             </td>
                                                         </tr>

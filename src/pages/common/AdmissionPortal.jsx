@@ -69,7 +69,6 @@ export default function AdmissionPortal() {
             <div className="admission-portal__hero-eyebrow">ADMISSIONS {admissionYear}</div>
             <h1 className="admission-portal__hero-title">Vijayam College of Arts & Science</h1>
             <p className="admission-portal__hero-location">Chittor</p>
-            <p className="admission-portal__hero-text">Manage catalogues, lending, and returns with confidence.</p>
           </div>
         </div>
         <div className="admission-portal__hero-actions">
