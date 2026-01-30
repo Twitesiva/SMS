@@ -496,6 +496,14 @@
   gap: 1.5rem;
 }
 
+.library-dashboard-page .dashboard-card-link:hover,
+.library-dashboard-page .dashboard-card-link:focus-visible {
+  transform: scale(1.02);
+  box-shadow: 0 28px 45px rgba(15, 23, 42, 0.22);
+  outline: 3px solid rgba(96, 108, 136, 0.35);
+  outline-offset: 2px;
+}
+
 .library-dashboard-hero {
   border-radius: 28px;
   padding: 2rem;

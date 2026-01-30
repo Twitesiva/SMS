@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import crestPrimary from '../../assets/media/images.png'
 import { supabase } from '../../../supabaseClient'
 import LibraryPreloader from '../../components/LibraryPreloader'
+import '../exam/Dashboard.css'
 import './Library.css'
 
 const formatDate = (dateStr) => {
@@ -192,67 +193,74 @@ export default function LibraryDashboard() {
     )
   }
 
+  const statCards = [
+    {
+      label: 'Total Books Title',
+      value: formatStat(stats.totalBooks),
+      detail: 'Library inventory',
+      icon: 'bi-journal-bookmark-fill',
+      onClick: () => navigate('/library/inventory')
+    },
+    {
+      label: 'Issued Today',
+      value: formatStat(stats.issuedToday),
+      detail: 'New issues today',
+      icon: 'bi-box-arrow-up-right',
+      onClick: () => setStatPreview('issuedToday')
+    },
+    {
+      label: 'Returned Today',
+      value: formatStat(stats.returnedToday),
+      detail: 'Books checked in',
+      icon: 'bi-box-arrow-in-down-left',
+      onClick: () => setStatPreview('returnedToday')
+    },
+    {
+      label: 'Overdue Items',
+      value: formatStat(stats.overdueItems),
+      detail: 'Pending returns',
+      icon: 'bi-exclamation-circle-fill',
+      onClick: () => navigate('/library/circulation')
+    },
+    {
+      label: 'Overall Issued (last 30 days)',
+      value: formatStat(stats.issuedLast30Days),
+      detail: 'Total issues in period',
+      icon: 'bi-bar-chart-fill',
+      onClick: () => navigate('/library/reports')
+    }
+  ]
+
   return (
     <div className="desktop-container library-dashboard-page" style={{ overflowX: 'hidden' }}>
-        <div className="row g-4 justify-content-center mx-0">
-          <div className="col">
-            <div 
-              className="library-dashboard-stat"
-              onClick={() => navigate('/library/inventory')}
-              style={{ cursor: 'pointer' }}
-            >
-              <div className="library-dashboard-stat__label">Total Books Title</div>
-              <div className="library-dashboard-stat__value">{formatStat(stats.totalBooks)}</div>
-              <div className="library-dashboard-stat__meta">Library inventory</div>
-            </div>
-          </div>
-          <div className="col">
-            <div 
-              className="library-dashboard-stat"
-              onClick={() => setStatPreview('issuedToday')}
-              style={{ cursor: 'pointer' }}
-            >
-              <div className="library-dashboard-stat__label">Issued Today</div>
-              <div className="library-dashboard-stat__value">{formatStat(stats.issuedToday)}</div>
-              <div className="library-dashboard-stat__meta">New issues today</div>
-            </div>
-          </div>
-          <div className="col">
-            <div 
-              className="library-dashboard-stat"
-              onClick={() => setStatPreview('returnedToday')}
-              style={{ cursor: 'pointer' }}
-            >
-              <div className="library-dashboard-stat__label">Returned Today</div>
-              <div className="library-dashboard-stat__value">{formatStat(stats.returnedToday)}</div>
-              <div className="library-dashboard-stat__meta">Books checked in</div>
-            </div>
-          </div>
-          <div className="col">
-            <div 
-              className="library-dashboard-stat"
-              onClick={() => navigate('/library/circulation')}
-              style={{ cursor: 'pointer' }}
-            >
-              <div className="library-dashboard-stat__label">Overdue Items</div>
-              <div className="library-dashboard-stat__value library-dashboard-stat__value--danger">
-                {formatStat(stats.overdueItems)}
+        <section className="mb-4">
+          <div className="dashboard-cards">
+            {statCards.map((card) => (
+              <div
+                key={card.label}
+                className="dashboard-card card-shadow dashboard-card-link"
+                role="button"
+                tabIndex={0}
+                onClick={card.onClick}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    card.onClick()
+                  }
+                }}
+              >
+                <div className="dashboard-card-icon">
+                  <i className={`bi ${card.icon}`}></i>
+                </div>
+                <div>
+                  <div className="dashboard-card-value">{card.value}</div>
+                  <div className="dashboard-card-label">{card.label}</div>
+                  <p className="mb-0 fw-bold">{card.detail}</p>
+                </div>
               </div>
-              <div className="library-dashboard-stat__meta">Pending returns</div>
-            </div>
+            ))}
           </div>
-          <div className="col">
-            <div 
-              className="library-dashboard-stat"
-              onClick={() => navigate('/library/reports')}
-              style={{ cursor: 'pointer' }}
-            >
-              <div className="library-dashboard-stat__label">Overall Issued (last 30 days)</div>
-              <div className="library-dashboard-stat__value">{formatStat(stats.issuedLast30Days)}</div>
-              <div className="library-dashboard-stat__meta">Total issues in period</div>
-            </div>
-          </div>
-        </div>
+        </section>
 
         <div className="row g-4 justify-content-center mx-0">
           <div className="col-12 col-lg-7">
