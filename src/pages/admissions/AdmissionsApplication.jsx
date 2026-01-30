@@ -478,6 +478,7 @@ export default function AdmissionsApplication() {
     const confirmSubmit = async () => {
         setShowConfirmModal(false)
         setLoading(true)
+        showToast('Submission confirmed. Processing application...', { type: 'info', title: 'Confirmed' })
         try {
             const selectedCourse = courses.find((course) => String(course.id || course.course_id) === String(form.course_id))
             if (!selectedCourse) throw new Error('Select a valid course')
