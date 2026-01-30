@@ -201,6 +201,38 @@ export default function PublicApply() {
       setLoading(false)
       return
     }
+    const cleanMobile = String(form.phone_number || '').trim()
+    const cleanParent = String(form.parent_no || '').trim()
+    if (cleanMobile && cleanParent && cleanMobile === cleanParent) {
+      showToast('Student and parent mobile numbers cannot be the same.', { type: 'warning', title: 'Invalid mobile' })
+      setLoading(false)
+      return
+    }
+    try {
+      const [appsCheck, studentsCheck] = await Promise.all([
+        supabase
+          .from('applications')
+          .select('id', { count: 'exact', head: true })
+          .eq('phone_number', cleanMobile),
+        supabase
+          .from('students')
+          .select('id', { count: 'exact', head: true })
+          .eq('phone_number', cleanMobile)
+      ])
+      if (appsCheck.error) throw appsCheck.error
+      if (studentsCheck.error) throw studentsCheck.error
+      const existingCount = (appsCheck.count || 0) + (studentsCheck.count || 0)
+      if (existingCount > 0) {
+        showToast('Student mobile number already exists.', { type: 'warning', title: 'Duplicate mobile' })
+        setLoading(false)
+        return
+      }
+    } catch (err) {
+      console.error('Duplicate mobile check failed:', err)
+      showToast('Unable to validate mobile number right now. Please try again.', { type: 'warning', title: 'Validation failed' })
+      setLoading(false)
+      return
+    }
     if (!isDigits(form.pincode, 6)) {
       showToast('Postal code must be 6 digits.', { type: 'warning', title: 'Invalid postal code' })
       setLoading(false)
