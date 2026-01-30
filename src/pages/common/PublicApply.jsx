@@ -52,6 +52,7 @@ export default function PublicApply() {
   const [loading, setLoading] = useState(false)
   const [courses, setCourses] = useState([])
   const [groups, setGroups] = useState([])
+  const isCourseLocked = Boolean(location.state?.selectedCourse)
   const handle = (k, v) => setForm(p => ({ ...p, [k]: v }))
   const selectClass = (val) => (val ? 'form-select public-apply-select is-filled' : 'form-select public-apply-select')
 
@@ -460,7 +461,7 @@ export default function PublicApply() {
 
                     <div className="col-md-3">
                       <label className="form-label"><i className="bi bi-diagram-3"></i>Group</label>
-                      <select className={selectClass(form.group_id)} value={form.group_id} onChange={e => handle('group_id', e.target.value)} required>
+                      <select className={selectClass(form.group_id)} value={form.group_id} onChange={e => handle('group_id', e.target.value)} required disabled={isCourseLocked}>
                         <option value="">Select Group</option>
                         {groups.map(g => (
                           <option key={g.id} value={g.id}>{g.name || g.group_name || g.code}</option>
@@ -469,7 +470,7 @@ export default function PublicApply() {
                     </div>
                     <div className="col-md-4">
                       <label className="form-label"><i className="bi bi-journal-bookmark"></i>Course</label>
-                      <select className={selectClass(form.course_id)} value={form.course_id} onChange={e => handle('course_id', e.target.value)} required>
+                      <select className={selectClass(form.course_id)} value={form.course_id} onChange={e => handle('course_id', e.target.value)} required disabled={isCourseLocked}>
                         <option value="">Select Course</option>
                         {courses
                           .filter((course) => {
