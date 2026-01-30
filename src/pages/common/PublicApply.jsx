@@ -358,10 +358,6 @@ export default function PublicApply() {
               <div className="public-apply-hero__eyebrow">ADMISSIONS {form.admission_year}</div>
               <h1 className="public-apply-hero__title">Vijayam College of Arts & Science</h1>
               <p className="public-apply-hero__location">CHITTOR</p>
-              <p className="public-apply-hero__subtitle">
-                Manage catalogues, lending, and returns with confidence. Explore programmes, registration steps,
-                and real-time updates from the library control center while preparing your application.
-              </p>
             </div>
           </div>
           <div className="public-apply-hero__actions">
