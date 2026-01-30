@@ -1449,8 +1449,8 @@ export default function Students() {
               {loading ? "Refreshing data..." : `${filteredStudents.length} students listed`}
             </div>
           </div>
-          <div className="table-responsive">
-            <table className="table table-borderless table-hover align-middle mb-0">
+          <div className="table-responsive students-table-wrapper">
+            <table className="table table-borderless table-hover align-middle mb-0 students-table">
               <thead className="table-light">
                 <tr>
                   <th style={{ width: "70px" }}>Photo</th>
