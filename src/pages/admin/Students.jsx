@@ -1444,9 +1444,6 @@ export default function Students() {
               <h5 className="students-table-panel-title mb-1" style={{ color: '#ffffff' }}>
                 Students
               </h5>
-              <p className="students-table-panel-copy mb-0" style={{ color: '#ffffff' }}>
-                Tap any row to review details, edit records or inspect payments.
-              </p>
             </div>
             <div className="students-table-panel-meta text-end" style={{ color: '#ffffff' }}>
               {loading ? "Refreshing data..." : `${filteredStudents.length} students listed`}
