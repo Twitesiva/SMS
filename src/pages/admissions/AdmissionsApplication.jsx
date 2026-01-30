@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { api } from '../../lib/mockApi'
 import { supabase } from '../../../supabaseClient'
@@ -91,6 +91,7 @@ export default function AdmissionsApplication() {
     const [filteredCourses, setFilteredCourses] = useState([])
     const [duplicateErrors, setDuplicateErrors] = useState({ student_id: false, ht_no: false })
     const [showConfirmModal, setShowConfirmModal] = useState(false)
+    const hasPrefilledRef = useRef(false)
 
     const currentYear = new Date().getFullYear()
     const admissionYearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 3 + i)
@@ -240,9 +241,35 @@ export default function AdmissionsApplication() {
     const location = useLocation()
 
     // Pre-fill form if redirected from Application Review
+    const normalizeAcademicYear = (year) => String(year?.academic_year || year?.name || '').trim()
+
+    const resolveAcademicYearValue = (app, availableYears) => {
+        const yearsList = availableYears || []
+        const appYearRaw = String(app?.academic_year || '').trim()
+        if (appYearRaw) {
+            const exact = yearsList.find((year) => normalizeAcademicYear(year) === appYearRaw)
+            if (exact) return normalizeAcademicYear(exact)
+        }
+        const admissionYear = app?.admission_year
+        if (admissionYear !== undefined && admissionYear !== null && admissionYear !== '') {
+            const admStr = String(admissionYear).trim()
+            const prefixMatch = yearsList.find((year) => normalizeAcademicYear(year).startsWith(admStr))
+            if (prefixMatch) return normalizeAcademicYear(prefixMatch)
+            const admNum = Number(admStr)
+            if (Number.isFinite(admNum)) {
+                const fallbackLabel = `${admStr}-${admNum + 1}`
+                const fallback = yearsList.find((year) => normalizeAcademicYear(year) === fallbackLabel)
+                if (fallback) return normalizeAcademicYear(fallback)
+            }
+            return admStr
+        }
+        return appYearRaw
+    }
+
     useEffect(() => {
         const autoFill = async () => {
-            if (!location.state?.applicationData || groups.length === 0) return
+            if (hasPrefilledRef.current) return
+            if (!location.state?.applicationData || groups.length === 0 || courses.length === 0 || years.length === 0) return
 
             const app = location.state.applicationData
 
@@ -255,6 +282,7 @@ export default function AdmissionsApplication() {
             }
 
             const admYear = app.admission_year || app.academic_year?.split('-')[0] || new Date().getFullYear();
+            const resolvedAcademicYear = resolveAcademicYearValue(app, years)
 
             const foundCourse = courses.find(c => String(c.id || c.course_id) === String(app.course_id));
             // Helper to ensure we get an alphabetic code (e.g. 'CS') instead of numeric ('01')
@@ -353,8 +381,8 @@ export default function AdmissionsApplication() {
 
             setForm(prev => ({
                 ...prev,
-                academic_year: String(app.admission_year || app.academic_year || ''),
-                admission_year: app.admission_year,
+                academic_year: resolvedAcademicYear || '',
+                admission_year: app.admission_year || '',
                 group: foundGroup ? (foundGroup.name || foundGroup.group_name) : '',
                 group_code: rawGrpCode,
                 course_id: app.course_id,
@@ -383,6 +411,7 @@ export default function AdmissionsApplication() {
                 student_id: nextStudentId,
                 ht_no: nextHtNo
             }))
+            hasPrefilledRef.current = true
 
             // If photo exists, we can't easily set the File object, but we can perhaps set a preview url or handle it separately.
             // For now, simpler to leave photo manual or handle URL in payload if supported. 
@@ -391,7 +420,7 @@ export default function AdmissionsApplication() {
         }
 
         autoFill()
-    }, [location.state, groups, courses]) // Depend on groups to ensure they are loaded
+    }, [location.state, groups, courses, years]) // Depend on groups/courses/years to ensure they are loaded
 
     const submit = async (event) => {
         event.preventDefault()
