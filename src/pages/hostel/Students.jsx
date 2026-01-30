@@ -4,6 +4,18 @@ import HostelPreloader from '../../components/HostelPreloader'
 import { supabase } from '../../../supabaseClient'
 import './HostelDashboard.css'
 
+const normalizeAcademicYear = (value) => String(value || '').trim()
+const extractYearStart = (value) => {
+    const match = String(value || '').match(/(\d{4})/)
+    return match ? match[1] : ''
+}
+const normalizeHostelType = (value) => String(value || '')
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '')
+
 const currency = (value) => {
     if (value === null || value === undefined || Number.isNaN(Number(value))) return '—'
     return `₹${Number(value).toLocaleString('en-IN', { minimumFractionDigits: 0 })}`
@@ -64,9 +76,16 @@ export default function HostelStudents() {
                 if (feesError) throw feesError
 
                 const feeLookup = new Map()
+                const feeLookupByStartYear = new Map()
                 hostelFees?.forEach((fee) => {
-                    const key = `${fee.academic_year || ''}-${fee.hostel_type || 'NON_AC'}`
+                    const yearKey = normalizeAcademicYear(fee.academic_year)
+                    const typeKey = normalizeHostelType(fee.hostel_type || 'NON_AC')
+                    const key = `${yearKey}-${typeKey}`
                     feeLookup.set(key, Number(fee.hostel_fee))
+                    const startYear = extractYearStart(yearKey)
+                    if (startYear) {
+                        feeLookupByStartYear.set(`${startYear}-${typeKey}`, Number(fee.hostel_fee))
+                    }
                 })
 
                 const studentIds = students?.map((s) => s.id) || []
@@ -115,8 +134,13 @@ export default function HostelStudents() {
                         student.group_name ||
                         '—'
                     const studentType = student.hostel_ac ? 'AC' : 'NON_AC'
-                    const key = `${student.academic_year || ''}-${studentType}`
-                    const hostelFee = feeLookup.get(key) ?? null
+                    const academicYearKey = normalizeAcademicYear(student.academic_year)
+                    const admissionYearKey = extractYearStart(student.admission_year)
+                    const key = `${academicYearKey}-${studentType}`
+                    const fallbackKey = `${admissionYearKey}-${studentType}`
+                    const hostelFee = feeLookup.get(key)
+                        ?? (admissionYearKey ? feeLookupByStartYear.get(fallbackKey) : null)
+                        ?? null
                     const totalPaid = payments
                         .filter((pay) => pay.student_id === student.id && (pay.payment_status || '').toLowerCase() === 'success')
                         .reduce((acc, pay) => acc + Number(pay.amount_paid || 0), 0)
