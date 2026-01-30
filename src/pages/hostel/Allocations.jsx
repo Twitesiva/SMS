@@ -116,13 +116,30 @@ export default function HostelAllocations() {
 
     const fetchCurrentAllocation = async (studentId) => {
         const { data: alloc } = await supabase.from('hostel_allocations')
-            .select('*, hostel_beds(bed_no, hostel_rooms(room_no, floor_no, room_type, hostel_blocks(block_name)))')
+            .select('*, hostel_beds(bed_no, hostel_rooms(room_no, floor_no, room_type, block_id, hostel_blocks(block_name)))')
             .eq('student_id', studentId)
             .eq('status', 'ACTIVE')
             .maybeSingle();
 
         setCurrentAllocation(alloc);
     };
+
+    useEffect(() => {
+        if (!showChangeModal || !currentAllocation) return;
+        const room = currentAllocation.hostel_beds?.hostel_rooms;
+        const blockId = room?.block_id || blocks.find(b => b.block_name === room?.hostel_blocks?.block_name)?.id || '';
+        setBookingForm(prev => ({
+            ...prev,
+            academic_year: currentAllocation.academic_year || prev.academic_year,
+            bed_id: ''
+        }));
+        setFilters(prev => ({
+            ...prev,
+            block_id: blockId || '',
+            floor_no: room?.floor_no ?? '',
+            room_type: room?.room_type || ''
+        }));
+    }, [showChangeModal, currentAllocation, blocks]);
 
     const fetchAvailableBeds = async () => {
         if (!bookingForm.academic_year) return;
@@ -620,13 +637,23 @@ export default function HostelAllocations() {
                                 <div className="row g-3 mb-4 bg-white p-3 rounded border">
                                     <div className="col-md-3">
                                         <label className="form-label fw-bold small text-muted text-uppercase">Academic Year</label>
-                                        <select className="form-select" value={bookingForm.academic_year} onChange={(e) => setBookingForm({ ...bookingForm, academic_year: e.target.value })}>
+                                        <select
+                                            className="form-select"
+                                            value={bookingForm.academic_year}
+                                            onChange={(e) => setBookingForm({ ...bookingForm, academic_year: e.target.value })}
+                                            disabled={showChangeModal}
+                                        >
                                             {years.map(y => <option key={y.academic_year} value={y.academic_year}>{y.academic_year}</option>)}
                                         </select>
                                     </div>
                                     <div className="col-md-3">
                                         <label className="form-label fw-bold small text-muted text-uppercase">Block</label>
-                                        <select className="form-select" value={filters.block_id} onChange={(e) => setFilters({ ...filters, block_id: e.target.value, floor_no: '' })}>
+                                        <select
+                                            className="form-select"
+                                            value={filters.block_id}
+                                            onChange={(e) => setFilters({ ...filters, block_id: e.target.value, floor_no: '' })}
+                                            disabled={showChangeModal}
+                                        >
                                             <option value="">All Blocks</option>
                                             {blocks.filter(b => b.gender === (student.gender?.toUpperCase().startsWith('M') ? 'BOYS' : 'GIRLS')).map(b => (
                                                 <option key={b.id} value={b.id}>{b.block_name}</option>
@@ -635,7 +662,12 @@ export default function HostelAllocations() {
                                     </div>
                                     <div className="col-md-3">
                                         <label className="form-label fw-bold small text-muted text-uppercase">Room Type</label>
-                                        <select className="form-select" value={filters.room_type} onChange={(e) => setFilters({ ...filters, room_type: e.target.value })}>
+                                        <select
+                                            className="form-select"
+                                            value={filters.room_type}
+                                            onChange={(e) => setFilters({ ...filters, room_type: e.target.value })}
+                                            disabled={showChangeModal}
+                                        >
                                             <option value="">All Types</option>
                                             <option value="AC">AC</option>
                                             <option value="NON_AC">Non AC</option>
@@ -643,7 +675,12 @@ export default function HostelAllocations() {
                                     </div>
                                     <div className="col-md-3">
                                         <label className="form-label fw-bold small text-muted text-uppercase">Floor</label>
-                                        <select className="form-select" value={filters.floor_no} onChange={(e) => setFilters({ ...filters, floor_no: e.target.value })}>
+                                        <select
+                                            className="form-select"
+                                            value={filters.floor_no}
+                                            onChange={(e) => setFilters({ ...filters, floor_no: e.target.value })}
+                                            disabled={showChangeModal}
+                                        >
                                             <option value="">All Floors</option>
                                             {availableFloors.map((floor) => (
                                                 <option key={floor} value={floor}>
