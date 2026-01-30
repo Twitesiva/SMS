@@ -104,7 +104,22 @@ export default function SeatAllocation() {
 
                 if (subjectError) throw subjectError;
 
-                setOptions((prev) => ({ ...prev, subjects: subjectDetails || [] }));
+                const normalizedSubjects = (subjectDetails || [])
+                    .filter((sub) => sub?.subject_id && sub?.subject_code)
+                    .map((sub) => ({
+                        ...sub,
+                        subject_code: String(sub.subject_code).trim(),
+                        subject_name: String(sub.subject_name || '').trim()
+                    }))
+                    .filter((sub) => sub.subject_code)
+                    .reduce((acc, sub) => {
+                        if (!acc.some((item) => item.subject_code === sub.subject_code)) {
+                            acc.push(sub);
+                        }
+                        return acc;
+                    }, []);
+
+                setOptions((prev) => ({ ...prev, subjects: normalizedSubjects }));
                 setFilters((prev) => ({ ...prev, subject: "" }));
 
             } catch (err) {
