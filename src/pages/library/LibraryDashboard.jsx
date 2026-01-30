@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import crestPrimary from '../../assets/media/images.png'
 import { supabase } from '../../../supabaseClient'
+import LibraryPreloader from '../../components/LibraryPreloader'
 import './Library.css'
 
 const formatDate = (dateStr) => {
@@ -23,11 +24,13 @@ export default function LibraryDashboard() {
   const [activityEvents, setActivityEvents] = useState([])
   const [allLoans, setAllLoans] = useState([])
   const [statPreview, setStatPreview] = useState(null) // 'issuedToday' | 'returnedToday'
+  const [loading, setLoading] = useState(true)
 
   const todayString = useMemo(() => new Date().toISOString().slice(0, 10), [])
 
   useEffect(() => {
     const loadDashboard = async () => {
+      setLoading(true)
       try {
         const startOfDay = new Date()
         startOfDay.setHours(0, 0, 0, 0)
@@ -151,6 +154,8 @@ export default function LibraryDashboard() {
         setRecentLoans([])
         setOverdueLoans([])
         setActivityEvents([])
+      } finally {
+        setLoading(false)
       }
     }
 
@@ -174,6 +179,18 @@ export default function LibraryDashboard() {
     }
     return []
   }, [statPreview, allLoans, todayString])
+
+  if (loading) {
+    return (
+      <LibraryPreloader
+        title="Loading library dashboard"
+        subtitle="Fetching circulation and activity logs."
+        statCount={5}
+        panelCount={3}
+        rowCount={4}
+      />
+    )
+  }
 
   return (
     <div className="desktop-container library-dashboard-page" style={{ overflowX: 'hidden' }}>

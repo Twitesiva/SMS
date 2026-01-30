@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import crestPrimary from '../../assets/media/images.png'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
+import LibraryPreloader from '../../components/LibraryPreloader'
 
 export default function Books() {
   const createInitialForm = () => ({
@@ -24,8 +25,10 @@ export default function Books() {
   const [form, setForm] = useState(createInitialForm)
   const [saving, setSaving] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
+  const [loading, setLoading] = useState(true)
 
   const loadBooks = async () => {
+    setLoading(true)
     try {
       const { data: bookRows, error: bookError } = await supabase
         .from('library_books')
@@ -59,12 +62,26 @@ export default function Books() {
       console.error('Failed to load books', error)
       setRecentBooks([])
       setCopyCounts({})
+    } finally {
+      setLoading(false)
     }
   }
 
   useEffect(() => {
     loadBooks()
   }, [])
+
+  if (loading && recentBooks.length === 0) {
+    return (
+      <LibraryPreloader
+        title="Loading book manager"
+        subtitle="Pulling recent titles and availability."
+        statCount={3}
+        panelCount={2}
+        rowCount={4}
+      />
+    )
+  }
 
   const handleChange = (key) => (event) => {
     setForm((prev) => ({ ...prev, [key]: event.target.value }))

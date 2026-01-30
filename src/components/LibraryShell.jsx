@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import AdShellAdmin from "./AdShellAdmin";
 import { libraryNavGroups } from "../pages/library/nav";
+import "../pages/library/Library.css";
 
 export default function LibraryShell({
   children,

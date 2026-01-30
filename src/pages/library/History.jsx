@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
+import LibraryPreloader from '../../components/LibraryPreloader'
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '-'
@@ -106,6 +107,18 @@ export default function History() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (loading) {
+    return (
+      <LibraryPreloader
+        title="Loading student history"
+        subtitle="Collecting issue, return, and fine records."
+        statCount={2}
+        panelCount={2}
+        rowCount={4}
+      />
+    )
   }
 
   return (

@@ -3,6 +3,7 @@ import crestPrimary from '../../assets/media/images.png'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
 import ConfirmationModal from '../../components/ConfirmationModal'
+import LibraryPreloader from '../../components/LibraryPreloader'
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '-'
@@ -25,7 +26,7 @@ const emptyEditForm = {
 export default function AllBooks() {
   const [books, setBooks] = useState([])
   const [copyCounts, setCopyCounts] = useState({})
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [editingBook, setEditingBook] = useState(null)
   const [editForm, setEditForm] = useState(emptyEditForm)
@@ -349,6 +350,18 @@ export default function AllBooks() {
       showToast('Unable to delete this book.', { type: 'danger' })
       setDeleteModal((prev) => ({ ...prev, loading: false }))
     }
+  }
+
+  if (loading && books.length === 0) {
+    return (
+      <LibraryPreloader
+        title="Loading catalogue"
+        subtitle="Preparing book inventory and copy status."
+        statCount={6}
+        panelCount={2}
+        rowCount={6}
+      />
+    )
   }
 
   return (

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
+import LibraryPreloader from '../../components/LibraryPreloader'
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '-'
@@ -19,7 +20,7 @@ export default function InventoryInsights() {
   })
   const [balanceRows, setBalanceRows] = useState([])
   const [issuedLoans, setIssuedLoans] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   const [selectedBook, setSelectedBook] = useState(null)
   const [modalTab, setModalTab] = useState('all') // 'all', 'issued', 'damaged'
@@ -206,6 +207,18 @@ export default function InventoryInsights() {
 
     loadInsights()
   }, [todayString])
+
+  if (loading && balanceRows.length === 0) {
+    return (
+      <LibraryPreloader
+        title="Loading inventory insights"
+        subtitle="Calculating balances and active issues."
+        statCount={4}
+        panelCount={2}
+        rowCount={5}
+      />
+    )
+  }
 
   return (
     <div className="desktop-container library-insights-page" style={{ overflowX: 'hidden' }}>

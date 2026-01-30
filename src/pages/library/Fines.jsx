@@ -2,6 +2,7 @@
 import crestPrimary from '../../assets/media/images.png'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
+import LibraryPreloader from '../../components/LibraryPreloader'
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '-'
@@ -31,6 +32,7 @@ export default function Fines() {
     collected: null,
     highPriority: null
   })
+  const [loading, setLoading] = useState(true)
   const [loadingBook, setLoadingBook] = useState(false)
   const [bookStatus, setBookStatus] = useState('')
   const [studentFines, setStudentFines] = useState([])
@@ -156,6 +158,7 @@ export default function Fines() {
   }, [resolveFineAmount])
 
   const loadFines = useCallback(async () => {
+    setLoading(true)
     try {
       const { data, error } = await supabase
         .from('library_fines')
@@ -192,12 +195,26 @@ export default function Fines() {
       console.error('Failed to load fines', err)
       setPendingFines([])
       setSummary({ outstanding: null, collected: null, highPriority: null })
+    } finally {
+      setLoading(false)
     }
   }, [today])
 
   useEffect(() => {
     loadFines()
   }, [loadFines])
+
+  if (loading && pendingFines.length === 0) {
+    return (
+      <LibraryPreloader
+        title="Loading fines & charges"
+        subtitle="Gathering outstanding dues and summaries."
+        statCount={3}
+        panelCount={3}
+        rowCount={4}
+      />
+    )
+  }
 
   const formatValue = (value) => (value === null || value === undefined ? '--' : String(value))
 

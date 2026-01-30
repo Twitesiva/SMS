@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
+import LibraryPreloader from '../../components/LibraryPreloader'
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '-'
@@ -9,6 +10,7 @@ const formatDate = (dateStr) => {
 
 export default function Reports() {
   const [monthlySummary, setMonthlySummary] = useState([])
+  const [loading, setLoading] = useState(true)
   const [selectedMonth, setSelectedMonth] = useState(null)
   const [reportDetails, setReportDetails] = useState({
     issued: [],
@@ -600,6 +602,7 @@ export default function Reports() {
 
   useEffect(() => {
     const loadReports = async () => {
+      setLoading(true)
       try {
         const { data: loanRows, error: loanError } = await supabase
           .from('library_loans')
@@ -638,11 +641,25 @@ export default function Reports() {
       } catch (error) {
         console.error('Failed to load reports', error)
         setMonthlySummary([])
+      } finally {
+        setLoading(false)
       }
     }
 
     loadReports()
   }, [monthLabels])
+  if (loading && monthlySummary.length === 0) {
+    return (
+      <LibraryPreloader
+        title="Loading library reports"
+        subtitle="Compiling monthly circulation snapshots."
+        statCount={3}
+        panelCount={3}
+        rowCount={4}
+      />
+    )
+  }
+
   return (
     <div className="desktop-container" style={{ overflowX: 'hidden' }}>
       <div className="row g-4 justify-content-center mx-0 mt-4">
