@@ -1012,6 +1012,12 @@
   border: 1px solid #606c88;
 }
 
+.library-reports-modal .modal-header,
+.library-reports-modal .modal-title,
+.library-reports-modal .modal-header * {
+  color: #ffffff !important;
+}
+
 /* Library skeleton loader */
 .library-skeleton-page {
   display: grid;

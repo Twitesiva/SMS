@@ -54,6 +54,8 @@ export default function Reports() {
     ],
     []
   )
+  const headerGradient = 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)'
+  const modalHeaderStyle = { background: headerGradient, color: '#ffffff' }
 
   const matchesMonthYear = (value) => {
     const key = String(value || '').slice(0, 7)
@@ -1081,24 +1083,30 @@ export default function Reports() {
 
       {/* Details Modal */}
       {selectedMonth && (
-        <div className="students-modal-overlay">
-          <div className="students-modal-dialog" style={{ maxWidth: '900px' }}>
-            <div className="students-modal-content">
-              <div className="students-modal-header">
+        <div
+          className="modal d-block library-reports-modal"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1055 }}
+          tabIndex="-1"
+          role="dialog"
+          onClick={closeReportModal}
+        >
+          <div className="modal-dialog modal-lg modal-dialog-centered" role="document" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-content border-0 shadow-lg">
+              <div className="modal-header p-3" style={modalHeaderStyle}>
                 <div>
-                  <div className="students-modal-header-eyebrow">MONTHLY REPORT</div>
-                  <div className="students-modal-header-title">{selectedMonth.label}</div>
+                  <div className="text-uppercase fw-bold text-white small" style={{ letterSpacing: '1px', color: '#ffffff' }}>Monthly Report</div>
+                  <h5 className="modal-title fw-bold text-uppercase text-white mb-0" style={{ letterSpacing: '1px', color: '#ffffff' }}>
+                    {selectedMonth.label}
+                  </h5>
                 </div>
-                <button className="students-modal-close" onClick={closeReportModal}>
-                  <i className="bi bi-x-lg"></i>
-                </button>
+                <button type="button" className="btn-close btn-close-white" onClick={closeReportModal} aria-label="Close"></button>
               </div>
-              <div className="students-modal-body">
+              <div className="modal-body p-4 bg-white">
                 {reportDetails.loading ? (
                   <div className="text-center py-5 text-muted">Loading details...</div>
                 ) : (
                   <>
-                    <div className="d-flex gap-2 mb-3 students-modal-report-tabs">
+                    <div className="d-flex gap-2 flex-wrap mb-3">
                       <button
                         className={`btn btn-sm ${activeTab === 'issued' ? 'btn-primary' : 'btn-outline-secondary'}`}
                         onClick={() => setActiveTab('issued')}
@@ -1181,6 +1189,9 @@ export default function Reports() {
                     </div>
                   </>
                 )}
+              </div>
+              <div className="modal-footer bg-light border-0">
+                <button type="button" className="btn btn-secondary px-4" onClick={closeReportModal}>Close</button>
               </div>
             </div>
           </div>
