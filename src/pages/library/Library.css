@@ -1002,6 +1002,16 @@
   color: #5b6a80;
 }
 
+.library-reports-preview-table thead th {
+  background: #606c88 !important;
+  color: #ffffff !important;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid #606c88;
+}
+
 /* Library skeleton loader */
 .library-skeleton-page {
   display: grid;

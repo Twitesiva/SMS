@@ -927,7 +927,7 @@ export default function Reports() {
           </span>
         </div>
         <div className="table-responsive">
-          <table className="table table-sm mb-0">
+          <table className="table table-sm mb-0 library-reports-preview-table">
             {activePreview && (
               <thead className="table-light">
                 {activePreview === 'summary' && (
