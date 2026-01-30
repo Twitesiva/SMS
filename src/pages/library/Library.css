@@ -1018,6 +1018,21 @@
   color: #ffffff !important;
 }
 
+.library-books-modal .modal-header,
+.library-books-modal .modal-title,
+.library-books-modal .modal-header * {
+  color: #ffffff !important;
+}
+
+.library-books-modal-table thead th {
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%) !important;
+  color: #ffffff !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 /* Library skeleton loader */
 .library-skeleton-page {
   display: grid;

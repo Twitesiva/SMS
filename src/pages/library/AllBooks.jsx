@@ -39,6 +39,8 @@ export default function AllBooks() {
   const [bookDetails, setBookDetails] = useState({ copies: [], loans: [], issueLoans: [] })
   const [loadingDetails, setLoadingDetails] = useState(false)
   const todayString = useMemo(() => new Date().toISOString().slice(0, 10), [])
+  const headerGradient = 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)'
+  const modalHeaderStyle = { background: headerGradient, color: '#ffffff' }
 
   const handleBookClick = async (book, tab = 'all') => {
     setSelectedBook(book)
@@ -700,56 +702,62 @@ export default function AllBooks() {
       />
 
       {selectedBook && (
-        <>
-          <div className="modal-backdrop fade show"></div>
-          <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
-            <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-              <div className="modal-content">
-                <div className="modal-header d-flex flex-column align-items-center border-bottom-0 pt-4 pb-0 position-relative">
-                  <div className="text-center w-100">
-                    <div className="mb-4 px-4">
-                      <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.75rem', letterSpacing: '0.05em' }}>
-                        Book Title
+        <div
+          className="modal d-block library-books-modal"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1055 }}
+          tabIndex="-1"
+          role="dialog"
+          onClick={() => setSelectedBook(null)}
+        >
+          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-content border-0 shadow-lg">
+              <div className="modal-header p-3" style={modalHeaderStyle}>
+                <div>
+                  <div className="text-uppercase fw-bold text-white small" style={{ letterSpacing: '1px' }}>
+                    Book Title
+                  </div>
+                  <h5 className="modal-title fw-bold text-uppercase text-white mb-0" style={{ letterSpacing: '1px' }}>
+                    {selectedBook.title}
+                  </h5>
+                </div>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  onClick={() => setSelectedBook(null)}
+                  aria-label="Close"
+                ></button>
+              </div>
+              <div className="modal-body p-4 bg-white">
+                {loadingDetails ? (
+                  <div className="text-center py-4">
+                    <div className="spinner-border text-primary" role="status"></div>
+                    <p className="mt-2 text-muted">Loading details...</p>
+                  </div>
+                ) : (
+                  <div className="d-flex flex-column gap-4">
+                    <div className="row g-3">
+                      <div className="col-md-6">
+                        <div className="bg-light rounded p-3 border">
+                          <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.75rem', letterSpacing: '0.08em' }}>
+                            Author
+                          </div>
+                          <div className="fw-bold text-dark fs-6">
+                            {selectedBook.author || 'Unknown'}
+                          </div>
+                        </div>
                       </div>
-                      <h3 className="fw-bold text-dark mb-0 fs-4">
-                        {selectedBook.title}
-                      </h3>
+                      <div className="col-md-6">
+                        <div className="bg-light rounded p-3 border">
+                          <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.75rem', letterSpacing: '0.08em' }}>
+                            Shelf Reference
+                          </div>
+                          <div className="fw-bold text-dark fs-6">
+                            {selectedBook.shelf_code || '--'}
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="row g-0 border-top border-bottom py-3 bg-light w-100">
-                      <div className="col-6 border-end px-2">
-                        <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.7rem', letterSpacing: '0.05em' }}>
-                          Author
-                        </div>
-                        <div className="fw-bold text-primary fs-5">
-                          {selectedBook.author || 'Unknown'}
-                        </div>
-                      </div>
-                      <div className="col-6 px-2">
-                        <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.7rem', letterSpacing: '0.05em' }}>
-                          Shelf Reference
-                        </div>
-                        <div className="fw-bold text-dark fs-5">
-                          {selectedBook.shelf_code || '--'}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className="btn-close position-absolute"
-                    style={{ right: '1.25rem', top: '1.25rem' }}
-                    onClick={() => setSelectedBook(null)}
-                  ></button>
-                </div>
-                <div className="modal-body">
-                  {loadingDetails ? (
-                    <div className="text-center py-4">
-                      <div className="spinner-border text-primary" role="status"></div>
-                      <p className="mt-2 text-muted">Loading details...</p>
-                    </div>
-                  ) : (
-                    <div className="d-flex flex-column gap-4">
                       {/* Stats Row */}
                       <div className="row g-2 justify-content-center">
                         <div className="col-4 col-sm">
@@ -893,7 +901,7 @@ export default function AllBooks() {
                           <h6 className="text-uppercase fw-bold text-warning text-dark mb-3 pt-2 border-bottom pb-2">Damaged Copies</h6>
                           {bookDetails.copies.filter(c => (c.availability || '').toUpperCase() === 'DAMAGED').length > 0 ? (
                             <div className="table-responsive">
-                              <table className="table table-sm table-hover align-middle">
+                              <table className="table table-sm table-hover align-middle library-books-modal-table">
                                 <thead className="table-light text-uppercase small text-muted">
                                   <tr>
                                     <th>Student ID</th>
@@ -932,14 +940,13 @@ export default function AllBooks() {
                       )}
                     </div>
                   )}
-                </div>
-                <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" onClick={() => setSelectedBook(null)}>Close</button>
-                </div>
+              </div>
+              <div className="modal-footer bg-light border-0">
+                <button type="button" className="btn btn-secondary px-4" onClick={() => setSelectedBook(null)}>Close</button>
               </div>
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   )
