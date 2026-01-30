@@ -28,14 +28,72 @@ export default function HostelRooms() {
         if (!Number.isFinite(max) || max < 0) return [];
         return Array.from({ length: max + 1 }, (_, index) => index);
     }, [selectedBlock]);
+    const ordinalWords = (value) => {
+        const underTwenty = {
+            1: 'First',
+            2: 'Second',
+            3: 'Third',
+            4: 'Fourth',
+            5: 'Fifth',
+            6: 'Sixth',
+            7: 'Seventh',
+            8: 'Eighth',
+            9: 'Ninth',
+            10: 'Tenth',
+            11: 'Eleventh',
+            12: 'Twelfth',
+            13: 'Thirteenth',
+            14: 'Fourteenth',
+            15: 'Fifteenth',
+            16: 'Sixteenth',
+            17: 'Seventeenth',
+            18: 'Eighteenth',
+            19: 'Nineteenth',
+            20: 'Twentieth'
+        };
+        if (value <= 20) return underTwenty[value] || '';
+        const tensWords = {
+            2: 'Twenty',
+            3: 'Thirty',
+            4: 'Forty',
+            5: 'Fifty',
+            6: 'Sixty',
+            7: 'Seventy',
+            8: 'Eighty',
+            9: 'Ninety'
+        };
+        const tensOrdinal = {
+            2: 'Twentieth',
+            3: 'Thirtieth',
+            4: 'Fortieth',
+            5: 'Fiftieth',
+            6: 'Sixtieth',
+            7: 'Seventieth',
+            8: 'Eightieth',
+            9: 'Ninetieth'
+        };
+        const onesOrdinal = {
+            1: 'First',
+            2: 'Second',
+            3: 'Third',
+            4: 'Fourth',
+            5: 'Fifth',
+            6: 'Sixth',
+            7: 'Seventh',
+            8: 'Eighth',
+            9: 'Ninth'
+        };
+        const tens = Math.floor(value / 10);
+        const ones = value % 10;
+        if (ones === 0) return tensOrdinal[tens] || `${value}th`;
+        return `${tensWords[tens] || ''} ${onesOrdinal[ones] || `${ones}th`}`.trim();
+    };
+
     const formatFloorLabel = (floorNo) => {
         const value = Number(floorNo);
         if (!Number.isFinite(value) || value < 0) return '';
         if (value === 0) return 'Ground Floor';
-        if (value === 1) return 'First Floor';
-        if (value === 2) return 'Second Floor';
-        if (value === 3) return 'Third Floor';
-        return `Floor ${value}`;
+        return `${ordinalWords(value)} Floor`;
     };
 
     useEffect(() => {
