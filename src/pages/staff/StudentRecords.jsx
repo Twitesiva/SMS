@@ -158,9 +158,9 @@ export default function StudentRecords() {
 
                 {/* FILTER CARD */}
                 <div className="card card-soft p-4 mb-4">
-                    <div className="row g-3">
+                    <div className="records-filters">
                         {/* Academic Year */}
-                        <div className="col-md-3">
+                        <div className="records-filter">
                             <label className="form-label fw-bold text-dark">
                                 Academic Year <span className="text-danger">*</span>
                             </label>
@@ -177,7 +177,7 @@ export default function StudentRecords() {
                         </div>
 
                         {/* Group */}
-                        <div className="col-md-3">
+                        <div className="records-filter">
                             <label className="form-label fw-bold text-dark">
                                 Group <span className="text-danger">*</span>
                             </label>
@@ -202,7 +202,7 @@ export default function StudentRecords() {
                         </div>
 
                         {/* Course */}
-                        <div className="col-md-3">
+                        <div className="records-filter">
                             <label className="form-label fw-bold text-dark">
                                 Course <span className="text-danger">*</span>
                             </label>
@@ -226,7 +226,7 @@ export default function StudentRecords() {
                         </div>
 
                         {/* Semester */}
-                        <div className="col-md-3">
+                        <div className="records-filter">
                             <label className="form-label fw-bold text-dark">
                                 Semester <span className="text-danger">*</span>
                             </label>
@@ -293,12 +293,12 @@ export default function StudentRecords() {
                                     <thead>
                                         <tr>
                                             <th className="text-center" style={{ width: '60px' }}>S.No</th>
-                                            <th className="text-center" style={{ width: '12%' }}>Student ID</th>
-                                            <th className="text-center" style={{ width: '12%' }}>Hall Ticket</th>
-                                            <th style={{ width: '30%' }}>Full Name</th>
-                                            <th style={{ width: '10%' }}>Gender</th>
-                                            <th style={{ width: '12%' }}>DOB</th>
-                                            <th style={{ width: '12%' }}>Parent No</th>
+                                            <th className="text-center" style={{ minWidth: '120px' }}>Student ID</th>
+                                            <th className="text-center" style={{ minWidth: '140px' }}>Hall Ticket</th>
+                                            <th className="records-header--name" style={{ minWidth: '240px' }}>Full Name</th>
+                                            <th style={{ minWidth: '100px' }}>Gender</th>
+                                            <th style={{ minWidth: '120px' }}>DOB</th>
+                                            <th style={{ minWidth: '150px' }}>Parent No</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -310,7 +310,9 @@ export default function StudentRecords() {
                                                     <td className="text-center">{i + 1}</td>
                                                     <td className="text-center" style={{ fontVariantNumeric: 'tabular-nums' }}>{s.student_id}</td>
                                                     <td className="text-center" style={{ fontVariantNumeric: 'tabular-nums' }}>{s.hall_ticket_no || '-'}</td>
-                                                    <td>{s.full_name}</td>
+                                                    <td className="records-cell--name">
+                                                        <span className="records-cell-text--name">{s.full_name}</span>
+                                                    </td>
                                                     <td>{s.gender}</td>
                                                     <td>{s.date_of_birth ? s.date_of_birth.split('-').reverse().join('-') : '-'}</td>
                                                     <td>{s.Parent_no}</td>
