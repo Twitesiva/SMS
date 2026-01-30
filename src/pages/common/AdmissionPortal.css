@@ -62,8 +62,9 @@
   font-size: 0.75rem;
   letter-spacing: 0.4em;
   text-transform: uppercase;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
   color: rgba(255, 255, 255, 0.8);
+  font-weight: 700;
 }
 
 .admission-portal__hero-title {
@@ -73,11 +74,12 @@
 }
 
 .admission-portal__hero-location {
-  margin: 0.15rem 0 0.75rem;
-  letter-spacing: 0.5em;
+  margin: 0.2rem 0 0.4rem;
+  letter-spacing: 0.35em;
   text-transform: uppercase;
   font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.65);
+  font-weight: 700;
 }
 
 .admission-portal__hero-text {
