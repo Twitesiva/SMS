@@ -398,8 +398,8 @@ export default function SubjectsSection({
                     className="form-control"
                     placeholder="e.g., 3"
                     type="number"
-                    min="0.5"
-                    step="0.5"
+                    min="1"
+                    step="1"
                     value={categoryCredits}
                     onChange={(e) => {
                       const raw = e.target.value
@@ -412,7 +412,7 @@ export default function SubjectsSection({
                         setCategoryCredits('')
                         return
                       }
-                      setCategoryCredits(numeric)
+                      setCategoryCredits(Math.trunc(numeric))
                     }}
                     onKeyDown={e => {
                       if (e.key === 'Enter') {

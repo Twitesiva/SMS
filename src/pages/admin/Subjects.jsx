@@ -404,8 +404,8 @@ export default function Subjects() {
       return
     }
     const creditsValue = Number(categoryCredits)
-    if (!Number.isFinite(creditsValue) || creditsValue <= 0) {
-      showToast('Enter valid credits for the sub-category.', {
+    if (!Number.isFinite(creditsValue) || !Number.isInteger(creditsValue) || creditsValue <= 0) {
+      showToast('Enter whole-number credits (1, 2, 3...).', {
         type: 'warning',
         title: 'Required field'
       })

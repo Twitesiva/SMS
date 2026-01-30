@@ -280,8 +280,8 @@ const mapSubCategory = (row = {}) => ({
 
 const normalizeCredits = (credits) => {
   const numeric = Number(credits);
-  if (!Number.isFinite(numeric) || numeric <= 0) {
-    throw new Error("Credits must be greater than 0");
+  if (!Number.isFinite(numeric) || !Number.isInteger(numeric) || numeric <= 0) {
+    throw new Error("Credits must be a whole number greater than 0");
   }
   return numeric;
 };
