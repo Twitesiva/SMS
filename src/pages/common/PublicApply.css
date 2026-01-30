@@ -522,6 +522,21 @@
   transition: all 0.2s ease;
 }
 
+.public-apply-select--locked {
+  background: #fcfdfe !important;
+  background-image: none !important;
+  background-position: right 0.75rem center;
+  background-size: 0 0;
+  padding-right: 1rem;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.public-apply-select--locked::-ms-expand {
+  display: none;
+}
+
 .public-apply-form .form-control:focus,
 .public-apply-form .form-select:focus {
   background-color: #ffffff;

@@ -457,7 +457,7 @@ export default function PublicApply() {
 
                     <div className="col-md-3">
                       <label className="form-label"><i className="bi bi-diagram-3"></i>Group</label>
-                      <select className={selectClass(form.group_id)} value={form.group_id} onChange={e => handle('group_id', e.target.value)} required disabled={isCourseLocked}>
+                      <select className={`${selectClass(form.group_id)}${isCourseLocked ? ' public-apply-select--locked' : ''}`} value={form.group_id} onChange={e => handle('group_id', e.target.value)} required disabled={isCourseLocked}>
                         <option value="">Select Group</option>
                         {groups.map(g => (
                           <option key={g.id} value={g.id}>{g.name || g.group_name || g.code}</option>
@@ -466,7 +466,7 @@ export default function PublicApply() {
                     </div>
                     <div className="col-md-4">
                       <label className="form-label"><i className="bi bi-journal-bookmark"></i>Course</label>
-                      <select className={selectClass(form.course_id)} value={form.course_id} onChange={e => handle('course_id', e.target.value)} required disabled={isCourseLocked}>
+                      <select className={`${selectClass(form.course_id)}${isCourseLocked ? ' public-apply-select--locked' : ''}`} value={form.course_id} onChange={e => handle('course_id', e.target.value)} required disabled={isCourseLocked}>
                         <option value="">Select Course</option>
                         {courses
                           .filter((course) => {
