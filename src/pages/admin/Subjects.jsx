@@ -224,7 +224,7 @@ export default function Subjects() {
   const [categories, setCategories] = useState([])
   const [catItems, setCatItems] = useState({})
   const [categoryName, setCategoryName] = useState('')
-  const [categoryCredits, setCategoryCredits] = useState(0)
+  const [categoryCredits, setCategoryCredits] = useState('')
   const [editingCategory, setEditingCategory] = useState('')
   const [categoryCreditsMap, setCategoryCreditsMap] = useState({})
   const [categoryIdMap, setCategoryIdMap] = useState({})
@@ -403,6 +403,14 @@ export default function Subjects() {
       })
       return
     }
+    const creditsValue = Number(categoryCredits)
+    if (!Number.isFinite(creditsValue) || !Number.isInteger(creditsValue) || creditsValue <= 0) {
+      showToast('Enter whole-number credits (1, 2, 3...).', {
+        type: 'warning',
+        title: 'Required field'
+      })
+      return
+    }
 
     if (editingCategory) {
       const oldName = editingCategory
@@ -417,7 +425,7 @@ export default function Subjects() {
       try {
         const updated = await api.updateSubCategory?.(id, {
           name: trimmed,
-          credits: categoryCredits,
+          credits: creditsValue,
           subjects: items
         })
         setCategories((prev) =>
@@ -442,7 +450,7 @@ export default function Subjects() {
           return copy
         })
         setCategoryName('')
-        setCategoryCredits(0)
+        setCategoryCredits('')
         setEditingCategory('')
         showToast('Sub-category updated.', { type: 'success' })
       } catch (error) {
@@ -455,7 +463,7 @@ export default function Subjects() {
       try {
         const created = await api.addSubCategory?.({
           name: trimmed,
-          credits: categoryCredits
+          credits: creditsValue
         })
         if (created) {
           setCategories((prev) => [...prev, created.name])
@@ -469,7 +477,7 @@ export default function Subjects() {
             [created.name]: created.credits
           }))
           setCategoryName('')
-          setCategoryCredits(0)
+          setCategoryCredits('')
           showToast('Sub-category added.', { type: 'success' })
         }
       } catch (error) {

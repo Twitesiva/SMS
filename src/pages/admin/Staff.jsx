@@ -11,6 +11,7 @@ import "./AdminContent.css";
 export default function Staff() {
     const [teachers, setTeachers] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
+    const [designationFilter, setDesignationFilter] = useState("");
     const [loading, setLoading] = useState(false);
     const [editingTeacher, setEditingTeacher] = useState(null);
     const [viewingTeacher, setViewingTeacher] = useState(null);
@@ -58,16 +59,25 @@ export default function Staff() {
         trackPromise(loadData());
     }, []);
 
+    const normalizeDesignation = (value) => String(value || '')
+        .trim()
+        .toUpperCase()
+        .replace(/\s+/g, '_');
+
     const filteredTeachers = useMemo(() => {
         const search = searchTerm.toLowerCase().trim();
-        if (!search) return teachers;
-        return teachers.filter((teacher) =>
-            (teacher.full_name || "").toLowerCase().includes(search) ||
-            (teacher.staff_id || "").toLowerCase().includes(search) ||
-            (teacher.phone_number || "").includes(search) ||
-            (teacher.designation || "").toLowerCase().replace(/_/g, ' ').includes(search)
-        );
-    }, [teachers, searchTerm]);
+        return teachers.filter((teacher) => {
+            const matchesSearch = !search || (
+                (teacher.full_name || "").toLowerCase().includes(search) ||
+                (teacher.staff_id || "").toLowerCase().includes(search) ||
+                (teacher.phone_number || "").includes(search) ||
+                (teacher.designation || "").toLowerCase().replace(/_/g, ' ').includes(search)
+            );
+            const matchesDesignation = !designationFilter ||
+                normalizeDesignation(teacher.designation) === designationFilter;
+            return matchesSearch && matchesDesignation;
+        });
+    }, [teachers, searchTerm, designationFilter]);
 
     const handleEdit = (teacher) => {
         setEditingTeacher(teacher);
@@ -212,19 +222,37 @@ export default function Staff() {
                 </div>
 
                 {/* Search Bar */}
-                <div className="card border-0 shadow-sm mb-4">
+                <div className="card border-0 shadow-sm mb-4 staff-filters">
                     <div className="card-body p-3">
-                        <div className="input-group">
-                            <span className="input-group-text bg-white border-end-0">
-                                <i className="bi bi-search text-muted"></i>
-                            </span>
-                            <input
-                                type="text"
-                                className="form-control border-start-0 ps-0"
-                                placeholder="Search by Name, Staff ID, Phone or Designation..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                        <div className="staff-filters__grid">
+                            <div className="staff-filters__field">
+                                <label className="staff-filters__label">Search</label>
+                                <div className="input-group staff-filters__input-group">
+                                    <span className="input-group-text">
+                                        <i className="bi bi-search text-muted"></i>
+                                    </span>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        placeholder="Search by Name, Staff ID, Phone or Designation..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                            <div className="staff-filters__field">
+                                <label className="staff-filters__label">Designation</label>
+                                <select
+                                    className="form-select"
+                                    value={designationFilter}
+                                    onChange={(e) => setDesignationFilter(e.target.value)}
+                                >
+                                    <option value="">All Designations</option>
+                                    <option value="PROFESSOR">Professor</option>
+                                    <option value="ASSISTANT_PROFESSOR">Assistant Professor</option>
+                                    <option value="HOD">HOD</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -236,9 +264,6 @@ export default function Staff() {
                             <h5 className="students-table-panel-title mb-1" style={{ color: '#ffffff' }}>
                                 Staff Directory
                             </h5>
-                            <p className="students-table-panel-copy mb-0" style={{ color: '#ffffff' }}>
-                                Tap any row to review details or edit staff records.
-                            </p>
                         </div>
                         <div className="students-table-panel-meta text-end" style={{ color: '#ffffff' }}>
                             {loading ? "Refreshing data..." : `${filteredTeachers.length} staff members listed`}

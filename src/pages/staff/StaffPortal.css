@@ -230,10 +230,10 @@
   background: #ffffff;
   border: 1px solid #e2e8f0;
   width: 100%;
-  min-width: 100%;
+  min-width: 900px;
   font-size: 0.9rem;
   border-collapse: collapse;
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 .records-page .table th {
@@ -260,12 +260,70 @@
   font-size: 0.95rem;
 }
 
+.records-page .records-header--name,
+.records-page .records-cell--name {
+  width: 260px;
+}
+
+.records-page .records-cell-text--name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .records-page .table tbody tr:nth-child(even) {
   background-color: #f0f9ff;
 }
 
 .records-page .table tbody tr:hover {
   background-color: #dbeafe;
+}
+
+.records-page .table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
+@media (max-width: 1400px) {
+  .records-page .records-header--name,
+  .records-page .records-cell--name {
+    width: 210px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .records-page .table {
+    min-width: 900px;
+  }
+
+  .records-page .table th {
+    font-size: 0.78rem;
+    padding: 8px 10px;
+  }
+
+  .records-page .table td {
+    font-size: 0.88rem;
+    padding: 8px 10px;
+  }
+
+  .records-page .records-cell--name {
+    font-size: 0.86rem;
+    width: 180px;
+  }
+}
+
+@media (min-width: 1400px) {
+  .records-page .table th {
+    font-size: 0.9rem;
+    padding: 14px 16px;
+  }
+
+  .records-page .table td {
+    font-size: 1rem;
+    padding: 12px 16px;
+  }
 }
 
 /* Leave Management */
@@ -333,6 +391,10 @@
     BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
     "Helvetica Neue", Arial, sans-serif;
   background-color: #f0f7ff;
+}
+
+.staff-portal__backdrop {
+  display: none;
 }
 
 .staff-sidebar {
@@ -506,6 +568,7 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  min-width: 0;
 }
 
 .staff-header__logo {
@@ -532,6 +595,8 @@
   align-items: center;
   gap: 1.2rem;
   margin-left: auto;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .staff-header__logout {
@@ -566,11 +631,13 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .staff-main {
   flex: 1;
   padding: 1.8rem;
+  min-width: 0;
 }
 
 .staff-portal--collapsed .staff-sidebar {
@@ -595,13 +662,12 @@
   display: none;
 }
 
-@media (max-width: 992px) {
+@media (max-width: 1024px) {
   .staff-portal {
     flex-direction: column;
   }
 
   .staff-sidebar {
-    display: none;
     position: fixed;
     left: 0;
     top: 0;
@@ -609,16 +675,22 @@
     z-index: 1000;
     width: 280px;
     transform: translateX(-100%);
-    transition: transform 0.3s ease;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    display: flex;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
   }
 
   .staff-portal--mobile-open .staff-sidebar {
     transform: translateX(0);
-    display: flex;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
   }
 
   .staff-portal__backdrop {
-    display: none;
+    display: block;
     position: fixed;
     top: 0;
     left: 0;
@@ -626,15 +698,22 @@
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
     z-index: 900;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
   }
 
   .staff-portal--mobile-open .staff-portal__backdrop {
-    display: block;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
   }
 
   .staff-main-wrapper {
     height: auto;
     overflow-y: visible;
+    min-width: 0;
   }
 
   .staff-header__toggle--mobile {
@@ -643,5 +722,67 @@
 
   .staff-sidebar__toggle {
     display: none;
+  }
+
+  .staff-portal--collapsed .staff-sidebar {
+    width: 280px;
+  }
+
+  .staff-header {
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  .staff-header__brand {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .staff-header__right {
+    width: 100%;
+    margin-left: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+
+  .staff-header__meta {
+    width: 100%;
+    flex-wrap: wrap;
+    border-right: 0 !important;
+    padding-right: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .staff-header__meta-date {
+    border-left: 0 !important;
+    padding-left: 0 !important;
+  }
+}
+
+.records-filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.records-filter {
+  min-width: 0;
+}
+
+@media (max-width: 1024px) {
+  .records-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .records-page .records-header--name,
+  .records-page .records-cell--name {
+    width: 160px;
+  }
+}
+
+@media (max-width: 640px) {
+  .records-filters {
+    grid-template-columns: 1fr;
   }
 }

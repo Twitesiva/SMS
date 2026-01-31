@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../../supabaseClient';
 import HostelShell from '../../components/HostelShell';
 import HostelPreloader from '../../components/HostelPreloader';
@@ -93,7 +93,6 @@ export default function HostelReports() {
 
         if (residentBlockFilter !== 'all') query = query.eq('block_name', residentBlockFilter);
         if (residentRoomFilter !== 'all') query = query.eq('room_no', residentRoomFilter);
-        if (residentTypeFilter !== 'all') query = query.eq('room_type', residentTypeFilter);
 
         const { data, error } = await query;
         if (error) toast.error(error.message);
@@ -111,7 +110,7 @@ export default function HostelReports() {
             r.room_no,
             r.floor_no ?? r.floor ?? '',
             r.bed_no,
-            r.room_type,
+            resolveRoomType(r),
             new Date(r.allocated_at).toLocaleDateString('en-GB')
         ]);
 
@@ -128,6 +127,30 @@ export default function HostelReports() {
     };
 
     const normalizeValue = (value) => String(value ?? '').trim();
+    const normalizeRoomType = (value) => String(value ?? '')
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z]/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_|_$/g, '');
+    const capacityRoomTypeMap = useMemo(() => {
+        const map = new Map();
+        (allCapacity || []).forEach((item) => {
+            const blockName = item.hostel_blocks?.block_name;
+            const roomNo = item.hostel_rooms?.room_no;
+            const floorNo = item.floor_no;
+            const roomType = item.hostel_rooms?.room_type;
+            if (!blockName || roomNo === undefined || roomNo === null) return;
+            const key = `${normalizeValue(blockName)}|${normalizeValue(roomNo)}|${normalizeValue(floorNo)}`;
+            const normalizedType = normalizeRoomType(roomType);
+            if (normalizedType) map.set(key, normalizedType);
+        });
+        return map;
+    }, [allCapacity]);
+    const resolveRoomType = (resident) => {
+        const key = `${normalizeValue(resident.block_name)}|${normalizeValue(resident.room_no)}|${normalizeValue(resident.floor_no ?? resident.floor)}`;
+        return capacityRoomTypeMap.get(key) || normalizeRoomType(resident.room_type);
+    };
     const residentBlockOptions = Array.from(new Set(allResidents.map(item => item.block_name).filter(Boolean)));
     const residentRoomOptions = Array.from(new Set(allResidents.map(item => item.room_no).filter(Boolean))).sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
     const residentFloorOptions = Array.from(new Set(allResidents.map(item => item.floor_no ?? item.floor).filter(item => item !== null && item !== undefined && item !== '')))
@@ -141,7 +164,11 @@ export default function HostelReports() {
             if (bIsNum) return 1;
             return String(a).localeCompare(String(b));
         });
-    const residentTypeOptions = Array.from(new Set(allResidents.map(item => item.room_type).filter(Boolean)));
+    const defaultRoomTypes = ['AC', 'NON_AC'];
+    const residentTypeOptions = Array.from(new Set([
+        ...defaultRoomTypes,
+        ...allResidents.map(item => resolveRoomType(item)).filter(Boolean)
+    ]));
 
     useEffect(() => {
         if (residentBlockFilter !== 'all' && !residentBlockOptions.includes(residentBlockFilter)) setResidentBlockFilter('all');
@@ -155,7 +182,7 @@ export default function HostelReports() {
         const roomMatch = residentRoomFilter === 'all' || normalizeValue(item.room_no) === normalizeValue(residentRoomFilter);
         const floorValue = item.floor_no ?? item.floor;
         const floorMatch = residentFloorFilter === 'all' || normalizeValue(floorValue) === normalizeValue(residentFloorFilter);
-        const typeMatch = residentTypeFilter === 'all' || normalizeValue(item.room_type) === normalizeValue(residentTypeFilter);
+        const typeMatch = residentTypeFilter === 'all' || normalizeValue(resolveRoomType(item)) === normalizeValue(residentTypeFilter);
         return blockMatch && roomMatch && floorMatch && typeMatch;
     });
 
@@ -284,7 +311,7 @@ export default function HostelReports() {
                                         const blockMatch = residentBlockFilter === 'all' || normalizeValue(blockName) === normalizeValue(residentBlockFilter);
                                         const roomMatch = residentRoomFilter === 'all' || normalizeValue(roomNo) === normalizeValue(residentRoomFilter);
                                         const floorMatch = residentFloorFilter === 'all' || normalizeValue(floorVal) === normalizeValue(residentFloorFilter);
-                                        const typeMatch = residentTypeFilter === 'all' || normalizeValue(roomType) === normalizeValue(residentTypeFilter);
+                                        const typeMatch = residentTypeFilter === 'all' || normalizeValue(normalizeRoomType(roomType)) === normalizeValue(residentTypeFilter);
 
                                         return blockMatch && roomMatch && floorMatch && typeMatch;
                                     });
@@ -363,7 +390,7 @@ export default function HostelReports() {
                                                         <td style={{ boxShadow: rowShadow, whiteSpace: 'nowrap' }}>{res.room_no}</td>
                                                         <td style={{ boxShadow: rowShadow, whiteSpace: 'nowrap' }}>{formatFloorLabel(res.floor_no ?? res.floor)}</td>
                                                         <td style={{ boxShadow: rowShadow, whiteSpace: 'nowrap' }}>{res.bed_no}</td>
-                                                        <td style={{ boxShadow: rowShadow, whiteSpace: 'nowrap' }}>{formatRoomType(res.room_type)}</td>
+                                                        <td style={{ boxShadow: rowShadow, whiteSpace: 'nowrap' }}>{formatRoomType(resolveRoomType(res))}</td>
                                                         <td className="rounded-end" style={{ boxShadow: rowShadow, whiteSpace: 'nowrap' }}>{new Date(res.allocated_at).toLocaleDateString('en-GB')}</td>
                                                     </tr>
                                                 ))
@@ -439,7 +466,7 @@ export default function HostelReports() {
                                             </div>
                                             <div className="d-flex align-items-center">
                                                 <small className="text-muted text-uppercase fw-bold" style={{ width: '130px', fontSize: '0.85rem' }}>Room Type</small>
-                                                <span className="fw-bold text-dark fs-6">: {formatRoomType(selectedResident.room_type)}</span>
+                                                <span className="fw-bold text-dark fs-6">: {formatRoomType(resolveRoomType(selectedResident))}</span>
                                             </div>
                                             <div className="d-flex align-items-center">
                                                 <small className="text-muted text-uppercase fw-bold" style={{ width: '130px', fontSize: '0.85rem' }}>Allocated Date</small>

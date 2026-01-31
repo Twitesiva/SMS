@@ -75,6 +75,120 @@
   letter-spacing: 0.05em;
 }
 
+/* Students table horizontal scroll on small screens */
+.students-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.students-table {
+  min-width: 1200px;
+  table-layout: auto;
+}
+
+.students-table th,
+.students-table td {
+  white-space: nowrap;
+}
+
+.students-table td:nth-child(3) {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.students-table td:nth-child(5),
+.students-table td:nth-child(6) {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.students-table-wrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.students-table-wrapper::-webkit-scrollbar-track {
+  background: rgba(96, 108, 136, 0.12);
+  border-radius: 999px;
+}
+
+.students-table-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(96, 108, 136, 0.45);
+  border-radius: 999px;
+}
+
+@media (max-width: 992px) {
+  .students-table {
+    min-width: 1100px;
+  }
+}
+
+/* Staff filters */
+.staff-filters {
+  background: linear-gradient(145deg, #ffffff, #f6f8fc);
+  border: 1px solid #e1e8f5;
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.08);
+}
+
+.staff-filters__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: end;
+}
+
+.staff-filters__field {
+  min-width: 0;
+}
+
+.staff-filters__label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #000000;
+  margin-bottom: 0.35rem;
+}
+
+.staff-filters .form-control,
+.staff-filters .form-select {
+  height: 46px;
+  border-radius: 12px;
+  border: 1px solid #d7dfef;
+  background: #ffffff;
+  font-weight: 700;
+  color: #000000;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.staff-filters .form-control:focus,
+.staff-filters .form-select:focus {
+  border-color: #93a4c7;
+  box-shadow: 0 0 0 0.2rem rgba(96, 108, 136, 0.15);
+}
+
+.staff-filters__input-group .input-group-text {
+  border-radius: 12px 0 0 12px;
+  border: 1px solid #d7dfef;
+  background: #ffffff;
+  color: #607089;
+  padding: 0 0.9rem;
+}
+
+.staff-filters__input-group .form-control {
+  border-left: 0;
+  border-radius: 0 12px 12px 0;
+  padding-left: 0.2rem;
+}
+
+@media (max-width: 992px) {
+  .staff-filters__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .exam-registration-table thead th {
   background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%) !important;
   color: #ffffff !important;

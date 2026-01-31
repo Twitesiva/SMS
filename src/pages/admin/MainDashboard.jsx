@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../../lib/mockApi'
 import { supabase } from '../../../supabaseClient'
 import AdShellAdmin from '../../components/AdShellAdmin'
@@ -30,6 +30,7 @@ ChartJS.register(
 )
 
 export default function MainDashboard() {
+    const navigate = useNavigate()
     // State for dashboard metrics
     const [counts, setCounts] = useState({ students: 0, teachers: 0 })
     const [groups, setGroups] = useState([])
@@ -364,10 +365,10 @@ export default function MainDashboard() {
                             <article className="dashboard-chart-card card-shadow h-100" style={{ minHeight: '400px' }}>
                                 <div className="dashboard-chart-header">
                                     <div className="d-flex justify-content-between align-items-center w-100">
-                                        <div>
+                                        <Link to="/admin-portal/students" className="dashboard-chart-link">
                                             <h3>Student Classification</h3>
                                             <p className="mb-0 fw-bold">Enrolled students status</p>
-                                        </div>
+                                        </Link>
                                         <div className="btn-group btn-group-sm">
                                             <button
                                                 className={`btn ${studentView === 'group' ? 'btn-primary' : 'btn-outline-primary'}`}
@@ -402,10 +403,10 @@ export default function MainDashboard() {
                         <div className="col-lg-4">
                             <article className="dashboard-chart-card card-shadow h-100" style={{ minHeight: '400px' }}>
                                 <div className="dashboard-chart-header">
-                                    <div>
+                                    <Link to="/admin-portal/staff" className="dashboard-chart-link">
                                         <h3>Staff Classification</h3>
                                         <p className="mb-0 fw-bold">Teachers by designation</p>
-                                    </div>
+                                    </Link>
                                 </div>
                                 <div className="dashboard-chart-wrapper">
                                     {staffChartData ? (
@@ -419,9 +420,21 @@ export default function MainDashboard() {
 
                         {/* Payment Chart */}
                         <div className="col-lg-4">
-                            <article className="dashboard-chart-card card-shadow h-100" style={{ minHeight: '400px', display: 'flex', flexDirection: 'column' }}>
+                            <article
+                                className="dashboard-chart-card dashboard-chart-card--link card-shadow h-100"
+                                style={{ minHeight: '400px', display: 'flex', flexDirection: 'column' }}
+                                role="link"
+                                tabIndex={0}
+                                onClick={() => navigate('/admin-portal/payment-reports')}
+                                onKeyDown={(event) => {
+                                    if (event.key === 'Enter' || event.key === ' ') {
+                                        event.preventDefault()
+                                        navigate('/admin-portal/payment-reports')
+                                    }
+                                }}
+                            >
                                 <div className="dashboard-chart-header">
-                                    <div>
+                                    <div className="dashboard-chart-link">
                                         <h3>College Fees</h3>
                                         <p className="mb-0 fw-bold">College fee collection overview</p>
                                     </div>

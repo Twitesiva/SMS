@@ -5,6 +5,16 @@ import ConfirmationModal from '../../components/ConfirmationModal';
 import HostelPreloader from '../../components/HostelPreloader';
 import { toast } from 'react-toastify';
 
+const normalizeHostelType = (value) => {
+    if (value === true) return 'AC';
+    if (value === false) return 'NON_AC';
+    const raw = String(value || '').trim().toUpperCase();
+    if (!raw) return '';
+    if (raw.includes('NON')) return 'NON_AC';
+    if (raw.includes('AC')) return 'AC';
+    return raw.replace(/[^A-Z]/g, '_');
+};
+
 export default function HostelAllocations() {
 
     const [searching, setSearching] = useState(false);
@@ -65,17 +75,23 @@ export default function HostelAllocations() {
                 // Fetch year of study for these students
                 const { data: studentDetails } = await supabase
                     .from('students')
-                    .select('id, year_of_study')
+                    .select('id, year_of_study, hostel_ac')
                     .in('id', ids);
 
-                const yearMap = {};
+                const metaMap = {};
                 studentDetails?.forEach(s => {
-                    yearMap[s.id] = s.year_of_study;
+                    metaMap[s.id] = {
+                        year_of_study: s.year_of_study,
+                        hostel_ac: s.hostel_ac
+                    };
                 });
 
                 enrichedData = enrichedData.map(s => ({
                     ...s,
-                    year_of_study: yearMap[s.student_id]
+                    year_of_study: metaMap[s.student_id]?.year_of_study,
+                    hostel_type: normalizeHostelType(
+                        metaMap[s.student_id]?.hostel_ac ?? s.hostel_type
+                    )
                 }));
 
                 const { data: allocs } = await supabase
@@ -100,13 +116,30 @@ export default function HostelAllocations() {
 
     const fetchCurrentAllocation = async (studentId) => {
         const { data: alloc } = await supabase.from('hostel_allocations')
-            .select('*, hostel_beds(bed_no, hostel_rooms(room_no, floor_no, room_type, hostel_blocks(block_name)))')
+            .select('*, hostel_beds(bed_no, hostel_rooms(room_no, floor_no, room_type, block_id, hostel_blocks(block_name)))')
             .eq('student_id', studentId)
             .eq('status', 'ACTIVE')
             .maybeSingle();
 
         setCurrentAllocation(alloc);
     };
+
+    useEffect(() => {
+        if (!showChangeModal || !currentAllocation) return;
+        const room = currentAllocation.hostel_beds?.hostel_rooms;
+        const blockId = room?.block_id || blocks.find(b => b.block_name === room?.hostel_blocks?.block_name)?.id || '';
+        setBookingForm(prev => ({
+            ...prev,
+            academic_year: currentAllocation.academic_year || prev.academic_year,
+            bed_id: ''
+        }));
+        setFilters(prev => ({
+            ...prev,
+            block_id: blockId || '',
+            floor_no: room?.floor_no ?? '',
+            room_type: room?.room_type || ''
+        }));
+    }, [showChangeModal, currentAllocation, blocks]);
 
     const fetchAvailableBeds = async () => {
         if (!bookingForm.academic_year) return;
@@ -265,7 +298,7 @@ export default function HostelAllocations() {
         // Fetch phone number and year_of_study
         const { data: studentData } = await supabase
             .from('students')
-            .select('phone_number, academic_year, year_of_study')
+            .select('phone_number, academic_year, year_of_study, hostel_ac')
             .eq('id', s.student_id)
             .single();
 
@@ -276,11 +309,11 @@ export default function HostelAllocations() {
             gender: s.gender,
             phone_number: studentData?.phone_number || '—',
             is_hostel: true,
-            hostel_type: s.hostel_type,
+            hostel_type: normalizeHostelType(studentData?.hostel_ac ?? s.hostel_type),
             year_of_study: studentData?.year_of_study
         });
 
-        let newFilters = { room_type: s.hostel_type, floor_no: '', block_id: '' };
+        let newFilters = { room_type: normalizeHostelType(studentData?.hostel_ac ?? s.hostel_type), floor_no: '', block_id: '' };
 
         if (studentData?.academic_year) {
             setBookingForm((prev) => ({ ...prev, academic_year: studentData.academic_year }));
@@ -318,7 +351,7 @@ export default function HostelAllocations() {
         const q = eligibleSearch.toLowerCase();
         const matchesSearch = s.full_name?.toLowerCase().includes(q) ||
             s.hall_ticket_no?.toLowerCase().includes(q);
-        const matchesType = eligibleHostelType ? s.hostel_type === eligibleHostelType : true;
+        const matchesType = eligibleHostelType ? normalizeHostelType(s.hostel_type) === eligibleHostelType : true;
         const matchesYear = eligibleYear ? String(s.year_of_study) === String(eligibleYear) : true;
         const normalizedGender = String(s.gender || '').trim().toUpperCase();
         const mappedGender = normalizedGender.startsWith('M') ? 'BOYS'
@@ -604,13 +637,23 @@ export default function HostelAllocations() {
                                 <div className="row g-3 mb-4 bg-white p-3 rounded border">
                                     <div className="col-md-3">
                                         <label className="form-label fw-bold small text-muted text-uppercase">Academic Year</label>
-                                        <select className="form-select" value={bookingForm.academic_year} onChange={(e) => setBookingForm({ ...bookingForm, academic_year: e.target.value })}>
+                                        <select
+                                            className="form-select"
+                                            value={bookingForm.academic_year}
+                                            onChange={(e) => setBookingForm({ ...bookingForm, academic_year: e.target.value })}
+                                            disabled={showChangeModal}
+                                        >
                                             {years.map(y => <option key={y.academic_year} value={y.academic_year}>{y.academic_year}</option>)}
                                         </select>
                                     </div>
                                     <div className="col-md-3">
                                         <label className="form-label fw-bold small text-muted text-uppercase">Block</label>
-                                        <select className="form-select" value={filters.block_id} onChange={(e) => setFilters({ ...filters, block_id: e.target.value, floor_no: '' })}>
+                                        <select
+                                            className="form-select"
+                                            value={filters.block_id}
+                                            onChange={(e) => setFilters({ ...filters, block_id: e.target.value, floor_no: '' })}
+                                            disabled={showChangeModal}
+                                        >
                                             <option value="">All Blocks</option>
                                             {blocks.filter(b => b.gender === (student.gender?.toUpperCase().startsWith('M') ? 'BOYS' : 'GIRLS')).map(b => (
                                                 <option key={b.id} value={b.id}>{b.block_name}</option>
@@ -619,7 +662,12 @@ export default function HostelAllocations() {
                                     </div>
                                     <div className="col-md-3">
                                         <label className="form-label fw-bold small text-muted text-uppercase">Room Type</label>
-                                        <select className="form-select" value={filters.room_type} onChange={(e) => setFilters({ ...filters, room_type: e.target.value })}>
+                                        <select
+                                            className="form-select"
+                                            value={filters.room_type}
+                                            onChange={(e) => setFilters({ ...filters, room_type: e.target.value })}
+                                            disabled={showChangeModal}
+                                        >
                                             <option value="">All Types</option>
                                             <option value="AC">AC</option>
                                             <option value="NON_AC">Non AC</option>
@@ -627,7 +675,12 @@ export default function HostelAllocations() {
                                     </div>
                                     <div className="col-md-3">
                                         <label className="form-label fw-bold small text-muted text-uppercase">Floor</label>
-                                        <select className="form-select" value={filters.floor_no} onChange={(e) => setFilters({ ...filters, floor_no: e.target.value })}>
+                                        <select
+                                            className="form-select"
+                                            value={filters.floor_no}
+                                            onChange={(e) => setFilters({ ...filters, floor_no: e.target.value })}
+                                            disabled={showChangeModal}
+                                        >
                                             <option value="">All Floors</option>
                                             {availableFloors.map((floor) => (
                                                 <option key={floor} value={floor}>

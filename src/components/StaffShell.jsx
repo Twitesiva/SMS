@@ -48,6 +48,10 @@ export default function StaffShell({ children }) {
         setMobileOpen(false)
     }, [pathname])
 
+    const handleNavClick = () => {
+        setMobileOpen(false)
+    }
+
     return (
         <div className={`staff-portal ${collapsed ? 'staff-portal--collapsed' : ''} ${mobileOpen ? 'staff-portal--mobile-open' : ''}`}>
             {/* Mobile Backdrop */}
@@ -81,6 +85,7 @@ export default function StaffShell({ children }) {
                             key={item.to}
                             to={item.to}
                             className={`staff-sidebar__link ${isRouteActive(pathname, item.to) ? 'active' : ''}`}
+                            onClick={handleNavClick}
                         >
                             <i className={`bi ${item.icon}`}></i>
                             <span>{item.label}</span>
@@ -110,12 +115,12 @@ export default function StaffShell({ children }) {
                     </div>
 
                     <div className="staff-header__right">
-                        <div className="d-flex align-items-center gap-3 me-3 text-white border-end pe-3">
+                        <div className="staff-header__meta d-flex align-items-center gap-3 me-3 text-white border-end pe-3">
                             <div className="text-end" style={{ lineHeight: '1.2' }}>
                                 <div className="fw-bold small">{staff?.full_name || 'Staff Member'}</div>
                                 <div className="small opacity-75">{(staff?.designation || 'Faculty').replace(/_/g, ' ')}</div>
                             </div>
-                            <div className="text-end small d-none d-md-block" style={{ lineHeight: '1.2', borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '1rem' }}>
+                            <div className="staff-header__meta-date text-end small d-none d-md-block" style={{ lineHeight: '1.2', borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '1rem' }}>
                                 <div>{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
                                 <div className="opacity-75">{new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
                             </div>
