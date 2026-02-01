@@ -1,6 +1,7 @@
 .role-selection-container {
     min-height: 100vh;
-    width: 100vw;
+    min-height: 100svh;
+    width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -8,7 +9,8 @@
     font-family: 'Space Grotesk', 'Cabinet Grotesk', sans-serif;
     padding: 2rem;
     position: relative;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 .role-bg-image {
@@ -171,6 +173,118 @@
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+@media (max-width: 1024px) {
+    .role-title {
+        font-size: 2.6rem;
+        margin-bottom: 2.5rem;
+    }
+
+    .role-grid {
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .role-selection-container {
+        padding: 1.5rem;
+        align-items: flex-start;
+    }
+
+    .role-content {
+        padding-top: 3.25rem;
+    }
+
+    .role-title {
+        font-size: 2.1rem;
+        margin-bottom: 2rem;
+        letter-spacing: 0.04em;
+    }
+
+    .role-grid {
+        gap: 1.25rem;
+        padding: 0.5rem;
+    }
+
+    .role-card {
+        max-width: 100%;
+        min-height: 220px;
+    }
+
+    .role-description {
+        max-width: 100%;
+    }
+
+    .role-back-btn {
+        top: 1rem;
+        left: 1rem;
+        padding: 0.65rem 1.1rem;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .role-selection-container {
+        padding: 1.25rem;
+    }
+
+    .role-title {
+        font-size: 1.8rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .role-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+
+    .role-card {
+        padding: 1.5rem 1.25rem;
+        min-height: 200px;
+        border-radius: 14px;
+    }
+
+    .role-icon-wrapper {
+        width: 56px;
+        height: 56px;
+        font-size: 1.6rem;
+    }
+
+    .role-name {
+        font-size: 1rem;
+        letter-spacing: 0.1em;
+    }
+
+    .role-description {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 420px) {
+    .role-title {
+        font-size: 1.55rem;
+    }
+
+    .role-card {
+        padding: 1.25rem 1rem;
+        min-height: 190px;
+    }
+
+    .role-back-btn {
+        width: calc(100% - 2rem);
+        justify-content: center;
+    }
+}
+
+@media (max-height: 700px) {
+    .role-selection-container {
+        padding-top: 1.25rem;
+        padding-bottom: 1.25rem;
+    }
+
+    .role-grid {
+        gap: 1rem;
+    }
 }
 
 /* Professional Icon Colors */
