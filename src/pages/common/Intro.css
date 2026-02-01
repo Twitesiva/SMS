@@ -1,5 +1,6 @@
 .intro-container {
     height: 100vh;
+    min-height: 100svh;
     width: 100vw;
     position: relative;
     overflow: hidden;
@@ -180,6 +181,120 @@
 
 .intro-button:hover::before {
     left: 100%;
+}
+
+@media (max-width: 1200px) {
+    .glass-panel {
+        max-width: 520px;
+    }
+
+    .intro-title {
+        font-size: 2.6rem;
+    }
+
+    .intro-subtitle {
+        font-size: 1.2rem;
+    }
+}
+
+@media (max-width: 992px) {
+    .intro-container {
+        padding-right: 5%;
+    }
+
+    .intro-title {
+        font-size: 2.3rem;
+    }
+
+    .intro-logo {
+        width: 100px;
+        height: 100px;
+    }
+}
+
+@media (max-width: 768px) {
+    .intro-container {
+        justify-content: center;
+        padding: 2rem;
+    }
+
+    .intro-content {
+        justify-content: center;
+    }
+
+    .glass-panel {
+        padding: 2.25rem 2rem;
+        border-radius: 24px;
+        gap: 1.25rem;
+    }
+
+    .intro-title {
+        font-size: 2rem;
+    }
+
+    .intro-subtitle {
+        font-size: 1.05rem;
+        letter-spacing: 0.05em;
+        margin-bottom: 1.5rem;
+    }
+
+    .intro-button {
+        width: 100%;
+        justify-content: center;
+        padding: 1rem 2.2rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .intro-container {
+        padding: 1.25rem;
+    }
+
+    .glass-panel {
+        padding: 1.75rem 1.5rem;
+    }
+
+    .intro-logo {
+        width: 90px;
+        height: 90px;
+        margin-bottom: 0.5rem;
+    }
+
+    .intro-title {
+        font-size: 1.65rem;
+    }
+
+    .intro-divider {
+        width: 60px;
+        height: 4px;
+    }
+
+    .intro-subtitle {
+        font-size: 0.95rem;
+        letter-spacing: 0.03em;
+    }
+
+    .intro-button {
+        font-size: 0.95rem;
+        padding: 0.9rem 1.6rem;
+        letter-spacing: 1px;
+    }
+}
+
+@media (max-height: 700px) {
+    .glass-panel {
+        gap: 1rem;
+        padding: 1.5rem 1.75rem;
+    }
+
+    .intro-logo {
+        width: 80px;
+        height: 80px;
+    }
+
+    .intro-subtitle {
+        margin-bottom: 1rem;
+    }
 }
 
 /* Animations included in logic above */
