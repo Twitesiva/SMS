@@ -75,6 +75,7 @@ export default function FeesCollection() {
     method: ''
   })
   const [courseNameOverride, setCourseNameOverride] = useState('')
+  const [groupNameOverride, setGroupNameOverride] = useState('')
   const [showHistory, setShowHistory] = useState(false)
   const [paymentHistory, setPaymentHistory] = useState([])
   const [historyLoading, setHistoryLoading] = useState(false)
@@ -83,6 +84,7 @@ export default function FeesCollection() {
 
   const paymentsLocked = !studentLoaded
   const courseLabel = courseNameOverride || studentInfo?.course_name || 'N/A'
+  const groupLabel = groupNameOverride || studentInfo?.group_name || 'N/A'
   const academicYearLabel = studentInfo?.academic_year || 'N/A'
   const semesterValue = studentInfo?.current_semester
   const semesterDisplay = semesterValue ? `Semester ${semesterValue}` : 'Semester N/A'
@@ -215,6 +217,29 @@ export default function FeesCollection() {
     const { data, error } = await query.maybeSingle()
     if (error) throw error
     return data?.course_name || ''
+  }
+
+  const resolveGroupName = async (student) => {
+    if (!student) return ''
+    const rawGroupName = student.group_name
+    const rawGroupId = student.group_id
+    if (rawGroupName && isNaN(Number(rawGroupName))) return rawGroupName
+    if (!rawGroupId && !rawGroupName) return ''
+
+    let query = supabase
+      .from('groups')
+      .select('group_name, group_code')
+      .limit(1)
+
+    if (rawGroupId) {
+      query = query.eq('group_id', rawGroupId)
+    } else {
+      query = query.eq('group_code', rawGroupName)
+    }
+
+    const { data, error } = await query.maybeSingle()
+    if (error) throw error
+    return data?.group_name || ''
   }
 
   const fetchPaymentHistory = async (studentRecordId, appId) => {
@@ -436,6 +461,7 @@ export default function FeesCollection() {
     setPaymentMode('partial')
     setStudentInfo(null)
     setCourseNameOverride('')
+    setGroupNameOverride('')
     setApplicationId(null)
     setTotalPaid(0)
     setOutstanding(0)
@@ -474,6 +500,13 @@ export default function FeesCollection() {
       } catch (err) {
         console.warn('Could not resolve course name', err)
         setCourseNameOverride('')
+      }
+      try {
+        const resolvedGroupName = await resolveGroupName(student)
+        setGroupNameOverride(resolvedGroupName)
+      } catch (err) {
+        console.warn('Could not resolve group name', err)
+        setGroupNameOverride('')
       }
 
       // Fetch Application ID to check for admission payments
@@ -724,6 +757,11 @@ export default function FeesCollection() {
                       <div className="mb-3 row g-0">
                         <div className="col-5 text-muted small text-uppercase fw-semibold">Student ID</div>
                         <div className="col-7 text-dark">: {studentInfo.student_id}</div>
+                      </div>
+
+                      <div className="mb-3 row g-0">
+                        <div className="col-5 text-muted small text-uppercase fw-semibold">Group</div>
+                        <div className="col-7 fw-semibold text-dark">: {groupLabel}</div>
                       </div>
 
                       <div className="mb-3 row g-0">
