@@ -7,6 +7,7 @@ import './Student.css'
 
 export default function StudentTransport() {
     const { student } = useStudentAuth()
+    const [isHostelStudent, setIsHostelStudent] = useState(Boolean(student?.is_hostel))
     const [searchTerm, setSearchTerm] = useState('')
     const [boardingPoints, setBoardingPoints] = useState([])
     const [filteredPoints, setFilteredPoints] = useState([])
@@ -20,12 +21,38 @@ export default function StudentTransport() {
     const [transportFee, setTransportFee] = useState(null)
 
     useEffect(() => {
-        if (student) {
-            fetchTransportData()
-            checkExistingRegistration()
-            fetchTransportFee()
+        if (!student) return
+        if (isHostelStudent) return
+        fetchTransportData()
+        checkExistingRegistration()
+        fetchTransportFee()
+    }, [student, isHostelStudent])
+
+    useEffect(() => {
+        let isMounted = true
+        const loadHostelFlag = async () => {
+            if (!student?.id) {
+                if (isMounted) setIsHostelStudent(Boolean(student?.is_hostel))
+                return
+            }
+            try {
+                const { data, error } = await supabase
+                    .from('students')
+                    .select('is_hostel')
+                    .eq('id', student.id)
+                    .maybeSingle()
+                if (error) throw error
+                if (isMounted) setIsHostelStudent(Boolean(data?.is_hostel))
+            } catch (err) {
+                console.error('Failed to load hostel status', err)
+                if (isMounted) setIsHostelStudent(Boolean(student?.is_hostel))
+            }
         }
-    }, [student])
+        loadHostelFlag()
+        return () => {
+            isMounted = false
+        }
+    }, [student?.id, student?.is_hostel])
 
     useEffect(() => {
         if (!searchTerm) {
@@ -237,6 +264,20 @@ export default function StudentTransport() {
         } finally {
             setRegisteringId(null)
         }
+    }
+
+    if (isHostelStudent) {
+        return (
+            <StudentShell>
+                <div className="student-card">
+                    <div className="student-card__header">Transport Access</div>
+                    <div className="student-card__body">
+                        <p className="mb-2 fw-bold">You cannot access transport because you are a hostel student.</p>
+                        <p className="text-muted mb-0">If this is incorrect, please contact the admin office.</p>
+                    </div>
+                </div>
+            </StudentShell>
+        )
     }
 
     return (

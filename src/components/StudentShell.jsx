@@ -30,6 +30,7 @@ export default function StudentShell({ children }) {
   const { pathname } = useLocation()
   const navTo = useNavigate()
   const { student, signOut } = useStudentAuth()
+  const [isHostelStudent, setIsHostelStudent] = useState(Boolean(student?.is_hostel))
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [notifications, setNotifications] = useState([])
@@ -134,6 +135,32 @@ export default function StudentShell({ children }) {
   }, [student?.id])
 
   useEffect(() => {
+    let isMounted = true
+    const loadHostelFlag = async () => {
+      if (!student?.id) {
+        if (isMounted) setIsHostelStudent(Boolean(student?.is_hostel))
+        return
+      }
+      try {
+        const { data, error } = await supabase
+          .from('students')
+          .select('is_hostel')
+          .eq('id', student.id)
+          .maybeSingle()
+        if (error) throw error
+        if (isMounted) setIsHostelStudent(Boolean(data?.is_hostel))
+      } catch (err) {
+        console.error('Failed to load hostel status', err)
+        if (isMounted) setIsHostelStudent(Boolean(student?.is_hostel))
+      }
+    }
+    loadHostelFlag()
+    return () => {
+      isMounted = false
+    }
+  }, [student?.id, student?.is_hostel])
+
+  useEffect(() => {
     if (pathname !== '/student/notifications' || !student?.id) return
     const readKey = `student-notifications-read:${student.id}`
     const readIds = new Set(JSON.parse(localStorage.getItem(readKey) || '[]'))
@@ -193,19 +220,21 @@ export default function StudentShell({ children }) {
         </div>
 
         <nav className="student-sidebar__nav" ref={navRef}>
-          {navItems.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={`student-sidebar__link ${isRouteActive(pathname, item.to) ? 'active' : ''}`}
-            >
-              <i className={`bi ${item.icon}`}></i>
-              <span>{item.label}</span>
-              {item.to === '/student/notifications' && unreadCount > 0 && (
-                <span className="student-sidebar__link-badge">{unreadCount}</span>
-              )}
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                className={`student-sidebar__link ${isRouteActive(pathname, item.to) ? 'active' : ''}`}
+              >
+                <i className={`bi ${item.icon}`}></i>
+                <span>{item.label}</span>
+                {item.to === '/student/notifications' && unreadCount > 0 && (
+                  <span className="student-sidebar__link-badge">{unreadCount}</span>
+                )}
+              </Link>
+            )
+          })}
         </nav>
 
         <div className="student-sidebar__footer text-center mt-auto pb-3">
