@@ -56,6 +56,79 @@ export default function Students() {
     value ? value.toString().trim().toUpperCase() : "";
 
   const normalizeString = (str) => (str ? str.toString().trim().toLowerCase() : "");
+  const groupNameById = useMemo(() => {
+    const map = new Map();
+    groups.forEach((group) => {
+      if (group?.group_id !== undefined && group?.group_id !== null) {
+        map.set(String(group.group_id), group.group_name);
+      }
+    });
+    return map;
+  }, [groups]);
+
+  const groupNameByCode = useMemo(() => {
+    const map = new Map();
+    groups.forEach((group) => {
+      if (group?.group_code) {
+        map.set(String(group.group_code), group.group_name);
+      }
+    });
+    return map;
+  }, [groups]);
+
+  const courseNameById = useMemo(() => {
+    const map = new Map();
+    courses.forEach((course) => {
+      if (course?.course_id !== undefined && course?.course_id !== null) {
+        map.set(String(course.course_id), course.course_name);
+      }
+    });
+    return map;
+  }, [courses]);
+
+  const courseNameByCode = useMemo(() => {
+    const map = new Map();
+    courses.forEach((course) => {
+      if (course?.course_code) {
+        map.set(String(course.course_code), course.course_name);
+      }
+    });
+    return map;
+  }, [courses]);
+
+  const resolveGroupDisplayName = (student) => {
+    if (!student) return "N/A";
+    const directName = student.group?.group_name || student.group_name || student.group;
+    if (directName && isNaN(Number(directName))) return directName;
+    const groupId = student.group_id || (Number.isFinite(Number(directName)) ? Number(directName) : null);
+    if (groupId !== null && groupId !== undefined) {
+      const fromId = groupNameById.get(String(groupId));
+      if (fromId) return fromId;
+    }
+    const groupCode = student.group_code || student.group_name || student.group;
+    if (groupCode) {
+      const fromCode = groupNameByCode.get(String(groupCode));
+      if (fromCode) return fromCode;
+    }
+    return directName || "N/A";
+  };
+
+  const resolveCourseDisplayName = (student) => {
+    if (!student) return "N/A";
+    const directName = student.course?.course_name || student.course_name || student.course;
+    if (directName && isNaN(Number(directName))) return directName;
+    const courseId = student.course_id || (Number.isFinite(Number(directName)) ? Number(directName) : null);
+    if (courseId !== null && courseId !== undefined) {
+      const fromId = courseNameById.get(String(courseId));
+      if (fromId) return fromId;
+    }
+    const courseCode = student.course_code || student.course_name || student.course;
+    if (courseCode) {
+      const fromCode = courseNameByCode.get(String(courseCode));
+      if (fromCode) return fromCode;
+    }
+    return directName || "N/A";
+  };
 
   const categoryMatchesFilter = (filter, ...values) => {
     if (!filter) return true;
@@ -1496,8 +1569,8 @@ export default function Students() {
                       <td>{student.student_id}</td>
                       <td>{student.full_name}</td>
                       <td>{student.hall_ticket_no || "-"}</td>
-                      <td>{student.group?.group_name || student.group_name}</td>
-                      <td>{student.course?.course_name || student.course_name}</td>
+                      <td>{resolveGroupDisplayName(student)}</td>
+                      <td>{resolveCourseDisplayName(student)}</td>
                       <td>{student.academic_year}</td>
                       <td>{student.current_semester ? `Semester ${student.current_semester}` : 'Semester N/A'}</td>
                       <td>
@@ -1632,10 +1705,10 @@ export default function Students() {
                             <div className="d-flex flex-column gap-1">
                                <small className="text-uppercase text-muted fw-bold" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>Current Academic Info</small>
                                <div className="d-flex align-items-center gap-2 mb-1">
-                                  <span className="fw-bold text-dark">{viewingStudent.course?.course_name || viewingStudent.course_name || "N/A"}</span>
+                                  <span className="fw-bold text-dark">{resolveCourseDisplayName(viewingStudent)}</span>
                                </div>
                                <div className="text-secondary small">
-                                  {viewingStudent.group?.group_name || viewingStudent.group_name || "N/A"}
+                                  {resolveGroupDisplayName(viewingStudent)}
                                </div>
                                <div className="d-flex gap-2 mt-1">
                                   <span className="badge bg-light text-dark border">{viewingStudent.academic_year}</span>
