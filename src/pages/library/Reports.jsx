@@ -28,12 +28,15 @@ export default function Reports() {
   const [monthStartFilter, setMonthStartFilter] = useState('all')
   const [monthEndFilter, setMonthEndFilter] = useState('all')
   const [yearFilter, setYearFilter] = useState('all')
+  const [categoryFilter, setCategoryFilter] = useState('all')
 
   const [summaryPreview, setSummaryPreview] = useState({ rows: [], loading: false })
   const [circulationPreview, setCirculationPreview] = useState({ rows: [], loading: false })
   const [overduePreview, setOverduePreview] = useState({ rows: [], loading: false })
   const [topBorrowedPreview, setTopBorrowedPreview] = useState({ rows: [], loading: false })
   const [activePreview, setActivePreview] = useState(null)
+  const [categories, setCategories] = useState([])
+  const [categoriesLoading, setCategoriesLoading] = useState(true)
 
   const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), [])
   const monthOptions = useMemo(
@@ -74,6 +77,10 @@ export default function Reports() {
     if (endMonthNumber) return monthNumber <= endMonthNumber
     return true
   }
+  const matchesCategory = (value) => {
+    if (categoryFilter === 'all') return true
+    return String(value || '').trim().toLowerCase() === String(categoryFilter || '').trim().toLowerCase()
+  }
   const monthLabels = useMemo(() => {
     const now = new Date()
     const labels = []
@@ -86,6 +93,59 @@ export default function Reports() {
       })
     }
     return labels
+  }, [])
+
+  const loadCategories = async () => {
+    setCategoriesLoading(true)
+    try {
+      const [categoryRes, bookRes] = await Promise.all([
+        supabase
+          .from('library_book_categories')
+          .select('id, name')
+          .order('name', { ascending: true }),
+        supabase
+          .from('library_books')
+          .select('category')
+      ])
+
+      const categoryRows = categoryRes?.error ? [] : (categoryRes?.data || [])
+      const bookRows = bookRes?.error ? [] : (bookRes?.data || [])
+
+      if (categoryRes?.error) {
+        console.log('Book categories table might not exist yet:', categoryRes.error?.message || categoryRes.error)
+      }
+      if (bookRes?.error) {
+        console.log('Unable to load book categories from books:', bookRes.error?.message || bookRes.error)
+      }
+
+      const byName = new Map()
+      categoryRows.forEach((row) => {
+        const name = String(row?.name || '').trim()
+        if (!name) return
+        byName.set(name.toLowerCase(), { id: row.id, name })
+      })
+
+      bookRows.forEach((row) => {
+        const name = String(row?.category || '').trim()
+        if (!name) return
+        const key = name.toLowerCase()
+        if (!byName.has(key)) {
+          byName.set(key, { id: `book-${encodeURIComponent(key)}`, name })
+        }
+      })
+
+      const merged = Array.from(byName.values()).sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+      setCategories(merged)
+    } catch (error) {
+      console.log('Book categories load failed:', error?.message || error)
+      setCategories([])
+    } finally {
+      setCategoriesLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadCategories()
   }, [])
 
   const handleMonthClick = async (month) => {
@@ -213,7 +273,7 @@ export default function Reports() {
     try {
       const { data: books, error: bookError } = await supabase
         .from('library_books')
-        .select('id, title, author, language, publisher, published_year, shelf_code, status, created_at')
+        .select('id, title, author, category, language, publisher, published_year, shelf_code, status, created_at')
         .order('created_at', { ascending: false })
 
       if (bookError) throw bookError
@@ -239,6 +299,7 @@ export default function Reports() {
         const copyCount = copiesByBook[String(book.id)] || 0
         const statusValue = (book.status || '').toUpperCase()
         if (!matchesMonthYear(book.created_at)) return false
+        if (!matchesCategory(book.category)) return false
         if (summaryFilter === 'available') return copyCount > 0
         if (summaryFilter === 'out') return copyCount === 0
         if (summaryFilter === 'public') return statusValue === 'PUBLIC'
@@ -277,13 +338,14 @@ export default function Reports() {
     try {
       const { data: books, error: bookError } = await supabase
         .from('library_books')
-        .select('id, title, author, status, created_at')
+        .select('id, title, author, category, status, created_at')
         .order('created_at', { ascending: false })
         .limit(50)
       if (bookError) throw bookError
 
       const filteredBooks = (books || []).filter((book) => {
         if (!matchesMonthYear(book.created_at)) return false
+        if (!matchesCategory(book.category)) return false
         const statusValue = (book.status || '').toUpperCase()
         if (summaryFilter === 'available' || summaryFilter === 'out') {
           return true // handled after counts
@@ -341,7 +403,7 @@ export default function Reports() {
       const { data: loans, error } = await supabase
         .from('library_loans')
         .select(
-          'issued_at, returned_at, due_date, status, students(full_name,student_id), library_book_copies(book_id, library_books(title, author, shelf_code))'
+          'issued_at, returned_at, due_date, status, students(full_name,student_id), library_book_copies(book_id, library_books(title, author, shelf_code, category))'
         )
         .order('issued_at', { ascending: false })
 
@@ -353,6 +415,7 @@ export default function Reports() {
         const isOverdue = dueDateValue ? (new Date(todayIso) > dueDateValue && status === 'ISSUED') : false
 
         if (!matchesMonthYear(loan.issued_at || loan.returned_at || loan.due_date)) return false
+        if (!matchesCategory(loan.library_book_copies?.library_books?.category)) return false
 
         if (circulationFilter === 'issued') return status === 'ISSUED'
         if (circulationFilter === 'returned') return status === 'RETURNED'
@@ -396,7 +459,7 @@ export default function Reports() {
       const { data: loans, error } = await supabase
         .from('library_loans')
         .select(
-          'issued_at, returned_at, due_date, status, students(full_name,student_id), library_book_copies(book_id, library_books(title, author, shelf_code))'
+          'issued_at, returned_at, due_date, status, students(full_name,student_id), library_book_copies(book_id, library_books(title, author, shelf_code, category))'
         )
         .order('issued_at', { ascending: false })
         .limit(50)
@@ -408,6 +471,7 @@ export default function Reports() {
         const dueDateValue = loan.due_date ? new Date(loan.due_date) : null
         const isOverdue = dueDateValue ? new Date(todayIso) > dueDateValue && status === 'ISSUED' : false
         if (!matchesMonthYear(loan.issued_at || loan.returned_at || loan.due_date)) return false
+        if (!matchesCategory(loan.library_book_copies?.library_books?.category)) return false
         if (circulationFilter === 'issued') return status === 'ISSUED'
         if (circulationFilter === 'returned') return status === 'RETURNED'
         if (circulationFilter === 'damaged') return status === 'DAMAGED'
@@ -437,7 +501,7 @@ export default function Reports() {
       const { data: loans, error } = await supabase
         .from('library_loans')
         .select(
-          'due_date, status, students(full_name,student_id), library_book_copies(book_id, library_books(title))'
+          'due_date, status, students(full_name,student_id), library_book_copies(book_id, library_books(title, category))'
         )
         .eq('status', 'ISSUED')
         .lt('due_date', todayIso)
@@ -459,10 +523,12 @@ export default function Reports() {
             daysOverdue
           ],
           daysOverdue,
-          dueKey: String(loan.due_date || '').slice(0, 7)
+          dueKey: String(loan.due_date || '').slice(0, 7),
+          loan
         }
-      }).filter(({ daysOverdue, dueKey }) => {
+      }).filter(({ daysOverdue, dueKey, loan }) => {
         if (!matchesMonthYear(`${dueKey}-01`)) return false
+        if (!matchesCategory(loan.library_book_copies?.library_books?.category)) return false
         if (overdueFilter === 'week') return daysOverdue <= 7
         if (overdueFilter === 'month') return daysOverdue > 7 && daysOverdue <= 30
         if (overdueFilter === 'overMonth') return daysOverdue > 30
@@ -492,7 +558,7 @@ export default function Reports() {
       const { data: loans, error } = await supabase
         .from('library_loans')
         .select(
-          'due_date, status, students(full_name,student_id), library_book_copies(book_id, library_books(title))'
+          'due_date, status, students(full_name,student_id), library_book_copies(book_id, library_books(title, category))'
         )
         .eq('status', 'ISSUED')
         .lt('due_date', todayIso)
@@ -508,6 +574,7 @@ export default function Reports() {
         return { loan, daysOverdue }
       }).filter(({ daysOverdue, loan }) => {
         if (!matchesMonthYear(loan.due_date)) return false
+        if (!matchesCategory(loan.library_book_copies?.library_books?.category)) return false
         if (overdueFilter === 'week') return daysOverdue <= 7
         if (overdueFilter === 'month') return daysOverdue > 7 && daysOverdue <= 30
         if (overdueFilter === 'overMonth') return daysOverdue > 30
@@ -534,12 +601,13 @@ export default function Reports() {
     try {
       const { data: loans, error } = await supabase
         .from('library_loans')
-        .select('issued_at, library_book_copies(book_id, library_books(title))')
+        .select('issued_at, library_book_copies(book_id, library_books(title, category))')
 
       if (error) throw error
 
       const counts = (loans || []).reduce((acc, loan) => {
         if (!matchesMonthYear(loan.issued_at)) return acc
+        if (!matchesCategory(loan.library_book_copies?.library_books?.category)) return acc
         const bookTitle = loan.library_book_copies?.library_books?.title || 'Unknown'
         acc[bookTitle] = (acc[bookTitle] || 0) + 1
         return acc
@@ -570,12 +638,13 @@ export default function Reports() {
     try {
       const { data: loans, error } = await supabase
         .from('library_loans')
-        .select('issued_at, library_book_copies(book_id, library_books(title))')
+        .select('issued_at, library_book_copies(book_id, library_books(title, category))')
 
       if (error) throw error
 
       const counts = (loans || []).reduce((acc, loan) => {
         if (!matchesMonthYear(loan.issued_at)) return acc
+        if (!matchesCategory(loan.library_book_copies?.library_books?.category)) return acc
         const bookTitle = loan.library_book_copies?.library_books?.title || 'Unknown'
         acc[bookTitle] = (acc[bookTitle] || 0) + 1
         return acc
@@ -600,7 +669,7 @@ export default function Reports() {
     else if (activePreview === 'circulation') void previewCirculation()
     else if (activePreview === 'overdue') void previewOverdue()
     else if (activePreview === 'top') void previewTopBorrowed()
-  }, [activePreview, summaryFilter, circulationFilter, overdueFilter, topBorrowedLimit, monthStartFilter, monthEndFilter, yearFilter])
+  }, [activePreview, summaryFilter, circulationFilter, overdueFilter, topBorrowedLimit, monthStartFilter, monthEndFilter, yearFilter, categoryFilter])
 
   useEffect(() => {
     const loadReports = async () => {
@@ -684,6 +753,20 @@ export default function Reports() {
               </select>
             </div>
             <div className="mb-2">
+              <label className="form-label small text-muted mb-1">Category</label>
+              <select
+                className="form-select form-select-sm"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                disabled={categoriesLoading}
+              >
+                <option value="all">All categories</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.name}>{cat.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="mb-2">
               <label className="form-label small text-muted mb-1">Month range</label>
               <div className="d-flex gap-2">
                 <select
@@ -743,6 +826,20 @@ export default function Reports() {
                 <option value="overdue">Overdue</option>
                 <option value="damaged">Damaged</option>
                 <option value="missing">Missing</option>
+              </select>
+            </div>
+            <div className="mb-2">
+              <label className="form-label small text-muted mb-1">Category</label>
+              <select
+                className="form-select form-select-sm"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                disabled={categoriesLoading}
+              >
+                <option value="all">All categories</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.name}>{cat.name}</option>
+                ))}
               </select>
             </div>
             <div className="mb-2">
