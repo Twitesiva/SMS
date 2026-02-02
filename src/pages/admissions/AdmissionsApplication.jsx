@@ -68,7 +68,7 @@ export default function AdmissionsApplication() {
         Parent_no: '',
         religion: '',
         caste: '',
-        current_semester: '',
+        current_semester: 1,
         is_hostel: '',
         is_transport: '',
         hostel_ac: null
@@ -648,7 +648,7 @@ export default function AdmissionsApplication() {
                                                     ))}
                                                 </select>
                                             </div>
-                                            <div className="col-md-2">
+                                            <div className="col-md-3">
                                                 <label className="form-label">Group</label>
                                                 <select
                                                     className="form-select"
@@ -670,7 +670,7 @@ export default function AdmissionsApplication() {
                                                     ))}
                                                 </select>
                                             </div>
-                                            <div className="col-md-2">
+                                            <div className="col-md-3">
                                                 <label className="form-label">Course</label>
                                                 <select
                                                     className="form-select"
@@ -694,29 +694,7 @@ export default function AdmissionsApplication() {
                                                     ))}
                                                 </select>
                                             </div>
-                                            <div className="col-md-2">
-                                                <label className="form-label">Semester</label>
-                                                <input
-                                                    type="number"
-                                                    className="form-control"
-                                                    value={form.current_semester}
-                                                    onChange={(e) => {
-                                                        const val = parseInt(e.target.value, 10);
-                                                        if (val !== 1) {
-                                                            setSemesterWarning(true);
-                                                            handle('current_semester', 1);
-                                                            setTimeout(() => setSemesterWarning(false), 3000);
-                                                        } else {
-                                                            handle('current_semester', 1);
-                                                        }
-                                                    }}
-                                                    placeholder="Sem No"
-                                                    max="1"
-                                                    required
-                                                    disabled={!isEditing}
-                                                />
-                                                {semesterWarning && <div className="text-danger small mt-1">Starts from Semester 1</div>}
-                                            </div>
+
                                         </div>
                                     </div>
 
