@@ -1354,11 +1354,11 @@ export default function Reports() {
                                   <td>{item.shelf_code || '-'}</td>
                                   <td>
                                     <span className={`badge ${ 
-                                      item.status === 'ACTIVE' ? 'bg-success' :
                                       item.status === 'INACTIVE' ? 'bg-secondary' :
-                                      item.status === 'ARCHIVED' ? 'bg-warning text-dark' : 'bg-secondary'
+                                      item.status === 'ARCHIVED' ? 'bg-warning text-dark' :
+                                      'bg-success'
                                     }`}> 
-                                      {item.status || 'UNKNOWN'}
+                                      {item.status || 'ACTIVE'}
                                     </span>
                                   </td>
                                 </tr>
