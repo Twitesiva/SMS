@@ -63,36 +63,31 @@ export default function HostelAllocations() {
 
     const fetchEligibleStudents = async () => {
         setLoadingEligible(true);
-        const { data, error } = await supabase.from('v_hostel_payment_eligible_students').select('*').order('full_name');
+
+        // Fetch students who have paid hostel fees using inner join
+        const { data, error } = await supabase
+            .from('students')
+            .select('id, student_id, hall_ticket_no, full_name, gender, hostel_ac, is_hostel, year_of_study, student_fee_payments!inner(id)')
+            .eq('is_hostel', true)
+            .eq('student_fee_payments.payment_status', 'success')
+            .ilike('student_fee_payments.fee_type', '%Hostel%')
+            .order('full_name');
+
         if (error) {
+            console.error('Error fetching students:', error);
             toast.error('Failed to load eligible students');
         } else {
-            let enrichedData = data || [];
+            let enrichedData = (data || []).map(s => ({
+                student_id: s.id, // PK
+                hall_ticket_no: s.student_id || s.hall_ticket_no, // Display ID
+                full_name: s.full_name,
+                gender: s.gender,
+                year_of_study: s.year_of_study,
+                hostel_type: s.hostel_ac ? 'AC' : 'NON_AC'
+            }));
 
             if (enrichedData.length > 0) {
                 const ids = enrichedData.map(s => s.student_id);
-
-                // Fetch year of study for these students
-                const { data: studentDetails } = await supabase
-                    .from('students')
-                    .select('id, year_of_study, hostel_ac')
-                    .in('id', ids);
-
-                const metaMap = {};
-                studentDetails?.forEach(s => {
-                    metaMap[s.id] = {
-                        year_of_study: s.year_of_study,
-                        hostel_ac: s.hostel_ac
-                    };
-                });
-
-                enrichedData = enrichedData.map(s => ({
-                    ...s,
-                    year_of_study: metaMap[s.student_id]?.year_of_study,
-                    hostel_type: normalizeHostelType(
-                        metaMap[s.student_id]?.hostel_ac ?? s.hostel_type
-                    )
-                }));
 
                 const { data: allocs } = await supabase
                     .from('hostel_allocations')
@@ -235,6 +230,7 @@ export default function HostelAllocations() {
             toast.success('Bed allocated successfully');
             setShowAllocateModal(false);
             fetchCurrentAllocation(student.id);
+            fetchEligibleStudents();
         }
         setSearching(false);
     };
@@ -260,6 +256,7 @@ export default function HostelAllocations() {
             toast.success('Bed changed successfully');
             setShowChangeModal(false);
             fetchCurrentAllocation(student.id);
+            fetchEligibleStudents();
         }
         setSearching(false);
     };
@@ -270,6 +267,7 @@ export default function HostelAllocations() {
         else {
             toast.success('Student vacated successfully');
             fetchCurrentAllocation(student.id);
+            fetchEligibleStudents();
         }
     };
 
@@ -290,6 +288,7 @@ export default function HostelAllocations() {
         } else {
             toast.success('Bed auto-allocated successfully');
             fetchCurrentAllocation(student.id);
+            fetchEligibleStudents();
         }
         setSearching(false);
     };
@@ -340,6 +339,18 @@ export default function HostelAllocations() {
                         }
                     }
                 }
+            }
+        }
+
+
+        // Auto-select block based on gender if not determined by mapping
+        if (!newFilters.block_id) {
+            const normalizedGender = String(studentData?.gender || s.gender || '').trim().toUpperCase();
+            const targetGender = normalizedGender.startsWith('M') ? 'BOYS' : 'GIRLS';
+            // Find valid blocks for this gender
+            const matchingBlock = blocks.find(b => b.gender === targetGender);
+            if (matchingBlock) {
+                newFilters.block_id = matchingBlock.id;
             }
         }
 
@@ -445,7 +456,7 @@ export default function HostelAllocations() {
                                         subtitle="Identifying students who paid hostel fees."
                                     />
                                 ) : (
-                                    <div className="table-responsive" style={{ maxHeight: '300px' }}>
+                                    <div className="table-responsive" style={{ maxHeight: '600px' }}>
                                         <table className="table table-hover align-middle">
                                             <thead className="sticky-top">
                                                 <tr className="text-white text-uppercase fw-bold" style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)', fontSize: '1.1rem' }}>
@@ -454,7 +465,7 @@ export default function HostelAllocations() {
                                                     <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Year of Study</th>
                                                     <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Hostel Type</th>
 
-                                                    <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Status</th>
+                                                    <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room No</th>
                                                     <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Action</th>
                                                 </tr>
                                             </thead>
