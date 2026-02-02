@@ -2,8 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../store/auth";
 import logo from "../assets/media/images.png";
-import './AdminPortalShell.css'; // Will reuse Staff Portal Styles essentially through updated CSS
-import '../pages/staff/StaffPortal.css'; // Explicitly inherit Staff styles for layout
+import '../pages/staff/StaffPortal.css'; // Match Exam portal sidebar behavior
 
 const adminPortalNavGroups = [
     {
@@ -147,8 +146,7 @@ export default function AdShellAdmin({
     // Determine which nav groups to use
     const activeNavGroups = navGroups || adminPortalNavGroups;
 
-    const isRouteActive = (pathname, to, exact = false) => {
-        if (exact) return pathname === to;
+    const isRouteActive = (pathname, to) => {
         return pathname === to || pathname.startsWith(`${to}/`);
     };
 
@@ -209,7 +207,7 @@ export default function AdShellAdmin({
                 <nav className="staff-sidebar__nav">
                     {activeNavGroups.map((group, groupIndex) => {
                         const isStatic = group.static;
-                        const isActiveGroup = group.items.some((item) => isRouteActive(pathname, item.to, item.exact));
+                        const isActiveGroup = group.items.some((item) => isRouteActive(pathname, item.to));
                         const isExpanded = expandedGroups[groupIndex];
 
                         if (isStatic) {
@@ -218,7 +216,7 @@ export default function AdShellAdmin({
                                 <Link
                                     key={item.to}
                                     to={item.to}
-                                    className={`staff-sidebar__link ${isRouteActive(pathname, item.to, item.exact) ? 'active' : ''}`}
+                                    className={`staff-sidebar__link ${isRouteActive(pathname, item.to) ? 'active' : ''}`}
                                 >
                                     <i className={`bi ${item.icon}`}></i>
                                     <span>{item.label}</span>
@@ -250,8 +248,8 @@ export default function AdShellAdmin({
                                             <Link
                                                 key={item.to}
                                                 to={item.to}
-                                                className={`staff-sidebar__link ${isRouteActive(pathname, item.to, item.exact) ? 'active' : ''}`}
-                                                style={{ padding: '8px 12px', fontSize: '0.9rem', marginBottom: '2px', background: isRouteActive(pathname, item.to, item.exact) ? 'rgba(255,255,255,0.15)' : 'transparent', border: 'none' }}
+                                                className={`staff-sidebar__link ${isRouteActive(pathname, item.to) ? 'active' : ''}`}
+                                                style={{ padding: '8px 12px', fontSize: '0.9rem', marginBottom: '2px', background: isRouteActive(pathname, item.to) ? 'rgba(255,255,255,0.15)' : 'transparent', border: 'none' }}
                                             >
                                                 <i className={`bi ${item.icon}`} style={{ fontSize: '0.85rem' }}></i>
                                                 <span style={{ fontSize: '0.85rem' }}>{item.label}</span>
