@@ -74,6 +74,7 @@ export default function FeesCollection() {
     feeType: '',
     method: ''
   })
+  const [courseNameOverride, setCourseNameOverride] = useState('')
   const [showHistory, setShowHistory] = useState(false)
   const [paymentHistory, setPaymentHistory] = useState([])
   const [historyLoading, setHistoryLoading] = useState(false)
@@ -81,7 +82,7 @@ export default function FeesCollection() {
   const [applicationId, setApplicationId] = useState(null)
 
   const paymentsLocked = !studentLoaded
-  const courseLabel = studentInfo?.course_name || 'N/A'
+  const courseLabel = courseNameOverride || studentInfo?.course_name || 'N/A'
   const academicYearLabel = studentInfo?.academic_year || 'N/A'
   const semesterValue = studentInfo?.current_semester
   const semesterDisplay = semesterValue ? `Semester ${semesterValue}` : 'Semester N/A'
@@ -191,6 +192,29 @@ export default function FeesCollection() {
     setPaymentTotalsByType(totalsByType)
     setTotalPaid(sum)
     setOutstanding(Math.max(total - sum, 0))
+  }
+
+  const resolveCourseName = async (student) => {
+    if (!student) return ''
+    const rawCourseName = student.course_name
+    const rawCourseId = student.course_id
+    if (rawCourseName && isNaN(Number(rawCourseName))) return rawCourseName
+    if (!rawCourseId && !rawCourseName) return ''
+
+    let query = supabase
+      .from('courses')
+      .select('course_name, course_code')
+      .limit(1)
+
+    if (rawCourseId) {
+      query = query.eq('course_id', rawCourseId)
+    } else {
+      query = query.eq('course_code', rawCourseName)
+    }
+
+    const { data, error } = await query.maybeSingle()
+    if (error) throw error
+    return data?.course_name || ''
   }
 
   const fetchPaymentHistory = async (studentRecordId, appId) => {
@@ -411,6 +435,7 @@ export default function FeesCollection() {
     setPaymentTotalsByType({})
     setPaymentMode('partial')
     setStudentInfo(null)
+    setCourseNameOverride('')
     setApplicationId(null)
     setTotalPaid(0)
     setOutstanding(0)
@@ -443,6 +468,13 @@ export default function FeesCollection() {
       }
 
       setStudentInfo(student)
+      try {
+        const resolvedCourseName = await resolveCourseName(student)
+        setCourseNameOverride(resolvedCourseName)
+      } catch (err) {
+        console.warn('Could not resolve course name', err)
+        setCourseNameOverride('')
+      }
 
       // Fetch Application ID to check for admission payments
       let applicationId = null
