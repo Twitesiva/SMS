@@ -1,5 +1,4 @@
 import { useEffect, useState, useMemo } from 'react'
-import { Link } from 'react-router-dom'
 import { api } from '../../lib/mockApi'
 import { supabase } from '../../../supabaseClient'
 import AdShellAdmin from '../../components/AdShellAdmin'
@@ -75,6 +74,11 @@ export default function FeesCollection() {
     feeType: '',
     method: ''
   })
+  const [showHistory, setShowHistory] = useState(false)
+  const [paymentHistory, setPaymentHistory] = useState([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyError, setHistoryError] = useState('')
+  const [applicationId, setApplicationId] = useState(null)
 
   const paymentsLocked = !studentLoaded
   const courseLabel = studentInfo?.course_name || 'N/A'
@@ -187,6 +191,27 @@ export default function FeesCollection() {
     setPaymentTotalsByType(totalsByType)
     setTotalPaid(sum)
     setOutstanding(Math.max(total - sum, 0))
+  }
+
+  const fetchPaymentHistory = async (studentRecordId, appId) => {
+    let query = supabase
+      .from('student_fee_payments')
+      .select('id, created_at, amount_paid, fee_type, payment_mode, payment_type, payment_status')
+      .eq('payment_status', 'success')
+
+    if (appId) {
+      query = query.or(`student_id.eq.${studentRecordId},application_id.eq.${appId}`)
+    } else {
+      query = query.eq('student_id', studentRecordId)
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false })
+
+    if (error) {
+      throw error
+    }
+
+    return data || []
   }
 
   const resolveStudentFeeDetails = async (student) => {
@@ -373,7 +398,7 @@ export default function FeesCollection() {
     return details
   }
 
-  const handleLoadStudent = async () => {
+  const handleLoadStudent = async ({ preserveHistory = false } = {}) => {
 
     const trimmed = studentId.trim()
     setLoadError('')
@@ -386,14 +411,20 @@ export default function FeesCollection() {
     setPaymentTotalsByType({})
     setPaymentMode('partial')
     setStudentInfo(null)
+    setApplicationId(null)
     setTotalPaid(0)
     setOutstanding(0)
     setStudentLoaded(false)
+    if (!preserveHistory) {
+      setShowHistory(false)
+    }
+    setPaymentHistory([])
+    setHistoryError('')
 
     if (!trimmed) {
       setLoadError('Enter a valid student ID to continue.')
       setStudentLoaded(false)
-      return
+      return null
     }
 
     try {
@@ -408,7 +439,7 @@ export default function FeesCollection() {
       if (!student) {
         setLoadError('No student found with this ID.')
         setStudentLoaded(false)
-        return
+        return null
       }
 
       setStudentInfo(student)
@@ -425,6 +456,7 @@ export default function FeesCollection() {
       } catch (err) {
         console.warn('Could not fetch admission record', err)
       }
+      setApplicationId(applicationId)
 
       let feeDetails = { totalFee: 0, breakdown: [], warning: '', feeId: null }
       let feeWarning = ''
@@ -454,13 +486,49 @@ export default function FeesCollection() {
       setStudentLoaded(true)
       setPaymentForm({ amount: '', feeType: '', method: '' })
       setPaymentMode('partial')
+      return { student, applicationId }
     } catch (error) {
       console.error('Failed to load student', error)
       setLoadError(error?.message || 'Failed to load student details.')
       setStudentLoaded(false)
+      return null
     } finally {
       setLoadingStudent(false)
     }
+  }
+
+  const handleOpenHistory = async () => {
+    if (historyLoading) return
+    const trimmed = studentId.trim()
+    if (!trimmed) {
+      setLoadError('Enter a valid student ID to continue.')
+      return
+    }
+
+    setShowHistory(true)
+    setHistoryLoading(true)
+    setHistoryError('')
+    let resolved = { student: studentInfo, applicationId }
+    if (!studentLoaded || (studentInfo?.student_id || '').toLowerCase() !== trimmed.toLowerCase()) {
+      resolved = await handleLoadStudent({ preserveHistory: true })
+    }
+    if (!resolved?.student) {
+      setHistoryLoading(false)
+      return
+    }
+    try {
+      const history = await fetchPaymentHistory(resolved.student.id, resolved.applicationId)
+      setPaymentHistory(history)
+    } catch (error) {
+      console.error('Failed to load payment history', error)
+      setHistoryError('Unable to load payment history.')
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  const handleCloseHistory = () => {
+    setShowHistory(false)
   }
 
   const handleSubmitPayment = async (event) => {
@@ -529,6 +597,14 @@ export default function FeesCollection() {
       if (error) throw error
 
       await fetchPaymentSummary(studentInfo.id, totalFeeDisplay, feeStructureId)
+      if (showHistory) {
+        try {
+          const history = await fetchPaymentHistory(studentInfo.id, applicationId)
+          setPaymentHistory(history)
+        } catch (error) {
+          console.error('Failed to refresh payment history', error)
+        }
+      }
       toast.success('Payment recorded successfully.')
       setPaymentForm({ amount: '', feeType: '', method: '' })
       setPaymentMode('partial')
@@ -569,14 +645,22 @@ export default function FeesCollection() {
                   />
                   {loadError && <div className="text-danger fw-bold mt-2">{loadError}</div>}
                 </div>
-                <div className="col-12 d-flex justify-content-end">
+                <div className="col-12 d-flex justify-content-end gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-outline-primary students-button"
+                    onClick={handleOpenHistory}
+                    disabled={!studentId.trim() || loadingStudent}
+                  >
+                    View History
+                  </button>
                   <button
                     type="button"
                     className="btn btn-primary students-button"
                     onClick={handleLoadStudent}
                     disabled={loadingStudent}
                   >
-                    {loadingStudent ? 'Loading...' : 'Load Student'}
+                    {loadingStudent ? 'Loading...' : 'Find Student'}
                   </button>
                 </div>
               </div>
@@ -815,6 +899,71 @@ export default function FeesCollection() {
         </div>
       </div>
       <ToastContainer position="top-right" autoClose={3000} />
+      {showHistory && (
+        <div className="modal d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-dialog-centered modal-lg">
+            <div className="modal-content">
+              <div className="students-modal-header" style={{ color: '#ffffff' }}>
+                <div>
+                  <p className="students-modal-header-eyebrow text-uppercase mb-1 text-white" style={{ color: '#ffffff' }}>
+                    <span className="text-white" style={{ color: '#ffffff' }}>Payment History</span>
+                  </p>
+                  <h5 className="students-modal-header-title fw-bold mb-0 text-white" style={{ color: '#ffffff' }}>
+                    {studentInfo?.full_name || 'Student'}
+                  </h5>
+                  <div className="students-modal-header-meta text-white fw-bold" style={{ color: '#ffffff' }}>
+                    <span className="text-white" style={{ color: '#ffffff' }}>
+                      {studentInfo?.student_id ? `Student ID: ${studentInfo.student_id}` : 'Student ID: -'}
+                    </span>
+                  </div>
+                </div>
+                <button type="button" className="students-modal-close btn btn-sm" onClick={handleCloseHistory}>
+                  Close
+                </button>
+              </div>
+              <div className="modal-body">
+                {historyLoading ? (
+                  <div className="text-muted small">Loading payment history...</div>
+                ) : historyError ? (
+                  <div className="text-danger small">{historyError}</div>
+                ) : paymentHistory.length === 0 ? (
+                  <div className="text-muted small">No payment history found.</div>
+                ) : (
+                  <div className="table-responsive">
+                    <table className="table table-sm align-middle mb-0">
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>Type</th>
+                          <th>Fee</th>
+                          <th>Mode</th>
+                          <th className="text-end">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paymentHistory.map((row) => (
+                          <tr key={row.id}>
+                            <td>{row.created_at ? new Date(row.created_at).toLocaleDateString('en-GB') : '-'}</td>
+                            <td className="text-uppercase small">{row.payment_type || '-'}</td>
+                            <td>{row.fee_type || 'Full Payment'}</td>
+                            <td className="text-uppercase small">{row.payment_mode || '-'}</td>
+                            <td className="text-end">₹ {formatMoney(row.amount_paid)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={handleCloseHistory}>
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AdShellAdmin>
   )
 }
