@@ -20,6 +20,7 @@ const navItems = [
   { to: '/student/circulars', label: 'Circulars', icon: 'bi-megaphone' },
   { to: '/student/results', label: 'Results', icon: 'bi-file-earmark-bar-graph' },
   { to: '/student/transport', label: 'Transport', icon: 'bi-bus-front' },
+  { to: '/student/library', label: 'Library', icon: 'bi-book' },
 ]
 
 const isRouteActive = (pathname, to) => {
