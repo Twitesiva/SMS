@@ -52,7 +52,7 @@ export default function HostelLogin() {
             <div className="admission-portal__brand-sub">Hostel Access</div>
           </div>
         </div>
-        <Link to="/roles" className="admission-portal__back">
+        <Link to="/roles" className="admission-portal__back" style={{ position: 'fixed', top: '18px', right: '24px', zIndex: 1000 }}>
           <i className="bi bi-arrow-left"></i> Back to Roles
         </Link>
       </div>

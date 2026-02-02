@@ -136,6 +136,7 @@ export default function AdShellAdmin({
     children,
     navGroups,
     brandTitle = "ADMIN PORTAL",
+    logoutPath = "/"
 }) {
     const { pathname } = useLocation();
     const navTo = useNavigate();
@@ -162,7 +163,7 @@ export default function AdShellAdmin({
 
     const handleLogout = () => {
         signOut();
-        navTo("/");
+        navTo(logoutPath);
     };
 
     // Automatically expand the group that contains the current active route
