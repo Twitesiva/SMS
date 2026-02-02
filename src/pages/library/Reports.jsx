@@ -41,6 +41,43 @@ export default function Reports() {
   const [topMonthEnd, setTopMonthEnd] = useState('all')
   const [topYear, setTopYear] = useState('all')
 
+  const resetSummaryFilters = () => {
+    setSummaryFilter('all')
+    setSummaryMonthStart('all')
+    setSummaryMonthEnd('all')
+    setSummaryYear('all')
+    setSummaryCategory('all')
+  }
+
+  const resetCirculationFilters = () => {
+    setCirculationFilter('all')
+    setCirculationMonthStart('all')
+    setCirculationMonthEnd('all')
+    setCirculationYear('all')
+    setCirculationCategory('all')
+  }
+
+  const resetOverdueFilters = () => {
+    setOverdueFilter('all')
+    setOverdueMonthStart('all')
+    setOverdueMonthEnd('all')
+    setOverdueYear('all')
+  }
+
+  const resetTopFilters = () => {
+    setTopBorrowedLimit('20')
+    setTopMonthStart('all')
+    setTopMonthEnd('all')
+    setTopYear('all')
+  }
+
+  const resetOtherFilters = (section) => {
+    if (section !== 'summary') resetSummaryFilters()
+    if (section !== 'circulation') resetCirculationFilters()
+    if (section !== 'overdue') resetOverdueFilters()
+    if (section !== 'top') resetTopFilters()
+  }
+
   const [summaryPreview, setSummaryPreview] = useState({ rows: [], loading: false })
   const [circulationPreview, setCirculationPreview] = useState({ rows: [], loading: false })
   const [overduePreview, setOverduePreview] = useState({ rows: [], loading: false })
@@ -688,33 +725,21 @@ export default function Reports() {
     }
   }
 
-  // Auto-refresh the active preview only when filters change
   useEffect(() => {
     if (activePreview === 'summary') void previewLibrarySummary()
-    else if (activePreview === 'circulation') void previewCirculation()
-    else if (activePreview === 'overdue') void previewOverdue()
-    else if (activePreview === 'top') void previewTopBorrowed()
-  }, [
-    activePreview,
-    summaryFilter,
-    circulationFilter,
-    overdueFilter,
-    topBorrowedLimit,
-    summaryMonthStart,
-    summaryMonthEnd,
-    summaryYear,
-    summaryCategory,
-    circulationMonthStart,
-    circulationMonthEnd,
-    circulationYear,
-    circulationCategory,
-    overdueMonthStart,
-    overdueMonthEnd,
-    overdueYear,
-    topMonthStart,
-    topMonthEnd,
-    topYear
-  ])
+  }, [activePreview, summaryFilter, summaryMonthStart, summaryMonthEnd, summaryYear, summaryCategory])
+
+  useEffect(() => {
+    if (activePreview === 'circulation') void previewCirculation()
+  }, [activePreview, circulationFilter, circulationMonthStart, circulationMonthEnd, circulationYear, circulationCategory])
+
+  useEffect(() => {
+    if (activePreview === 'overdue') void previewOverdue()
+  }, [activePreview, overdueFilter, overdueMonthStart, overdueMonthEnd, overdueYear])
+
+  useEffect(() => {
+    if (activePreview === 'top') void previewTopBorrowed()
+  }, [activePreview, topBorrowedLimit, topMonthStart, topMonthEnd, topYear])
 
   useEffect(() => {
     const loadReports = async () => {
@@ -789,6 +814,7 @@ export default function Reports() {
                 className="form-select form-select-sm"
                 value={summaryFilter}
                 onChange={(e) => {
+                  resetOtherFilters('summary')
                   setSummaryFilter(e.target.value)
                   setActivePreview('summary')
                 }}
@@ -806,6 +832,7 @@ export default function Reports() {
                 className="form-select form-select-sm"
                 value={summaryCategory}
                 onChange={(e) => {
+                  resetOtherFilters('summary')
                   setSummaryCategory(e.target.value)
                   setActivePreview('summary')
                 }}
@@ -824,6 +851,7 @@ export default function Reports() {
                   className="form-select form-select-sm"
                   value={summaryMonthStart}
                   onChange={(e) => {
+                    resetOtherFilters('summary')
                     setSummaryMonthStart(e.target.value)
                     setActivePreview('summary')
                   }}
@@ -836,6 +864,7 @@ export default function Reports() {
                   className="form-select form-select-sm"
                   value={summaryMonthEnd}
                   onChange={(e) => {
+                    resetOtherFilters('summary')
                     setSummaryMonthEnd(e.target.value)
                     setActivePreview('summary')
                   }}
@@ -856,6 +885,7 @@ export default function Reports() {
                 placeholder="All years"
                 value={summaryYear === 'all' ? '' : summaryYear}
                 onChange={(e) => {
+                  resetOtherFilters('summary')
                   setSummaryYear(e.target.value.trim() || 'all')
                   setActivePreview('summary')
                 }}
@@ -876,6 +906,7 @@ export default function Reports() {
                 className="form-select form-select-sm"
                 value={circulationFilter}
                 onChange={(e) => {
+                  resetOtherFilters('circulation')
                   setCirculationFilter(e.target.value)
                   setActivePreview('circulation')
                 }}
@@ -894,6 +925,7 @@ export default function Reports() {
                 className="form-select form-select-sm"
                 value={circulationCategory}
                 onChange={(e) => {
+                  resetOtherFilters('circulation')
                   setCirculationCategory(e.target.value)
                   setActivePreview('circulation')
                 }}
@@ -912,6 +944,7 @@ export default function Reports() {
                   className="form-select form-select-sm"
                   value={circulationMonthStart}
                   onChange={(e) => {
+                    resetOtherFilters('circulation')
                     setCirculationMonthStart(e.target.value)
                     setActivePreview('circulation')
                   }}
@@ -924,6 +957,7 @@ export default function Reports() {
                   className="form-select form-select-sm"
                   value={circulationMonthEnd}
                   onChange={(e) => {
+                    resetOtherFilters('circulation')
                     setCirculationMonthEnd(e.target.value)
                     setActivePreview('circulation')
                   }}
@@ -944,6 +978,7 @@ export default function Reports() {
                 placeholder="All years"
                 value={circulationYear === 'all' ? '' : circulationYear}
                 onChange={(e) => {
+                  resetOtherFilters('circulation')
                   setCirculationYear(e.target.value.trim() || 'all')
                   setActivePreview('circulation')
                 }}
@@ -964,6 +999,7 @@ export default function Reports() {
                 className="form-select form-select-sm"
                 value={overdueFilter}
                 onChange={(e) => {
+                  resetOtherFilters('overdue')
                   setOverdueFilter(e.target.value)
                   setActivePreview('overdue')
                 }}
@@ -981,6 +1017,7 @@ export default function Reports() {
                   className="form-select form-select-sm"
                   value={overdueMonthStart}
                   onChange={(e) => {
+                    resetOtherFilters('overdue')
                     setOverdueMonthStart(e.target.value)
                     setActivePreview('overdue')
                   }}
@@ -993,6 +1030,7 @@ export default function Reports() {
                   className="form-select form-select-sm"
                   value={overdueMonthEnd}
                   onChange={(e) => {
+                    resetOtherFilters('overdue')
                     setOverdueMonthEnd(e.target.value)
                     setActivePreview('overdue')
                   }}
@@ -1013,6 +1051,7 @@ export default function Reports() {
                 placeholder="All years"
                 value={overdueYear === 'all' ? '' : overdueYear}
                 onChange={(e) => {
+                  resetOtherFilters('overdue')
                   setOverdueYear(e.target.value.trim() || 'all')
                   setActivePreview('overdue')
                 }}
@@ -1033,6 +1072,7 @@ export default function Reports() {
                 className="form-select form-select-sm"
                 value={topBorrowedLimit}
                 onChange={(e) => {
+                  resetOtherFilters('top')
                   setTopBorrowedLimit(e.target.value)
                   setActivePreview('top')
                 }}
@@ -1051,6 +1091,7 @@ export default function Reports() {
                   className="form-select form-select-sm"
                   value={topMonthStart}
                   onChange={(e) => {
+                    resetOtherFilters('top')
                     setTopMonthStart(e.target.value)
                     setActivePreview('top')
                   }}
@@ -1063,6 +1104,7 @@ export default function Reports() {
                   className="form-select form-select-sm"
                   value={topMonthEnd}
                   onChange={(e) => {
+                    resetOtherFilters('top')
                     setTopMonthEnd(e.target.value)
                     setActivePreview('top')
                   }}
@@ -1083,6 +1125,7 @@ export default function Reports() {
                 placeholder="All years"
                 value={topYear === 'all' ? '' : topYear}
                 onChange={(e) => {
+                  resetOtherFilters('top')
                   setTopYear(e.target.value.trim() || 'all')
                   setActivePreview('top')
                 }}
