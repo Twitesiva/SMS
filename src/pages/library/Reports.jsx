@@ -162,6 +162,7 @@ export default function Reports() {
     loadCategories()
   }, [])
 
+
   const handleMonthClick = async (month) => {
     setSelectedMonth(month)
     setReportDetails({
@@ -787,7 +788,10 @@ export default function Reports() {
               <select
                 className="form-select form-select-sm"
                 value={summaryFilter}
-                onChange={(e) => setSummaryFilter(e.target.value)}
+                onChange={(e) => {
+                  setSummaryFilter(e.target.value)
+                  setActivePreview('summary')
+                }}
               >
                 <option value="all">All stock</option>
                 <option value="available">Available copies</option>
@@ -801,7 +805,10 @@ export default function Reports() {
               <select
                 className="form-select form-select-sm"
                 value={summaryCategory}
-                onChange={(e) => setSummaryCategory(e.target.value)}
+                onChange={(e) => {
+                  setSummaryCategory(e.target.value)
+                  setActivePreview('summary')
+                }}
                 disabled={categoriesLoading}
               >
                 <option value="all">All categories</option>
@@ -816,7 +823,10 @@ export default function Reports() {
                 <select
                   className="form-select form-select-sm"
                   value={summaryMonthStart}
-                  onChange={(e) => setSummaryMonthStart(e.target.value)}
+                  onChange={(e) => {
+                    setSummaryMonthStart(e.target.value)
+                    setActivePreview('summary')
+                  }}
                 >
                   {monthOptions.map((opt) => (
                     <option key={`start-${opt.value}`} value={opt.value}>{opt.label}</option>
@@ -825,7 +835,10 @@ export default function Reports() {
                 <select
                   className="form-select form-select-sm"
                   value={summaryMonthEnd}
-                  onChange={(e) => setSummaryMonthEnd(e.target.value)}
+                  onChange={(e) => {
+                    setSummaryMonthEnd(e.target.value)
+                    setActivePreview('summary')
+                  }}
                 >
                   {monthOptions.map((opt) => (
                     <option key={`end-${opt.value}`} value={opt.value}>{opt.label}</option>
@@ -842,14 +855,14 @@ export default function Reports() {
                 max="9999"
                 placeholder="All years"
                 value={summaryYear === 'all' ? '' : summaryYear}
-                onChange={(e) => setSummaryYear(e.target.value.trim() || 'all')}
+                onChange={(e) => {
+                  setSummaryYear(e.target.value.trim() || 'all')
+                  setActivePreview('summary')
+                }}
               />
             </div>
             <button className="btn btn-outline-primary w-100" type="button" onClick={handleLibrarySummaryDownload}>
               Download
-            </button>
-            <button className="btn btn-link w-100 mt-2 p-0" type="button" onClick={previewLibrarySummary} disabled={summaryPreview.loading}>
-              {summaryPreview.loading ? 'Loading preview...' : 'Preview'}
             </button>
           </div>
         </div>
@@ -862,7 +875,10 @@ export default function Reports() {
               <select
                 className="form-select form-select-sm"
                 value={circulationFilter}
-                onChange={(e) => setCirculationFilter(e.target.value)}
+                onChange={(e) => {
+                  setCirculationFilter(e.target.value)
+                  setActivePreview('circulation')
+                }}
               >
                 <option value="all">All statuses</option>
                 <option value="issued">Issued</option>
@@ -877,7 +893,10 @@ export default function Reports() {
               <select
                 className="form-select form-select-sm"
                 value={circulationCategory}
-                onChange={(e) => setCirculationCategory(e.target.value)}
+                onChange={(e) => {
+                  setCirculationCategory(e.target.value)
+                  setActivePreview('circulation')
+                }}
                 disabled={categoriesLoading}
               >
                 <option value="all">All categories</option>
@@ -892,7 +911,10 @@ export default function Reports() {
                 <select
                   className="form-select form-select-sm"
                   value={circulationMonthStart}
-                  onChange={(e) => setCirculationMonthStart(e.target.value)}
+                  onChange={(e) => {
+                    setCirculationMonthStart(e.target.value)
+                    setActivePreview('circulation')
+                  }}
                 >
                   {monthOptions.map((opt) => (
                     <option key={`start-${opt.value}`} value={opt.value}>{opt.label}</option>
@@ -901,7 +923,10 @@ export default function Reports() {
                 <select
                   className="form-select form-select-sm"
                   value={circulationMonthEnd}
-                  onChange={(e) => setCirculationMonthEnd(e.target.value)}
+                  onChange={(e) => {
+                    setCirculationMonthEnd(e.target.value)
+                    setActivePreview('circulation')
+                  }}
                 >
                   {monthOptions.map((opt) => (
                     <option key={`end-${opt.value}`} value={opt.value}>{opt.label}</option>
@@ -918,14 +943,14 @@ export default function Reports() {
                 max="9999"
                 placeholder="All years"
                 value={circulationYear === 'all' ? '' : circulationYear}
-                onChange={(e) => setCirculationYear(e.target.value.trim() || 'all')}
+                onChange={(e) => {
+                  setCirculationYear(e.target.value.trim() || 'all')
+                  setActivePreview('circulation')
+                }}
               />
             </div>
             <button className="btn btn-outline-primary w-100" type="button" onClick={handleCirculationDownload}>
               Download
-            </button>
-            <button className="btn btn-link w-100 mt-2 p-0" type="button" onClick={previewCirculation} disabled={circulationPreview.loading}>
-              {circulationPreview.loading ? 'Loading preview...' : 'Preview'}
             </button>
           </div>
         </div>
@@ -938,7 +963,10 @@ export default function Reports() {
               <select
                 className="form-select form-select-sm"
                 value={overdueFilter}
-                onChange={(e) => setOverdueFilter(e.target.value)}
+                onChange={(e) => {
+                  setOverdueFilter(e.target.value)
+                  setActivePreview('overdue')
+                }}
               >
                 <option value="all">All overdue</option>
                 <option value="week">Up to 7 days</option>
@@ -952,7 +980,10 @@ export default function Reports() {
                 <select
                   className="form-select form-select-sm"
                   value={overdueMonthStart}
-                  onChange={(e) => setOverdueMonthStart(e.target.value)}
+                  onChange={(e) => {
+                    setOverdueMonthStart(e.target.value)
+                    setActivePreview('overdue')
+                  }}
                 >
                   {monthOptions.map((opt) => (
                     <option key={`start-${opt.value}`} value={opt.value}>{opt.label}</option>
@@ -961,7 +992,10 @@ export default function Reports() {
                 <select
                   className="form-select form-select-sm"
                   value={overdueMonthEnd}
-                  onChange={(e) => setOverdueMonthEnd(e.target.value)}
+                  onChange={(e) => {
+                    setOverdueMonthEnd(e.target.value)
+                    setActivePreview('overdue')
+                  }}
                 >
                   {monthOptions.map((opt) => (
                     <option key={`end-${opt.value}`} value={opt.value}>{opt.label}</option>
@@ -978,14 +1012,14 @@ export default function Reports() {
                 max="9999"
                 placeholder="All years"
                 value={overdueYear === 'all' ? '' : overdueYear}
-                onChange={(e) => setOverdueYear(e.target.value.trim() || 'all')}
+                onChange={(e) => {
+                  setOverdueYear(e.target.value.trim() || 'all')
+                  setActivePreview('overdue')
+                }}
               />
             </div>
             <button className="btn btn-outline-primary w-100" type="button" onClick={handleOverdueDownload}>
               Download
-            </button>
-            <button className="btn btn-link w-100 mt-2 p-0" type="button" onClick={previewOverdue} disabled={overduePreview.loading}>
-              {overduePreview.loading ? 'Loading preview...' : 'Preview'}
             </button>
           </div>
         </div>
@@ -998,7 +1032,10 @@ export default function Reports() {
               <select
                 className="form-select form-select-sm"
                 value={topBorrowedLimit}
-                onChange={(e) => setTopBorrowedLimit(e.target.value)}
+                onChange={(e) => {
+                  setTopBorrowedLimit(e.target.value)
+                  setActivePreview('top')
+                }}
               >
                 <option value="10">Top 10</option>
                 <option value="20">Top 20</option>
@@ -1013,7 +1050,10 @@ export default function Reports() {
                 <select
                   className="form-select form-select-sm"
                   value={topMonthStart}
-                  onChange={(e) => setTopMonthStart(e.target.value)}
+                  onChange={(e) => {
+                    setTopMonthStart(e.target.value)
+                    setActivePreview('top')
+                  }}
                 >
                   {monthOptions.map((opt) => (
                     <option key={`start-${opt.value}`} value={opt.value}>{opt.label}</option>
@@ -1022,7 +1062,10 @@ export default function Reports() {
                 <select
                   className="form-select form-select-sm"
                   value={topMonthEnd}
-                  onChange={(e) => setTopMonthEnd(e.target.value)}
+                  onChange={(e) => {
+                    setTopMonthEnd(e.target.value)
+                    setActivePreview('top')
+                  }}
                 >
                   {monthOptions.map((opt) => (
                     <option key={`end-${opt.value}`} value={opt.value}>{opt.label}</option>
@@ -1039,14 +1082,14 @@ export default function Reports() {
                 max="9999"
                 placeholder="All years"
                 value={topYear === 'all' ? '' : topYear}
-                onChange={(e) => setTopYear(e.target.value.trim() || 'all')}
+                onChange={(e) => {
+                  setTopYear(e.target.value.trim() || 'all')
+                  setActivePreview('top')
+                }}
               />
             </div>
             <button className="btn btn-outline-primary w-100" type="button" onClick={handleTopBorrowedDownload}>
               Download
-            </button>
-            <button className="btn btn-link w-100 mt-2 p-0" type="button" onClick={previewTopBorrowed} disabled={topBorrowedPreview.loading}>
-              {topBorrowedPreview.loading ? 'Loading preview...' : 'Preview'}
             </button>
           </div>
         </div>
@@ -1106,11 +1149,6 @@ export default function Reports() {
               </thead>
             )}
             <tbody>
-              {!activePreview && (
-                <tr>
-                  <td className="text-center text-muted py-3">Select a preview to view data.</td>
-                </tr>
-              )}
               {activePreview === 'summary' && (
                 summaryPreview.loading ? (
                   <tr><td colSpan="4" className="text-center text-muted py-3">Loading...</td></tr>
