@@ -483,6 +483,10 @@
   transition: all 0.2s ease;
 }
 
+.staff-portal:not(.staff-portal--collapsed) .staff-sidebar__link {
+  min-height: 48px;
+}
+
 .staff-sidebar__link span {
   font-size: 0.9rem;
   font-weight: 900;
@@ -517,6 +521,14 @@
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   position: relative;
   overflow: hidden;
+}
+
+.staff-portal:not(.staff-portal--collapsed) .staff-sidebar__link:active,
+.staff-portal:not(.staff-portal--collapsed) .staff-sidebar__link:focus,
+.staff-portal:not(.staff-portal--collapsed) .staff-sidebar__link:focus-visible {
+  padding: 12px 16px;
+  margin: 10px 12px 4px;
+  transform: none;
 }
 
 .staff-sidebar__link.active::before {
