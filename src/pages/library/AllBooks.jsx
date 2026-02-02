@@ -34,6 +34,7 @@ export default function AllBooks() {
   const [saving, setSaving] = useState(false)
   const [deleteModal, setDeleteModal] = useState({ show: false, book: null, loading: false })
   const [tableFilter, setTableFilter] = useState('all') // all | available | issued | damaged | missing
+  const [categoryFilter, setCategoryFilter] = useState('all')
   const [categories, setCategories] = useState([])
   const [categoriesLoading, setCategoriesLoading] = useState(true)
 
@@ -201,6 +202,12 @@ export default function AllBooks() {
       })
     }
 
+    if (categoryFilter !== 'all') {
+      result = result.filter(
+        (book) => String(book.category || '').trim().toLowerCase() === String(categoryFilter).trim().toLowerCase()
+      )
+    }
+
     const applyFilter = (book) => {
       const info = copyCounts[String(book.id)] || { total: 0, available: 0, issued: 0, damaged: 0, missing: 0 }
       if (tableFilter === 'available') return info.available > 0
@@ -211,7 +218,7 @@ export default function AllBooks() {
     }
 
     return result.filter(applyFilter)
-  }, [books, searchTerm, copyCounts, tableFilter])
+  }, [books, searchTerm, copyCounts, tableFilter, categoryFilter])
 
   const stats = useMemo(() => {
     const totalTitles = books.length
@@ -448,25 +455,37 @@ export default function AllBooks() {
             )}
           </p>
         </div>
-        <div className="library-catalogue-toolbar__actions">
-          <div className="library-catalogue-search">
-            <span className="library-catalogue-search__icon">
-              <i className="bi bi-search" aria-hidden="true"></i>
-            </span>
-            <input
-              className="form-control"
-              type="search"
-              placeholder="Search books"
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-            />
+          <div className="library-catalogue-toolbar__actions">
+            <div className="library-catalogue-search">
+              <span className="library-catalogue-search__icon">
+                <i className="bi bi-search" aria-hidden="true"></i>
+              </span>
+              <input
+                className="form-control"
+                type="search"
+                placeholder="Search books"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
+            </div>
+            <select
+              className="form-select"
+              value={categoryFilter}
+              onChange={(event) => setCategoryFilter(event.target.value)}
+              disabled={categoriesLoading}
+              aria-label="Filter by category"
+            >
+              <option value="all">All categories</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.name}>{cat.name}</option>
+              ))}
+            </select>
+            {tableFilter !== 'all' && (
+              <button className="btn btn-outline-primary" type="button" onClick={() => setTableFilter('all')}>
+                Clear Filter
+              </button>
+            )}
           </div>
-          {tableFilter !== 'all' && (
-            <button className="btn btn-outline-primary" type="button" onClick={() => setTableFilter('all')}>
-              Clear Filter
-            </button>
-          )}
-        </div>
         <div className="library-catalogue-toolbar__meta">
           Showing {filteredBooks.length} of {books.length} titles
         </div>
