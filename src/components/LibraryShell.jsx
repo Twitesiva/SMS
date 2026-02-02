@@ -11,7 +11,7 @@ export default function LibraryShell({
   const activeNavGroups = navGroups || libraryNavGroups;
 
   return (
-    <AdShellAdmin navGroups={activeNavGroups} brandTitle={brandTitle}>
+    <AdShellAdmin navGroups={activeNavGroups} brandTitle={brandTitle} logoutPath="/library/login">
       {children ?? <Outlet />}
     </AdShellAdmin>
   );

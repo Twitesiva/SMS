@@ -76,10 +76,15 @@ export default function RoomYearMapping() {
 
     const fetchRoomsAndMappings = async () => {
         setLoading(true);
-        const roomsRes = await supabase.from('hostel_rooms').select('*').eq('block_id', selectedBlock).order('room_no');
+        const roomsRes = await supabase.from('hostel_rooms').select('*').eq('block_id', selectedBlock);
 
         if (roomsRes.error) toast.error(roomsRes.error.message);
-        else setRooms(roomsRes.data || []);
+        else {
+            const sortedRooms = (roomsRes.data || []).sort((a, b) =>
+                String(a.room_no || '').localeCompare(String(b.room_no || ''), undefined, { numeric: true })
+            );
+            setRooms(sortedRooms);
+        }
 
         if (!selectedYear || !selectedStudyYear) {
             setMappings({});
@@ -783,7 +788,7 @@ export default function RoomYearMapping() {
                 isLoading={deletingAllocated}
                 message="Are you sure you want to remove all allocated rooms for this academic year, block, and floor?"
             />
-                <style>{`
+            <style>{`
                     .allocated-room-details-modal .modal-title {
                         color: #ffffff !important;
                     }

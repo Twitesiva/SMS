@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import { supabase } from '../../../supabaseClient'
 import ConfirmationModal from '../../components/ConfirmationModal.jsx'
 
@@ -35,6 +35,7 @@ export default function SubjectsSection({
   setCategoryCredits,
   categoryCreditsMap = {},
 }) {
+  const creditsInputRef = useRef(null)
   const [programmeCategory, setProgrammeCategory] = useState('')
   const [academicYears, setAcademicYears] = useState([])
   const [loading, setLoading] = useState(false)
@@ -385,7 +386,7 @@ export default function SubjectsSection({
                     onKeyDown={e => {
                       if (e.key === 'Enter') {
                         e.preventDefault()
-                        saveCategory()
+                        creditsInputRef.current?.focus()
                       }
                     }}
                   />
@@ -396,6 +397,7 @@ export default function SubjectsSection({
                   </label>
                   <input
                     className="form-control"
+                    ref={creditsInputRef}
                     placeholder="e.g., 3"
                     type="number"
                     min="1"

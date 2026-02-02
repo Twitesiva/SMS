@@ -297,8 +297,46 @@ export default function HostelRooms() {
         return (filterBlock ? r.block_id.toString() === filterBlock.toString() : true) &&
             (filterType ? r.room_type === filterType : true);
     });
-    const visibleRooms = showAllRooms ? filteredRooms : filteredRooms.slice(0, 2);
-    const openDetails = (room) => setDetailModal({ show: true, room });
+
+    const groupedRooms = useMemo(() => {
+        const groups = new Map();
+        filteredRooms.forEach(room => {
+            const key = `${room.block_id}-${room.floor_no}`;
+            if (!groups.has(key)) {
+                groups.set(key, {
+                    key,
+                    block_id: room.block_id,
+                    block_name: room.hostel_blocks?.block_name,
+                    floor_no: room.floor_no,
+                    rooms: []
+                });
+            }
+            groups.get(key).rooms.push(room);
+        });
+        return Array.from(groups.values());
+    }, [filteredRooms]);
+
+    const visibleGroups = showAllRooms ? groupedRooms : groupedRooms.slice(0, 5);
+
+    const openDetails = (group) => setDetailModal({ show: true, group });
+
+    const handleDeleteGroup = async (group) => {
+        if (!window.confirm(`Are you sure you want to delete all ${group.rooms.length} rooms on ${formatFloorLabel(group.floor_no)} of ${group.block_name}?`)) {
+            return;
+        }
+
+        setLoading(true);
+        const roomIds = group.rooms.map(r => r.id);
+        const { error } = await supabase.from('hostel_rooms').delete().in('id', roomIds);
+
+        if (error) {
+            toast.error(error.message);
+        } else {
+            toast.success('Rooms deleted successfully');
+            fetchData();
+        }
+        setLoading(false);
+    };
 
     return (
         <HostelShell brandTitle="HOSTEL MANAGEMENT">
@@ -513,25 +551,38 @@ export default function HostelRooms() {
                                             <tr className="text-white text-uppercase fw-bold" style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)', fontSize: '1.1rem' }}>
                                                 <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Block</th>
                                                 <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Floor</th>
+                                                <th className="py-3 px-3 border-0" style={{ backgroundColor: 'transparent', color: 'white' }}>Room Count</th>
                                                 <th className="py-3 px-3 border-0 text-end" style={{ backgroundColor: 'transparent', color: 'white' }}>Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {filteredRooms.length === 0 ? (
-                                                <tr><td colSpan="3" className="text-center py-4">No rooms found</td></tr>
+                                            {visibleGroups.length === 0 ? (
+                                                <tr><td colSpan="4" className="text-center py-4">No rooms found</td></tr>
                                             ) : (
-                                                visibleRooms.map((room) => (
-                                                    <tr key={room.id} style={{ cursor: 'pointer' }} onClick={() => openDetails(room)}>
-                                                        <td>{room.hostel_blocks?.block_name}</td>
-                                                        <td>{formatFloorLabel(room.floor_no)}</td>
+                                                visibleGroups.map((group) => (
+                                                    <tr key={group.key} style={{ cursor: 'pointer' }} onClick={() => openDetails(group)}>
+                                                        <td>{group.block_name}</td>
+                                                        <td>{formatFloorLabel(group.floor_no)}</td>
+                                                        <td>{group.rooms.length}</td>
                                                         <td className="text-end">
                                                             <div className="d-flex justify-content-end gap-2">
+                                                                <button
+                                                                    className="btn btn-sm btn-outline-info students-button-sm"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        openDetails(group);
+                                                                    }}
+                                                                    title="View Rooms"
+                                                                >
+                                                                    <i className="bi bi-eye"></i>
+                                                                </button>
                                                                 <button
                                                                     className="btn btn-sm btn-outline-primary students-button-sm"
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
-                                                                        handleEdit(room);
+                                                                        openDetails(group);
                                                                     }}
+                                                                    title="Edit Rooms"
                                                                 >
                                                                     <i className="bi bi-pencil"></i>
                                                                 </button>
@@ -539,8 +590,9 @@ export default function HostelRooms() {
                                                                     className="btn btn-sm btn-outline-danger students-button-sm"
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
-                                                                        setDeleteModal({ show: true, id: room.id });
+                                                                        handleDeleteGroup(group);
                                                                     }}
+                                                                    title="Delete Floor"
                                                                 >
                                                                     <i className="bi bi-trash"></i>
                                                                 </button>
@@ -552,7 +604,7 @@ export default function HostelRooms() {
                                         </tbody>
                                     </table>
                                 </div>
-                                {filteredRooms.length > 2 && (
+                                {groupedRooms.length > 5 && (
                                     <div className="d-flex justify-content-end mt-3">
                                         <button
                                             type="button"
@@ -622,55 +674,82 @@ export default function HostelRooms() {
                 onConfirm={handleDelete}
                 message="Are you sure you want to delete this room? All associated beds and active allocations will be affected."
             />
-            {detailModal.show && detailModal.room && (
+            {detailModal.show && detailModal.group && (
                 <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1055 }}>
-                    <div className="modal-dialog modal-dialog-centered">
+                    <div className="modal-dialog modal-dialog-centered modal-lg">
                         <div className="modal-content room-details-modal">
                             <div
                                 className="modal-header"
                                 style={{ background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)', color: 'white' }}
                             >
-                                <h5 className="modal-title fw-bold">Room Details</h5>
+                                <h5 className="modal-title fw-bold">
+                                    {detailModal.group.block_name} - {formatFloorLabel(detailModal.group.floor_no)}
+                                </h5>
                                 <button
                                     type="button"
                                     className="btn-close btn-close-white"
-                                    onClick={() => setDetailModal({ show: false, room: null })}
+                                    onClick={() => setDetailModal({ show: false, group: null })}
                                     aria-label="Close"
                                 ></button>
                             </div>
                             <div className="modal-body">
-                                <div className="mb-3">
-                                    <div className="bg-light rounded p-4 border">
-                                        <div className="d-flex flex-column gap-3">
-                                            <div className="d-flex align-items-center">
-                                                <small className="text-muted text-uppercase fw-bold" style={{ width: '140px', fontSize: '0.85rem' }}>Block</small>
-                                                <span className="fw-bold text-dark fs-6">: {detailModal.room.hostel_blocks?.block_name}</span>
-                                            </div>
-                                            <div className="d-flex align-items-center">
-                                                <small className="text-muted text-uppercase fw-bold" style={{ width: '140px', fontSize: '0.85rem' }}>Floor</small>
-                                                <span className="fw-bold text-dark fs-6">: {formatFloorLabel(detailModal.room.floor_no)}</span>
-                                            </div>
-                                            <div className="d-flex align-items-center">
-                                                <small className="text-muted text-uppercase fw-bold" style={{ width: '140px', fontSize: '0.85rem' }}>Room No</small>
-                                                <span className="fw-bold text-dark fs-6">: {detailModal.room.room_no}</span>
-                                            </div>
-                                            <div className="d-flex align-items-center">
-                                                <small className="text-muted text-uppercase fw-bold" style={{ width: '140px', fontSize: '0.85rem' }}>Hostel Type</small>
-                                                <span className="fw-bold text-dark fs-6">: {detailModal.room.room_type?.replace(/_/g, ' ')}</span>
-                                            </div>
-                                            <div className="d-flex align-items-center">
-                                                <small className="text-muted text-uppercase fw-bold" style={{ width: '140px', fontSize: '0.85rem' }}>Beds</small>
-                                                <span className="fw-bold text-dark fs-6">: {detailModal.room.bed_count}</span>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div className="table-responsive">
+                                    <table className="table table-hover align-middle">
+                                        <thead className="table-light">
+                                            <tr>
+                                                <th>Room No</th>
+                                                <th>Type</th>
+                                                <th>Beds</th>
+                                                <th>Status</th>
+                                                <th className="text-end">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {detailModal.group.rooms
+                                                .slice()
+                                                .sort((a, b) =>
+                                                    String(a.room_no || '').localeCompare(String(b.room_no || ''), undefined, { numeric: true })
+                                                )
+                                                .map(room => (
+                                                    <tr key={room.id}>
+                                                        <td className="fw-bold">{room.room_no}</td>
+                                                        <td>{room.room_type?.replace('_', ' ')}</td>
+                                                        <td>{room.bed_count}</td>
+                                                        <td>
+                                                            <span className={`badge ${room.status === 'AVAILABLE' ? 'bg-success' : 'bg-secondary'}`}>
+                                                                {room.status}
+                                                            </span>
+                                                        </td>
+                                                        <td className="text-end">
+                                                            <div className="d-flex gap-2 justify-content-end">
+                                                                <button
+                                                                    className="btn btn-sm btn-outline-primary"
+                                                                    onClick={() => {
+                                                                        handleEdit(room);
+                                                                        setDetailModal({ show: false, group: null });
+                                                                    }}
+                                                                >
+                                                                    <i className="bi bi-pencil"></i>
+                                                                </button>
+                                                                <button
+                                                                    className="btn btn-sm btn-outline-danger"
+                                                                    onClick={() => setDeleteModal({ show: true, id: room.id })}
+                                                                >
+                                                                    <i className="bi bi-trash"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                             <div className="modal-footer">
                                 <button
                                     type="button"
                                     className="btn btn-outline-secondary"
-                                    onClick={() => setDetailModal({ show: false, room: null })}
+                                    onClick={() => setDetailModal({ show: false, group: null })}
                                 >
                                     Close
                                 </button>

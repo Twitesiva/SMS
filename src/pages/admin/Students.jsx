@@ -1449,9 +1449,9 @@ export default function Students() {
               {loading ? "Refreshing data..." : `${filteredStudents.length} students listed`}
             </div>
           </div>
-          <div className="table-responsive students-table-wrapper">
-            <table className="table table-borderless table-hover align-middle mb-0 students-table">
-              <thead className="table-light">
+          <div className="table-responsive students-table-wrapper" style={{ overflow: 'auto', maxHeight: 'calc(100vh - 300px)' }}>
+            <table className="table table-borderless table-hover align-middle mb-0 students-table" style={{ whiteSpace: 'nowrap' }}>
+              <thead className="table-light" style={{ position: 'sticky', top: 0, zIndex: 5 }}>
                 <tr>
                   <th style={{ width: "70px" }}>Photo</th>
                   <th>Student ID</th>
