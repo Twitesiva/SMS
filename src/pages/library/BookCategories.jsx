@@ -1,0 +1,287 @@
+import { useEffect, useMemo, useState } from 'react'
+import { supabase } from '../../../supabaseClient'
+import { showToast } from '../../store/ui'
+import LibraryPreloader from '../../components/LibraryPreloader'
+
+const initialForm = { name: '' }
+
+const formatDate = (value) => {
+  if (!value) return '-'
+  return new Date(value).toLocaleDateString()
+}
+
+export default function BookCategories() {
+  const [categories, setCategories] = useState([])
+  const [form, setForm] = useState(initialForm)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [deletingId, setDeletingId] = useState(null)
+  const [editingId, setEditingId] = useState(null)
+  const [editName, setEditName] = useState('')
+  const [updating, setUpdating] = useState(false)
+
+  const totalCategories = useMemo(() => categories.length, [categories])
+
+  const loadCategories = async () => {
+    setLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('library_book_categories')
+        .select('id, name, created_at')
+        .order('name', { ascending: true })
+
+      if (error) throw error
+      setCategories(data || [])
+    } catch (error) {
+      console.error('Failed to load book categories', error)
+      showToast('Unable to load categories.', { type: 'danger' })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadCategories()
+  }, [])
+
+  const handleChange = (event) => {
+    setForm({ name: event.target.value })
+  }
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    const trimmed = form.name.trim()
+    if (!trimmed) {
+      showToast('Category name is required.', { type: 'warning' })
+      return
+    }
+    const exists = categories.some((cat) => (cat.name || '').toLowerCase() === trimmed.toLowerCase())
+    if (exists) {
+      showToast('Category already exists.', { type: 'warning' })
+      return
+    }
+
+    setSaving(true)
+    try {
+      const { data, error } = await supabase
+        .from('library_book_categories')
+        .insert([{ name: trimmed }])
+        .select()
+        .single()
+
+      if (error) throw error
+      setCategories((prev) => [...prev, data].sort((a, b) => (a.name || '').localeCompare(b.name || '')))
+      setForm(initialForm)
+      showToast('Category added.', { type: 'success' })
+    } catch (error) {
+      console.error('Failed to add book category', error)
+      showToast('Unable to add category.', { type: 'danger' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async (category) => {
+    if (!category?.id) return
+    const shouldDelete = window.confirm(`Delete category "${category.name}"?`)
+    if (!shouldDelete) return
+    setDeletingId(category.id)
+    try {
+      const { error } = await supabase
+        .from('library_book_categories')
+        .delete()
+        .eq('id', category.id)
+
+      if (error) throw error
+      setCategories((prev) => prev.filter((item) => item.id !== category.id))
+      showToast('Category removed.', { type: 'success' })
+    } catch (error) {
+      console.error('Failed to delete book category', error)
+      showToast('Unable to delete category.', { type: 'danger' })
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  const startEdit = (category) => {
+    setEditingId(category.id)
+    setEditName(category.name || '')
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditName('')
+  }
+
+  const handleUpdate = async () => {
+    if (!editingId) return
+    const trimmed = editName.trim()
+    if (!trimmed) {
+      showToast('Category name is required.', { type: 'warning' })
+      return
+    }
+    const exists = categories.some(
+      (cat) => cat.id !== editingId && (cat.name || '').toLowerCase() === trimmed.toLowerCase()
+    )
+    if (exists) {
+      showToast('Category already exists.', { type: 'warning' })
+      return
+    }
+    setUpdating(true)
+    try {
+      const { data, error } = await supabase
+        .from('library_book_categories')
+        .update({ name: trimmed })
+        .eq('id', editingId)
+        .select()
+        .single()
+
+      if (error) throw error
+      setCategories((prev) =>
+        prev
+          .map((item) => (item.id === editingId ? { ...item, name: data?.name || trimmed } : item))
+          .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+      )
+      showToast('Category updated.', { type: 'success' })
+      cancelEdit()
+    } catch (error) {
+      console.error('Failed to update book category', error)
+      showToast('Unable to update category.', { type: 'danger' })
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  if (loading && categories.length === 0) {
+    return (
+      <LibraryPreloader
+        title="Loading book categories"
+        subtitle="Syncing catalog categories."
+        statCount={2}
+        panelCount={1}
+        rowCount={4}
+      />
+    )
+  }
+
+  return (
+    <div className="desktop-container" style={{ overflowX: 'hidden' }}>
+      <div className="row g-3 mb-4 justify-content-center">
+        <div className="col-6 col-md-4">
+          <div className="card card-soft p-3 h-100 text-center">
+            <div className="text-muted small">Total Categories</div>
+            <div className="fs-4 fw-bold">{totalCategories}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="row g-4 justify-content-center mx-0">
+        <div className="col-12">
+          <div className="card card-soft p-4 mb-4">
+            <div className="mb-3">
+              <div className="text-muted text-uppercase small fw-bold">Catalog</div>
+              <h4 className="mb-1 fw-bold text-dark">Book Categories</h4>
+              <p className="text-muted mb-0 small">Create categories to group books (IT, Biology, etc.).</p>
+            </div>
+
+            <div className="table-responsive mb-3">
+              <table className="table table-sm table-hover align-middle library-charges-table">
+                <thead className="table-light">
+                  <tr>
+                    <th>Category Name</th>
+                    <th>Created On</th>
+                    <th className="text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr><td colSpan="3" className="text-center text-muted">Loading...</td></tr>
+                  ) : categories.length === 0 ? (
+                    <tr><td colSpan="3" className="text-center text-muted fst-italic">No categories defined.</td></tr>
+                  ) : (
+                    categories.map((category) => (
+                      <tr key={category.id}>
+                        <td className="fw-semibold">
+                          {editingId === category.id ? (
+                            <input
+                              type="text"
+                              className="form-control form-control-sm"
+                              value={editName}
+                              onChange={(event) => setEditName(event.target.value)}
+                            />
+                          ) : (
+                            category.name
+                          )}
+                        </td>
+                        <td>{formatDate(category.created_at)}</td>
+                        <td className="text-end">
+                          {editingId === category.id ? (
+                            <>
+                              <button
+                                className="btn btn-link text-primary p-0 text-decoration-none small me-3"
+                                onClick={handleUpdate}
+                                disabled={updating}
+                              >
+                                {updating ? 'Saving...' : 'Save'}
+                              </button>
+                              <button
+                                className="btn btn-link text-muted p-0 text-decoration-none small me-3"
+                                onClick={cancelEdit}
+                                disabled={updating}
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                className="btn btn-link text-primary p-0 text-decoration-none small me-3"
+                                onClick={() => startEdit(category)}
+                                disabled={deletingId === category.id}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                className="btn btn-link text-danger p-0 text-decoration-none small"
+                                onClick={() => handleDelete(category)}
+                                disabled={deletingId === category.id}
+                              >
+                                {deletingId === category.id ? 'Removing...' : 'Delete'}
+                              </button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <form className="row g-2 align-items-end" onSubmit={handleSubmit}>
+              <div className="col-md-8">
+                <label className="form-label small fw-bold text-muted">New Category Name</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="e.g. IT, Biology"
+                  value={form.name}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="col-md-4">
+                <button
+                  type="submit"
+                  className="btn btn-primary w-100"
+                  disabled={saving}
+                >
+                  {saving ? 'Saving...' : 'Add Category'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

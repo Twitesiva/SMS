@@ -10,6 +10,7 @@ export default function Books() {
     title: '',
     isbn: '',
     author: '',
+    category: '',
     language: '',
     publisher: '',
     published_year: '',
@@ -26,13 +27,15 @@ export default function Books() {
   const [saving, setSaving] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
   const [loading, setLoading] = useState(true)
+  const [categories, setCategories] = useState([])
+  const [categoriesLoading, setCategoriesLoading] = useState(true)
 
   const loadBooks = async () => {
     setLoading(true)
     try {
       const { data: bookRows, error: bookError } = await supabase
         .from('library_books')
-        .select('id, title, arrival_date, created_at, status')
+        .select('id, title, category, arrival_date, created_at, status')
         .order('created_at', { ascending: false })
         .limit(10)
 
@@ -67,8 +70,58 @@ export default function Books() {
     }
   }
 
+  const loadCategories = async () => {
+    setCategoriesLoading(true)
+    try {
+      const [categoryRes, bookRes] = await Promise.all([
+        supabase
+          .from('library_book_categories')
+          .select('id, name')
+          .order('name', { ascending: true }),
+        supabase
+          .from('library_books')
+          .select('category')
+      ])
+
+      const categoryRows = categoryRes?.error ? [] : (categoryRes?.data || [])
+      const bookRows = bookRes?.error ? [] : (bookRes?.data || [])
+
+      if (categoryRes?.error) {
+        console.log('Book categories table might not exist yet:', categoryRes.error?.message || categoryRes.error)
+      }
+      if (bookRes?.error) {
+        console.log('Unable to load book categories from books:', bookRes.error?.message || bookRes.error)
+      }
+
+      const byName = new Map()
+      categoryRows.forEach((row) => {
+        const name = String(row?.name || '').trim()
+        if (!name) return
+        byName.set(name.toLowerCase(), { id: row.id, name })
+      })
+
+      bookRows.forEach((row) => {
+        const name = String(row?.category || '').trim()
+        if (!name) return
+        const key = name.toLowerCase()
+        if (!byName.has(key)) {
+          byName.set(key, { id: `book-${encodeURIComponent(key)}`, name })
+        }
+      })
+
+      const merged = Array.from(byName.values()).sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+      setCategories(merged)
+    } catch (error) {
+      console.log('Book categories load failed:', error?.message || error)
+      setCategories([])
+    } finally {
+      setCategoriesLoading(false)
+    }
+  }
+
   useEffect(() => {
     loadBooks()
+    loadCategories()
   }, [])
 
   if (loading && recentBooks.length === 0) {
@@ -110,6 +163,7 @@ export default function Books() {
         title: form.title.trim(),
         isbn: form.isbn.trim() || null,
         author: form.author.trim() || null,
+        category: form.category.trim() || null,
         language: form.language.trim() || null,
         publisher: form.publisher.trim() || null,
         published_year: form.published_year ? Number(form.published_year) : null,
@@ -193,6 +247,30 @@ export default function Books() {
                   value={form.author}
                   onChange={handleChange('author')}
                 />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label text-dark fw-semibold">Category</label>
+                <select
+                  className="form-select"
+                  value={form.category}
+                  onChange={handleChange('category')}
+                >
+                  <option value="">Select category</option>
+                  {form.category &&
+                    !categories.some(
+                      (cat) => (cat.name || '').toLowerCase() === form.category.toLowerCase()
+                    ) && (
+                      <option value={form.category}>{form.category}</option>
+                    )}
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.name}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+                {categoriesLoading && (
+                  <div className="form-text text-muted">Loading categories...</div>
+                )}
               </div>
               <div className="col-md-6">
                 <label className="form-label text-dark fw-semibold">Language</label>

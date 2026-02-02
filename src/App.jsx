@@ -38,6 +38,7 @@ import LibraryShell from "./components/LibraryShell.jsx";
 import LibraryDashboard from "./pages/library/LibraryDashboard.jsx";
 import LibraryBooks from "./pages/library/Books.jsx";
 import LibraryAllBooks from "./pages/library/AllBooks.jsx";
+import LibraryBookCategories from "./pages/library/BookCategories.jsx";
 import LibraryInventoryInsights from "./pages/library/InventoryInsights.jsx";
 import LibraryCirculation from "./pages/library/Circulation.jsx";
 import LibraryFines from "./pages/library/Fines.jsx";
@@ -437,6 +438,7 @@ export default function App() {
           <Route index element={<LibraryDashboard />} />
           <Route path="books" element={<LibraryBooks />} />
           <Route path="books/all" element={<LibraryAllBooks />} />
+          <Route path="books/categories" element={<LibraryBookCategories />} />
           <Route path="shelves" element={<Navigate to="/library/books/all" replace />} />
           <Route path="inventory" element={<LibraryInventoryInsights />} />
           <Route path="circulation" element={<LibraryCirculation />} />

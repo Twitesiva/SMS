@@ -14,6 +14,7 @@ const emptyEditForm = {
   title: '',
   isbn: '',
   author: '',
+  category: '',
   language: '',
   publisher: '',
   published_year: '',
@@ -33,6 +34,8 @@ export default function AllBooks() {
   const [saving, setSaving] = useState(false)
   const [deleteModal, setDeleteModal] = useState({ show: false, book: null, loading: false })
   const [tableFilter, setTableFilter] = useState('all') // all | available | issued | damaged | missing
+  const [categories, setCategories] = useState([])
+  const [categoriesLoading, setCategoriesLoading] = useState(true)
 
   const [selectedBook, setSelectedBook] = useState(null)
   const [modalTab, setModalTab] = useState('all') // 'all', 'issued', 'damaged'
@@ -108,7 +111,7 @@ export default function AllBooks() {
     try {
       const { data: bookRows, error: bookError } = await supabase
         .from('library_books')
-        .select('id, title, isbn, author, language, publisher, published_year, edition, shelf_code, arrival_date, status, created_at')
+        .select('id, title, isbn, author, category, language, publisher, published_year, edition, shelf_code, arrival_date, status, created_at')
         .order('created_at', { ascending: false })
 
       if (bookError) throw bookError
@@ -152,8 +155,27 @@ export default function AllBooks() {
     }
   }
 
+  const loadCategories = async () => {
+    setCategoriesLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('library_book_categories')
+        .select('id, name')
+        .order('name', { ascending: true })
+
+      if (error) throw error
+      setCategories(data || [])
+    } catch (error) {
+      console.log('Book categories table might not exist yet:', error?.message || error)
+      setCategories([])
+    } finally {
+      setCategoriesLoading(false)
+    }
+  }
+
   useEffect(() => {
     loadBooks()
+    loadCategories()
   }, [])
 
   const filteredBooks = useMemo(() => {
@@ -166,6 +188,7 @@ export default function AllBooks() {
           book.title,
           book.isbn,
           book.author,
+          book.category,
           book.publisher,
           book.language,
           book.shelf_code,
@@ -212,6 +235,7 @@ export default function AllBooks() {
       title: book.title || '',
       isbn: book.isbn || '',
       author: book.author || '',
+      category: book.category || '',
       language: book.language || '',
       publisher: book.publisher || '',
       published_year: book.published_year ? String(book.published_year) : '',
@@ -248,6 +272,7 @@ export default function AllBooks() {
         title: editForm.title.trim(),
         isbn: editForm.isbn.trim() || null,
         author: editForm.author.trim() || null,
+        category: editForm.category.trim() || null,
         language: editForm.language.trim() || null,
         publisher: editForm.publisher.trim() || null,
         published_year: editForm.published_year ? Number(editForm.published_year) : null,
@@ -417,7 +442,7 @@ export default function AllBooks() {
         <div>
           <h4 className="mb-1">Catalogue Overview</h4>
           <p className="text-muted mb-0">
-            Search by title, author, ISBN, shelf code, or year.
+            Search by title, author, ISBN, category, shelf code, or year.
             {tableFilter !== 'all' && (
               <span className="ms-2 badge bg-primary">Filter: {tableFilter}</span>
             )}
@@ -454,6 +479,7 @@ export default function AllBooks() {
               <tr>
                 <th>Book Title</th>
                 <th>Shelf</th>
+                <th>Category</th>
                 <th>Author</th>
                 <th>Published Year</th>
                 <th>Copies</th>
@@ -467,11 +493,11 @@ export default function AllBooks() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="10" className="text-center text-muted py-4">Loading books...</td>
+                  <td colSpan="11" className="text-center text-muted py-4">Loading books...</td>
                 </tr>
               ) : filteredBooks.length === 0 ? (
                 <tr>
-                  <td colSpan="10" className="text-center text-muted py-4">No books found.</td>
+                  <td colSpan="11" className="text-center text-muted py-4">No books found.</td>
                 </tr>
               ) : (
                 filteredBooks.map((book) => {
@@ -487,6 +513,7 @@ export default function AllBooks() {
                         <div className="library-catalogue-title">{book.title || 'Untitled'}</div>
                       </td>
                       <td>{book.shelf_code || '-'}</td>
+                      <td>{book.category || '-'}</td>
                       <td>{book.author || 'Unknown'}</td>
                       <td>{book.published_year || '-'}</td>
                       <td>
@@ -582,6 +609,30 @@ export default function AllBooks() {
                       value={editForm.author}
                       onChange={handleEditChange('author')}
                     />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label">Category</label>
+                    <select
+                      className="form-select"
+                      value={editForm.category}
+                      onChange={handleEditChange('category')}
+                    >
+                      <option value="">Select category</option>
+                      {editForm.category &&
+                        !categories.some(
+                          (cat) => (cat.name || '').toLowerCase() === editForm.category.toLowerCase()
+                        ) && (
+                          <option value={editForm.category}>{editForm.category}</option>
+                        )}
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.name}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                    {categoriesLoading && (
+                      <div className="form-text text-muted">Loading categories...</div>
+                    )}
                   </div>
                   <div className="col-md-6">
                     <label className="form-label">Language</label>
@@ -736,7 +787,7 @@ export default function AllBooks() {
                 ) : (
                   <div className="d-flex flex-column gap-4">
                     <div className="row g-3">
-                      <div className="col-md-6">
+                      <div className="col-md-4">
                         <div className="bg-light rounded p-3 border">
                           <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.75rem', letterSpacing: '0.08em' }}>
                             Author
@@ -746,7 +797,17 @@ export default function AllBooks() {
                           </div>
                         </div>
                       </div>
-                      <div className="col-md-6">
+                      <div className="col-md-4">
+                        <div className="bg-light rounded p-3 border">
+                          <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.75rem', letterSpacing: '0.08em' }}>
+                            Category
+                          </div>
+                          <div className="fw-bold text-dark fs-6">
+                            {selectedBook.category || '--'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="col-md-4">
                         <div className="bg-light rounded p-3 border">
                           <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.75rem', letterSpacing: '0.08em' }}>
                             Shelf Reference

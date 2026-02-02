@@ -25,6 +25,12 @@ export const libraryNavGroups = [
         label: 'View Books',
         icon: 'bi-journal-text',
         exact: true
+      },
+      {
+        to: '/library/books/categories',
+        label: 'Categories',
+        icon: 'bi-tags',
+        exact: true
       }
     ]
   },
