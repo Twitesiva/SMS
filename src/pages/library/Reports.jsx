@@ -18,6 +18,7 @@ export default function Reports() {
     overdue: [],
     damaged: [],
     missing: [],
+    arrived: [],
     loading: false
   })
   const [activeTab, setActiveTab] = useState('issued')
@@ -25,10 +26,20 @@ export default function Reports() {
   const [circulationFilter, setCirculationFilter] = useState('all')
   const [overdueFilter, setOverdueFilter] = useState('all')
   const [topBorrowedLimit, setTopBorrowedLimit] = useState('20')
-  const [monthStartFilter, setMonthStartFilter] = useState('all')
-  const [monthEndFilter, setMonthEndFilter] = useState('all')
-  const [yearFilter, setYearFilter] = useState('all')
-  const [categoryFilter, setCategoryFilter] = useState('all')
+  const [summaryMonthStart, setSummaryMonthStart] = useState('all')
+  const [summaryMonthEnd, setSummaryMonthEnd] = useState('all')
+  const [summaryYear, setSummaryYear] = useState('all')
+  const [summaryCategory, setSummaryCategory] = useState('all')
+  const [circulationMonthStart, setCirculationMonthStart] = useState('all')
+  const [circulationMonthEnd, setCirculationMonthEnd] = useState('all')
+  const [circulationYear, setCirculationYear] = useState('all')
+  const [circulationCategory, setCirculationCategory] = useState('all')
+  const [overdueMonthStart, setOverdueMonthStart] = useState('all')
+  const [overdueMonthEnd, setOverdueMonthEnd] = useState('all')
+  const [overdueYear, setOverdueYear] = useState('all')
+  const [topMonthStart, setTopMonthStart] = useState('all')
+  const [topMonthEnd, setTopMonthEnd] = useState('all')
+  const [topYear, setTopYear] = useState('all')
 
   const [summaryPreview, setSummaryPreview] = useState({ rows: [], loading: false })
   const [circulationPreview, setCirculationPreview] = useState({ rows: [], loading: false })
@@ -60,14 +71,17 @@ export default function Reports() {
   const headerGradient = 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)'
   const modalHeaderStyle = { background: headerGradient, color: '#ffffff' }
 
-  const matchesMonthYear = (value) => {
+  const matchesMonthYear = (value, filters) => {
+    const monthStart = filters?.monthStart ?? 'all'
+    const monthEnd = filters?.monthEnd ?? 'all'
+    const yearValue = filters?.year ?? 'all'
     const key = String(value || '').slice(0, 7)
     const [year, month] = key.split('-')
     const monthNumber = Number(month)
-    const startMonthNumber = monthStartFilter === 'all' ? null : Number(monthStartFilter)
-    const endMonthNumber = monthEndFilter === 'all' ? null : Number(monthEndFilter)
+    const startMonthNumber = monthStart === 'all' ? null : Number(monthStart)
+    const endMonthNumber = monthEnd === 'all' ? null : Number(monthEnd)
     if (Number.isNaN(monthNumber)) return false
-    if (yearFilter && yearFilter !== 'all' && year !== yearFilter) return false
+    if (yearValue && yearValue !== 'all' && year !== yearValue) return false
     if (startMonthNumber && endMonthNumber) {
       const minMonth = Math.min(startMonthNumber, endMonthNumber)
       const maxMonth = Math.max(startMonthNumber, endMonthNumber)
@@ -77,9 +91,9 @@ export default function Reports() {
     if (endMonthNumber) return monthNumber <= endMonthNumber
     return true
   }
-  const matchesCategory = (value) => {
-    if (categoryFilter === 'all') return true
-    return String(value || '').trim().toLowerCase() === String(categoryFilter || '').trim().toLowerCase()
+  const matchesCategory = (value, categoryValue) => {
+    if (categoryValue === 'all') return true
+    return String(value || '').trim().toLowerCase() === String(categoryValue || '').trim().toLowerCase()
   }
   const monthLabels = useMemo(() => {
     const now = new Date()
@@ -156,6 +170,7 @@ export default function Reports() {
       overdue: [],
       damaged: [],
       missing: [],
+      arrived: [],
       loading: true
     })
     setActiveTab('issued')
@@ -178,7 +193,7 @@ export default function Reports() {
         )
       `
 
-      const [issuedRes, returnedRes, overdueRes, damagedRes, missingRes] = await Promise.all([
+      const [issuedRes, returnedRes, overdueRes, damagedRes, missingRes, arrivedRes] = await Promise.all([
         supabase
           .from('library_loans')
           .select(selectQuery)
@@ -212,7 +227,13 @@ export default function Reports() {
           .gte('issued_at', startDate)
           .lt('issued_at', endDate)
           .eq('status', 'MISSING')
-          .order('issued_at', { ascending: false })
+          .order('issued_at', { ascending: false }),
+        supabase
+          .from('library_books')
+          .select('id, title, author, category, shelf_code, status, arrival_date, created_at')
+          .gte('arrival_date', startDate)
+          .lt('arrival_date', endDate)
+          .order('arrival_date', { ascending: false })
       ])
 
       if (issuedRes.error) throw issuedRes.error
@@ -220,6 +241,7 @@ export default function Reports() {
       if (overdueRes.error) throw overdueRes.error
       if (damagedRes.error) throw damagedRes.error
       if (missingRes.error) throw missingRes.error
+      if (arrivedRes.error) throw arrivedRes.error
 
       setReportDetails({
         issued: issuedRes.data || [],
@@ -227,6 +249,7 @@ export default function Reports() {
         overdue: overdueRes.data || [],
         damaged: damagedRes.data || [],
         missing: missingRes.data || [],
+        arrived: arrivedRes.data || [],
         loading: false
       })
     } catch (error) {
@@ -244,6 +267,7 @@ export default function Reports() {
       overdue: [],
       damaged: [],
       missing: [],
+      arrived: [],
       loading: false
     })
   }
@@ -298,8 +322,8 @@ export default function Reports() {
       const filteredBooks = (books || []).filter((book) => {
         const copyCount = copiesByBook[String(book.id)] || 0
         const statusValue = (book.status || '').toUpperCase()
-        if (!matchesMonthYear(book.created_at)) return false
-        if (!matchesCategory(book.category)) return false
+        if (!matchesMonthYear(book.created_at, { monthStart: summaryMonthStart, monthEnd: summaryMonthEnd, year: summaryYear })) return false
+        if (!matchesCategory(book.category, summaryCategory)) return false
         if (summaryFilter === 'available') return copyCount > 0
         if (summaryFilter === 'out') return copyCount === 0
         if (summaryFilter === 'public') return statusValue === 'PUBLIC'
@@ -344,8 +368,8 @@ export default function Reports() {
       if (bookError) throw bookError
 
       const filteredBooks = (books || []).filter((book) => {
-        if (!matchesMonthYear(book.created_at)) return false
-        if (!matchesCategory(book.category)) return false
+        if (!matchesMonthYear(book.created_at, { monthStart: summaryMonthStart, monthEnd: summaryMonthEnd, year: summaryYear })) return false
+        if (!matchesCategory(book.category, summaryCategory)) return false
         const statusValue = (book.status || '').toUpperCase()
         if (summaryFilter === 'available' || summaryFilter === 'out') {
           return true // handled after counts
@@ -414,8 +438,8 @@ export default function Reports() {
         const dueDateValue = loan.due_date ? new Date(loan.due_date) : null
         const isOverdue = dueDateValue ? (new Date(todayIso) > dueDateValue && status === 'ISSUED') : false
 
-        if (!matchesMonthYear(loan.issued_at || loan.returned_at || loan.due_date)) return false
-        if (!matchesCategory(loan.library_book_copies?.library_books?.category)) return false
+        if (!matchesMonthYear(loan.issued_at || loan.returned_at || loan.due_date, { monthStart: circulationMonthStart, monthEnd: circulationMonthEnd, year: circulationYear })) return false
+        if (!matchesCategory(loan.library_book_copies?.library_books?.category, 'all')) return false
 
         if (circulationFilter === 'issued') return status === 'ISSUED'
         if (circulationFilter === 'returned') return status === 'RETURNED'
@@ -470,8 +494,8 @@ export default function Reports() {
         const status = (loan.status || '').toUpperCase()
         const dueDateValue = loan.due_date ? new Date(loan.due_date) : null
         const isOverdue = dueDateValue ? new Date(todayIso) > dueDateValue && status === 'ISSUED' : false
-        if (!matchesMonthYear(loan.issued_at || loan.returned_at || loan.due_date)) return false
-        if (!matchesCategory(loan.library_book_copies?.library_books?.category)) return false
+        if (!matchesMonthYear(loan.issued_at || loan.returned_at || loan.due_date, { monthStart: circulationMonthStart, monthEnd: circulationMonthEnd, year: circulationYear })) return false
+        if (!matchesCategory(loan.library_book_copies?.library_books?.category, 'all')) return false
         if (circulationFilter === 'issued') return status === 'ISSUED'
         if (circulationFilter === 'returned') return status === 'RETURNED'
         if (circulationFilter === 'damaged') return status === 'DAMAGED'
@@ -527,8 +551,8 @@ export default function Reports() {
           loan
         }
       }).filter(({ daysOverdue, dueKey, loan }) => {
-        if (!matchesMonthYear(`${dueKey}-01`)) return false
-        if (!matchesCategory(loan.library_book_copies?.library_books?.category)) return false
+        if (!matchesMonthYear(`${dueKey}-01`, { monthStart: overdueMonthStart, monthEnd: overdueMonthEnd, year: overdueYear })) return false
+        if (!matchesCategory(loan.library_book_copies?.library_books?.category, 'all')) return false
         if (overdueFilter === 'week') return daysOverdue <= 7
         if (overdueFilter === 'month') return daysOverdue > 7 && daysOverdue <= 30
         if (overdueFilter === 'overMonth') return daysOverdue > 30
@@ -573,8 +597,8 @@ export default function Reports() {
         const daysOverdue = dueDateValue ? Math.max(0, Math.floor((today - dueDateValue) / (1000 * 60 * 60 * 24))) : 0
         return { loan, daysOverdue }
       }).filter(({ daysOverdue, loan }) => {
-        if (!matchesMonthYear(loan.due_date)) return false
-        if (!matchesCategory(loan.library_book_copies?.library_books?.category)) return false
+        if (!matchesMonthYear(loan.due_date, { monthStart: overdueMonthStart, monthEnd: overdueMonthEnd, year: overdueYear })) return false
+        if (!matchesCategory(loan.library_book_copies?.library_books?.category, 'all')) return false
         if (overdueFilter === 'week') return daysOverdue <= 7
         if (overdueFilter === 'month') return daysOverdue > 7 && daysOverdue <= 30
         if (overdueFilter === 'overMonth') return daysOverdue > 30
@@ -606,8 +630,8 @@ export default function Reports() {
       if (error) throw error
 
       const counts = (loans || []).reduce((acc, loan) => {
-        if (!matchesMonthYear(loan.issued_at)) return acc
-        if (!matchesCategory(loan.library_book_copies?.library_books?.category)) return acc
+        if (!matchesMonthYear(loan.issued_at, { monthStart: topMonthStart, monthEnd: topMonthEnd, year: topYear })) return acc
+        if (!matchesCategory(loan.library_book_copies?.library_books?.category, 'all')) return acc
         const bookTitle = loan.library_book_copies?.library_books?.title || 'Unknown'
         acc[bookTitle] = (acc[bookTitle] || 0) + 1
         return acc
@@ -643,8 +667,8 @@ export default function Reports() {
       if (error) throw error
 
       const counts = (loans || []).reduce((acc, loan) => {
-        if (!matchesMonthYear(loan.issued_at)) return acc
-        if (!matchesCategory(loan.library_book_copies?.library_books?.category)) return acc
+        if (!matchesMonthYear(loan.issued_at, { monthStart: topMonthStart, monthEnd: topMonthEnd, year: topYear })) return acc
+        if (!matchesCategory(loan.library_book_copies?.library_books?.category, 'all')) return acc
         const bookTitle = loan.library_book_copies?.library_books?.title || 'Unknown'
         acc[bookTitle] = (acc[bookTitle] || 0) + 1
         return acc
@@ -669,7 +693,27 @@ export default function Reports() {
     else if (activePreview === 'circulation') void previewCirculation()
     else if (activePreview === 'overdue') void previewOverdue()
     else if (activePreview === 'top') void previewTopBorrowed()
-  }, [activePreview, summaryFilter, circulationFilter, overdueFilter, topBorrowedLimit, monthStartFilter, monthEndFilter, yearFilter, categoryFilter])
+  }, [
+    activePreview,
+    summaryFilter,
+    circulationFilter,
+    overdueFilter,
+    topBorrowedLimit,
+    summaryMonthStart,
+    summaryMonthEnd,
+    summaryYear,
+    summaryCategory,
+    circulationMonthStart,
+    circulationMonthEnd,
+    circulationYear,
+    circulationCategory,
+    overdueMonthStart,
+    overdueMonthEnd,
+    overdueYear,
+    topMonthStart,
+    topMonthEnd,
+    topYear
+  ])
 
   useEffect(() => {
     const loadReports = async () => {
@@ -756,8 +800,8 @@ export default function Reports() {
               <label className="form-label small text-muted mb-1">Category</label>
               <select
                 className="form-select form-select-sm"
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
+                value={summaryCategory}
+                onChange={(e) => setSummaryCategory(e.target.value)}
                 disabled={categoriesLoading}
               >
                 <option value="all">All categories</option>
@@ -771,8 +815,8 @@ export default function Reports() {
               <div className="d-flex gap-2">
                 <select
                   className="form-select form-select-sm"
-                  value={monthStartFilter}
-                  onChange={(e) => setMonthStartFilter(e.target.value)}
+                  value={summaryMonthStart}
+                  onChange={(e) => setSummaryMonthStart(e.target.value)}
                 >
                   {monthOptions.map((opt) => (
                     <option key={`start-${opt.value}`} value={opt.value}>{opt.label}</option>
@@ -780,8 +824,8 @@ export default function Reports() {
                 </select>
                 <select
                   className="form-select form-select-sm"
-                  value={monthEndFilter}
-                  onChange={(e) => setMonthEndFilter(e.target.value)}
+                  value={summaryMonthEnd}
+                  onChange={(e) => setSummaryMonthEnd(e.target.value)}
                 >
                   {monthOptions.map((opt) => (
                     <option key={`end-${opt.value}`} value={opt.value}>{opt.label}</option>
@@ -797,8 +841,8 @@ export default function Reports() {
                 min="1900"
                 max="9999"
                 placeholder="All years"
-                value={yearFilter === 'all' ? '' : yearFilter}
-                onChange={(e) => setYearFilter(e.target.value.trim() || 'all')}
+                value={summaryYear === 'all' ? '' : summaryYear}
+                onChange={(e) => setSummaryYear(e.target.value.trim() || 'all')}
               />
             </div>
             <button className="btn btn-outline-primary w-100" type="button" onClick={handleLibrarySummaryDownload}>
@@ -832,8 +876,8 @@ export default function Reports() {
               <label className="form-label small text-muted mb-1">Category</label>
               <select
                 className="form-select form-select-sm"
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
+                value={circulationCategory}
+                onChange={(e) => setCirculationCategory(e.target.value)}
                 disabled={categoriesLoading}
               >
                 <option value="all">All categories</option>
@@ -847,8 +891,8 @@ export default function Reports() {
               <div className="d-flex gap-2">
                 <select
                   className="form-select form-select-sm"
-                  value={monthStartFilter}
-                  onChange={(e) => setMonthStartFilter(e.target.value)}
+                  value={circulationMonthStart}
+                  onChange={(e) => setCirculationMonthStart(e.target.value)}
                 >
                   {monthOptions.map((opt) => (
                     <option key={`start-${opt.value}`} value={opt.value}>{opt.label}</option>
@@ -856,8 +900,8 @@ export default function Reports() {
                 </select>
                 <select
                   className="form-select form-select-sm"
-                  value={monthEndFilter}
-                  onChange={(e) => setMonthEndFilter(e.target.value)}
+                  value={circulationMonthEnd}
+                  onChange={(e) => setCirculationMonthEnd(e.target.value)}
                 >
                   {monthOptions.map((opt) => (
                     <option key={`end-${opt.value}`} value={opt.value}>{opt.label}</option>
@@ -873,8 +917,8 @@ export default function Reports() {
                 min="1900"
                 max="9999"
                 placeholder="All years"
-                value={yearFilter === 'all' ? '' : yearFilter}
-                onChange={(e) => setYearFilter(e.target.value.trim() || 'all')}
+                value={circulationYear === 'all' ? '' : circulationYear}
+                onChange={(e) => setCirculationYear(e.target.value.trim() || 'all')}
               />
             </div>
             <button className="btn btn-outline-primary w-100" type="button" onClick={handleCirculationDownload}>
@@ -907,8 +951,8 @@ export default function Reports() {
               <div className="d-flex gap-2">
                 <select
                   className="form-select form-select-sm"
-                  value={monthStartFilter}
-                  onChange={(e) => setMonthStartFilter(e.target.value)}
+                  value={overdueMonthStart}
+                  onChange={(e) => setOverdueMonthStart(e.target.value)}
                 >
                   {monthOptions.map((opt) => (
                     <option key={`start-${opt.value}`} value={opt.value}>{opt.label}</option>
@@ -916,8 +960,8 @@ export default function Reports() {
                 </select>
                 <select
                   className="form-select form-select-sm"
-                  value={monthEndFilter}
-                  onChange={(e) => setMonthEndFilter(e.target.value)}
+                  value={overdueMonthEnd}
+                  onChange={(e) => setOverdueMonthEnd(e.target.value)}
                 >
                   {monthOptions.map((opt) => (
                     <option key={`end-${opt.value}`} value={opt.value}>{opt.label}</option>
@@ -933,8 +977,8 @@ export default function Reports() {
                 min="1900"
                 max="9999"
                 placeholder="All years"
-                value={yearFilter === 'all' ? '' : yearFilter}
-                onChange={(e) => setYearFilter(e.target.value.trim() || 'all')}
+                value={overdueYear === 'all' ? '' : overdueYear}
+                onChange={(e) => setOverdueYear(e.target.value.trim() || 'all')}
               />
             </div>
             <button className="btn btn-outline-primary w-100" type="button" onClick={handleOverdueDownload}>
@@ -968,8 +1012,8 @@ export default function Reports() {
               <div className="d-flex gap-2">
                 <select
                   className="form-select form-select-sm"
-                  value={monthStartFilter}
-                  onChange={(e) => setMonthStartFilter(e.target.value)}
+                  value={topMonthStart}
+                  onChange={(e) => setTopMonthStart(e.target.value)}
                 >
                   {monthOptions.map((opt) => (
                     <option key={`start-${opt.value}`} value={opt.value}>{opt.label}</option>
@@ -977,8 +1021,8 @@ export default function Reports() {
                 </select>
                 <select
                   className="form-select form-select-sm"
-                  value={monthEndFilter}
-                  onChange={(e) => setMonthEndFilter(e.target.value)}
+                  value={topMonthEnd}
+                  onChange={(e) => setTopMonthEnd(e.target.value)}
                 >
                   {monthOptions.map((opt) => (
                     <option key={`end-${opt.value}`} value={opt.value}>{opt.label}</option>
@@ -994,8 +1038,8 @@ export default function Reports() {
                 min="1900"
                 max="9999"
                 placeholder="All years"
-                value={yearFilter === 'all' ? '' : yearFilter}
-                onChange={(e) => setYearFilter(e.target.value.trim() || 'all')}
+                value={topYear === 'all' ? '' : topYear}
+                onChange={(e) => setTopYear(e.target.value.trim() || 'all')}
               />
             </div>
             <button className="btn btn-outline-primary w-100" type="button" onClick={handleTopBorrowedDownload}>
@@ -1234,55 +1278,104 @@ export default function Reports() {
                       >
                         Missed ({reportDetails.missing.length})
                       </button>
+                      <button
+                        className={`btn btn-sm ${activeTab === 'arrived' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                        onClick={() => setActiveTab('arrived')}
+                      >
+                        Arrived ({reportDetails.arrived.length})
+                      </button>
                     </div>
 
                     <div className="table-responsive bg-white rounded border">
-                      <table className="table table-hover mb-0 library-reports-details-table">
-                        <thead className="table-light">
-                          <tr>
-                            <th>Issued</th>
-                            <th>Returned</th>
-                            <th>Student</th>
-                            <th>Book Title</th>
-                            <th>Author</th>
-                            <th>Shelf</th>
-                            <th>Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(reportDetails[activeTab] || []).length === 0 ? (
+                      {activeTab === 'arrived' ? (
+                        <table className="table table-hover mb-0 library-reports-details-table">
+                          <thead className="table-light">
                             <tr>
-                              <td colSpan="7" className="text-center py-4 text-muted">
-                                No records found for this category.
-                              </td>
+                              <th>Arrived</th>
+                              <th>Book Title</th>
+                              <th>Author</th>
+                              <th>Category</th>
+                              <th>Shelf</th>
+                              <th>Status</th>
                             </tr>
-                          ) : (
-                            (reportDetails[activeTab] || []).map((item) => (
-                              <tr key={item.id}>
-                                <td>{formatDate(item.issued_at)}</td>
-                                <td>{formatDate(item.returned_at)}</td>
-                                <td>
-                                  <div className="fw-semibold">{item.students?.full_name || 'Unknown'}</div>
-                                  <div className="small text-muted">{item.students?.student_id || '-'}</div>
-                                </td>
-                                <td>{item.library_book_copies?.library_books?.title || 'Unknown Title'}</td>
-                                <td>{item.library_book_copies?.library_books?.author || '-'}</td>
-                                <td>{item.library_book_copies?.library_books?.shelf_code || '-'}</td>
-                                <td>
-                                  <span className={`badge ${ 
-                                    item.status === 'ISSUED' ? 'bg-warning text-dark' :
-                                    item.status === 'RETURNED' ? 'bg-success' :
-                                    item.status === 'DAMAGED' ? 'bg-warning text-dark' :
-                                    item.status === 'MISSING' ? 'bg-info text-white' : 'bg-secondary'
-                                  }`}> 
-                                    {item.status}
-                                  </span>
+                          </thead>
+                          <tbody>
+                            {(reportDetails.arrived || []).length === 0 ? (
+                              <tr>
+                                <td colSpan="6" className="text-center py-4 text-muted">
+                                  No records found for this category.
                                 </td>
                               </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
+                            ) : (
+                              (reportDetails.arrived || []).map((item) => (
+                                <tr key={item.id}>
+                                  <td>{formatDate(item.arrival_date || item.created_at)}</td>
+                                  <td>{item.title || 'Unknown Title'}</td>
+                                  <td>{item.author || '-'}</td>
+                                  <td>{item.category || '-'}</td>
+                                  <td>{item.shelf_code || '-'}</td>
+                                  <td>
+                                    <span className={`badge ${ 
+                                      item.status === 'ACTIVE' ? 'bg-success' :
+                                      item.status === 'INACTIVE' ? 'bg-secondary' :
+                                      item.status === 'ARCHIVED' ? 'bg-warning text-dark' : 'bg-secondary'
+                                    }`}> 
+                                      {item.status || 'UNKNOWN'}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <table className="table table-hover mb-0 library-reports-details-table">
+                          <thead className="table-light">
+                            <tr>
+                              <th>Issued</th>
+                              <th>Returned</th>
+                              <th>Student</th>
+                              <th>Book Title</th>
+                              <th>Author</th>
+                              <th>Shelf</th>
+                              <th>Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(reportDetails[activeTab] || []).length === 0 ? (
+                              <tr>
+                                <td colSpan="7" className="text-center py-4 text-muted">
+                                  No records found for this category.
+                                </td>
+                              </tr>
+                            ) : (
+                              (reportDetails[activeTab] || []).map((item) => (
+                                <tr key={item.id}>
+                                  <td>{formatDate(item.issued_at)}</td>
+                                  <td>{formatDate(item.returned_at)}</td>
+                                  <td>
+                                    <div className="fw-semibold">{item.students?.full_name || 'Unknown'}</div>
+                                    <div className="small text-muted">{item.students?.student_id || '-'}</div>
+                                  </td>
+                                  <td>{item.library_book_copies?.library_books?.title || 'Unknown Title'}</td>
+                                  <td>{item.library_book_copies?.library_books?.author || '-'}</td>
+                                  <td>{item.library_book_copies?.library_books?.shelf_code || '-'}</td>
+                                  <td>
+                                    <span className={`badge ${ 
+                                      item.status === 'ISSUED' ? 'bg-warning text-dark' :
+                                      item.status === 'RETURNED' ? 'bg-success' :
+                                      item.status === 'DAMAGED' ? 'bg-warning text-dark' :
+                                      item.status === 'MISSING' ? 'bg-info text-white' : 'bg-secondary'
+                                    }`}> 
+                                      {item.status}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      )}
                     </div>
                   </>
                 )}
