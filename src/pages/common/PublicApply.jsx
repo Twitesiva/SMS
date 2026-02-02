@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { api } from '../../lib/mockApi'
 import { validateRequiredFields } from '../../lib/validation'
 import { showToast } from '../../store/ui'
@@ -9,6 +9,7 @@ import './PublicApply.css'
 
 export default function PublicApply() {
   const location = useLocation()
+  const navigate = useNavigate()
   // dropdown option masters (can be moved to Setup later)
   const GENDERS = ['Male', 'Female', 'Other']
   const CASTES = ['General', 'OBC', 'SC', 'ST', 'Others']
@@ -371,6 +372,7 @@ export default function PublicApply() {
 
       showToast('Application submitted! Admin/Principal will contact you after approval.', { type: 'success', title: 'Submitted' })
       resetAll()
+      navigate('/home')
     } catch (err) {
       console.error(err)
       showToast(err.message || 'Error submitting form', { type: 'danger', title: 'Submission failed' })

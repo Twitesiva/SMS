@@ -242,16 +242,28 @@ export default function Staff() {
                             </div>
                             <div className="staff-filters__field">
                                 <label className="staff-filters__label">Designation</label>
-                                <select
-                                    className="form-select"
-                                    value={designationFilter}
-                                    onChange={(e) => setDesignationFilter(e.target.value)}
-                                >
-                                    <option value="">All Designations</option>
-                                    <option value="PROFESSOR">Professor</option>
-                                    <option value="ASSISTANT_PROFESSOR">Assistant Professor</option>
-                                    <option value="HOD">HOD</option>
-                                </select>
+                                <div className="position-relative">
+                                    <select
+                                        className="form-select"
+                                        value={designationFilter}
+                                        onChange={(e) => setDesignationFilter(e.target.value)}
+                                    >
+                                        <option value="">All Designations</option>
+                                        <option value="PROFESSOR">Professor</option>
+                                        <option value="ASSISTANT_PROFESSOR">Assistant Professor</option>
+                                        <option value="HOD">HOD</option>
+                                    </select>
+                                    <i
+                                        className="bi bi-caret-down-fill text-muted"
+                                        style={{
+                                            position: 'absolute',
+                                            right: '12px',
+                                            top: '50%',
+                                            transform: 'translateY(-50%)',
+                                            pointerEvents: 'none'
+                                        }}
+                                    ></i>
+                                </div>
                             </div>
                         </div>
                     </div>
