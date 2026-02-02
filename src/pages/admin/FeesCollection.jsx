@@ -933,11 +933,11 @@ export default function FeesCollection() {
                     <table className="table table-sm align-middle mb-0">
                       <thead>
                         <tr>
-                          <th>Date</th>
-                          <th>Type</th>
-                          <th>Fee</th>
-                          <th>Mode</th>
-                          <th className="text-end">Amount</th>
+                          <th style={{ color: '#ffffff', background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)' }}>Date</th>
+                          <th style={{ color: '#ffffff', background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)' }}>Type</th>
+                          <th style={{ color: '#ffffff', background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)' }}>Fee</th>
+                          <th style={{ color: '#ffffff', background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)' }}>Mode</th>
+                          <th className="text-end" style={{ color: '#ffffff', background: 'linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%)' }}>Amount</th>
                         </tr>
                       </thead>
                       <tbody>
