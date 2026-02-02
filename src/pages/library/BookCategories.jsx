@@ -22,8 +22,6 @@ export default function BookCategories() {
   const [updating, setUpdating] = useState(false)
   const [deleteModal, setDeleteModal] = useState({ show: false, category: null, loading: false })
 
-  const totalCategories = useMemo(() => categories.length, [categories])
-
   const loadCategories = async () => {
     setLoading(true)
     try {
@@ -178,23 +176,34 @@ export default function BookCategories() {
   return (
     <>
       <div className="desktop-container" style={{ overflowX: 'hidden' }}>
-      <div className="row g-3 mb-4 justify-content-center">
-        <div className="col-6 col-md-4">
-          <div className="card card-soft p-3 h-100 text-center">
-            <div className="text-muted small">Total Categories</div>
-            <div className="fs-4 fw-bold">{totalCategories}</div>
-          </div>
-        </div>
-      </div>
-
       <div className="row g-4 justify-content-center mx-0">
         <div className="col-12">
           <div className="card card-soft p-4 mb-4">
             <div className="mb-3">
-              <div className="text-muted text-uppercase small fw-bold">Catalog</div>
               <h4 className="mb-1 fw-bold text-dark">Book Categories</h4>
-              <p className="text-muted mb-0 small">Create categories to group books (IT, Biology, etc.).</p>
             </div>
+
+            <form className="row g-2 align-items-end mb-3" onSubmit={handleSubmit}>
+              <div className="col-md-8">
+                <label className="form-label small fw-bold text-muted">New Category Name</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="e.g. IT, Biology"
+                  value={form.name}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="col-md-4">
+                <button
+                  type="submit"
+                  className="btn btn-primary w-100"
+                  disabled={saving}
+                >
+                  {saving ? 'Saving...' : 'Add Category'}
+                </button>
+              </div>
+            </form>
 
             <div className="table-responsive mb-3">
               <table className="table table-sm table-hover align-middle library-charges-table">
@@ -270,27 +279,6 @@ export default function BookCategories() {
               </table>
             </div>
 
-            <form className="row g-2 align-items-end" onSubmit={handleSubmit}>
-              <div className="col-md-8">
-                <label className="form-label small fw-bold text-muted">New Category Name</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="e.g. IT, Biology"
-                  value={form.name}
-                  onChange={handleChange}
-                />
-              </div>
-              <div className="col-md-4">
-                <button
-                  type="submit"
-                  className="btn btn-primary w-100"
-                  disabled={saving}
-                >
-                  {saving ? 'Saving...' : 'Add Category'}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       </div>
