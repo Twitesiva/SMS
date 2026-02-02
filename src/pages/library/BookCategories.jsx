@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
 import LibraryPreloader from '../../components/LibraryPreloader'
+import ToastStack from '../../components/ToastStack'
+import ConfirmationModal from '../../components/ConfirmationModal'
 
 const initialForm = { name: '' }
 
@@ -15,10 +17,10 @@ export default function BookCategories() {
   const [form, setForm] = useState(initialForm)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [deletingId, setDeletingId] = useState(null)
   const [editingId, setEditingId] = useState(null)
   const [editName, setEditName] = useState('')
   const [updating, setUpdating] = useState(false)
+  const [deleteModal, setDeleteModal] = useState({ show: false, category: null, loading: false })
 
   const totalCategories = useMemo(() => categories.length, [categories])
 
@@ -81,25 +83,34 @@ export default function BookCategories() {
     }
   }
 
-  const handleDelete = async (category) => {
+  const openDeleteModal = (category) => {
     if (!category?.id) return
-    const shouldDelete = window.confirm(`Delete category "${category.name}"?`)
-    if (!shouldDelete) return
-    setDeletingId(category.id)
+    setDeleteModal({ show: true, category, loading: false })
+  }
+
+  const closeDeleteModal = () => {
+    setDeleteModal({ show: false, category: null, loading: false })
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteModal.category?.id) return
+    setDeleteModal((prev) => ({ ...prev, loading: true }))
     try {
       const { error } = await supabase
         .from('library_book_categories')
         .delete()
-        .eq('id', category.id)
+        .eq('id', deleteModal.category.id)
 
       if (error) throw error
-      setCategories((prev) => prev.filter((item) => item.id !== category.id))
+      setCategories((prev) => prev.filter((item) => item.id !== deleteModal.category.id))
       showToast('Category removed.', { type: 'success' })
+      closeDeleteModal()
     } catch (error) {
       console.error('Failed to delete book category', error)
       showToast('Unable to delete category.', { type: 'danger' })
+      setDeleteModal((prev) => ({ ...prev, loading: false }))
     } finally {
-      setDeletingId(null)
+      setDeleteModal((prev) => ({ ...prev, loading: false }))
     }
   }
 
@@ -165,7 +176,8 @@ export default function BookCategories() {
   }
 
   return (
-    <div className="desktop-container" style={{ overflowX: 'hidden' }}>
+    <>
+      <div className="desktop-container" style={{ overflowX: 'hidden' }}>
       <div className="row g-3 mb-4 justify-content-center">
         <div className="col-6 col-md-4">
           <div className="card card-soft p-3 h-100 text-center">
@@ -216,39 +228,39 @@ export default function BookCategories() {
                         <td>{formatDate(category.created_at)}</td>
                         <td className="text-end">
                           {editingId === category.id ? (
-                            <>
+                            <div className="library-catalogue-actions">
                               <button
-                                className="btn btn-link text-primary p-0 text-decoration-none small me-3"
+                                className="library-action-button library-action-button--edit"
                                 onClick={handleUpdate}
                                 disabled={updating}
                               >
                                 {updating ? 'Saving...' : 'Save'}
                               </button>
                               <button
-                                className="btn btn-link text-muted p-0 text-decoration-none small me-3"
+                                className="library-action-button library-action-button--neutral"
                                 onClick={cancelEdit}
                                 disabled={updating}
                               >
                                 Cancel
                               </button>
-                            </>
+                            </div>
                           ) : (
-                            <>
+                            <div className="library-catalogue-actions">
                               <button
-                                className="btn btn-link text-primary p-0 text-decoration-none small me-3"
+                                className="library-action-button library-action-button--edit"
                                 onClick={() => startEdit(category)}
-                                disabled={deletingId === category.id}
+                                disabled={deleteModal.loading && deleteModal.category?.id === category.id}
                               >
                                 Edit
                               </button>
                               <button
-                                className="btn btn-link text-danger p-0 text-decoration-none small"
-                                onClick={() => handleDelete(category)}
-                                disabled={deletingId === category.id}
+                                className="library-action-button library-action-button--delete"
+                                onClick={() => openDeleteModal(category)}
+                                disabled={deleteModal.loading && deleteModal.category?.id === category.id}
                               >
-                                {deletingId === category.id ? 'Removing...' : 'Delete'}
+                                {deleteModal.loading && deleteModal.category?.id === category.id ? 'Removing...' : 'Delete'}
                               </button>
-                            </>
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -282,6 +294,17 @@ export default function BookCategories() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+      <ToastStack />
+      <ConfirmationModal
+        isOpen={deleteModal.show}
+        onClose={closeDeleteModal}
+        onConfirm={confirmDelete}
+        title="Delete Category"
+        message={`Are you sure you want to delete ${deleteModal.category?.name || 'this category'}?`}
+        confirmText={deleteModal.loading ? 'Deleting...' : 'Delete'}
+        isLoading={deleteModal.loading}
+      />
+    </>
   )
 }

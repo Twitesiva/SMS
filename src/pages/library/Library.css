@@ -320,6 +320,12 @@
   box-shadow: 0 10px 20px rgba(208, 76, 76, 0.3);
 }
 
+.library-action-button--neutral {
+  background: linear-gradient(135deg, #6b7280, #94a3b8);
+  color: #fff;
+  box-shadow: 0 10px 20px rgba(100, 116, 139, 0.25);
+}
+
 .library-action-button:hover {
   transform: translateY(-1px);
 }
