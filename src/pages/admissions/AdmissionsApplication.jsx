@@ -92,6 +92,8 @@ export default function AdmissionsApplication() {
     const [duplicateErrors, setDuplicateErrors] = useState({ student_id: false, ht_no: false })
     const [showConfirmModal, setShowConfirmModal] = useState(false)
     const hasPrefilledRef = useRef(false)
+    const [isEditing, setIsEditing] = useState(false)
+    const [semesterWarning, setSemesterWarning] = useState(false)
 
     const currentYear = new Date().getFullYear()
     const admissionYearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 3 + i)
@@ -605,6 +607,7 @@ export default function AdmissionsApplication() {
                                                     value={category}
                                                     onChange={(e) => setCategory(e.target.value)}
                                                     required
+                                                    disabled={!isEditing}
                                                 >
                                                     <option value="">Select</option>
                                                     <option value="UG">UG</option>
@@ -618,7 +621,7 @@ export default function AdmissionsApplication() {
                                                     value={form.academic_year}
                                                     onChange={(e) => handle('academic_year', e.target.value)}
                                                     required
-                                                    disabled={!category}
+                                                    disabled={!isEditing || !category}
                                                 >
                                                     <option value="">Select Year</option>
                                                     {filteredYears.map((year) => (
@@ -635,6 +638,7 @@ export default function AdmissionsApplication() {
                                                     value={form.admission_year}
                                                     onChange={(e) => handle('admission_year', e.target.value)}
                                                     required
+                                                    disabled={!isEditing}
                                                 >
                                                     <option value="">Select Year</option>
                                                     {admissionYearOptions.map((year) => (
@@ -656,7 +660,7 @@ export default function AdmissionsApplication() {
                                                         setForm(prev => ({ ...prev, group_code: value }))
                                                     }}
                                                     required
-                                                    disabled={!category}
+                                                    disabled={!isEditing || !category}
                                                 >
                                                     <option value="">Select</option>
                                                     {filteredGroups.map((group) => (
@@ -680,7 +684,7 @@ export default function AdmissionsApplication() {
                                                         }))
                                                     }}
                                                     required
-                                                    disabled={!form.group_code}
+                                                    disabled={!isEditing || !form.group_code}
                                                 >
                                                     <option value="">Select</option>
                                                     {filteredCourses.map((course) => (
@@ -696,12 +700,22 @@ export default function AdmissionsApplication() {
                                                     type="number"
                                                     className="form-control"
                                                     value={form.current_semester}
-                                                    onChange={(e) => handle('current_semester', e.target.value)}
+                                                    onChange={(e) => {
+                                                        const val = parseInt(e.target.value, 10);
+                                                        if (val !== 1) {
+                                                            setSemesterWarning(true);
+                                                            handle('current_semester', 1);
+                                                            setTimeout(() => setSemesterWarning(false), 3000);
+                                                        } else {
+                                                            handle('current_semester', 1);
+                                                        }
+                                                    }}
                                                     placeholder="Sem No"
-                                                    min="1"
-                                                    max="8"
+                                                    max="1"
                                                     required
+                                                    disabled={!isEditing}
                                                 />
+                                                {semesterWarning && <div className="text-danger small mt-1">Starts from Semester 1</div>}
                                             </div>
                                         </div>
                                     </div>
@@ -716,6 +730,7 @@ export default function AdmissionsApplication() {
                                                     value={form.student_id}
                                                     onChange={(e) => handle('student_id', e.target.value)}
                                                     placeholder="Enter Student ID"
+                                                    disabled={!isEditing}
                                                 />
                                                 {duplicateErrors.student_id && <div className="invalid-feedback">Already Exists</div>}
                                             </div>
@@ -726,16 +741,17 @@ export default function AdmissionsApplication() {
                                                     value={form.ht_no}
                                                     onChange={(e) => handle('ht_no', e.target.value)}
                                                     placeholder="Enter Hall Ticket No"
+                                                    disabled={!isEditing}
                                                 />
                                                 {duplicateErrors.ht_no && <div className="invalid-feedback">Already Exists</div>}
                                             </div>
                                             <div className="col-md-8">
                                                 <label className="form-label">Student Full Name</label>
-                                                <input className="form-control" value={form.full_name} onChange={(e) => handle('full_name', e.target.value)} required />
+                                                <input className="form-control" value={form.full_name} onChange={(e) => handle('full_name', e.target.value)} required disabled={!isEditing} />
                                             </div>
                                             <div className="col-md-2">
                                                 <label className="form-label">Gender</label>
-                                                <select className="form-select" value={form.gender} onChange={(e) => handle('gender', e.target.value)} required>
+                                                <select className="form-select" value={form.gender} onChange={(e) => handle('gender', e.target.value)} required disabled={!isEditing}>
                                                     <option value="">Select</option>
                                                     {GENDERS.map((gender) => (
                                                         <option key={gender} value={gender}>{gender}</option>
@@ -744,15 +760,15 @@ export default function AdmissionsApplication() {
                                             </div>
                                             <div className="col-md-2">
                                                 <label className="form-label">DOB</label>
-                                                <input type="date" className="form-control" value={form.dob} onChange={(e) => handle('dob', e.target.value)} required />
+                                                <input type="date" className="form-control" value={form.dob} onChange={(e) => handle('dob', e.target.value)} required disabled={!isEditing} />
                                             </div>
                                             <div className="col-md-6">
                                                 <label className="form-label">Father's Name</label>
-                                                <input className="form-control" value={form.father_name} onChange={(e) => handle('father_name', e.target.value)} />
+                                                <input className="form-control" value={form.father_name} onChange={(e) => handle('father_name', e.target.value)} disabled={!isEditing} />
                                             </div>
                                             <div className="col-md-6">
                                                 <label className="form-label">Mother's Name</label>
-                                                <input className="form-control" value={form.mother_name} onChange={(e) => handle('mother_name', e.target.value)} />
+                                                <input className="form-control" value={form.mother_name} onChange={(e) => handle('mother_name', e.target.value)} disabled={!isEditing} />
                                             </div>
                                         </div>
                                     </div>
@@ -762,20 +778,20 @@ export default function AdmissionsApplication() {
                                         <div className="row g-3 mt-1">
                                             <div className="col-md-4">
                                                 <label className="form-label">Mobile Number</label>
-                                                <input type="tel" className="form-control" value={form.mobile} onChange={onNumericChange('mobile', 10)} required maxLength={10} placeholder="10-digit mobile number" />
+                                                <input type="tel" className="form-control" value={form.mobile} onChange={onNumericChange('mobile', 10)} required maxLength={10} placeholder="10-digit mobile number" disabled={!isEditing} />
                                             </div>
                                             <div className="col-md-4">
                                                 <label className="form-label">Parent Mobile</label>
-                                                <input type="tel" className="form-control" value={form.Parent_no} onChange={onNumericChange('Parent_no', 10)} required maxLength={10} placeholder="Parent's 10-digit mobile" />
+                                                <input type="tel" className="form-control" value={form.Parent_no} onChange={onNumericChange('Parent_no', 10)} required maxLength={10} placeholder="Parent's 10-digit mobile" disabled={!isEditing} />
                                             </div>
 
                                             <div className="col-md-4">
                                                 <label className="form-label">Nationality</label>
-                                                <input className="form-control" value={form.nationality} onChange={(e) => handle('nationality', e.target.value)} placeholder="Indian" />
+                                                <input className="form-control" value={form.nationality} onChange={(e) => handle('nationality', e.target.value)} placeholder="Indian" disabled={!isEditing} />
                                             </div>
                                             <div className="col-md-4">
                                                 <label className="form-label">State</label>
-                                                <select className="form-select" value={form.state} onChange={(e) => handle('state', e.target.value)}>
+                                                <select className="form-select" value={form.state} onChange={(e) => handle('state', e.target.value)} disabled={!isEditing}>
                                                     <option value="">Select</option>
                                                     {STATES.map((st) => (
                                                         <option key={st} value={st}>{st}</option>
@@ -784,27 +800,27 @@ export default function AdmissionsApplication() {
                                             </div>
                                             <div className="col-md-4">
                                                 <label className="form-label">Postal Code</label>
-                                                <input type="text" className="form-control" value={form.postal_code} onChange={onNumericChange('postal_code', 6)} required maxLength={6} placeholder="6-digit pin" />
+                                                <input type="text" className="form-control" value={form.postal_code} onChange={onNumericChange('postal_code', 6)} required maxLength={6} placeholder="6-digit pin" disabled={!isEditing} />
                                             </div>
                                             <div className="col-md-4">
                                                 <label className="form-label">Aadhaar</label>
-                                                <input type="text" className="form-control" value={form.aadhar_no} onChange={onNumericChange('aadhar_no', 12)} maxLength={12} placeholder="12-digit number" />
+                                                <input type="text" className="form-control" value={form.aadhar_no} onChange={onNumericChange('aadhar_no', 12)} maxLength={12} placeholder="12-digit number" disabled={!isEditing} />
                                             </div>
                                             <div className="col-12">
                                                 <label className="form-label">Address</label>
-                                                <textarea className="form-control" rows="2" value={form.address} onChange={(e) => handle('address', e.target.value)} required></textarea>
+                                                <textarea className="form-control" rows="2" value={form.address} onChange={(e) => handle('address', e.target.value)} required disabled={!isEditing}></textarea>
                                             </div>
 
                                             <div className="col-md-4">
                                                 <label className="form-label">Religion</label>
-                                                <select className="form-select" value={form.religion} onChange={(e) => handle('religion', e.target.value)}>
+                                                <select className="form-select" value={form.religion} onChange={(e) => handle('religion', e.target.value)} disabled={!isEditing}>
                                                     <option value="">Select</option>
                                                     {RELIGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
                                                 </select>
                                             </div>
                                             <div className="col-md-4">
                                                 <label className="form-label">Caste</label>
-                                                <select className="form-select" value={form.caste} onChange={(e) => handle('caste', e.target.value)}>
+                                                <select className="form-select" value={form.caste} onChange={(e) => handle('caste', e.target.value)} disabled={!isEditing}>
                                                     <option value="">Select</option>
                                                     {CASTES.map((c) => <option key={c} value={c}>{c}</option>)}
                                                 </select>
@@ -824,6 +840,7 @@ export default function AdmissionsApplication() {
                                                             handle('is_hostel', true)
                                                             handle('is_transport', false)
                                                         }}
+                                                        disabled={!isEditing}
                                                     />
                                                     <label className="form-check-label" htmlFor="hostelYes">Hostel</label>
                                                 </div>
@@ -835,6 +852,7 @@ export default function AdmissionsApplication() {
                                                             handle('is_transport', '')
                                                             handle('hostel_ac', null)
                                                         }}
+                                                        disabled={!isEditing}
                                                     />
                                                     <label className="form-check-label" htmlFor="hostelNo">Day Scholar</label>
                                                 </div>
@@ -846,6 +864,7 @@ export default function AdmissionsApplication() {
                                                         <input className="form-check-input" type="radio" name="hostel_ac" id="hostelAc"
                                                             checked={form.hostel_ac === true}
                                                             onChange={() => handle('hostel_ac', true)}
+                                                            disabled={!isEditing}
                                                         />
                                                         <label className="form-check-label" htmlFor="hostelAc">AC</label>
                                                     </div>
@@ -853,6 +872,7 @@ export default function AdmissionsApplication() {
                                                         <input className="form-check-input" type="radio" name="hostel_ac" id="hostelNonAc"
                                                             checked={form.hostel_ac === false}
                                                             onChange={() => handle('hostel_ac', false)}
+                                                            disabled={!isEditing}
                                                         />
                                                         <label className="form-check-label" htmlFor="hostelNonAc">Non AC</label>
                                                     </div>
@@ -864,7 +884,7 @@ export default function AdmissionsApplication() {
                                                     <input className="form-check-input" type="radio" name="is_transport" id="transportYes"
                                                         checked={form.is_transport === true}
                                                         onChange={() => handle('is_transport', true)}
-                                                        disabled={form.is_hostel === true}
+                                                        disabled={!isEditing || form.is_hostel === true}
                                                     />
                                                     <label className="form-check-label" htmlFor="transportYes">Yes</label>
                                                 </div>
@@ -872,7 +892,7 @@ export default function AdmissionsApplication() {
                                                     <input className="form-check-input" type="radio" name="is_transport" id="transportNo"
                                                         checked={form.is_transport === false}
                                                         onChange={() => handle('is_transport', false)}
-                                                        disabled={form.is_hostel === true}
+                                                        disabled={!isEditing || form.is_hostel === true}
                                                     />
                                                     <label className="form-check-label" htmlFor="transportNo">No</label>
                                                 </div>
@@ -881,10 +901,23 @@ export default function AdmissionsApplication() {
                                     </div>
 
                                     <div className="d-flex justify-content-end gap-2">
-                                        <button type="button" className="btn btn-light" onClick={resetAll}>Cancel</button>
-                                        <button type="submit" className="btn btn-primary" disabled={loading}>
-                                            {loading ? 'Submitting...' : 'Submit Application'}
-                                        </button>
+                                        {!isEditing ? (
+                                            <>
+                                                <button type="button" className="btn btn-outline-primary" onClick={() => setIsEditing(true)}>
+                                                    <i className="bi bi-pencil me-2"></i>Edit Application
+                                                </button>
+                                                <button type="submit" className="btn btn-primary" disabled={loading}>
+                                                    {loading ? 'Processing...' : 'Approve Application'}
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <button type="button" className="btn btn-light" onClick={() => setIsEditing(false)}>Cancel Edit</button>
+                                                <button type="submit" className="btn btn-success" disabled={loading}>
+                                                    {loading ? 'Saving...' : 'Save Changes'}
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                 </form>
                             </div>
