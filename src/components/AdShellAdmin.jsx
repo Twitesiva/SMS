@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useLayoutEffect, useRef } from "react";
 import { useAuth } from "../store/auth";
 import logo from "../assets/media/images.png";
 import '../pages/staff/StaffPortal.css'; // Match Exam portal sidebar behavior
@@ -142,6 +142,7 @@ export default function AdShellAdmin({
     const [collapsed, setCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
     const [expandedGroups, setExpandedGroups] = useState({});
+    const navRef = useRef(null);
 
     // Determine which nav groups to use
     const activeNavGroups = navGroups || adminPortalNavGroups;
@@ -176,6 +177,19 @@ export default function AdShellAdmin({
         }
     }, [pathname, activeNavGroups]);
 
+    useLayoutEffect(() => {
+        const savedScroll = sessionStorage.getItem('adminSidebarScroll');
+        if (navRef.current && savedScroll) navRef.current.scrollTop = Number(savedScroll);
+    }, []);
+
+    useEffect(() => {
+        const navEl = navRef.current;
+        if (!navEl) return;
+        const handleScroll = () => sessionStorage.setItem('adminSidebarScroll', navEl.scrollTop);
+        navEl.addEventListener('scroll', handleScroll);
+        return () => navEl.removeEventListener('scroll', handleScroll);
+    }, []);
+
 
     return (
         <div className={`staff-portal ${collapsed ? 'staff-portal--collapsed' : ''} ${mobileOpen ? 'staff-portal--mobile-open' : ''}`}>
@@ -204,7 +218,7 @@ export default function AdShellAdmin({
                     </button>
                 </div>
 
-                <nav className="staff-sidebar__nav">
+                <nav className="staff-sidebar__nav" ref={navRef}>
                     {activeNavGroups.map((group, groupIndex) => {
                         const isStatic = group.static;
                         const isActiveGroup = group.items.some((item) => isRouteActive(pathname, item.to));
