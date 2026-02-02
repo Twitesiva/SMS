@@ -548,7 +548,7 @@ export default function FeesCollection() {
         <h4 className="mb-4">Fees Collection</h4>
 
         <div className="row g-4 justify-content-center mx-0">
-          <div className="col-12 col-lg-4">
+          <div className="col-12">
             <div className="students-section-shell card card-soft h-100">
               <div className="students-section-shell-header mb-3">
                 <div>
@@ -583,7 +583,7 @@ export default function FeesCollection() {
             </div>
           </div>
 
-          <div className="col-12 col-lg-8">
+          <div className="col-12">
             <div className="students-table-panel card card-soft p-4 h-100">
               <div className="students-table-panel-header mb-3">
                 <div>
