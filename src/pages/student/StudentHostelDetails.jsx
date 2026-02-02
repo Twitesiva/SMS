@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../../../supabaseClient'
 import StudentShell from '../../components/StudentShell'
 import { useStudentAuth } from '../../store/studentAuth'
@@ -17,31 +17,13 @@ const formatDateTime = (value) => {
   }).format(date)
 }
 
-const formatCurrency = (value) => {
-  const num = Number(value)
-  if (Number.isNaN(num)) return 'N/A'
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 2,
-  }).format(num)
-}
-
-const deriveYearOfStudy = (student) => {
-  const rawYear = Number(student?.year_of_study)
-  if (Number.isFinite(rawYear) && rawYear > 0) return rawYear
-  const rawSemester = Number(student?.current_semester)
-  if (Number.isFinite(rawSemester) && rawSemester > 0) {
-    return Math.ceil(rawSemester / 2)
-  }
-  return null
-}
-
-const normalizeStatus = (value) => {
-  const status = (value || 'pending').toString().toLowerCase()
-  if (status === 'success') return { label: 'Paid', tone: 'success' }
-  if (status === 'failed') return { label: 'Failed', tone: 'danger' }
-  return { label: 'Pending', tone: 'warning' }
+const formatHostelFloor = (floorNo) => {
+  const floor = Number(floorNo)
+  if (!Number.isFinite(floor)) return 'N/A'
+  if (floor === 0) return 'Ground Floor'
+  if (floor === 1) return 'First Floor'
+  if (floor === 2) return 'Second Floor'
+  return `Floor ${floor}`
 }
 
 export default function StudentHostelDetails() {
@@ -50,13 +32,12 @@ export default function StudentHostelDetails() {
   const [error, setError] = useState('')
   const [warning, setWarning] = useState('')
   const [studentInfo, setStudentInfo] = useState(null)
-  const [hostelFee, setHostelFee] = useState(null)
-  const [payments, setPayments] = useState([])
+  const [currentAllocation, setCurrentAllocation] = useState(null)
 
   useEffect(() => {
     if (!student?.id) {
-      setError('Please sign in to view your hostel fees.')
-      setPayments([])
+      setError('Please sign in to view your hostel allocation.')
+      setCurrentAllocation(null)
       return
     }
 
@@ -64,8 +45,7 @@ export default function StudentHostelDetails() {
       setLoading(true)
       setError('')
       setWarning('')
-      setHostelFee(null)
-      setPayments([])
+      setCurrentAllocation(null)
       try {
         const { data: studentData, error: studentError } = await supabase
           .from('students')
@@ -84,46 +64,23 @@ export default function StudentHostelDetails() {
 
         if (!studentData.is_hostel) {
           setWarning('Hostel facility is not assigned to this student.')
+          return
         }
 
-        const academicYear = (studentData.academic_year || '').toString().trim()
-        const yearOfStudy = deriveYearOfStudy(studentData)
-
-        if (studentData.is_hostel && academicYear) {
-          const studentType = studentData.hostel_ac ? 'AC' : 'NON_AC'
-          const { data: hostelData, error: hostelError } = await supabase
-            .from('hostel_fees')
-            .select('hostel_fee')
-            .eq('academic_year', academicYear)
-            .eq('hostel_type', studentType)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-
-          if (hostelError) throw hostelError
-          if (hostelData && hostelData.hostel_fee !== undefined && hostelData.hostel_fee !== null) {
-            setHostelFee(Number(hostelData.hostel_fee || 0))
-          } else {
-            setWarning('Hostel fee is not configured for the current year.')
-          }
-        } else if (studentData.is_hostel) {
-          setWarning('Academic year or year of study is missing for hostel fee lookup.')
-        }
-
-        const { data: paymentRows, error: paymentError } = await supabase
-          .from('student_fee_payments')
-          .select('id, amount_paid, payment_type, payment_mode, payment_status, fee_type, created_at')
+        const { data: allocationData, error: allocationError } = await supabase
+          .from('hostel_allocations')
+          .select('academic_year, status, created_at, hostel_beds(bed_no, hostel_rooms(room_no, floor_no, room_type, hostel_blocks(block_name)))')
           .eq('student_id', student.id)
-          .ilike('fee_type', '%hostel%')
-          .order('created_at', { ascending: false })
+          .eq('status', 'ACTIVE')
+          .maybeSingle()
 
-        if (paymentError) throw paymentError
-        setPayments(paymentRows || [])
+        if (allocationError) throw allocationError
+        setCurrentAllocation(allocationData || null)
 
       } catch (err) {
         console.error(err)
-        setError(err?.message || 'Unable to load hostel fees right now.')
-        setPayments([])
+        setError(err?.message || 'Unable to load hostel allocation right now.')
+        setCurrentAllocation(null)
       } finally {
         setLoading(false)
       }
@@ -132,64 +89,17 @@ export default function StudentHostelDetails() {
     loadHostelDetails()
   }, [student?.id])
 
-  const summary = useMemo(() => {
-    const totalPaid = payments.reduce((sum, row) => sum + Number(row.amount_paid || 0), 0)
-    const lastPayment = payments[0]
-    return {
-      totalPaid,
-      totalCount: payments.length,
-      lastPaidAt: lastPayment?.created_at || '',
-    }
-  }, [payments])
-
-  const balance = useMemo(() => {
-    if (hostelFee === null) return null
-    return Math.max(hostelFee - summary.totalPaid, 0)
-  }, [hostelFee, summary.totalPaid])
-
-  const hostelFeeDisplay = hostelFee === null ? 'N/A' : formatCurrency(hostelFee)
-  const balanceDisplay = hostelFee === null ? 'N/A' : formatCurrency(balance)
-
-
-
   return (
     <StudentShell>
       <div className="students-section-shell">
         <div className="student-card mb-4">
-          <div className="student-card__header">Hostel Fees</div>
+          <div className="student-card__header">Hostel Allocation</div>
           <div className="student-card__body">
             <p className="students-section-copy mb-0">
-              {studentInfo?.is_hostel 
-                ? 'Review hostel fee information and payment history.' 
+              {studentInfo?.is_hostel
+                ? 'Review your hostel allocation details.'
                 : 'You are not currently registered as a hostel resident.'}
             </p>
-          </div>
-        </div>
-
-        <div className="student-payments-summary">
-          <div className="student-payments-card">
-            <div className="student-payments-card__label">Hostel Fee</div>
-            <div className="student-payments-card__value">{hostelFeeDisplay}</div>
-          </div>
-          <div className="student-payments-card">
-            <div className="student-payments-card__label">Total Paid</div>
-            <div className="student-payments-card__value">
-              {formatCurrency(summary.totalPaid)}
-            </div>
-          </div>
-          <div className="student-payments-card">
-            <div className="student-payments-card__label">Balance</div>
-            <div className="student-payments-card__value">{balanceDisplay}</div>
-          </div>
-          <div className="student-payments-card">
-            <div className="student-payments-card__label">Payments</div>
-            <div className="student-payments-card__value">{summary.totalCount}</div>
-          </div>
-          <div className="student-payments-card">
-            <div className="student-payments-card__label">Last Payment</div>
-            <div className="student-payments-card__value">
-              {summary.lastPaidAt ? formatDateTime(summary.lastPaidAt) : 'N/A'}
-            </div>
           </div>
         </div>
 
@@ -230,43 +140,57 @@ export default function StudentHostelDetails() {
           <div className="student-details__status student-details__status--error">{error}</div>
         )}
 
-        {!loading && !error && payments.length === 0 && (
-          <div className="student-details__status">No hostel payment records found.</div>
+        {!loading && !error && studentInfo?.is_hostel && !currentAllocation && (
+          <div className="student-details__status">No hostel allocation found.</div>
         )}
 
-        {!loading && !error && payments.length > 0 && (
-          <div className="student-payments-table-wrapper">
-            <table className="student-payments-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Fee type</th>
-                  <th>Payment type</th>
-                  <th>Payment mode</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {payments.map((payment) => {
-                  const status = normalizeStatus(payment.payment_status)
-                  return (
-                    <tr key={payment.id}>
-                      <td>{formatDateTime(payment.created_at)}</td>
-                      <td>{payment.fee_type || 'Hostel Fee'}</td>
-                      <td>{payment.payment_type || 'N/A'}</td>
-                      <td>{payment.payment_mode || 'N/A'}</td>
-                      <td>{formatCurrency(payment.amount_paid)}</td>
-                      <td>
-                        <span className={`student-payments-badge student-payments-badge--${status.tone}`}>
-                          {status.label}
-                        </span>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+        {!loading && !error && currentAllocation && (
+          <div className="student-card">
+            <div className="student-card__header">Allocation Details</div>
+            <div className="student-card__body">
+              <div className="student-details-grid">
+                <div className="student-details-grid__item">
+                  <div className="student-details-grid__label">Academic Year</div>
+                  <div className="student-details-grid__value">{currentAllocation.academic_year || 'N/A'}</div>
+                </div>
+                <div className="student-details-grid__item">
+                  <div className="student-details-grid__label">Block</div>
+                  <div className="student-details-grid__value">
+                    {currentAllocation.hostel_beds?.hostel_rooms?.hostel_blocks?.block_name || 'N/A'}
+                  </div>
+                </div>
+                <div className="student-details-grid__item">
+                  <div className="student-details-grid__label">Room</div>
+                  <div className="student-details-grid__value">
+                    {currentAllocation.hostel_beds?.hostel_rooms?.room_no || 'N/A'}
+                  </div>
+                </div>
+                <div className="student-details-grid__item">
+                  <div className="student-details-grid__label">Bed</div>
+                  <div className="student-details-grid__value">
+                    {currentAllocation.hostel_beds?.bed_no || 'N/A'}
+                  </div>
+                </div>
+                <div className="student-details-grid__item">
+                  <div className="student-details-grid__label">Room Type</div>
+                  <div className="student-details-grid__value">
+                    {currentAllocation.hostel_beds?.hostel_rooms?.room_type?.replace(/_/g, ' ') || 'N/A'}
+                  </div>
+                </div>
+                <div className="student-details-grid__item">
+                  <div className="student-details-grid__label">Floor</div>
+                  <div className="student-details-grid__value">
+                    {formatHostelFloor(currentAllocation.hostel_beds?.hostel_rooms?.floor_no)}
+                  </div>
+                </div>
+                <div className="student-details-grid__item">
+                  <div className="student-details-grid__label">Allocated On</div>
+                  <div className="student-details-grid__value">
+                    {currentAllocation.created_at ? formatDateTime(currentAllocation.created_at) : 'N/A'}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
