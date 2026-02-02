@@ -12,6 +12,23 @@ export const libraryNavGroups = [
     ]
   },
   {
+    title: 'Creation',
+    items: [
+      {
+        to: '/library/books/categories',
+        label: 'Categories',
+        icon: 'bi-tags',
+        exact: true
+      },
+      {
+        to: '/library/settings',
+        label: 'Charges & Penalties',
+        icon: 'bi-gear',
+        exact: true
+      }
+    ]
+  },
+  {
     title: 'Catalog',
     items: [
       {
@@ -24,23 +41,6 @@ export const libraryNavGroups = [
         to: '/library/books/all',
         label: 'View Books',
         icon: 'bi-journal-text',
-        exact: true
-      },
-      {
-        to: '/library/books/categories',
-        label: 'Categories',
-        icon: 'bi-tags',
-        exact: true
-      }
-    ]
-  },
-  {
-    title: 'Charges',
-    items: [
-      {
-        to: '/library/settings',
-        label: 'Charges & Penalties',
-        icon: 'bi-gear',
         exact: true
       }
     ]
