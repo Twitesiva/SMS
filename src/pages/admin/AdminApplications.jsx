@@ -46,7 +46,8 @@ export default function AdminApplications() {
     caste: '',
     current_semester: '',
     is_hostel: '',
-    is_transport: ''
+    is_transport: '',
+    hostel_ac: ''
   }
 
   const [form, setForm] = useState({
@@ -55,6 +56,7 @@ export default function AdminApplications() {
   })
   const [photo, setPhoto] = useState(null)
   const [cert, setCert] = useState(null)
+  const [fileInputKey, setFileInputKey] = useState(0)
   const [loading, setLoading] = useState(false)
   const [msg, setMsg] = useState('')
   const [courses, setCourses] = useState([])
@@ -204,6 +206,7 @@ export default function AdminApplications() {
     setFilteredYears(years)
     setPhoto(null)
     setCert(null)
+    setFileInputKey((k) => k + 1)
     setMsg('')
   }
 
@@ -214,6 +217,36 @@ export default function AdminApplications() {
 
   const isDigits = (value, len) => new RegExp(`^\\d{${len}}$`).test(value)
   const location = useLocation()
+
+  const fileToDataUrl = (file) => new Promise((resolve, reject) => {
+    if (!file) { resolve(null); return }
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = () => reject(new Error('Unable to read file'))
+    reader.readAsDataURL(file)
+  })
+
+  const uploadFile = async (file, folder) => {
+    if (!file) return null
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${folder}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
+      const { error } = await supabase.storage
+        .from('documents')
+        .upload(fileName, file)
+
+      if (error) throw error
+
+      const { data: publicData } = supabase.storage
+        .from('documents')
+        .getPublicUrl(fileName)
+
+      return publicData.publicUrl
+    } catch (err) {
+      console.warn('Upload failed, falling back to Base64:', err)
+      return await fileToDataUrl(file)
+    }
+  }
 
   // Pre-fill form if redirected from Application Review
   useEffect(() => {
@@ -353,6 +386,7 @@ export default function AdminApplications() {
         current_semester: 1,
         is_hostel: false,
         is_transport: false,
+        hostel_ac: app.hostel_ac ?? '',
         // Set Generated IDs
         student_id: nextStudentId,
         ht_no: nextHtNo
@@ -393,6 +427,10 @@ export default function AdminApplications() {
       showToast('Please select College Transport option.', { type: 'warning' })
       return
     }
+    if (form.is_hostel === true && form.hostel_ac === '') {
+      showToast('Please select Hostel AC/Non-AC option.', { type: 'warning' })
+      return
+    }
 
     if (!validateRequiredFields(requiredFields, { title: 'Incomplete application' })) return
     if (!isDigits(form.mobile, 10)) {
@@ -417,9 +455,11 @@ export default function AdminApplications() {
       if (!courseCode) throw new Error('Selected course is missing a course code reference')
       const courseLabel = form.course_name || selectedCourse.courseName || selectedCourse.course_name || ''
 
-      // Use existing photo URL if no new photo file is selected
+      // Use existing URLs if no new files are selected
       const existingPhotoUrl = location.state?.applicationData?.photo_url
-      const finalPhotoUrl = photo ? URL.createObjectURL(photo) : existingPhotoUrl
+      const existingCertUrl = location.state?.applicationData?.cert_url
+      const photoUrl = photo ? await uploadFile(photo, 'photos') : existingPhotoUrl
+      const certUrl = cert ? await uploadFile(cert, 'certificates') : existingCertUrl
 
       const payload = {
         student_id: form.student_id || `STU${Date.now().toString().slice(-6)}`,
@@ -444,11 +484,12 @@ export default function AdminApplications() {
         Parent_no: form.Parent_no,
         religion: form.religion || null,
         caste: form.caste || null,
-        photo_url: finalPhotoUrl || null,
-        cert_url: cert ? URL.createObjectURL(cert) : null,
+        photo_url: photoUrl || null,
+        cert_url: certUrl || null,
         status: 'ACTIVE',
         is_hostel: form.is_hostel,
         is_transport: form.is_hostel ? false : form.is_transport,
+        hostel_ac: form.is_hostel ? form.hostel_ac : null,
         created_at: new Date().toISOString()
       }
 
@@ -482,6 +523,32 @@ export default function AdminApplications() {
 
           if (appError) {
             console.error('Failed to confirm application status', appError)
+          }
+        }
+
+        // Store newly uploaded documents against the original application (if any).
+        const docsToInsert = []
+        if (photo && photoUrl) {
+          docsToInsert.push({
+            application_id: location.state.applicationData.id,
+            document_type: 'Photo',
+            document_url: photoUrl
+          })
+        }
+        if (cert && certUrl) {
+          docsToInsert.push({
+            application_id: location.state.applicationData.id,
+            document_type: 'Transfer Certificate',
+            document_url: certUrl
+          })
+        }
+
+        if (docsToInsert.length > 0) {
+          const { error: docError } = await supabase
+            .from('application_documents')
+            .insert(docsToInsert)
+          if (docError) {
+            console.error('Failed to save application documents', docError)
           }
         }
       }
@@ -749,7 +816,8 @@ export default function AdminApplications() {
                           setForm(prev => ({
                             ...prev,
                             is_hostel: isHostel,
-                            is_transport: isHostel ? false : ''
+                            is_transport: isHostel ? false : '',
+                            hostel_ac: isHostel ? '' : ''
                           }))
                         }}
                         required
@@ -783,6 +851,29 @@ export default function AdminApplications() {
                       </div>
                     )}
 
+                    {form.is_hostel === true && (
+                      <div className="col-md-4">
+                        <label className="form-label">Hostel Accommodation Type</label>
+                        <select
+                          className="form-select"
+                          value={form.hostel_ac === '' ? '' : (form.hostel_ac ? 'AC' : 'NON_AC')}
+                          onChange={(e) => {
+                            const v = e.target.value
+                            if (v === '') {
+                              handle('hostel_ac', '')
+                            } else {
+                              handle('hostel_ac', v === 'AC')
+                            }
+                          }}
+                          required
+                        >
+                          <option value="">Select</option>
+                          <option value="AC">AC</option>
+                          <option value="NON_AC">Non AC</option>
+                        </select>
+                      </div>
+                    )}
+
                     <div className="col-12">
                       <label className="form-label">Permanent Address</label>
                       <textarea className="form-control" rows="2" value={form.address} onChange={(e) => handle('address', e.target.value)} required />
@@ -795,11 +886,11 @@ export default function AdminApplications() {
                   <div className="row g-3 mt-1">
                     <div className="col-md-6">
                       <label className="form-label">Photograph</label>
-                      <input type="file" accept="image/*" className="form-control" onChange={(e) => setPhoto(e.target.files?.[0] || null)} />
+                      <input key={`photo-${fileInputKey}`} type="file" accept="image/*" className="form-control" onChange={(e) => setPhoto(e.target.files?.[0] || null)} />
                     </div>
                     <div className="col-md-6">
-                      <label className="form-label">Signature</label>
-                      <input type="file" accept="application/pdf,image/*" className="form-control" onChange={(e) => setCert(e.target.files?.[0] || null)} />
+                      <label className="form-label">Transfer Certificate</label>
+                      <input key={`cert-${fileInputKey}`} type="file" accept="image/*" className="form-control" onChange={(e) => setCert(e.target.files?.[0] || null)} />
                     </div>
                   </div>
                 </div>
