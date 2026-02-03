@@ -99,8 +99,8 @@ export default function Revaluation() {
                 .from("students")
                 .select(`
                     *,
-                    group:groups!students_group_name_fkey (group_name, group_code),
-                    course:courses!students_course_name_fkey (course_name, course_code)
+                    group:groups!students_group_id_fkey (group_name, group_code),
+                    course:courses!fk_students_course (course_name, course_code)
                 `)
                 .eq("hall_ticket_no", hallTicket.trim())
                 .single();
