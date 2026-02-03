@@ -5,7 +5,7 @@ import crest from '../assets/media/images.png'
 import '../pages/staff/StaffPortal.css' // Updated CSS location
 
 export default function StaffShell({ children }) {
-    const { pathname } = useLocation()
+    const { pathname, search } = useLocation()
     const navTo = useNavigate()
     const { staff, signOut } = useStaffAuth()
     const [collapsed, setCollapsed] = useState(false)
@@ -34,7 +34,10 @@ export default function StaffShell({ children }) {
         return items
     }, [isHOD])
 
-    const isRouteActive = (pathname, to) => {
+    const isRouteActive = (pathname, search, to) => {
+        if (to.includes('?')) {
+            return `${pathname}${search}` === to
+        }
         return pathname === to || pathname.startsWith(`${to}/`)
     }
 
@@ -84,7 +87,7 @@ export default function StaffShell({ children }) {
                         <Link
                             key={item.to}
                             to={item.to}
-                            className={`staff-sidebar__link ${isRouteActive(pathname, item.to) ? 'active' : ''}`}
+                            className={`staff-sidebar__link ${isRouteActive(pathname, search, item.to) ? 'active' : ''}`}
                             onClick={handleNavClick}
                         >
                             <i className={`bi ${item.icon}`}></i>

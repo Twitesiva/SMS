@@ -319,7 +319,7 @@ export default function LeaveManagement() {
                         <div className="text-muted p-3 bg-light rounded">No pending student requests.</div>
                       ) : (
                         <div className="table-responsive">
-                          <table className="table table-bordered align-middle">
+                          <table className="table table-bordered align-middle leave-history-table">
                             <thead>
                               <tr>
                                 <th>Applicant</th>
@@ -366,7 +366,7 @@ export default function LeaveManagement() {
                         <div className="text-muted p-3 bg-light rounded">No pending staff requests.</div>
                       ) : (
                         <div className="table-responsive">
-                          <table className="table table-bordered align-middle">
+                          <table className="table table-bordered align-middle leave-history-table">
                             <thead>
                               <tr>
                                 <th>Applicant</th>
@@ -416,7 +416,7 @@ export default function LeaveManagement() {
         {isHOD && activeTab === 'history' && (
           <div className="card card-soft p-0 overflow-hidden border-0 shadow-sm">
             <div className="p-4">
-              <h5 className="fw-bold text-dark mb-4">Actioned Requests History</h5>
+              <h5 className="fw-bold mb-4 leave-history-title">Actioned Requests History</h5>
               {loadingActioned ? (
                 <div className="student-details__loading" role="status" aria-live="polite">
                   <div className="student-details__loading-header">
@@ -442,12 +442,12 @@ export default function LeaveManagement() {
                 <>
                   {showStudentSection && (
                     <div className="mb-5">
-                      <h6 className="fw-bold text-primary mb-3 text-uppercase small letter-spacing-1">Student Leave History</h6>
+                      <h6 className="fw-bold mb-3 text-uppercase small letter-spacing-1 leave-history-title">Student Leave History</h6>
                       {studentActionedRequests.length === 0 ? (
                         <div className="text-muted p-3 bg-light rounded">No student history records found.</div>
                       ) : (
                         <div className="table-responsive">
-                          <table className="table table-bordered align-middle">
+                          <table className="table table-bordered align-middle leave-history-table">
                             <thead>
                               <tr>
                                 <th>Applicant</th>
@@ -497,12 +497,12 @@ export default function LeaveManagement() {
                   )}
                   {showStaffSection && (
                     <div>
-                      <h6 className="fw-bold text-primary mb-3 text-uppercase small letter-spacing-1">Staff Leave History</h6>
+                      <h6 className="fw-bold mb-3 text-uppercase small letter-spacing-1 leave-history-title">Staff Leave History</h6>
                       {staffActionedRequests.length === 0 ? (
                         <div className="text-muted p-3 bg-light rounded">No staff history records found.</div>
                       ) : (
                         <div className="table-responsive">
-                          <table className="table table-bordered align-middle">
+                          <table className="table table-bordered align-middle leave-history-table">
                             <thead>
                               <tr>
                                 <th>Applicant</th>

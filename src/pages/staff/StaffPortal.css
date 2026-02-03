@@ -46,6 +46,32 @@
   border-right: none;
 }
 
+.leave-management-page .leave-history-table.table thead tr,
+.leave-management-page .leave-history-table.table thead th {
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%) !important;
+  color: #ffffff !important;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 10px 14px;
+  font-size: 0.95rem;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.15) !important;
+  vertical-align: middle;
+}
+
+.leave-management-page .leave-history-table.table thead th:last-child {
+  border-right: none !important;
+}
+
+.leave-management-page .leave-history-title {
+  display: inline-block;
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%) !important;
+  color: #ffffff !important;
+  padding: 10px 14px;
+  border-radius: 6px;
+}
+
 .students-section-shell .staff-learning-materials-table thead th {
   background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%) !important;
   color: #ffffff !important;
@@ -338,6 +364,24 @@
   border-right: 1px solid #60a5fa !important;
   text-align: center;
   vertical-align: middle;
+}
+
+.leave-management-page .leave-history-table.table thead tr,
+.leave-management-page .leave-history-table.table thead th {
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  text-transform: uppercase;
+  padding: 1rem !important;
+  font-size: 1rem !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.15) !important;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.leave-management-page .leave-history-table.table thead th:last-child {
+  border-right: none !important;
 }
 
 .leave-management-page .table td {
