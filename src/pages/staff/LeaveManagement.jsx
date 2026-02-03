@@ -43,7 +43,14 @@ export default function LeaveManagement() {
     ? studentRequests.length
     : viewFilter === 'staff'
       ? staffRequests.length
-      : requests.length
+    : requests.length
+
+  const formatDate = (value) => {
+    if (!value) return '-'
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return value
+    return date.toLocaleDateString('en-GB')
+  }
 
   useEffect(() => {
     if (isHOD) {
@@ -340,8 +347,8 @@ export default function LeaveManagement() {
                                   </td>
                                   <td>{req.leave_type}</td>
                                   <td>
-                                    <div className="small">From: {req.from_date}</div>
-                                    <div className="small">To: {req.to_date}</div>
+                                    <div className="small">From: {formatDate(req.from_date)}</div>
+                                    <div className="small">To: {formatDate(req.to_date)}</div>
                                   </td>
                                   <td className="text-center">{req.total_days}</td>
                                   <td style={{ maxWidth: '200px' }} className="small">{req.reason}</td>
@@ -387,8 +394,8 @@ export default function LeaveManagement() {
                                   </td>
                                   <td>{req.leave_type}</td>
                                   <td>
-                                    <div className="small">From: {req.from_date}</div>
-                                    <div className="small">To: {req.to_date}</div>
+                                    <div className="small">From: {formatDate(req.from_date)}</div>
+                                    <div className="small">To: {formatDate(req.to_date)}</div>
                                   </td>
                                   <td className="text-center">{req.total_days}</td>
                                   <td style={{ maxWidth: '200px' }} className="small">{req.reason}</td>
@@ -473,7 +480,7 @@ export default function LeaveManagement() {
                                     <small className="text-muted">{req.total_days} day(s)</small>
                                   </td>
                                   <td>
-                                    <div className="small">{req.from_date} to {req.to_date}</div>
+                                    <div className="small">{formatDate(req.from_date)} to {formatDate(req.to_date)}</div>
                                     <div className="small text-muted fst-italic">"{req.reason}"</div>
                                   </td>
                                   <td className="text-center">
@@ -485,7 +492,7 @@ export default function LeaveManagement() {
                                     {req.hod_remarks && <div className="small text-muted mt-1 fst-italic">Note: {req.hod_remarks}</div>}
                                   </td>
                                   <td className="small text-center">
-                                    {req.actioned_at ? new Date(req.actioned_at).toLocaleDateString() : '-'}
+                                    {formatDate(req.actioned_at)}
                                   </td>
                                 </tr>
                               ))}
@@ -528,7 +535,7 @@ export default function LeaveManagement() {
                                     <small className="text-muted">{req.total_days} day(s)</small>
                                   </td>
                                   <td>
-                                    <div className="small">{req.from_date} to {req.to_date}</div>
+                                    <div className="small">{formatDate(req.from_date)} to {formatDate(req.to_date)}</div>
                                     <div className="small text-muted fst-italic">"{req.reason}"</div>
                                   </td>
                                   <td className="text-center">
@@ -540,7 +547,7 @@ export default function LeaveManagement() {
                                     {req.hod_remarks && <div className="small text-muted mt-1 fst-italic">Note: {req.hod_remarks}</div>}
                                   </td>
                                   <td className="small text-center">
-                                    {req.actioned_at ? new Date(req.actioned_at).toLocaleDateString() : '-'}
+                                    {formatDate(req.actioned_at)}
                                   </td>
                                 </tr>
                               ))}
@@ -773,7 +780,7 @@ export default function LeaveManagement() {
                               </div>
                               <div>
                                 <div className="fw-bold text-dark small" style={{ fontSize: '0.9rem' }}>Request Submitted</div>
-                                <div className="text-muted" style={{ fontSize: '0.75rem' }}>{new Date(req.applied_at).toLocaleDateString()}</div>
+                                <div className="text-muted" style={{ fontSize: '0.75rem' }}>{formatDate(req.applied_at)}</div>
                               </div>
                             </div>
 
@@ -790,7 +797,7 @@ export default function LeaveManagement() {
                                   {isPending ? 'Pending HOD Approval' : isApproved ? 'Approved by HOD' : 'Rejected by HOD'}
                                 </div>
                                 {req.actioned_at && (
-                                  <div className="text-muted" style={{ fontSize: '0.75rem' }}>{new Date(req.actioned_at).toLocaleDateString()}</div>
+                                  <div className="text-muted" style={{ fontSize: '0.75rem' }}>{formatDate(req.actioned_at)}</div>
                                 )}
 
                                 {/* Details Box */}
@@ -799,11 +806,11 @@ export default function LeaveManagement() {
                                     <div className="d-flex gap-4">
                                       <div>
                                         <span className="d-block text-muted" style={{ fontSize: '0.7rem', textTransform: 'uppercase' }}>From</span>
-                                        <span className="fw-semibold text-dark small">{req.from_date}</span>
+                                        <span className="fw-semibold text-dark small">{formatDate(req.from_date)}</span>
                                       </div>
                                       <div>
                                         <span className="d-block text-muted" style={{ fontSize: '0.7rem', textTransform: 'uppercase' }}>To</span>
-                                        <span className="fw-semibold text-dark small">{req.to_date}</span>
+                                        <span className="fw-semibold text-dark small">{formatDate(req.to_date)}</span>
                                       </div>
                                     </div>
                                   </div>
