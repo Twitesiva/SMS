@@ -47,6 +47,8 @@ export default function PaymentReports() {
     const [selectedCourse, setSelectedCourse] = useState('');
     const [selectedSemester, setSelectedSemester] = useState('');
     const [selectedPaymentStatus, setSelectedPaymentStatus] = useState(''); // 'Paid' | 'Pending' | ''
+    const [selectedStudentType, setSelectedStudentType] = useState(''); // 'Hostel' | 'Transport' | ''
+    const [selectedHostelType, setSelectedHostelType] = useState(''); // 'AC' | 'NON_AC' | ''
 
     // Main Data
     // Main Data
@@ -74,8 +76,20 @@ export default function PaymentReports() {
         if (selectedCourse) res = res.filter(s => s.course_name === selectedCourse);
         if (selectedSemester) res = res.filter(s => String(s.current_semester) === String(selectedSemester));
         if (selectedPaymentStatus) res = res.filter(s => s.paymentStatus === selectedPaymentStatus);
+        if (selectedStudentType) {
+            const type = selectedStudentType.toLowerCase();
+            if (type === 'hostel') res = res.filter(s => Boolean(s.is_hostel));
+            if (type === 'transport') res = res.filter(s => Boolean(s.is_transport));
+        }
+        if (selectedHostelType) {
+            res = res.filter(s =>
+                s.is_hostel &&
+                ((selectedHostelType === 'AC' && Boolean(s.hostel_ac)) ||
+                    (selectedHostelType === 'NON_AC' && !Boolean(s.hostel_ac)))
+            );
+        }
         setFilteredStudents(res);
-    }, [allStudents, selectedGroup, selectedCourse, selectedSemester, selectedPaymentStatus]);
+    }, [allStudents, selectedGroup, selectedCourse, selectedSemester, selectedPaymentStatus, selectedStudentType, selectedHostelType]);
 
     const fetchInitialData = async () => {
         try {
@@ -112,7 +126,10 @@ export default function PaymentReports() {
           course_id,
           group_id,
           year_of_study,
-          Category
+          Category,
+          is_hostel,
+          is_transport,
+          hostel_ac
         `)
                 .eq('status', 'ACTIVE');
 
@@ -342,6 +359,8 @@ export default function PaymentReports() {
                                         setSelectedCourse('');
                                         setSelectedSemester('');
                                         setSelectedPaymentStatus('');
+                                        setSelectedStudentType('');
+                                        setSelectedHostelType('');
                                     }}
                                 >
                                     <option value="">Select Year</option>
@@ -395,6 +414,35 @@ export default function PaymentReports() {
                                     <option value="Pending">Pending</option>
                                 </select>
                             </div>
+                            <div className="col-md-2">
+                                <label className="form-label small fw-bold text-secondary text-uppercase mb-1">Type</label>
+                                <select
+                                    className="form-select form-select-sm"
+                                    value={selectedStudentType}
+                                    onChange={(e) => {
+                                        setSelectedStudentType(e.target.value);
+                                        setSelectedHostelType('');
+                                    }}
+                                >
+                                    <option value="">All Types</option>
+                                    <option value="Hostel">Hostel</option>
+                                    <option value="Transport">Transport</option>
+                                </select>
+                            </div>
+                            {selectedStudentType?.toLowerCase() === 'hostel' && (
+                                <div className="col-md-2">
+                                    <label className="form-label small fw-bold text-secondary text-uppercase mb-1">Hostel Type</label>
+                                    <select
+                                        className="form-select form-select-sm"
+                                        value={selectedHostelType}
+                                        onChange={(e) => setSelectedHostelType(e.target.value)}
+                                    >
+                                        <option value="">All</option>
+                                        <option value="AC">AC</option>
+                                        <option value="NON_AC">Non AC</option>
+                                    </select>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
