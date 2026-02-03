@@ -175,11 +175,7 @@ export default function StudentAttendance() {
 
   const formatDateFull = (value) => {
     if (!value) return 'N/A'
-    return new Date(`${value}T00:00:00`).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    })
+    return new Date(`${value}T00:00:00`).toLocaleDateString('en-GB')
   }
 
   // Daily Chart Logic for Current Month
@@ -343,7 +339,7 @@ export default function StudentAttendance() {
             {/* GRAPH */}
             {/* GRAPH */}
             <div className="student-card shadow-sm h-100">
-              <div className="student-card__header">Current Month: {new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</div>
+              <div className="student-card__header">Current Month: {new Date().toLocaleDateString('en-GB')}</div>
               <div className="student-card__body">
                 <div style={{ height: '350px' }}>
                   <Bar data={dailyChartData} options={dailyChartOptions} />
@@ -375,3 +371,4 @@ export default function StudentAttendance() {
     </StudentShell>
   )
 }
+

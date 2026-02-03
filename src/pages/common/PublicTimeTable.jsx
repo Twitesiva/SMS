@@ -5,7 +5,7 @@ const formatDate = (value) => {
   if (!value) return '-'
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) return value
-  return parsed.toLocaleDateString('en-IN')
+  return parsed.toLocaleDateString('en-GB')
 }
 
 const formatTime = (value) => value || '-'
@@ -352,3 +352,4 @@ export default function PublicTimeTable() {
     </div>
   )
 }
+

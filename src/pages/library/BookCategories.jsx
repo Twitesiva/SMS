@@ -9,7 +9,7 @@ const initialForm = { name: '' }
 
 const formatDate = (value) => {
   if (!value) return '-'
-  return new Date(value).toLocaleDateString()
+  return new Date(value).toLocaleDateString('en-GB')
 }
 
 export default function BookCategories() {
@@ -296,3 +296,4 @@ export default function BookCategories() {
     </>
   )
 }
+

@@ -296,7 +296,7 @@ export default function StudentLeaveRequest() {
                                                         </div>
                                                         <div>
                                                             <div className="fw-bold text-dark small" style={{ fontSize: '0.9rem' }}>Request Submitted</div>
-                                                            <div className="text-muted" style={{ fontSize: '0.75rem' }}>{new Date(req.applied_at).toLocaleDateString()}</div>
+                                                            <div className="text-muted" style={{ fontSize: '0.75rem' }}>{new Date(req.applied_at).toLocaleDateString('en-GB')}</div>
                                                         </div>
                                                     </div>
 
@@ -313,7 +313,7 @@ export default function StudentLeaveRequest() {
                                                                 {isPending ? 'Pending HOD Approval' : isApproved ? 'Approved by HOD' : 'Rejected by HOD'}
                                                             </div>
                                                             {req.actioned_at && (
-                                                                <div className="text-muted" style={{ fontSize: '0.75rem' }}>{new Date(req.actioned_at).toLocaleDateString()}</div>
+                                                                <div className="text-muted" style={{ fontSize: '0.75rem' }}>{new Date(req.actioned_at).toLocaleDateString('en-GB')}</div>
                                                             )}
 
                                                             {/* Details Box */}
@@ -356,3 +356,4 @@ export default function StudentLeaveRequest() {
         </StudentShell>
     )
 }
+

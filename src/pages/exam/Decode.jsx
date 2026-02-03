@@ -1237,7 +1237,7 @@ export default function Decode() {
               <option value="">Select Date</option>
               {examDates.map((date) => (
                 <option key={date} value={date}>
-                  {new Date(date).toLocaleDateString()}
+                  {new Date(date).toLocaleDateString('en-GB')}
                 </option>
               ))}
             </select>
@@ -1485,3 +1485,4 @@ export default function Decode() {
     </AdminShell>
   );
 }
+

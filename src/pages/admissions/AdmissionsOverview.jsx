@@ -10,7 +10,7 @@ const formatDate = (value) => {
   if (!value) return '-'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return '-'
-  return date.toLocaleDateString()
+  return date.toLocaleDateString('en-GB')
 }
 
 const navGroups = [
@@ -333,3 +333,4 @@ export default function AdmissionsOverview() {
     </AdmissionShell>
   )
 }
+

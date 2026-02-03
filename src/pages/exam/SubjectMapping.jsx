@@ -50,11 +50,7 @@ const formatDeadlineDate = (value) => {
   if (!value) return "";
   const normalized = new Date(value);
   if (Number.isNaN(normalized.getTime())) return "";
-  return normalized.toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  return normalized.toLocaleDateString('en-GB');
 };
 
 const getCategoryNameFromLookup = (subject, lookup) => {
@@ -3914,3 +3910,4 @@ export default function SubjectMapping() {
     </AdminShell>
   );
 }
+

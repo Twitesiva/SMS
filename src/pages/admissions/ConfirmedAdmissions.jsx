@@ -253,7 +253,7 @@ export default function ConfirmedAdmissions() {
                                                 { label: 'Student Name', value: selectedApp.full_name },
                                                 { label: 'Course', value: meta.courses[selectedApp.course_id]?.course_name || selectedApp.course_id },
                                                 { label: 'Group', value: meta.groups[selectedApp.group_id]?.group_name || selectedApp.group_id },
-                                                { label: 'Date of Birth', value: selectedApp.date_of_birth ? new Date(selectedApp.date_of_birth).toLocaleDateString() : '-' },
+                                                { label: 'Date of Birth', value: selectedApp.date_of_birth ? new Date(selectedApp.date_of_birth).toLocaleDateString('en-GB') : '-' },
                                                 { label: 'Gender', value: selectedApp.gender },
                                                 { label: 'Phone Number', value: selectedApp.phone_number, monospace: true },
                                                 { label: 'Address', value: `${selectedApp.address} ${selectedApp.state ? `, ${selectedApp.state}` : ''}` }
@@ -313,7 +313,7 @@ export default function ConfirmedAdmissions() {
                                                     <td>{app.full_name}</td>
                                                     <td>{meta.courses[app.course_id]?.course_name || '-'}</td>
                                                     <td>{meta.groups[app.group_id]?.group_name || '-'}</td>
-                                                    <td>{app.admission?.confirmed_at || (Array.isArray(app.admission) && app.admission[0]?.confirmed_at) ? new Date(app.admission.confirmed_at || app.admission[0].confirmed_at).toLocaleDateString() : '-'}</td>
+                                                    <td>{app.admission?.confirmed_at || (Array.isArray(app.admission) && app.admission[0]?.confirmed_at) ? new Date(app.admission.confirmed_at || app.admission[0].confirmed_at).toLocaleDateString('en-GB') : '-'}</td>
                                                     <td>
                                                         <div className="d-flex gap-2">
                                                             <button
@@ -356,3 +356,4 @@ export default function ConfirmedAdmissions() {
         </AdmissionShell>
     )
 }
+

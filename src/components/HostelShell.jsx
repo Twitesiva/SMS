@@ -172,7 +172,7 @@ export default function HostelShell({ children, navGroups, brandTitle = "HOSTEL 
           <div className="staff-header__right">
             <div className="d-flex align-items-center gap-3 me-3 text-white border-end pe-3">
               <div className="text-end small d-none d-md-block" style={{ lineHeight: '1.2', borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '1rem' }}>
-                <div>{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                <div>{new Date().toLocaleDateString('en-GB')}</div>
                 <div className="opacity-75">{new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
               </div>
             </div>
@@ -193,3 +193,4 @@ export default function HostelShell({ children, navGroups, brandTitle = "HOSTEL 
     </div>
   )
 }
+

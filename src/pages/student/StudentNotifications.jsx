@@ -75,11 +75,7 @@ export default function StudentNotifications() {
           .map((dateValue) => ({
             id: dateValue,
             title: 'Attendance Update',
-            message: `You have been marked absent on ${new Date(`${dateValue}T00:00:00`).toLocaleDateString('en-GB', {
-              day: '2-digit',
-              month: 'long',
-              year: 'numeric'
-            })}.\nIf this record is incorrect, kindly contact your HOD.`,
+            message: `You have been marked absent on ${new Date(`${dateValue}T00:00:00`).toLocaleDateString('en-GB')}.\nIf this record is incorrect, kindly contact your HOD.`,
             date: dateValue
           }))
 
@@ -136,3 +132,4 @@ export default function StudentNotifications() {
     </StudentShell>
   )
 }
+

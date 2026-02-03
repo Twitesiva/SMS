@@ -246,7 +246,7 @@ export default function ApplicationTracker() {
                                         </div>
                                         <div className="step-content">
                                             <h6 className="fw-bold mb-1 text-success">Application Submitted</h6>
-                                            <small className="text-muted d-block">{new Date(application.created_at).toLocaleDateString()}</small>
+                                            <small className="text-muted d-block">{new Date(application.created_at).toLocaleDateString('en-GB')}</small>
                                         </div>
                                     </div>
 
@@ -351,7 +351,7 @@ export default function ApplicationTracker() {
                                 <div className="row g-0 mb-4">
                                     <div className="col-12 d-flex py-2 border-bottom">
                                         <span className="text-muted fw-semibold" style={{ width: '160px', flexShrink: 0 }}>Date of Birth</span>
-                                        <span className="fw-bold text-dark">: {new Date(application.date_of_birth).toLocaleDateString()}</span>
+                                        <span className="fw-bold text-dark">: {new Date(application.date_of_birth).toLocaleDateString('en-GB')}</span>
                                     </div>
                                     <div className="col-12 d-flex py-2 border-bottom">
                                         <span className="text-muted fw-semibold" style={{ width: '160px', flexShrink: 0 }}>Gender</span>
@@ -409,3 +409,4 @@ export default function ApplicationTracker() {
         </div>
     )
 }
+

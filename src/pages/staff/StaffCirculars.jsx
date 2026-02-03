@@ -46,11 +46,7 @@ export default function StaffCirculars() {
         ...item,
         audienceLabel: audienceLabels[item.target_audience] || item.target_audience || 'Staff',
         publishLabel: item.publish_date
-          ? new Date(item.publish_date).toLocaleDateString('en-GB', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric'
-          })
+          ? new Date(item.publish_date).toLocaleDateString('en-GB')
           : '--'
       })),
     [circulars]
@@ -122,3 +118,4 @@ export default function StaffCirculars() {
     </StaffShell>
   )
 }
+

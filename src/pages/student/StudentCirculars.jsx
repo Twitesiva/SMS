@@ -46,18 +46,10 @@ export default function StudentCirculars() {
         ...item,
         audienceLabel: audienceLabels[item.target_audience] || item.target_audience || 'Students',
         publishLabel: item.publish_date
-          ? new Date(item.publish_date).toLocaleDateString('en-GB', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric'
-          })
+          ? new Date(item.publish_date).toLocaleDateString('en-GB')
           : '--',
         expiryLabel: item.expiry_date
-          ? new Date(item.expiry_date).toLocaleDateString('en-GB', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric'
-          })
+          ? new Date(item.expiry_date).toLocaleDateString('en-GB')
           : null
       })),
     [circulars]
@@ -116,3 +108,4 @@ export default function StudentCirculars() {
     </StudentShell>
   )
 }
+

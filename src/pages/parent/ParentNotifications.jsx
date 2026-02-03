@@ -61,11 +61,7 @@ export default function ParentNotifications() {
         const normalizedGender = (studentRow?.gender || '').toString().trim().toLowerCase()
         const childLabel = normalizedGender.startsWith('f') ? 'daughter' : normalizedGender.startsWith('m') ? 'son' : 'child'
         const notices = (sessions || []).map((row) => {
-          const dateText = new Date(`${row.attendance_date}T00:00:00`).toLocaleDateString('en-GB', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric'
-          })
+          const dateText = new Date(`${row.attendance_date}T00:00:00`).toLocaleDateString('en-GB')
           return {
             id: row.id,
             title: 'Absent Notice',
@@ -140,3 +136,4 @@ export default function ParentNotifications() {
     </ParentShell>
   )
 }
+

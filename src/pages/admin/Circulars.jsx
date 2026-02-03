@@ -299,7 +299,7 @@ export default function Circulars() {
                                                                 )}
                                                             </div>
                                                         </td>
-                                                        <td>{new Date(c.publish_date).toLocaleDateString()}</td>
+                                                        <td>{new Date(c.publish_date).toLocaleDateString('en-GB')}</td>
                                                         <td>
                                                             {c.is_active ?
                                                                 <span className="badge bg-success bg-opacity-10 text-success">Active</span> :
@@ -511,3 +511,4 @@ export default function Circulars() {
         </AdShellAdmin>
     )
 }
+

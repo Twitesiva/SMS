@@ -112,11 +112,7 @@ export default function StudentCertificate() {
                 <div>Certificate No: VJY/BC/{details?.student_id || '0000'}</div>
                 <div>
                   Date:{' '}
-                  {new Date().toLocaleDateString('en-GB', {
-                    day: '2-digit',
-                    month: 'long',
-                    year: 'numeric',
-                  })}
+                  {new Date().toLocaleDateString('en-GB')}
                 </div>
                 <button
                   type="button"
@@ -182,3 +178,4 @@ export default function StudentCertificate() {
     </StudentShell>
   )
 }
+

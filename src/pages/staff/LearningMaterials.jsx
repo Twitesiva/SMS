@@ -469,7 +469,7 @@ export default function LearningMaterials() {
                                   <td className="fw-medium text-dark">{s.subject}</td>
                                   <td>
                                     <span className="fw-medium text-dark">
-                                      {new Date(mat.created_at).toLocaleDateString()}
+                                      {new Date(mat.created_at).toLocaleDateString('en-GB')}
                                     </span>
                                     <span className="text-muted small ms-2 ps-2">
                                       {new Date(mat.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -566,3 +566,4 @@ export default function LearningMaterials() {
     </StaffShell>
   )
 }
+

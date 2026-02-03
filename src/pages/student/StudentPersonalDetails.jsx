@@ -9,7 +9,7 @@ const formatDate = (dateString) => {
   const parsed = new Date(dateString)
   if (Number.isNaN(parsed.getTime())) return dateString
   return parsed
-    .toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+    .toLocaleDateString('en-GB')
     .replace(/ /g, '-')
 }
 
@@ -194,3 +194,4 @@ export default function StudentPersonalDetails() {
     </StudentShell>
   )
 }
+

@@ -391,7 +391,7 @@ export default function SeatAllocation() {
                                 </div>
                                 <div className="d-flex">
                                     <div style={{ width: "220px", fontWeight: "bold" }}>Exam Date</div>
-                                    <div>: {printMetadata?.examDate ? new Date(printMetadata.examDate).toLocaleDateString("en-GB").replace(/\//g, "-") : ""}</div>
+                                    <div>: {printMetadata?.examDate ? new Date(printMetadata.examDate).toLocaleDateString("en-GB") : ""}</div>
                                 </div>
                                 <div className="d-flex">
                                     <div style={{ width: "220px", fontWeight: "bold" }}>Exam Time</div>
@@ -503,7 +503,7 @@ export default function SeatAllocation() {
                                 <option value="">Select Date</option>
                                 {options.dates.map((date) => (
                                     <option key={date} value={date}>
-                                        {new Date(date).toLocaleDateString("en-GB").replace(/\//g, "-")}
+                                        {new Date(date).toLocaleDateString("en-GB")}
                                     </option>
                                 ))}
                             </select>

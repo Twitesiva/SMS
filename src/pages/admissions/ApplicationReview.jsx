@@ -370,7 +370,7 @@ export default function ApplicationReview() {
                                             </div>
                                             <div className="row mb-2">
                                                 <div className="col-sm-5 text-muted">Date of Birth :</div>
-                                                <div className="col-sm-7">{searchedApplication.date_of_birth ? new Date(searchedApplication.date_of_birth).toLocaleDateString() : '-'}</div>
+                                                <div className="col-sm-7">{searchedApplication.date_of_birth ? new Date(searchedApplication.date_of_birth).toLocaleDateString('en-GB') : '-'}</div>
                                             </div>
                                             <div className="row mb-2">
                                                 <div className="col-sm-5 text-muted">Gender :</div>
@@ -599,7 +599,7 @@ export default function ApplicationReview() {
                                                                 return c ? (c.name || c.course_name || c.code) : (app.course_id || '-')
                                                             })()}</td>
                                                             <td><span className="badge bg-secondary">{app.status}</span></td>
-                                                            <td>{new Date(app.created_at).toLocaleDateString()}</td>
+                                                            <td>{new Date(app.created_at).toLocaleDateString('en-GB')}</td>
                                                             <td>
                                                                 <span className={`badge ${docStatus === 'VERIFIED' ? 'bg-success' : 'bg-warning text-dark'}`}>
                                                                     {docStatus}
@@ -653,3 +653,4 @@ export default function ApplicationReview() {
         </AdmissionShell>
     )
 }
+

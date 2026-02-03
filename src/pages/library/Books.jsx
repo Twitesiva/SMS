@@ -421,7 +421,7 @@ export default function Books() {
                 recentBooks.map((book) => {
                   const count = copyCounts[String(book.id)] || 0
                   const arrivedDateValue = book.arrival_date || book.created_at
-                  const arrivedDateLabel = arrivedDateValue ? new Date(arrivedDateValue).toLocaleDateString() : '-'
+                  const arrivedDateLabel = arrivedDateValue ? new Date(arrivedDateValue).toLocaleDateString('en-GB') : '-'
                   const statusLabel = book.status === 'PRIVATE' ? 'Private' : (count > 0 ? 'Available' : 'Out')
                   const badgeClass = book.status === 'PRIVATE' 
                     ? 'library-status library-status--restricted'
@@ -443,3 +443,4 @@ export default function Books() {
     </div>
   )
 }
+

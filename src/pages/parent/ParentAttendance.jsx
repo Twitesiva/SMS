@@ -315,7 +315,7 @@ export default function ParentAttendance() {
             {/* GRAPH */}
             {/* GRAPH */}
             <div className="student-card shadow-sm h-100">
-              <div className="student-card__header">Current Month: {new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</div>
+              <div className="student-card__header">Current Month: {new Date().toLocaleDateString('en-GB')}</div>
               <div className="student-card__body">
                 <div style={{ height: '350px' }}>
                   <Bar data={dailyChartData} options={dailyChartOptions} />
@@ -347,3 +347,4 @@ export default function ParentAttendance() {
     </ParentShell>
   )
 }
+

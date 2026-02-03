@@ -1800,7 +1800,7 @@ export default function FeesGeneration() {
                         .map((deadline) => (
                           <tr key={deadline.id}>
                             <td>{deadline.exam?.exam_name || 'N/A'}</td>
-                            <td>{new Date(deadline.last_date).toLocaleDateString()}</td>
+                            <td>{new Date(deadline.last_date).toLocaleDateString('en-GB')}</td>
                             <td>
                               <div className="d-flex gap-2">
                                 <button
@@ -2140,4 +2140,5 @@ export default function FeesGeneration() {
     </AdminShell >
   );
 }
+
 

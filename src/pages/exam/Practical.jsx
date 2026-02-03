@@ -346,7 +346,7 @@ export default function Practical() {
                                     <option value="">Select Date</option>
                                     {dates.map((date) => (
                                         <option key={date} value={date}>
-                                            {new Date(date).toLocaleDateString()}
+                                            {new Date(date).toLocaleDateString('en-GB')}
                                         </option>
                                     ))}
                                 </select>
@@ -465,3 +465,4 @@ export default function Practical() {
         </AdminShell>
     );
 }
+

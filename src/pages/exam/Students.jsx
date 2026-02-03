@@ -177,7 +177,7 @@ export default function Students() {
     if (!value) return "";
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "";
-    return date.toLocaleDateString();
+    return date.toLocaleDateString('en-GB');
   };
 
   const getPaymentVariant = (status) => {
@@ -231,7 +231,7 @@ export default function Students() {
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) return "";
     const shifted = new Date(parsed.getTime() + 5.5 * 60 * 60 * 1000);
-    const datePart = shifted.toLocaleDateString();
+    const datePart = shifted.toLocaleDateString('en-GB');
     let hours = shifted.getHours();
     const minutes = shifted.getMinutes();
     const period = hours >= 12 ? "PM" : "AM";
@@ -1970,7 +1970,7 @@ export default function Students() {
                                              <div className="bg-light rounded p-2">
                                                 {payments.map((payment, pIndex) => (
                                                    <div key={pIndex} className="d-flex justify-content-between small text-secondary mb-1 last:mb-0">
-                                                      <span>{new Date(payment.created_at).toLocaleDateString()}</span>
+                                                      <span>{new Date(payment.created_at).toLocaleDateString('en-GB')}</span>
                                                       <span>{formatCurrency(payment.amount_paid)}</span>
                                                    </div>
                                                 ))}
@@ -2578,3 +2578,4 @@ export default function Students() {
     </AdminShell>
   );
 }
+

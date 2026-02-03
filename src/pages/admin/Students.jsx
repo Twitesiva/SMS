@@ -101,7 +101,7 @@ export default function Students() {
     if (!value) return "";
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "";
-    return date.toLocaleDateString();
+    return date.toLocaleDateString('en-GB');
   };
 
   const getPaymentVariant = (status) => {
@@ -155,7 +155,7 @@ export default function Students() {
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) return "";
     const shifted = new Date(parsed.getTime() + 5.5 * 60 * 60 * 1000);
-    const datePart = shifted.toLocaleDateString();
+    const datePart = shifted.toLocaleDateString('en-GB');
     let hours = shifted.getHours();
     const minutes = shifted.getMinutes();
     const period = hours >= 12 ? "PM" : "AM";
@@ -2525,3 +2525,4 @@ export default function Students() {
     </AdShellAdmin >
   );
 }
+

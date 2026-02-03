@@ -183,7 +183,7 @@ export default function ClassTimeTableCreation() {
                                             {timeTables.map((table) => (
                                                 <tr key={table.id}>
                                                     <td className="fw-bold">{table.timetable_name}</td>
-                                                    <td>{new Date(table.created_at).toLocaleDateString()}</td>
+                                                    <td>{new Date(table.created_at).toLocaleDateString('en-GB')}</td>
                                                     <td className="text-end">
                                                         <div className="d-flex justify-content-end gap-2">
                                                             <button
@@ -223,4 +223,5 @@ export default function ClassTimeTableCreation() {
         </AdShellAdmin>
     )
 }
+
 

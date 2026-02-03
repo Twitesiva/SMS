@@ -180,7 +180,7 @@ export default function TransportShell({ children, brandTitle = "TRANSPORT PORTA
               </Link>
 
               <div className="text-end small d-none d-md-block" style={{ lineHeight: '1.2', borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '1rem' }}>
-                <div>{currentTime.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                <div>{currentTime.toLocaleDateString('en-GB')}</div>
                 <div className="opacity-75">{currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}</div>
               </div>
             </div>
@@ -199,3 +199,4 @@ export default function TransportShell({ children, brandTitle = "TRANSPORT PORTA
     </div>
   )
 }
+
