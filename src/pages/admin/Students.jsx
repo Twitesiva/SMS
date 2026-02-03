@@ -19,6 +19,8 @@ export default function Students() {
     course_name: "",
     category: "",
     current_semester: "",
+    student_type: "",
+    hostel_ac: "",
   });
   const [studentIdSearch, setStudentIdSearch] = useState("");
 
@@ -708,6 +710,16 @@ export default function Students() {
             if (foundGroup) resolvedGroupName = foundGroup.group_name;
             else resolvedGroupName = student.group_name;
           }
+          // Resolve Group Code: Use joined data -> or match by name/code -> or fallback to raw value
+          let resolvedGroupCode = student.group?.group_code;
+          if (!resolvedGroupCode && student.group_name) {
+            const foundGroup = groupsData.find(g =>
+              g.group_code === student.group_name ||
+              g.group_name === student.group_name
+            );
+            if (foundGroup) resolvedGroupCode = foundGroup.group_code;
+            else resolvedGroupCode = student.group_name;
+          }
 
           // Resolve Course Name: Use joined data -> or find in courses list by code/name -> or fallback to raw value
           let resolvedCourseName = student.course?.course_name;
@@ -719,13 +731,23 @@ export default function Students() {
             if (foundCourse) resolvedCourseName = foundCourse.course_name;
             else resolvedCourseName = student.course_name;
           }
+          // Resolve Course Code: Use joined data -> or match by name/code -> or fallback to raw value
+          let resolvedCourseCode = student.course?.course_code;
+          if (!resolvedCourseCode && student.course_name) {
+            const foundCourse = coursesData.find(c =>
+              c.course_code === student.course_name ||
+              c.course_name === student.course_name
+            );
+            if (foundCourse) resolvedCourseCode = foundCourse.course_code;
+            else resolvedCourseCode = student.course_name;
+          }
 
           return {
             ...student,
             group_name: resolvedGroupName,
-            group_code: student.group?.group_code,
+            group_code: resolvedGroupCode,
             course_name: resolvedCourseName,
-            course_code: student.course?.course_code,
+            course_code: resolvedCourseCode,
             academic_year: student.year?.academic_year || student.academic_year,
             category: student.Category || student.category,
           };
@@ -765,7 +787,9 @@ export default function Students() {
       filters.group_name ||
       filters.course_name ||
       filters.category ||
-      filters.current_semester;
+      filters.current_semester ||
+      filters.student_type ||
+      filters.hostel_ac;
 
     // If no filters are active, return all students
     if (!hasActiveFilters) {
@@ -806,6 +830,19 @@ export default function Students() {
         student.year?.category,
         student.year?.year_category
       );
+      const matchesType =
+        !filters.student_type ||
+        (filters.student_type.toLowerCase() === "hostel"
+          ? Boolean(student.is_hostel)
+          : filters.student_type.toLowerCase() === "transport"
+            ? Boolean(student.is_transport)
+            : (student.student_type || "").toString().toLowerCase() ===
+              filters.student_type.toLowerCase());
+      const matchesHostelAc =
+        !filters.hostel_ac ||
+        (student.is_hostel &&
+          ((filters.hostel_ac === "AC" && Boolean(student.hostel_ac)) ||
+            (filters.hostel_ac === "NON_AC" && !Boolean(student.hostel_ac))));
       const matchesSearch =
         !searchTerm ||
         (student.student_id || "")
@@ -828,7 +865,9 @@ export default function Students() {
         matchesGroup &&
         matchesCourse &&
         matchesSemester &&
-        matchesCategory
+        matchesCategory &&
+        matchesType &&
+        matchesHostelAc
       );
     });
   }, [students, filters, normalizedCategoryFilter, studentIdSearch, groups, courses]);
@@ -1435,6 +1474,36 @@ export default function Students() {
                 ))}
               </select>
             </div>
+            <div className="col-12 col-sm-6 col-md-4 col-lg-2">
+              <label className="form-label">Type</label>
+              <select
+                className="form-select"
+                value={filters.student_type}
+                onChange={(e) =>
+                  handleFilterChange("student_type", e.target.value)
+                }
+              >
+                <option value="">All Types</option>
+                <option value="Hostel">Hostel</option>
+                <option value="Transport">Transport</option>
+              </select>
+            </div>
+            {filters.student_type?.toLowerCase() === "hostel" && (
+              <div className="col-12 col-sm-6 col-md-4 col-lg-2">
+                <label className="form-label">Hostel Type</label>
+                <select
+                  className="form-select"
+                  value={filters.hostel_ac}
+                  onChange={(e) =>
+                    handleFilterChange("hostel_ac", e.target.value)
+                  }
+                >
+                  <option value="">All</option>
+                  <option value="AC">AC</option>
+                  <option value="NON_AC">Non AC</option>
+                </select>
+              </div>
+            )}
           </div>
         </div>
 
