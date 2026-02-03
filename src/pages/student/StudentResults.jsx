@@ -60,7 +60,26 @@ export default function StudentResults() {
           .order('created_at', { ascending: false })
 
         if (resultsError) throw resultsError
-        const rows = resultRows || []
+        let rows = resultRows || []
+
+        if (rows.length) {
+          const { data: revalRows, error: revalError } = await supabase
+            .from('revaluation_results')
+            .select('exam_id, subject_id, revised_marks, status')
+            .eq('student_id', studentRow.id)
+            .in('status', ['pending', 'published'])
+
+          if (!revalError && revalRows?.length) {
+            const revalMap = new Map(
+              revalRows.map((row) => [`${row.exam_id}:${row.subject_id}`, row])
+            )
+            rows = rows.map((row) => {
+              const reval = revalMap.get(`${row.exam_id}:${row.subject_id}`)
+              if (!reval) return row
+              return { ...row, marks_obtained: reval.revised_marks }
+            })
+          }
+        }
         if (active) setMarksRows(rows)
 
         if (rows.length) {

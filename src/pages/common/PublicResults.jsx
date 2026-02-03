@@ -93,6 +93,8 @@ export default function PublicResults() {
       const { data: resultsData, error: resultsError } = await supabase
         .from('results')
         .select(`
+          exam_id,
+          subject_id,
           marks_obtained,
           internal_marks,
           theory_marks,
@@ -117,10 +119,30 @@ export default function PublicResults() {
 
       if (resultsError) throw resultsError
 
-      // Group by Exam? Or just list? 
-      // Usually results are shown per exam or semester. 
+      let mergedResults = resultsData || []
+      if (mergedResults.length) {
+        const { data: revalRows, error: revalError } = await supabase
+          .from('revaluation_results')
+          .select('exam_id, subject_id, revised_marks, status')
+          .eq('student_id', studentData.id)
+          .in('status', ['pending', 'published'])
+
+        if (!revalError && revalRows?.length) {
+          const revalMap = new Map(
+            revalRows.map((row) => [`${row.exam_id}:${row.subject_id}`, row])
+          )
+          mergedResults = mergedResults.map((row) => {
+            const reval = revalMap.get(`${row.exam_id}:${row.subject_id}`)
+            if (!reval) return row
+            return { ...row, marks_obtained: reval.revised_marks }
+          })
+        }
+      }
+
+      // Group by Exam? Or just list?
+      // Usually results are shown per exam or semester.
       // Let's just list them for now, or group by Exam Name if multiple exams exist.
-      setResults(resultsData || [])
+      setResults(mergedResults)
 
     } catch (err) {
       console.error(err)
