@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../../supabaseClient'
 import StudentShell from '../../components/StudentShell'
 import { useStudentAuth } from '../../store/studentAuth'
@@ -17,6 +17,16 @@ const formatDateTime = (value) => {
   }).format(date)
 }
 
+const formatCurrency = (value) => {
+  const num = Number(value)
+  if (Number.isNaN(num)) return 'N/A'
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 2,
+  }).format(num)
+}
+
 const formatHostelFloor = (floorNo) => {
   const floor = Number(floorNo)
   if (!Number.isFinite(floor)) return 'N/A'
@@ -33,11 +43,13 @@ export default function StudentHostelDetails() {
   const [warning, setWarning] = useState('')
   const [studentInfo, setStudentInfo] = useState(null)
   const [currentAllocation, setCurrentAllocation] = useState(null)
+  const [hostelPayments, setHostelPayments] = useState([])
 
   useEffect(() => {
     if (!student?.id) {
       setError('Please sign in to view your hostel allocation.')
       setCurrentAllocation(null)
+      setHostelPayments([])
       return
     }
 
@@ -46,6 +58,7 @@ export default function StudentHostelDetails() {
       setError('')
       setWarning('')
       setCurrentAllocation(null)
+      setHostelPayments([])
       try {
         const { data: studentData, error: studentError } = await supabase
           .from('students')
@@ -67,20 +80,31 @@ export default function StudentHostelDetails() {
           return
         }
 
-        const { data: allocationData, error: allocationError } = await supabase
-          .from('hostel_allocations')
-          .select('academic_year, status, created_at, hostel_beds(bed_no, hostel_rooms(room_no, floor_no, room_type, hostel_blocks(block_name)))')
-          .eq('student_id', student.id)
-          .eq('status', 'ACTIVE')
-          .maybeSingle()
+        const [allocationRes, paymentRes] = await Promise.all([
+          supabase
+            .from('hostel_allocations')
+            .select('academic_year, status, created_at, hostel_beds(bed_no, hostel_rooms(room_no, floor_no, room_type, hostel_blocks(block_name)))')
+            .eq('student_id', student.id)
+            .eq('status', 'ACTIVE')
+            .maybeSingle(),
+          supabase
+            .from('student_fee_payments')
+            .select('id, amount_paid, fee_type, payment_type, payment_mode, payment_status, created_at')
+            .eq('student_id', student.id)
+            .ilike('fee_type', 'hostel%')
+            .order('created_at', { ascending: false })
+        ])
 
-        if (allocationError) throw allocationError
-        setCurrentAllocation(allocationData || null)
+        if (allocationRes.error) throw allocationRes.error
+        if (paymentRes.error) throw paymentRes.error
+        setCurrentAllocation(allocationRes.data || null)
+        setHostelPayments(paymentRes.data || [])
 
       } catch (err) {
         console.error(err)
         setError(err?.message || 'Unable to load hostel allocation right now.')
         setCurrentAllocation(null)
+        setHostelPayments([])
       } finally {
         setLoading(false)
       }
@@ -88,6 +112,16 @@ export default function StudentHostelDetails() {
 
     loadHostelDetails()
   }, [student?.id])
+
+  const hostelSummary = useMemo(() => {
+    const totalPaid = hostelPayments.reduce((sum, row) => sum + Number(row.amount_paid || 0), 0)
+    const lastPayment = hostelPayments[0]
+    return {
+      totalPaid,
+      totalCount: hostelPayments.length,
+      lastPaidAt: lastPayment?.created_at || ''
+    }
+  }, [hostelPayments])
 
   return (
     <StudentShell>
@@ -145,7 +179,7 @@ export default function StudentHostelDetails() {
         )}
 
         {!loading && !error && currentAllocation && (
-          <div className="student-card">
+          <div className="student-card mb-4">
             <div className="student-card__header">Allocation Details</div>
             <div className="student-card__body">
               <div className="student-details-grid">
@@ -190,6 +224,69 @@ export default function StudentHostelDetails() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {!loading && !error && studentInfo?.is_hostel && (
+          <div className="student-card">
+            <div className="student-card__header">Hostel Payments</div>
+            <div className="student-card__body">
+              <div className="student-details-grid mb-3">
+                <div className="student-details-grid__item">
+                  <div className="student-details-grid__label">Total Paid</div>
+                  <div className="student-details-grid__value">{formatCurrency(hostelSummary.totalPaid)}</div>
+                </div>
+                <div className="student-details-grid__item">
+                  <div className="student-details-grid__label">Payments</div>
+                  <div className="student-details-grid__value">{hostelSummary.totalCount}</div>
+                </div>
+                <div className="student-details-grid__item">
+                  <div className="student-details-grid__label">Last Payment</div>
+                  <div className="student-details-grid__value">
+                    {hostelSummary.lastPaidAt ? formatDateTime(hostelSummary.lastPaidAt) : 'N/A'}
+                  </div>
+                </div>
+              </div>
+
+              {hostelPayments.length === 0 ? (
+                <div className="student-details__status">No hostel payment records found.</div>
+              ) : (
+                <div className="student-payments-table-wrapper">
+                  <table className="student-payments-table">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Fee type</th>
+                        <th>Payment type</th>
+                        <th>Payment mode</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {hostelPayments.map((payment) => {
+                        const status = (payment.payment_status || 'pending').toString().toUpperCase()
+                        const statusTone = status === 'SUCCESS' ? 'success' : status === 'FAILED' ? 'danger' : 'warning'
+                        return (
+                          <tr key={payment.id}>
+                            <td>{formatDateTime(payment.created_at)}</td>
+                            <td>{payment.fee_type || 'Hostel'}</td>
+                            <td>{payment.payment_type || 'N/A'}</td>
+                            <td>{payment.payment_mode || 'N/A'}</td>
+                            <td>{formatCurrency(payment.amount_paid)}</td>
+                            <td>
+                              <span className={`student-payments-badge student-payments-badge--${statusTone}`}>
+                                {status}
+                              </span>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}
