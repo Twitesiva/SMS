@@ -4,6 +4,7 @@ import { supabase } from "../../../supabaseClient";
 import { toast } from "react-toastify";
 import { logActivity } from "../../lib/logger";
 import { useAuth } from "../../store/auth";
+import "./Revaluation.css";
 
 export default function Revaluation() {
     const { user } = useAuth();
@@ -480,8 +481,8 @@ export default function Revaluation() {
                                     </div>
                                 ) : (
                                     <div className="table-responsive">
-                                        <table className="table table-hover align-middle mb-0">
-                                            <thead className="table-light">
+                                        <table className="table table-hover align-middle mb-0 revaluation-table">
+                                            <thead>
                                                 <tr>
                                                     <th scope="col" className="ps-4" style={{ width: "80px" }}>S.No</th>
                                                     <th scope="col">Subject</th>
