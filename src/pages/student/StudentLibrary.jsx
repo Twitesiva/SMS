@@ -15,6 +15,7 @@ export default function StudentLibrary() {
   const [error, setError] = useState('')
   const [warning, setWarning] = useState('')
   const [loans, setLoans] = useState([])
+  const [fines, setFines] = useState([])
 
   useEffect(() => {
     if (!student?.id) {
@@ -29,6 +30,7 @@ export default function StudentLibrary() {
       setError('')
       setWarning('')
       setLoans([])
+      setFines([])
 
       try {
         const studentKey = (student.student_id || student.id || '').toString().trim()
@@ -37,28 +39,38 @@ export default function StudentLibrary() {
           return
         }
 
-        const { data: loanRows, error: loanError } = await supabase
-          .from('library_loans')
-          .select(`
-            id,
-            status,
-            issued_at,
-            due_date,
-            returned_at,
-            library_book_copies (
-              library_books (title)
-            )
-          `)
-          .eq('student_id', studentKey)
-          .order('issued_at', { ascending: false })
+        const [loanRes, fineRes] = await Promise.all([
+          supabase
+            .from('library_loans')
+            .select(`
+              id,
+              status,
+              issued_at,
+              due_date,
+              returned_at,
+              library_book_copies (
+                library_books (title)
+              )
+            `)
+            .eq('student_id', studentKey)
+            .order('issued_at', { ascending: false }),
+          supabase
+            .from('library_fines')
+            .select('id, amount, status, created_at, paid_at, description')
+            .eq('student_id', studentKey)
+            .order('created_at', { ascending: false })
+        ])
 
-        if (loanError) throw loanError
-        setLoans(loanRows || [])
+        if (loanRes.error) throw loanRes.error
+        if (fineRes.error) throw fineRes.error
+        setLoans(loanRes.data || [])
+        setFines(fineRes.data || [])
 
       } catch (err) {
         console.error(err)
         setError(err?.message || 'Unable to load library details right now.')
         setLoans([])
+        setFines([])
       } finally {
         setLoading(false)
       }
@@ -105,6 +117,21 @@ export default function StudentLibrary() {
     if (!returnedDates.length) return 'N/A'
     return formatDate(returnedDates.sort().reverse()[0])
   }, [loans])
+
+  const pendingFines = useMemo(
+    () => fines.filter((fine) => (fine.status || '').toUpperCase() === 'PENDING'),
+    [fines]
+  )
+
+  const totalPendingFine = useMemo(() => {
+    return pendingFines.reduce((sum, fine) => sum + Number(fine.amount || 0), 0).toFixed(2)
+  }, [pendingFines])
+
+  const lastFineDate = useMemo(() => {
+    const createdDates = fines.map((fine) => fine.created_at).filter(Boolean)
+    if (!createdDates.length) return 'N/A'
+    return formatDate(createdDates.sort().reverse()[0])
+  }, [fines])
 
   return (
     <StudentShell>
@@ -167,6 +194,60 @@ export default function StudentLibrary() {
                     <div className="student-details-grid__value">{lastReturnedDate}</div>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            <div className="student-card mb-4">
+              <div className="student-card__header">Library Fees</div>
+              <div className="student-card__body">
+                <div className="student-details-grid mb-3">
+                  <div className="student-details-grid__item">
+                    <div className="student-details-grid__label">Pending Fines</div>
+                    <div className="student-details-grid__value">{pendingFines.length}</div>
+                  </div>
+                  <div className="student-details-grid__item">
+                    <div className="student-details-grid__label">Total Pending</div>
+                    <div className="student-details-grid__value">Rs. {totalPendingFine}</div>
+                  </div>
+                  <div className="student-details-grid__item">
+                    <div className="student-details-grid__label">Last Fine Date</div>
+                    <div className="student-details-grid__value">{lastFineDate}</div>
+                  </div>
+                </div>
+
+                {fines.length === 0 ? (
+                  <div className="student-details__status">No library fines found.</div>
+                ) : (
+                  <div className="student-payments-table-wrapper">
+                    <table className="student-payments-table">
+                      <thead>
+                        <tr>
+                          <th>Fine Date</th>
+                          <th>Description</th>
+                          <th>Amount</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {fines.map((fine) => {
+                          const isPending = (fine.status || '').toUpperCase() === 'PENDING'
+                          return (
+                            <tr key={`fine-${fine.id}`}>
+                              <td>{formatDate(fine.created_at)}</td>
+                              <td>{fine.description || 'Library Fine'}</td>
+                              <td>Rs. {Number(fine.amount || 0).toFixed(2)}</td>
+                              <td>
+                                <span className={`student-payments-badge student-payments-badge--${isPending ? 'warning' : 'success'}`}>
+                                  {(fine.status || 'PAID').toString().toUpperCase()}
+                                </span>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
 
