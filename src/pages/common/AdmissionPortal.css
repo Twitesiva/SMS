@@ -462,6 +462,100 @@
   color: #000000;
 }
 
+.admission-portal__status--loader {
+  padding: 1rem 1.25rem 1.5rem;
+}
+
+.admission-preloader {
+  padding: 1.4rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.08);
+}
+
+.admission-preloader__header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.admission-preloader__spinner {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 3px solid rgba(99, 102, 241, 0.22);
+  border-top-color: #4f46e5;
+  animation: admissionSpin 0.9s linear infinite;
+}
+
+.admission-preloader__title {
+  font-weight: 700;
+  color: #1f2d3d;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+}
+
+.admission-preloader__subtitle {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.admission-preloader__table {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.admission-preloader__row {
+  display: grid;
+  grid-template-columns: 0.6fr 2.2fr 1fr 1fr;
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.admission-preloader__cell {
+  height: 14px;
+  border-radius: 999px;
+}
+
+.admission-preloader__cell--sm {
+  width: 60%;
+}
+
+.admission-preloader__cell--md {
+  width: 80%;
+}
+
+.admission-preloader__cell--lg {
+  width: 95%;
+}
+
+.admission-preloader__shimmer {
+  background: linear-gradient(90deg,
+      rgba(226, 232, 240, 0.85) 0%,
+      rgba(255, 255, 255, 0.95) 50%,
+      rgba(226, 232, 240, 0.85) 100%);
+  background-size: 200% 100%;
+  animation: admissionShimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes admissionSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes admissionShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 .admission-portal__table {
   width: 100%;
   border-collapse: collapse;

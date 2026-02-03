@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../../lib/mockApi'
 import crestPrimary from '../../assets/media/images.png'
+import AdmissionPreloader from '../../components/AdmissionPreloader'
 import './AdmissionPortal.css'
 
 export default function AdmissionPortal() {
@@ -93,7 +94,15 @@ export default function AdmissionPortal() {
 
         <div className="admission-portal__table-wrapper">
           <div className="admission-portal__table-title">ADMISSION PROGRAMMES</div>
-          {loading && <div className="admission-portal__status">Loading admission data...</div>}
+          {loading && (
+            <div className="admission-portal__status admission-portal__status--loader">
+              <AdmissionPreloader
+                title="Loading admission data"
+                subtitle="Fetching programmes and groups."
+                rowCount={6}
+              />
+            </div>
+          )}
           {!loading && error && <div className="admission-portal__status">{error}</div>}
           {!loading && !error && (
             <table className="admission-portal__table">
