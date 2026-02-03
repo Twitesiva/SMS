@@ -4,6 +4,7 @@ import { supabase } from "../../../supabaseClient";
 import { toast } from "react-toastify";
 import { logActivity } from "../../lib/logger";
 import { useAuth } from "../../store/auth";
+import { showToast } from "../../store/ui";
 import "./Revaluation.css";
 
 export default function Revaluation() {
@@ -342,7 +343,7 @@ export default function Revaluation() {
 
             if (examError) throw examError;
 
-            toast.success(`Published ${pendingRevals.length} revaluation result(s) successfully.`);
+            showToast(`Published ${pendingRevals.length} revaluation result(s) successfully.`, { type: "success" });
 
             await logActivity(supabase, {
                 description: `${user?.role || 'User'} published ${pendingRevals.length} revaluation results for exam ${selectedExam}`,

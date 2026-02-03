@@ -40,6 +40,7 @@ export default function StudentResults() {
           .from('results')
           .select(`
             exam_id,
+            subject_id,
             marks_obtained,
             internal_marks,
             theory_marks,
@@ -67,7 +68,7 @@ export default function StudentResults() {
             .from('revaluation_results')
             .select('exam_id, subject_id, revised_marks, status')
             .eq('student_id', studentRow.id)
-            .in('status', ['pending', 'published'])
+            .eq('status', 'published')
 
           if (!revalError && revalRows?.length) {
             const revalMap = new Map(
@@ -76,7 +77,17 @@ export default function StudentResults() {
             rows = rows.map((row) => {
               const reval = revalMap.get(`${row.exam_id}:${row.subject_id}`)
               if (!reval) return row
-              return { ...row, marks_obtained: reval.revised_marks }
+              const revisedMarks = Number(reval.revised_marks || 0)
+              const internalMarks = Number(row.internal_marks || 0)
+              const revisedTheory = Math.max(revisedMarks - internalMarks, 0)
+              return {
+                ...row,
+                marks_obtained: revisedMarks,
+                theory_marks: revisedTheory,
+                total_marks: revisedMarks,
+                revaluation_status: reval.status,
+                is_revaluation: true
+              }
             })
           }
         }
