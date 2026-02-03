@@ -109,15 +109,6 @@ export default function StudentLibrary() {
   return (
     <StudentShell>
       <div className="students-section-shell">
-        <div className="student-card mb-4">
-          <div className="student-card__header">Library</div>
-          <div className="student-card__body">
-            <p className="students-section-copy mb-0">
-              Review your library-issued books and due dates.
-            </p>
-          </div>
-        </div>
-
         {warning && !loading && !error && (
           <div className="student-details__status">{warning}</div>
         )}
@@ -164,12 +155,12 @@ export default function StudentLibrary() {
                     <div className="student-details-grid__value">{overdueLoans.length}</div>
                   </div>
                   <div className="student-details-grid__item">
-                    <div className="student-details-grid__label">Next Due Date</div>
-                    <div className="student-details-grid__value">{nextDueDate}</div>
-                  </div>
-                  <div className="student-details-grid__item">
                     <div className="student-details-grid__label">Last Issued</div>
                     <div className="student-details-grid__value">{lastIssuedDate}</div>
+                  </div>
+                  <div className="student-details-grid__item">
+                    <div className="student-details-grid__label">Next Due Date</div>
+                    <div className="student-details-grid__value">{nextDueDate}</div>
                   </div>
                   <div className="student-details-grid__item">
                     <div className="student-details-grid__label">Last Returned</div>
