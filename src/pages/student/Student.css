@@ -2180,15 +2180,15 @@
 }
 
 .parent-marks__table thead th {
-  background: #93c5fd;
-  color: #000000;
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%);
+  color: #ffffff;
   font-weight: 800;
   font-size: 0.85rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   padding: 0.85rem;
   text-align: left;
-  border-bottom: 3px solid #2563eb;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .parent-marks__table tbody td {

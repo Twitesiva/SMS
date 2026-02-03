@@ -547,7 +547,7 @@ export default function Revaluation() {
             >
                 <div className="modal-dialog modal-dialog-centered" role="document">
                     <div className="modal-content shadow-lg border-0">
-                        <div className="modal-header bg-primary text-white">
+                        <div className="modal-header revaluation-modal-header">
                             <h5 className="modal-title fw-bold">Update Revaluation Marks</h5>
                             <button
                                 type="button"

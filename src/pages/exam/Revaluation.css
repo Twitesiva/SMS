@@ -6,3 +6,12 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
+
+.revaluation-modal-header {
+  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%);
+  color: #ffffff;
+}
+
+.revaluation-modal-header .modal-title {
+  color: #ffffff !important;
+}
