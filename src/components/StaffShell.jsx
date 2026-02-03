@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useStaffAuth } from '../store/staffAuth'
 import crest from '../assets/media/images.png'
@@ -10,6 +10,8 @@ export default function StaffShell({ children }) {
     const { staff, signOut } = useStaffAuth()
     const [collapsed, setCollapsed] = useState(false)
     const [mobileOpen, setMobileOpen] = useState(false)
+    const navRef = useRef(null)
+    const SIDEBAR_SCROLL_KEY = 'staff-shell-sidebar-scroll'
 
     const isHOD = staff?.designation === 'HOD'
 
@@ -45,6 +47,27 @@ export default function StaffShell({ children }) {
         signOut()
         navTo('/staff/login')
     }
+
+    // Restore sidebar scroll position
+    useEffect(() => {
+        const navElement = navRef.current
+        if (!navElement) return
+        const savedScroll = sessionStorage.getItem(SIDEBAR_SCROLL_KEY)
+        if (savedScroll) {
+            navElement.scrollTop = Number(savedScroll)
+        }
+    }, [])
+
+    // Save sidebar scroll position
+    useEffect(() => {
+        const navElement = navRef.current
+        if (!navElement) return
+        const handleScroll = () => {
+            sessionStorage.setItem(SIDEBAR_SCROLL_KEY, String(navElement.scrollTop))
+        }
+        navElement.addEventListener('scroll', handleScroll)
+        return () => navElement.removeEventListener('scroll', handleScroll)
+    }, [])
 
     // Close mobile menu on route change
     useEffect(() => {
@@ -82,7 +105,7 @@ export default function StaffShell({ children }) {
                     </button>
                 </div>
 
-                <nav className="staff-sidebar__nav">
+                <nav className="staff-sidebar__nav" ref={navRef}>
                     {navItems.map((item) => (
                         <Link
                             key={item.to}
