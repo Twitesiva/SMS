@@ -182,37 +182,51 @@ export default function StudentAttendance() {
     })
   }
 
-  // Daily Chart Logic for Current Month
+  // Daily Chart Logic for Current Month or Selected Range
   const dailyChartData = useMemo(() => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    // Determine start and end dates for the chart axis
+    let start, end
+    const now = new Date()
 
-    const labels = [];
-    const dataPoints = [];
-    const colors = [];
+    if (startDate && endDate) {
+      start = new Date(startDate)
+      end = new Date(endDate)
+    } else {
+      start = new Date(now.getFullYear(), now.getMonth(), 1)
+      end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    }
 
-    for (let i = 1; i <= daysInMonth; i++) {
-      labels.push(i);
-      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-      const record = dateWiseRecords.find(r => r.date === dateStr);
+    const labels = []
+    const dataPoints = []
+    const colors = []
+
+    // Loop through each day in the range
+    const current = new Date(start)
+    while (current <= end) {
+      const dateStr = current.toISOString().split('T')[0]
+      const dayNum = current.getDate()
+
+      labels.push(dayNum)
+
+      const record = dateWiseRecords.find(r => r.date === dateStr)
 
       if (record) {
         if (record.statusText === 'FULL PRESENT') {
-          dataPoints.push(3); // Top level
-          colors.push('#10b981');
+          dataPoints.push(3) // Top level
+          colors.push('#10b981')
         } else if (record.statusText === 'HALF DAY') {
-          dataPoints.push(2); // Middle level
-          colors.push('#f59e0b');
+          dataPoints.push(2) // Middle level
+          colors.push('#f59e0b')
         } else {
-          dataPoints.push(1); // Bottom visible level
-          colors.push('#ef4444');
+          dataPoints.push(1) // Bottom visible level
+          colors.push('#ef4444')
         }
       } else {
-        dataPoints.push(null);
-        colors.push('#e2e8f0');
+        dataPoints.push(null)
+        colors.push('#e2e8f0')
       }
+
+      current.setDate(current.getDate() + 1)
     }
 
     return {
@@ -226,8 +240,20 @@ export default function StudentAttendance() {
           barThickness: 15
         }
       ]
-    };
-  }, [dateWiseRecords]);
+    }
+  }, [dateWiseRecords, startDate, endDate])
+
+  const chartTitle = useMemo(() => {
+    if (startDate && endDate) {
+      const s = new Date(startDate)
+      const e = new Date(endDate)
+      if (s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear()) {
+        return `Analysis: ${s.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}`
+      }
+      return `Analysis: ${s.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} - ${e.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`
+    }
+    return `Current Month: ${new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}`
+  }, [startDate, endDate])
 
   const dailyChartOptions = {
     responsive: true,
@@ -238,11 +264,11 @@ export default function StudentAttendance() {
         callbacks: {
           title: (items) => `Day ${items[0].label}`,
           label: (context) => {
-            const val = context.raw;
-            if (val === 3) return 'Status: FULL PRESENT';
-            if (val === 2) return 'Status: HALF DAY';
-            if (val === 1) return 'Status: ABSENT';
-            return 'No Record';
+            const val = context.raw
+            if (val === 3) return 'Status: FULL PRESENT'
+            if (val === 2) return 'Status: HALF DAY'
+            if (val === 1) return 'Status: ABSENT'
+            return 'No Record'
           }
         }
       }
@@ -254,10 +280,10 @@ export default function StudentAttendance() {
         ticks: {
           stepSize: 1,
           callback: function (value) {
-            if (value === 3) return 'PRESENT';
-            if (value === 2) return 'HALFDAY';
-            if (value === 1) return 'ABSENT';
-            return '';
+            if (value === 3) return 'PRESENT'
+            if (value === 2) return 'HALFDAY'
+            if (value === 1) return 'ABSENT'
+            return ''
           },
           font: { weight: 'bold', size: 10 },
           color: '#000000'
@@ -271,7 +297,7 @@ export default function StudentAttendance() {
         grid: { display: false }
       }
     }
-  };
+  }
 
   return (
     <StudentShell>
@@ -343,7 +369,7 @@ export default function StudentAttendance() {
             {/* GRAPH */}
             {/* GRAPH */}
             <div className="student-card shadow-sm h-100">
-              <div className="student-card__header">Current Month: {new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</div>
+              <div className="student-card__header">{chartTitle}</div>
               <div className="student-card__body">
                 <div style={{ height: '350px' }}>
                   <Bar data={dailyChartData} options={dailyChartOptions} />

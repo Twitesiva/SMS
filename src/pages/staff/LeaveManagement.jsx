@@ -45,6 +45,16 @@ export default function LeaveManagement() {
       ? staffRequests.length
       : requests.length
 
+  const formatDate = (dateString) => {
+    if (!dateString) return ''
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    }).replace(/\//g, '-')
+  }
+
   useEffect(() => {
     if (isHOD) {
       setActiveTab('approvals')
@@ -340,8 +350,8 @@ export default function LeaveManagement() {
                                   </td>
                                   <td>{req.leave_type}</td>
                                   <td>
-                                    <div className="small">From: {req.from_date}</div>
-                                    <div className="small">To: {req.to_date}</div>
+                                    <div className="small">From: {formatDate(req.from_date)}</div>
+                                    <div className="small">To: {formatDate(req.to_date)}</div>
                                   </td>
                                   <td className="text-center">{req.total_days}</td>
                                   <td style={{ maxWidth: '200px' }} className="small">{req.reason}</td>
@@ -387,8 +397,8 @@ export default function LeaveManagement() {
                                   </td>
                                   <td>{req.leave_type}</td>
                                   <td>
-                                    <div className="small">From: {req.from_date}</div>
-                                    <div className="small">To: {req.to_date}</div>
+                                    <div className="small">From: {formatDate(req.from_date)}</div>
+                                    <div className="small">To: {formatDate(req.to_date)}</div>
                                   </td>
                                   <td className="text-center">{req.total_days}</td>
                                   <td style={{ maxWidth: '200px' }} className="small">{req.reason}</td>
@@ -473,7 +483,7 @@ export default function LeaveManagement() {
                                     <small className="text-muted">{req.total_days} day(s)</small>
                                   </td>
                                   <td>
-                                    <div className="small">{req.from_date} to {req.to_date}</div>
+                                    <div className="small">{formatDate(req.from_date)} to {formatDate(req.to_date)}</div>
                                     <div className="small text-muted fst-italic">"{req.reason}"</div>
                                   </td>
                                   <td className="text-center">
@@ -528,7 +538,7 @@ export default function LeaveManagement() {
                                     <small className="text-muted">{req.total_days} day(s)</small>
                                   </td>
                                   <td>
-                                    <div className="small">{req.from_date} to {req.to_date}</div>
+                                    <div className="small">{formatDate(req.from_date)} to {formatDate(req.to_date)}</div>
                                     <div className="small text-muted fst-italic">"{req.reason}"</div>
                                   </td>
                                   <td className="text-center">
@@ -683,37 +693,37 @@ export default function LeaveManagement() {
                     </div>
                   </div>
 
-                                    <div className="mt-4 pt-3 border-top text-center">
+                  <div className="mt-4 pt-3 border-top text-center">
 
-                                      <div className="d-flex align-items-start gap-2 mb-3 p-2 rounded-2 text-start" style={{ backgroundColor: '#eff6ff' }}>
+                    <div className="d-flex align-items-start gap-2 mb-3 p-2 rounded-2 text-start" style={{ backgroundColor: '#eff6ff' }}>
 
-                                        <i className="bi bi-info-circle text-primary mt-1"></i>
+                      <i className="bi bi-info-circle text-primary mt-1"></i>
 
-                                        <p className="text-muted small mb-0" style={{ lineHeight: '1.4' }}>
+                      <p className="text-muted small mb-0" style={{ lineHeight: '1.4' }}>
 
-                                          Upon submission, this request will be forwarded to the Head of Department (HOD) for approval.
+                        Upon submission, this request will be forwarded to the Head of Department (HOD) for approval.
 
-                                        </p>
+                      </p>
 
-                                      </div>
+                    </div>
 
-                  
 
-                                      <button 
 
-                                        className="btn btn-primary px-5 py-2 fw-bold" 
+                    <button
 
-                                        onClick={handleSubmit} 
+                      className="btn btn-primary px-5 py-2 fw-bold"
 
-                                        disabled={loading}
+                      onClick={handleSubmit}
 
-                                      >
+                      disabled={loading}
 
-                                        {loading ? 'Submitting...' : 'SUBMIT FOR HOD APPROVAL'}
+                    >
 
-                                      </button>
+                      {loading ? 'Submitting...' : 'SUBMIT FOR HOD APPROVAL'}
 
-                                    </div>
+                    </button>
+
+                  </div>
                 </div>
               </div>
             </div>
@@ -799,11 +809,11 @@ export default function LeaveManagement() {
                                     <div className="d-flex gap-4">
                                       <div>
                                         <span className="d-block text-muted" style={{ fontSize: '0.7rem', textTransform: 'uppercase' }}>From</span>
-                                        <span className="fw-semibold text-dark small">{req.from_date}</span>
+                                        <span className="fw-semibold text-dark small">{formatDate(req.from_date)}</span>
                                       </div>
                                       <div>
                                         <span className="d-block text-muted" style={{ fontSize: '0.7rem', textTransform: 'uppercase' }}>To</span>
-                                        <span className="fw-semibold text-dark small">{req.to_date}</span>
+                                        <span className="fw-semibold text-dark small">{formatDate(req.to_date)}</span>
                                       </div>
                                     </div>
                                   </div>
