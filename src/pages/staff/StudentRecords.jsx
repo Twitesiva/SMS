@@ -69,11 +69,21 @@ export default function StudentRecords() {
         let error = null
         ;({ data, error } = await supabase
             .from('courses')
-            .select('course_id, course_code, course_name'))
+            .select('course_id, course_code, course_name, group_id, group_name'))
         if (error) {
-            setCourses([])
-            setLoading(false)
-            return
+            ;({ data, error } = await supabase
+                .from('courses')
+                .select('course_id, course_code, course_name, group_name'))
+        }
+        if (error) {
+            ;({ data, error } = await supabase
+                .from('courses')
+                .select('course_id, course_code, course_name, group_id'))
+        }
+        if (error) {
+            ;({ data } = await supabase
+                .from('courses')
+                .select('course_id, course_code, course_name'))
         }
 
         const selectedGroup = (groups || []).find(g =>
@@ -82,21 +92,62 @@ export default function StudentRecords() {
             String(g.group_code) === String(groupValue)
         )
 
-        const hasGroupInfo = (data || []).some(c => c.group_id || c.group_name)
-        const filtered = !hasGroupInfo
-            ? (data || [])
-            : (data || []).filter(c => {
-                if (selectedGroup?.group_id && c.group_id) {
-                    return String(c.group_id) === String(selectedGroup.group_id)
+        let filtered = data || []
+        if (selectedGroup) {
+            const hasGroupId = (data || []).some(c => c.group_id !== undefined && c.group_id !== null)
+            const hasGroupName = (data || []).some(c => c.group_name)
+
+            if (hasGroupId || hasGroupName) {
+                filtered = (data || []).filter(c => {
+                    if (selectedGroup?.group_id && c.group_id) {
+                        return String(c.group_id) === String(selectedGroup.group_id)
+                    }
+                    if (selectedGroup?.group_name && c.group_name) {
+                        return String(c.group_name) === String(selectedGroup.group_name)
+                    }
+                    if (selectedGroup?.group_code && c.group_name) {
+                        return String(c.group_name) === String(selectedGroup.group_code)
+                    }
+                    return false
+                })
+            } else {
+                // Fallback: derive courses from subjects (if group info exists there)
+                let subjectRows = []
+                let subjectError = null
+
+                if (selectedGroup?.group_id) {
+                    ;({ data: subjectRows, error: subjectError } = await supabase
+                        .from('subjects')
+                        .select('course_name')
+                        .eq('group_id', selectedGroup.group_id))
                 }
-                if (selectedGroup?.group_name && c.group_name) {
-                    return String(c.group_name) === String(selectedGroup.group_name)
+
+                if ((subjectError || !subjectRows?.length) && selectedGroup?.group_name) {
+                    ;({ data: subjectRows, error: subjectError } = await supabase
+                        .from('subjects')
+                        .select('course_name')
+                        .eq('group_name', selectedGroup.group_name))
                 }
-                if (selectedGroup?.group_code && c.group_name) {
-                    return String(c.group_name) === String(selectedGroup.group_code)
+
+                if ((subjectError || !subjectRows?.length) && selectedGroup?.group_code) {
+                    ;({ data: subjectRows, error: subjectError } = await supabase
+                        .from('subjects')
+                        .select('course_name')
+                        .eq('group_name', selectedGroup.group_code))
                 }
-                return !selectedGroup
-            })
+
+                if (!subjectError && subjectRows?.length) {
+                    const courseKeys = new Set(subjectRows.map(r => String(r.course_name)))
+                    filtered = (data || []).filter(c =>
+                        courseKeys.has(String(c.course_name)) ||
+                        courseKeys.has(String(c.course_code)) ||
+                        courseKeys.has(String(c.course_id))
+                    )
+                } else {
+                    filtered = []
+                }
+            }
+        }
 
         setCourses(filtered)
         setLoading(false)
