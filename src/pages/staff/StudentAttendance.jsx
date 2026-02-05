@@ -54,26 +54,79 @@ export default function StudentAttendance() {
   }
 
   const fetchGroups = async () => {
-    const { data } = await supabase.from('groups').select('group_name')
+    let data = []
+    let error = null
+    ;({ data, error } = await supabase.from('groups').select('group_id, group_name, group_code'))
+    if (error) {
+      ;({ data, error } = await supabase.from('groups').select('group_id, group_name'))
+    }
+    if (error) {
+      ;({ data } = await supabase.from('groups').select('group_name'))
+    }
     setGroups(data || [])
   }
 
-  const fetchCoursesByGroup = async (groupName) => {
+  const fetchCoursesByGroup = async (groupValue) => {
     setLoading(true)
-    const { data } = await supabase
+    let data = []
+    let error = null
+    ;({ data, error } = await supabase
       .from('courses')
-      .select('course_code, course_name')
-      .eq('group_name', groupName)
-    setCourses(data || [])
+      .select('course_id, course_code, course_name'))
+    if (error) {
+      setCourses([])
+      setLoading(false)
+      return
+    }
+
+    const selectedGroup = (groups || []).find(g =>
+      String(g.group_id) === String(groupValue) ||
+      String(g.group_name) === String(groupValue) ||
+      String(g.group_code) === String(groupValue)
+    )
+
+    const hasGroupInfo = (data || []).some(c => c.group_id || c.group_name)
+    const filtered = !hasGroupInfo
+      ? (data || [])
+      : (data || []).filter(c => {
+          if (selectedGroup?.group_id && c.group_id) {
+            return String(c.group_id) === String(selectedGroup.group_id)
+          }
+          if (selectedGroup?.group_name && c.group_name) {
+            return String(c.group_name) === String(selectedGroup.group_name)
+          }
+          if (selectedGroup?.group_code && c.group_name) {
+            return String(c.group_name) === String(selectedGroup.group_code)
+          }
+          return !selectedGroup
+        })
+
+    setCourses(filtered)
     setLoading(false)
   }
 
   const fetchSemestersByCourse = async (courseCode) => {
     setLoading(true)
+    const selectedCourse = (courses || []).find(c =>
+      String(c.course_id) === String(courseCode) ||
+      String(c.course_code) === String(courseCode) ||
+      String(c.course_name) === String(courseCode)
+    )
+
+    const candidates = [
+      selectedCourse?.course_name,
+      selectedCourse?.course_code,
+      selectedCourse?.course_id,
+      courseCode
+    ]
+      .filter((v) => v !== undefined && v !== null && String(v).trim() !== '')
+      .map((v) => String(v))
+
+    const orParts = candidates.map((v) => `course_name.eq."${v.replace(/"/g, '\\"')}"`)
     const { data } = await supabase
       .from('subjects')
-      .select('semester_number')
-      .eq('course_name', courseCode)
+      .select('semester_number, course_name')
+      .or(orParts.join(','))
 
     const unique = [...new Set((data || []).map(d => d.semester_number))]
     setSemesters(unique)
@@ -96,6 +149,7 @@ export default function StudentAttendance() {
   const fetchStudents = async () => {
     setLoading(true)
     try {
+      const orValue = (value) => `"${String(value ?? '').replace(/"/g, '\\"')}"`
       let query = supabase
         .from('students')
         .select('id, student_id, full_name')
@@ -106,13 +160,38 @@ export default function StudentAttendance() {
       }
 
       if (group) {
-        query = query.eq('group_name', group)
+        const selectedGroup = (groups || []).find(g =>
+          String(g.group_id) === String(group) ||
+          String(g.group_name) === String(group) ||
+          String(g.group_code) === String(group)
+        )
+        if (selectedGroup?.group_id) {
+          const orParts = [`group_id.eq.${selectedGroup.group_id}`]
+          if (selectedGroup.group_name) orParts.push(`group_name.eq.${orValue(selectedGroup.group_name)}`)
+          if (selectedGroup.group_code) orParts.push(`group_name.eq.${orValue(selectedGroup.group_code)}`)
+          query = query.or(orParts.join(','))
+        } else if (selectedGroup?.group_name) {
+          query = query.eq('group_name', selectedGroup.group_name)
+        } else {
+          query = query.eq('group_name', group)
+        }
       }
 
       if (courseCode) {
-        const courseName = courses.find(c => c.course_code === courseCode)?.course_name
-        if (courseName) {
-          query = query.eq('course_name', courseName)
+        const selectedCourse = (courses || []).find(c =>
+          String(c.course_id) === String(courseCode) ||
+          String(c.course_code) === String(courseCode) ||
+          String(c.course_name) === String(courseCode)
+        )
+        if (selectedCourse?.course_id) {
+          const orParts = [`course_id.eq.${selectedCourse.course_id}`]
+          if (selectedCourse.course_name) orParts.push(`course_name.eq.${orValue(selectedCourse.course_name)}`)
+          if (selectedCourse.course_code) orParts.push(`course_name.eq.${orValue(selectedCourse.course_code)}`)
+          query = query.or(orParts.join(','))
+        } else if (selectedCourse?.course_name) {
+          query = query.eq('course_name', selectedCourse.course_name)
+        } else {
+          query = query.eq('course_name', courseCode)
         }
       }
 
@@ -147,11 +226,36 @@ export default function StudentAttendance() {
       // --- CHECK IF ALREADY SUBMITTED FOR TODAY ---
       let alreadySubmitted = false
       if (academicYear && group && courseCode && semester && staff?.id) {
-        const { data: courseRow } = await supabase
-          .from('courses')
-          .select('course_id')
-          .eq('course_code', courseCode)
-          .maybeSingle()
+        let courseRow = null
+        const selectedCourse = (courses || []).find(c =>
+          String(c.course_id) === String(courseCode) ||
+          String(c.course_code) === String(courseCode) ||
+          String(c.course_name) === String(courseCode)
+        )
+        if (selectedCourse?.course_id) {
+          courseRow = { course_id: selectedCourse.course_id }
+        } else if (selectedCourse?.course_code) {
+          const { data } = await supabase
+            .from('courses')
+            .select('course_id')
+            .eq('course_code', selectedCourse.course_code)
+            .maybeSingle()
+          courseRow = data || null
+        } else if (selectedCourse?.course_name) {
+          const { data } = await supabase
+            .from('courses')
+            .select('course_id')
+            .eq('course_name', selectedCourse.course_name)
+            .maybeSingle()
+          courseRow = data || null
+        } else {
+          const { data } = await supabase
+            .from('courses')
+            .select('course_id')
+            .eq('course_code', courseCode)
+            .maybeSingle()
+          courseRow = data || null
+        }
 
         if (courseRow) {
           const { data: mapping } = await supabase
@@ -236,11 +340,36 @@ export default function StudentAttendance() {
     setLoading(true)
 
     try {
-      const { data: courseRow } = await supabase
-        .from('courses')
-        .select('course_id')
-        .eq('course_code', courseCode)
-        .maybeSingle()
+      let courseRow = null
+      const selectedCourse = (courses || []).find(c =>
+        String(c.course_id) === String(courseCode) ||
+        String(c.course_code) === String(courseCode) ||
+        String(c.course_name) === String(courseCode)
+      )
+      if (selectedCourse?.course_id) {
+        courseRow = { course_id: selectedCourse.course_id }
+      } else if (selectedCourse?.course_code) {
+        const { data } = await supabase
+          .from('courses')
+          .select('course_id')
+          .eq('course_code', selectedCourse.course_code)
+          .maybeSingle()
+        courseRow = data || null
+      } else if (selectedCourse?.course_name) {
+        const { data } = await supabase
+          .from('courses')
+          .select('course_id')
+          .eq('course_name', selectedCourse.course_name)
+          .maybeSingle()
+        courseRow = data || null
+      } else {
+        const { data } = await supabase
+          .from('courses')
+          .select('course_id')
+          .eq('course_code', courseCode)
+          .maybeSingle()
+        courseRow = data || null
+      }
 
       if (!courseRow) throw new Error('Course not found')
 
@@ -362,8 +491,8 @@ export default function StudentAttendance() {
                 }}>
                 <option value="">Select Group</option>
                 {groups.map(g => (
-                  <option key={g.group_name} value={g.group_name}>
-                    {g.group_name}
+                  <option key={g.group_id || g.group_name} value={g.group_id || g.group_name}>
+                    {g.group_name || g.group_code || g.group_id}
                   </option>
                 ))}
               </select>
@@ -380,8 +509,8 @@ export default function StudentAttendance() {
                 }}>
                 <option value="">Select Course</option>
                 {courses.map(c => (
-                  <option key={c.course_code} value={c.course_code}>
-                    {c.course_name}
+                  <option key={c.course_id || c.course_code} value={c.course_id || c.course_code}>
+                    {c.course_name || c.course_code || c.course_id}
                   </option>
                 ))}
               </select>
