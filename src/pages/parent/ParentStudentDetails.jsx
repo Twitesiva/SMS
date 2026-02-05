@@ -23,15 +23,62 @@ export default function ParentStudentDetails() {
       try {
         const { data: studentRow, error: studentError } = await supabase
           .from('students')
-          .select('id, full_name, student_id, hall_ticket_no, course_name, group_name, academic_year, current_semester, photo_url')
+          .select('id, full_name, student_id, hall_ticket_no, course_id, group_id, course_name, group_name, academic_year, current_semester, photo_url')
           .eq('student_id', parent.student_id)
           .maybeSingle()
 
         if (studentError) throw studentError
         if (!studentRow) throw new Error('Student record not found.')
 
+        const isNumeric = (value) => String(value ?? '').trim() !== '' && !Number.isNaN(Number(value))
+
+        let courseDisplay = studentRow.course_name
+        let groupDisplay = studentRow.group_name
+
+        const courseId = studentRow.course_id || (isNumeric(studentRow.course_name) ? Number(studentRow.course_name) : null)
+        const groupId = studentRow.group_id || (isNumeric(studentRow.group_name) ? Number(studentRow.group_name) : null)
+
+        const resolveCourse = async () => {
+          const select = 'course_name, course_code'
+          if (courseId) {
+            const { data } = await supabase.from('courses').select(select).eq('course_id', courseId).maybeSingle()
+            if (data) return data
+          }
+          if (studentRow.course_name) {
+            const { data: byIdString } = await supabase.from('courses').select(select).eq('course_id', String(studentRow.course_name)).maybeSingle()
+            if (byIdString) return byIdString
+            const { data: byCode } = await supabase.from('courses').select(select).eq('course_code', String(studentRow.course_name)).maybeSingle()
+            if (byCode) return byCode
+          }
+          return null
+        }
+
+        const resolveGroup = async () => {
+          const select = 'group_name, group_code'
+          if (groupId) {
+            const { data } = await supabase.from('groups').select(select).eq('group_id', groupId).maybeSingle()
+            if (data) return data
+          }
+          if (studentRow.group_name) {
+            const { data: byIdString } = await supabase.from('groups').select(select).eq('group_id', String(studentRow.group_name)).maybeSingle()
+            if (byIdString) return byIdString
+            const { data: byCode } = await supabase.from('groups').select(select).eq('group_code', String(studentRow.group_name)).maybeSingle()
+            if (byCode) return byCode
+          }
+          return null
+        }
+
+        const [courseRow, groupRow] = await Promise.all([resolveCourse(), resolveGroup()])
+
+        courseDisplay = courseRow?.course_name || courseRow?.course_code || courseDisplay
+        groupDisplay = groupRow?.group_name || groupRow?.group_code || groupDisplay
+
         if (!active) return
-        setStudentRecord(studentRow)
+        setStudentRecord({
+          ...studentRow,
+          course_display: courseDisplay,
+          group_display: groupDisplay
+        })
       } catch (err) {
         if (active) setError(err?.message || 'Unable to load student details.')
       } finally {
@@ -47,7 +94,11 @@ export default function ParentStudentDetails() {
 
   const badges = useMemo(() => {
     if (!studentRecord) return []
-    return [studentRecord.course_name, studentRecord.group_name, studentRecord.academic_year].filter(Boolean)
+    return [
+      studentRecord.course_display || studentRecord.course_name,
+      studentRecord.group_display || studentRecord.group_name,
+      studentRecord.academic_year
+    ].filter(Boolean)
   }, [studentRecord])
 
   return (
@@ -82,8 +133,8 @@ export default function ParentStudentDetails() {
                     { label: 'Student ID', value: studentRecord.student_id },
                     { label: 'Register No.', value: studentRecord.hall_ticket_no },
                     { label: 'Academic Year', value: studentRecord.academic_year },
-                    { label: 'Course', value: studentRecord.course_name },
-                    { label: 'Group', value: studentRecord.group_name },
+                    { label: 'Course', value: studentRecord.course_display || studentRecord.course_name },
+                    { label: 'Group', value: studentRecord.group_display || studentRecord.group_name },
                     { label: 'Semester', value: studentRecord.current_semester }
                   ].filter((row) => row.value).map((row) => (
                     <div key={row.label} className="d-flex border-bottom pb-2">
