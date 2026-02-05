@@ -45,11 +45,14 @@ export default function LeaveManagement() {
       ? staffRequests.length
     : requests.length
 
-  const formatDate = (value) => {
-    if (!value) return '-'
-    const date = new Date(value)
-    if (Number.isNaN(date.getTime())) return value
-    return date.toLocaleDateString('en-GB')
+  const formatDate = (dateString) => {
+    if (!dateString) return ''
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    }).replace(/\//g, '-')
   }
 
   useEffect(() => {
@@ -690,37 +693,37 @@ export default function LeaveManagement() {
                     </div>
                   </div>
 
-                                    <div className="mt-4 pt-3 border-top text-center">
+                  <div className="mt-4 pt-3 border-top text-center">
 
-                                      <div className="d-flex align-items-start gap-2 mb-3 p-2 rounded-2 text-start" style={{ backgroundColor: '#eff6ff' }}>
+                    <div className="d-flex align-items-start gap-2 mb-3 p-2 rounded-2 text-start" style={{ backgroundColor: '#eff6ff' }}>
 
-                                        <i className="bi bi-info-circle text-primary mt-1"></i>
+                      <i className="bi bi-info-circle text-primary mt-1"></i>
 
-                                        <p className="text-muted small mb-0" style={{ lineHeight: '1.4' }}>
+                      <p className="text-muted small mb-0" style={{ lineHeight: '1.4' }}>
 
-                                          Upon submission, this request will be forwarded to the Head of Department (HOD) for approval.
+                        Upon submission, this request will be forwarded to the Head of Department (HOD) for approval.
 
-                                        </p>
+                      </p>
 
-                                      </div>
+                    </div>
 
-                  
 
-                                      <button 
 
-                                        className="btn btn-primary px-5 py-2 fw-bold" 
+                    <button
 
-                                        onClick={handleSubmit} 
+                      className="btn btn-primary px-5 py-2 fw-bold"
 
-                                        disabled={loading}
+                      onClick={handleSubmit}
 
-                                      >
+                      disabled={loading}
 
-                                        {loading ? 'Submitting...' : 'SUBMIT FOR HOD APPROVAL'}
+                    >
 
-                                      </button>
+                      {loading ? 'Submitting...' : 'SUBMIT FOR HOD APPROVAL'}
 
-                                    </div>
+                    </button>
+
+                  </div>
                 </div>
               </div>
             </div>
@@ -841,3 +844,6 @@ export default function LeaveManagement() {
     </StaffShell>
   )
 }
+
+
+

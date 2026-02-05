@@ -88,7 +88,7 @@ export default function AdminLogin() {
           </div>
           <div className="admission-portal__brand-text">
             <div className="admission-portal__brand-title">Vijayam Arts & Science College</div>
-            <div className="admission-portal__brand-sub">Admissions Office</div>
+            <div className="admission-portal__brand-sub">Admission Office</div>
           </div>
         </div>
         <Link to="/roles" className="admission-portal__back" style={{ position: 'fixed', top: '18px', right: '24px', zIndex: 1000 }}>

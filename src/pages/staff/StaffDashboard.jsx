@@ -30,7 +30,7 @@ export default function StaffDashboard() {
         normalizedStatus.slice(1).toLowerCase()
         : 'Active'
 
-    const photoSrc = ''
+    const photoSrc = staff?.image_url
 
     /* ===============================
        STATE
