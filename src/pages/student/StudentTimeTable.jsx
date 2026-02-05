@@ -271,8 +271,8 @@ export default function StudentTimeTable() {
     }
   }, [student])
 
-  const displayCourse = info?.courses?.course_name || student?.course_name || student?.course || ''
-  const displayGroup = info?.groups?.group_name || student?.group_name || student?.group || ''
+  const displayCourse = info?.courses?.course_name || student?.course_display || student?.course_name || student?.course || ''
+  const displayGroup = info?.groups?.group_name || student?.group_display || student?.group_name || student?.group || ''
   const displayYear = info?.academic_year || student?.academic_year || ''
   const displaySemester = info?.semester || student?.current_semester || student?.semester || ''
 

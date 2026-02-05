@@ -6,6 +6,7 @@ import StudentShell from '../../components/StudentShell'
 import { useStudentAuth } from '../../store/studentAuth'
 import { supabase } from '../../../supabaseClient'
 import './Student.css'
+import { resolveStudentCourseGroup } from '../../lib/resolveStudentCourseGroup'
 
 export default function StudentCertificate() {
   const { student } = useStudentAuth()
@@ -36,7 +37,10 @@ export default function StudentCertificate() {
         }
         const { data, error } = await query.maybeSingle()
         if (error) throw error
-        if (data) setStudentDetails(data)
+        if (data) {
+          const resolved = await resolveStudentCourseGroup(supabase, data)
+          setStudentDetails(resolved)
+        }
       } catch (err) {
         console.error('Failed to load student details for certificate', err)
       }
@@ -142,7 +146,7 @@ export default function StudentCertificate() {
                 <p className="student-certificate__text">
                   He/She is studying in{' '}
                   {renderField(
-                    [details?.course_name || details?.course, details?.group_name]
+                    [details?.course_display || details?.course_name || details?.course, details?.group_display || details?.group_name]
                       .filter(Boolean)
                       .join(' ')
                   )}{' '}

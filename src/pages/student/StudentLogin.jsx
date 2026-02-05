@@ -5,6 +5,7 @@ import { useStudentAuth } from '../../store/studentAuth'
 import crest from '../../assets/media/images.png'
 import '../common/Auth.css'
 import '../common/AdmissionPortal.css'
+import { resolveStudentCourseGroup } from '../../lib/resolveStudentCourseGroup'
 
 export default function StudentLogin() {
   const nav = useNavigate()
@@ -39,7 +40,8 @@ export default function StudentLogin() {
         return
       }
 
-      setStudent(data)
+      const resolvedStudent = await resolveStudentCourseGroup(supabase, data)
+      setStudent(resolvedStudent)
       nav('/student/dashboard')
     } catch (err) {
       console.error(err)

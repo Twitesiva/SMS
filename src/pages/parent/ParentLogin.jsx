@@ -5,6 +5,7 @@ import { useParentAuth } from '../../store/parentAuth'
 import crest from '../../assets/media/images.png'
 import '../common/Auth.css'
 import '../common/AdmissionPortal.css'
+import { resolveStudentCourseGroup } from '../../lib/resolveStudentCourseGroup'
 
 export default function ParentLogin() {
     const nav = useNavigate()
@@ -40,7 +41,8 @@ export default function ParentLogin() {
                 return
             }
 
-            setParent(data)
+            const resolvedParent = await resolveStudentCourseGroup(supabase, data)
+            setParent(resolvedParent)
             nav('/parent/student-details')
         } catch (err) {
             console.error(err)

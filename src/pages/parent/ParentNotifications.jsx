@@ -3,6 +3,7 @@ import ParentShell from '../../components/ParentShell'
 import { supabase } from '../../../supabaseClient'
 import { useParentAuth } from '../../store/parentAuth'
 import '../student/Student.css'
+import { resolveStudentCourseGroup } from '../../lib/resolveStudentCourseGroup'
 
 export default function ParentNotifications() {
   const { parent } = useParentAuth()
@@ -31,8 +32,9 @@ export default function ParentNotifications() {
         if (studentError) throw studentError
         if (!studentRow) throw new Error('Student record not found.')
 
+        const resolvedStudent = await resolveStudentCourseGroup(supabase, studentRow)
         if (!active) return
-        setStudentRecord(studentRow)
+        setStudentRecord(resolvedStudent)
 
         const { data: absenceRows, error: absenceError } = await supabase
           .from('attendance_records')
@@ -85,7 +87,11 @@ export default function ParentNotifications() {
 
   const badges = useMemo(() => {
     if (!studentRecord) return []
-    return [studentRecord.course_name, studentRecord.group_name, studentRecord.academic_year].filter(Boolean)
+    return [
+      studentRecord.course_display || studentRecord.course_name,
+      studentRecord.group_display || studentRecord.group_name,
+      studentRecord.academic_year
+    ].filter(Boolean)
   }, [studentRecord])
 
   return (

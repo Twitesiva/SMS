@@ -3,6 +3,7 @@ import StudentShell from '../../components/StudentShell'
 import { supabase } from '../../../supabaseClient'
 import { useStudentAuth } from '../../store/studentAuth'
 import './Student.css'
+import { resolveStudentCourseGroup } from '../../lib/resolveStudentCourseGroup'
 
 export default function StudentResults() {
   const { student } = useStudentAuth()
@@ -33,8 +34,9 @@ export default function StudentResults() {
         if (studentError) throw studentError
         if (!studentRow) throw new Error('Student record not found.')
 
+        const resolvedStudent = await resolveStudentCourseGroup(supabase, studentRow)
         if (!active) return
-        setStudentRecord(studentRow)
+        setStudentRecord(resolvedStudent)
 
         const { data: resultRows, error: resultsError } = await supabase
           .from('results')
@@ -150,12 +152,20 @@ export default function StudentResults() {
 
   const badges = useMemo(() => {
     if (!studentRecord) return []
-    return [studentRecord.course_name, studentRecord.group_name, studentRecord.academic_year].filter(Boolean)
+    return [
+      studentRecord.course_display || studentRecord.course_name,
+      studentRecord.group_display || studentRecord.group_name,
+      studentRecord.academic_year
+    ].filter(Boolean)
   }, [studentRecord])
 
   const metaBase = useMemo(() => {
     if (!studentRecord) return ''
-    return [studentRecord.course_name, studentRecord.group_name, studentRecord.academic_year].filter(Boolean).join(' • ')
+    return [
+      studentRecord.course_display || studentRecord.course_name,
+      studentRecord.group_display || studentRecord.group_name,
+      studentRecord.academic_year
+    ].filter(Boolean).join(' • ')
   }, [studentRecord])
 
   const latestExamRows = useMemo(() => {
