@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import ParentShell from '../../components/ParentShell'
 import { supabase } from '../../../supabaseClient'
 import { useParentAuth } from '../../store/parentAuth'
-import '../student/Student.css'
+
 
 export default function ParentStudentDetails() {
   const { parent } = useParentAuth()

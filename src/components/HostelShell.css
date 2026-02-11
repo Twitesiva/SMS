@@ -311,4 +311,21 @@
   .hostel-sidebar__toggle {
     display: none;
   }
+
+  .hostel-header__portal {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    width: auto;
+    white-space: nowrap;
+    font-size: 1rem;
+    margin: 0;
+  }
+
+  .hostel-header {
+    position: relative;
+    justify-content: space-between;
+  }
 }

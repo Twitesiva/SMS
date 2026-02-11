@@ -128,14 +128,12 @@ export default function TransportPortalShell({
 
   return (
     <div
-      className={`admin-shell ${customShellClass} d-grid ${className} ${
-        collapsed ? "collapsed" : ""
-      }`.trim()}
+      className={`admin-shell ${customShellClass} d-grid ${className} ${collapsed ? "collapsed" : ""
+        }`.trim()}
     >
       <aside
-        className={`${customSidebarClass || "sidebar-modern"} d-flex flex-column ${
-          collapsed ? "collapsed" : ""
-        }`}
+        className={`${customSidebarClass || "sidebar-modern"} d-flex flex-column ${collapsed ? "collapsed" : ""
+          }`}
       >
         <div className="sidebar-header">
           <div className="sidebar-brand d-flex align-items-center gap-3">
@@ -168,9 +166,8 @@ export default function TransportPortalShell({
             title={collapsed ? "Expand navigation" : "Collapse navigation"}
           >
             <i
-              className={`bi ${
-                collapsed ? "bi-chevron-double-right" : "bi-chevron-double-left"
-              }`}
+              className={`bi ${collapsed ? "bi-chevron-double-right" : "bi-chevron-double-left"
+                }`}
             ></i>
           </button>
         </div>
@@ -192,9 +189,8 @@ export default function TransportPortalShell({
                     <Link
                       to={item.to}
                       title={item.label}
-                      className={`nav-group-header item-box fw-bold d-flex align-items-center user-select-none nav-item-modern ${
-                        isActive ? "active" : ""
-                      }`}
+                      className={`nav-group-header item-box fw-bold d-flex align-items-center user-select-none nav-item-modern ${isActive ? "active" : ""
+                        }`}
                     >
                       <div className="d-flex align-items-center gap-2">
                         <i
@@ -230,9 +226,8 @@ export default function TransportPortalShell({
               <div key={groupIndex} className="nav-group">
                 {!collapsed && (
                   <div
-                    className={`nav-group-header item-box fw-bold d-flex justify-content-between align-items-center user-select-none ${
-                      isActiveGroup ? "active-group" : ""
-                    }`}
+                    className={`nav-group-header item-box fw-bold d-flex justify-content-between align-items-center user-select-none ${isActiveGroup ? "active-group" : ""
+                      }`}
                     onClick={() => toggleGroup(groupIndex)}
                   >
                     <div className="d-flex align-items-center gap-2">
@@ -257,9 +252,8 @@ export default function TransportPortalShell({
                       key={item.to}
                       to={item.to}
                       title={item.label}
-                      className={`nav-item-modern ${
-                        isRouteActive(pathname, item.to) ? "active" : ""
-                      }`}
+                      className={`nav-item-modern ${isRouteActive(pathname, item.to) ? "active" : ""
+                        }`}
                     >
                       <span className="icon">
                         <i className={`bi ${item.icon}`}></i>
@@ -300,7 +294,7 @@ export default function TransportPortalShell({
             onClick={handleSignOut}
             title="Sign out"
           >
-            <i className="bi bi-box-arrow-right me-2"></i>Sign out
+            <i className="bi bi-box-arrow-right me-2"></i><span className="d-none d-sm-inline">Sign out</span>
           </button>
         </div>
         <div className="admin-main-scroll">{children}</div>

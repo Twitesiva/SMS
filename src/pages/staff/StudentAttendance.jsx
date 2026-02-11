@@ -3,7 +3,7 @@ import StaffShell from '../../components/StaffShell'
 import { supabase } from '../../../supabaseClient'
 import { useStaffAuth } from '../../store/staffAuth'
 import './StaffPortal.css'
-import '../student/Student.css'
+
 
 export default function StudentAttendance() {
   const { staff } = useStaffAuth()
@@ -56,12 +56,12 @@ export default function StudentAttendance() {
   const fetchGroups = async () => {
     let data = []
     let error = null
-    ;({ data, error } = await supabase.from('groups').select('group_id, group_name, group_code'))
+      ; ({ data, error } = await supabase.from('groups').select('group_id, group_name, group_code'))
     if (error) {
-      ;({ data, error } = await supabase.from('groups').select('group_id, group_name'))
+      ; ({ data, error } = await supabase.from('groups').select('group_id, group_name'))
     }
     if (error) {
-      ;({ data } = await supabase.from('groups').select('group_name'))
+      ; ({ data } = await supabase.from('groups').select('group_name'))
     }
     setGroups(data || [])
   }
@@ -70,21 +70,21 @@ export default function StudentAttendance() {
     setLoading(true)
     let data = []
     let error = null
-    ;({ data, error } = await supabase
-      .from('courses')
-      .select('course_id, course_code, course_name, group_id, group_name'))
+      ; ({ data, error } = await supabase
+        .from('courses')
+        .select('course_id, course_code, course_name, group_id, group_name'))
     if (error) {
-      ;({ data, error } = await supabase
+      ; ({ data, error } = await supabase
         .from('courses')
         .select('course_id, course_code, course_name, group_name'))
     }
     if (error) {
-      ;({ data, error } = await supabase
+      ; ({ data, error } = await supabase
         .from('courses')
         .select('course_id, course_code, course_name, group_id'))
     }
     if (error) {
-      ;({ data } = await supabase
+      ; ({ data } = await supabase
         .from('courses')
         .select('course_id, course_code, course_name'))
     }
@@ -119,21 +119,21 @@ export default function StudentAttendance() {
         let subjectError = null
 
         if (selectedGroup?.group_id) {
-          ;({ data: subjectRows, error: subjectError } = await supabase
+          ; ({ data: subjectRows, error: subjectError } = await supabase
             .from('subjects')
             .select('course_name')
             .eq('group_id', selectedGroup.group_id))
         }
 
         if ((subjectError || !subjectRows?.length) && selectedGroup?.group_name) {
-          ;({ data: subjectRows, error: subjectError } = await supabase
+          ; ({ data: subjectRows, error: subjectError } = await supabase
             .from('subjects')
             .select('course_name')
             .eq('group_name', selectedGroup.group_name))
         }
 
         if ((subjectError || !subjectRows?.length) && selectedGroup?.group_code) {
-          ;({ data: subjectRows, error: subjectError } = await supabase
+          ; ({ data: subjectRows, error: subjectError } = await supabase
             .from('subjects')
             .select('course_name')
             .eq('group_name', selectedGroup.group_code))
@@ -617,55 +617,57 @@ export default function StudentAttendance() {
                 </div>
               )}
 
-              <table className="table table-bordered staff-attendance-table">
-                <thead>
-                  <tr>
-                    <th className="text-center" style={{ width: '80px' }}>S.No</th>
-                    <th className="text-center" style={{ width: '15%' }}>Student ID</th>
-                    <th style={{ width: '35%' }}>Full Name</th>
-                    <th className="text-center" style={{ width: '40%' }}>Attendance</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {students.map((s, i) => {
-                    const onApprovedLeave = leaveStudentIds.has(s.id)
-                    return (
-                      <tr key={s.id}>
-                        <td>{i + 1}</td>
-                        <td>{s.student_id}</td>
-                        <td>{s.full_name}</td>
-                        <td>
-                          <div className="attendance-options-grid">
-                            <label className={`attendance-label attendance-label--present ${isAlreadySubmitted ? 'opacity-75 cursor-not-allowed' : ''}`}>
-                              <input
-                                type="radio"
-                                checked={attendance[s.id] === 'PRESENT'}
-                                onChange={() =>
-                                  !isAlreadySubmitted && setAttendance({ ...attendance, [s.id]: 'PRESENT' })}
-                                disabled={isAlreadySubmitted}
-                              /> Present
-                            </label>
-                            <label className={`attendance-label attendance-label--absent ${isAlreadySubmitted ? 'opacity-75 cursor-not-allowed' : ''}`}>
-                              <input
-                                type="radio"
-                                checked={attendance[s.id] === 'ABSENT'}
-                                onChange={() =>
-                                  !isAlreadySubmitted && setAttendance({ ...attendance, [s.id]: 'ABSENT' })}
-                                disabled={isAlreadySubmitted}
-                              /> Absent
-                            </label>
-                            <div className="text-start">
-                              {onApprovedLeave && (
-                                <div className="attendance-status-label m-0">Approved Leave</div>
-                              )}
+              <div className="table-responsive">
+                <table className="table table-bordered staff-attendance-table">
+                  <thead>
+                    <tr>
+                      <th className="text-center">S.No</th>
+                      <th className="text-center">Student ID</th>
+                      <th>Full Name</th>
+                      <th className="text-center">Attendance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {students.map((s, i) => {
+                      const onApprovedLeave = leaveStudentIds.has(s.id)
+                      return (
+                        <tr key={s.id}>
+                          <td>{i + 1}</td>
+                          <td>{s.student_id}</td>
+                          <td>{s.full_name}</td>
+                          <td>
+                            <div className="attendance-options-grid">
+                              <label className={`attendance-label attendance-label--present ${isAlreadySubmitted ? 'opacity-75 cursor-not-allowed' : ''}`}>
+                                <input
+                                  type="radio"
+                                  checked={attendance[s.id] === 'PRESENT'}
+                                  onChange={() =>
+                                    !isAlreadySubmitted && setAttendance({ ...attendance, [s.id]: 'PRESENT' })}
+                                  disabled={isAlreadySubmitted}
+                                /> Present
+                              </label>
+                              <label className={`attendance-label attendance-label--absent ${isAlreadySubmitted ? 'opacity-75 cursor-not-allowed' : ''}`}>
+                                <input
+                                  type="radio"
+                                  checked={attendance[s.id] === 'ABSENT'}
+                                  onChange={() =>
+                                    !isAlreadySubmitted && setAttendance({ ...attendance, [s.id]: 'ABSENT' })}
+                                  disabled={isAlreadySubmitted}
+                                /> Absent
+                              </label>
+                              <div className="text-start">
+                                {onApprovedLeave && (
+                                  <div className="attendance-status-label m-0">Approved Leave</div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
 
               <div className="text-end mt-3">
                 {academicYear && group && courseCode && semester && !isAlreadySubmitted && (
@@ -718,7 +720,7 @@ export default function StudentAttendance() {
               </div>
             )}
 
-            <div className="d-flex justify-content-center gap-3 mt-5">
+            <div className="d-flex justify-content-center gap-3 mt-5 attendance-action-buttons">
               <button
                 className="btn btn-outline-secondary px-5 py-2 fw-bold"
                 onClick={goBackToAttendance}

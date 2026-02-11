@@ -3,7 +3,7 @@ import StaffShell from '../../components/StaffShell'
 import { supabase } from '../../../supabaseClient'
 import { useStaffAuth } from '../../store/staffAuth'
 import './StaffPortal.css'
-import '../student/Student.css'
+
 
 /* ===============================
    CONSTANTS
@@ -151,10 +151,17 @@ export default function StaffTimetable() {
           margin: 0 auto;
         }
 
+        .table-responsive {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          width: 100%;
+        }
+
         table.tt-table {
           width: 100%;
           border-collapse: collapse;
           table-layout: fixed;
+          min-width: 1000px; /* Ensure scrolling on mobile */
         }
 
         .tt-table th,
@@ -225,7 +232,6 @@ export default function StaffTimetable() {
                 <div className="student-loader-card__header student-loader__shimmer"></div>
                 <div className="student-loader-card__line student-loader__shimmer"></div>
                 <div className="student-loader-card__line student-loader__shimmer"></div>
-                <div className="student-loader-card__line student-loader__shimmer"></div>
               </div>
             </div>
             <span className="sr-only">Loading timetable...</span>
@@ -233,80 +239,82 @@ export default function StaffTimetable() {
         )}
 
         {!loading && (
-          <div className="card card-soft tt-wrapper">
-            <table className="tt-table">
-              <thead>
-                <tr>
-                  <th>DAY</th>
-                  {TIME_SLOTS.map(slot => (
-                    <th key={slot.key}>
-                      <span className="tt-head-title">{slot.label}</span>
-                      <span className="tt-head-time">{slot.time}</span>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-
-              <tbody>
-                {DAYS.map((day, i) => (
-                  <tr key={day}>
-                    <th className="tt-day">{day}</th>
-
-                    {TIME_SLOTS.map(slot => {
-                      if (slot.type === 'break') {
-                        return (
-                          <td key={slot.key} className="tt-break">
-                            {BREAK_LETTERS[i]}
-                          </td>
-                        )
-                      }
-
-                      if (slot.type === 'lunch') {
-                        return (
-                          <td key={slot.key} className="tt-lunch">
-                            {LUNCH_LETTERS[i]}
-                          </td>
-                        )
-                      }
-
-                      return (
-                        <td key={slot.key} className="tt-period">
-                          {tableData?.[day]?.[slot.period] ? (
-                            <>
-                              <div style={{ fontWeight: 700 }}>
-                                {tableData[day][slot.period].subject}
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: '0.75rem',
-                                  fontWeight: 700,
-                                  color: '#374151'
-                                }}
-                              >
-                                (
-                                {tableData[day][slot.period].course} –{' '}
-                                {tableData[day][slot.period].group} – Sem{' '}
-                                {tableData[day][slot.period].semester}
-                                )
-                              </div>
-                            </>
-                          ) : (
-                            <span style={{ color: '#111827', fontWeight: 800, fontSize: '1rem' }}>
-                              –
-                            </span>
-                          )}
-                        </td>
-
-
-
-
-
-                      )
-                    })}
+          <div className="card card-soft tt-wrapper overflow-hidden p-0">
+            <div className="table-responsive p-3">
+              <table className="tt-table">
+                <thead>
+                  <tr>
+                    <th>DAY</th>
+                    {TIME_SLOTS.map(slot => (
+                      <th key={slot.key}>
+                        <span className="tt-head-title">{slot.label}</span>
+                        <span className="tt-head-time">{slot.time}</span>
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+
+                <tbody>
+                  {DAYS.map((day, i) => (
+                    <tr key={day}>
+                      <th className="tt-day">{day}</th>
+
+                      {TIME_SLOTS.map(slot => {
+                        if (slot.type === 'break') {
+                          return (
+                            <td key={slot.key} className="tt-break">
+                              {BREAK_LETTERS[i]}
+                            </td>
+                          )
+                        }
+
+                        if (slot.type === 'lunch') {
+                          return (
+                            <td key={slot.key} className="tt-lunch">
+                              {LUNCH_LETTERS[i]}
+                            </td>
+                          )
+                        }
+
+                        return (
+                          <td key={slot.key} className="tt-period">
+                            {tableData?.[day]?.[slot.period] ? (
+                              <>
+                                <div style={{ fontWeight: 700 }}>
+                                  {tableData[day][slot.period].subject}
+                                </div>
+                                <div
+                                  style={{
+                                    fontSize: '0.75rem',
+                                    fontWeight: 700,
+                                    color: '#374151'
+                                  }}
+                                >
+                                  (
+                                  {tableData[day][slot.period].course} –{' '}
+                                  {tableData[day][slot.period].group} – Sem{' '}
+                                  {tableData[day][slot.period].semester}
+                                  )
+                                </div>
+                              </>
+                            ) : (
+                              <span style={{ color: '#111827', fontWeight: 800, fontSize: '1rem' }}>
+                                –
+                              </span>
+                            )}
+                          </td>
+
+
+
+
+
+                        )
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

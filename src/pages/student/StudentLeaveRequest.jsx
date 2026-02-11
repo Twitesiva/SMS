@@ -9,6 +9,7 @@ export default function StudentLeaveRequest() {
     const { student } = useStudentAuth()
     const [loading, setLoading] = useState(false)
     const [myRequests, setMyRequests] = useState([])
+    const [showAll, setShowAll] = useState(false)
     const [form, setForm] = useState({
         requestType: 'Leave',
         leaveType: '',
@@ -250,106 +251,79 @@ export default function StudentLeaveRequest() {
 
                     {/* Notifications / History */}
                     <div className="col-lg-5">
-                        {/* Header Widget */}
-                        <div className="student-card mb-4">
+                        <div className="student-card h-100">
                             <div className="student-card__header">Request History</div>
                             <div className="student-card__body">
-                                <p className="students-section-copy mb-0">Track your status updates</p>
+                                <p className="students-section-copy mb-4">Track your status updates</p>
+
+                                {/* Requests List */}
+                                {myRequests.length === 0 ? (
+                                    <div className="text-center text-muted py-5">
+                                        <div className="mb-3">
+                                            <i className="bi bi-inbox-fill text-secondary opacity-25" style={{ fontSize: '3rem' }}></i>
+                                        </div>
+                                        <h6 className="fw-semibold">No requests yet</h6>
+                                        <p className="small mb-0">Your leave history will appear here.</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="vstack gap-3">
+                                            {myRequests.slice(0, showAll ? undefined : 2).map((req) => {
+                                                const isPending = req.status === 'PENDING';
+                                                const isApproved = req.status === 'APPROVED';
+                                                const isRejected = req.status === 'REJECTED';
+
+                                                const statusColor = isPending ? 'warning' : isApproved ? 'success' : 'danger';
+
+                                                return (
+                                                    <div key={req.id} className="p-3 rounded-3 border" style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}>
+                                                        <div className="d-flex justify-content-between align-items-center mb-2">
+                                                            <span className="fw-bold text-dark small">{req.leave_type}</span>
+                                                            <span className={`badge bg-${statusColor}-subtle text-${statusColor} border border-${statusColor}-subtle`}>
+                                                                {isPending ? 'Pending' : isApproved ? 'Approved' : 'Rejected'}
+                                                            </span>
+                                                        </div>
+
+                                                        <div className="d-flex justify-content-between align-items-center mb-2">
+                                                            <div className="small text-muted">
+                                                                <div>From: <span className="fw-semibold text-dark">{new Date(req.from_date).toLocaleDateString('en-GB')}</span></div>
+                                                            </div>
+                                                            <div className="small text-muted">
+                                                                <div>To: <span className="fw-semibold text-dark">{new Date(req.to_date).toLocaleDateString('en-GB')}</span></div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="p-2 rounded bg-white border border-light-subtle small text-muted fst-italic">
+                                                            "{req.reason}"
+                                                        </div>
+
+                                                        <div className="d-flex justify-content-between align-items-center mt-2 pt-2 border-top border-light-subtle">
+                                                            <span className="text-muted" style={{ fontSize: '0.7rem' }}>
+                                                                Applied: {new Date(req.applied_at).toLocaleDateString('en-GB')}
+                                                            </span>
+                                                            <span className="text-muted" style={{ fontSize: '0.7rem' }}>
+                                                                {req.total_days} Day(s)
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+
+                                        {myRequests.length > 2 && (
+                                            <div className="text-center mt-3 pt-2">
+                                                <button
+                                                    className="btn btn-sm btn-link text-decoration-none fw-bold"
+                                                    onClick={() => setShowAll(!showAll)}
+                                                >
+                                                    {showAll ? 'Show Less' : 'View All Request History'} <i className={`bi ${showAll ? 'bi-chevron-up' : 'bi-chevron-down'}`}></i>
+                                                </button>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
                             </div>
                         </div>
-
-                        {/* Requests List */}
-                        {myRequests.length === 0 ? (
-                            <div className="card border-0 shadow-sm rounded-4">
-                                <div className="card-body p-5 text-center text-muted">
-                                    <div className="mb-3">
-                                        <i className="bi bi-inbox-fill text-secondary opacity-25" style={{ fontSize: '4rem' }}></i>
-                                    </div>
-                                    <h6 className="fw-semibold">No requests yet</h6>
-                                    <p className="small mb-0">Your leave history will appear here.</p>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="vstack gap-4">
-                                {myRequests.slice(0, 2).map((req) => {
-                                    const isPending = req.status === 'PENDING';
-                                    const isApproved = req.status === 'APPROVED';
-                                    const isRejected = req.status === 'REJECTED';
-
-                                    const borderClass = isPending ? 'border-warning' : isApproved ? 'border-success' : 'border-danger';
-
-                                    return (
-                                        <div key={req.id} className={`card border-0 shadow-sm rounded-4 border-start border-4 ${borderClass}`} style={{ backgroundColor: '#ffffff' }}>
-                                            <div className="card-body p-3 text-dark">
-                                                <div className="d-flex justify-content-between align-items-center mb-3">
-                                                    <span className="badge bg-light text-dark border fw-normal px-3 py-2">{req.leave_type}</span>
-                                                    <span className="small text-muted fw-bold">{req.total_days} Day(s)</span>
-                                                </div>
-
-                                                {/* Mini Timeline */}
-                                                <div className="ps-2">
-                                                    {/* Step 1: Submitted */}
-                                                    <div className="d-flex gap-3 position-relative pb-3">
-                                                        <div className="position-absolute start-0 top-0 h-100 border-start border-2 border-secondary border-opacity-10" style={{ left: '11px', zIndex: 0 }}></div>
-                                                        <div className="z-1 bg-white border border-secondary border-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style={{ width: '24px', height: '24px' }}>
-                                                            <i className="bi bi-check-circle-fill text-success fs-5"></i>
-                                                        </div>
-                                                        <div>
-                                                            <div className="fw-bold text-dark small" style={{ fontSize: '0.9rem' }}>Request Submitted</div>
-                                                            <div className="text-muted" style={{ fontSize: '0.75rem' }}>{new Date(req.applied_at).toLocaleDateString('en-GB')}</div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Step 2: Status */}
-                                                    <div className="d-flex gap-3 position-relative">
-                                                        <div className="z-1 bg-white border border-secondary border-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style={{ width: '24px', height: '24px' }}>
-                                                            {isPending && <i className="bi bi-circle-fill text-warning fs-5"></i>}
-                                                            {isApproved && <i className="bi bi-check-circle-fill text-success fs-5"></i>}
-                                                            {isRejected && <i className="bi bi-x-circle-fill text-danger fs-5"></i>}
-                                                        </div>
-
-                                                        <div className="flex-grow-1">
-                                                            <div className={`fw-bold small ${isPending ? 'text-warning' : isApproved ? 'text-success' : 'text-danger'}`} style={{ fontSize: '0.9rem' }}>
-                                                                {isPending ? 'Pending HOD Approval' : isApproved ? 'Approved by HOD' : 'Rejected by HOD'}
-                                                            </div>
-                                                            {req.actioned_at && (
-                                                                <div className="text-muted" style={{ fontSize: '0.75rem' }}>{new Date(req.actioned_at).toLocaleDateString('en-GB')}</div>
-                                                            )}
-
-                                                            {/* Details Box */}
-                                                            <div className="mt-2 bg-light p-2 rounded-3 border border-light-subtle">
-                                                                <div className="mb-2">
-                                                                    <div className="d-flex gap-4">
-                                                                        <div>
-                                                                            <span className="d-block text-muted" style={{ fontSize: '0.7rem', textTransform: 'uppercase' }}>From</span>
-                                                                            <span className="fw-semibold text-dark small">{req.from_date}</span>
-                                                                        </div>
-                                                                        <div>
-                                                                            <span className="d-block text-muted" style={{ fontSize: '0.7rem', textTransform: 'uppercase' }}>To</span>
-                                                                            <span className="fw-semibold text-dark small">{req.to_date}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div>
-                                                                    <span className="d-block text-muted" style={{ fontSize: '0.7rem', textTransform: 'uppercase' }}>Reason</span>
-                                                                    <p className="mb-0 text-dark small fst-italic">"{req.reason}"</p>
-                                                                </div>
-                                                                {req.hod_remarks && (
-                                                                    <div className="mt-3 pt-2 border-top border-light-subtle text-danger small">
-                                                                        <span className="d-block text-muted mb-1" style={{ fontSize: '0.7rem', textTransform: 'uppercase' }}>HOD Remark</span>
-                                                                        <strong>{req.hod_remarks}</strong>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>

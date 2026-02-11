@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import ParentShell from '../../components/ParentShell'
 import { supabase } from '../../../supabaseClient'
 import { useParentAuth } from '../../store/parentAuth'
-import '../student/Student.css'
+
 import { resolveStudentCourseGroup } from '../../lib/resolveStudentCourseGroup'
 
 export default function ParentNotifications() {
@@ -66,7 +66,7 @@ export default function ParentNotifications() {
           const dateText = new Date(`${row.attendance_date}T00:00:00`).toLocaleDateString('en-GB')
           return {
             id: row.id,
-            title: 'Absent Notice',
+            title: 'Absent Notice :',
             text: `This notification is to inform you that your ${childLabel} was recorded as absent in the official attendance register for the school day on ${dateText}.`
           }
         })

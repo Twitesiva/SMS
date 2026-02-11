@@ -205,7 +205,7 @@ export default function Books() {
   }
 
   return (
-    <div className="desktop-container library-books-page" style={{ overflowX: 'hidden' }}>
+    <div className="desktop-container library-books-page">
 
       <div className="row g-4 justify-content-center mx-0">
         <div className="col-12">
@@ -423,7 +423,7 @@ export default function Books() {
                   const arrivedDateValue = book.arrival_date || book.created_at
                   const arrivedDateLabel = arrivedDateValue ? new Date(arrivedDateValue).toLocaleDateString('en-GB') : '-'
                   const statusLabel = book.status === 'PRIVATE' ? 'Private' : (count > 0 ? 'Available' : 'Out')
-                  const badgeClass = book.status === 'PRIVATE' 
+                  const badgeClass = book.status === 'PRIVATE'
                     ? 'library-status library-status--restricted'
                     : (count > 0 ? 'library-status library-status--available' : 'library-status library-status--out')
                   return (

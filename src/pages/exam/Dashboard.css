@@ -634,4 +634,21 @@
   .card-shadow {
     padding: 1.25rem;
   }
+
+  .dashboard-cards {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+
+  .dashboard-chart-row {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+
+  .dashboard-chart-row-full {
+    width: 100% !important;
+    display: block !important;
+  }
 }

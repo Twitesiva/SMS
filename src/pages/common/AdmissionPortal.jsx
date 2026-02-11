@@ -183,28 +183,40 @@ export default function AdmissionPortal() {
                 <span className="admission-portal__step-icon">
                   <i className="bi bi-person-plus"></i>
                 </span>
-                <span className="admission-portal__step-text">Register Yourself</span>
+                <div className="admission-portal__step-content">
+                  <span className="admission-portal__step-text">Register Yourself</span>
+                  <span className="admission-portal__step-desc">Create your account with basic details.</span>
+                </div>
               </li>
               <li className="admission-portal__step admission-portal__step--coral">
                 <span className="admission-portal__step-badge">02</span>
                 <span className="admission-portal__step-icon">
                   <i className="bi bi-pencil-square"></i>
                 </span>
-                <span className="admission-portal__step-text">Fill Application Form Online</span>
+                <div className="admission-portal__step-content">
+                  <span className="admission-portal__step-text">Fill Application Form</span>
+                  <span className="admission-portal__step-desc">Enter personal & academic info.</span>
+                </div>
               </li>
               <li className="admission-portal__step admission-portal__step--blue">
                 <span className="admission-portal__step-badge">03</span>
                 <span className="admission-portal__step-icon">
                   <i className="bi bi-upload"></i>
                 </span>
-                <span className="admission-portal__step-text">Upload Required Documents</span>
+                <div className="admission-portal__step-content">
+                  <span className="admission-portal__step-text">Upload Documents</span>
+                  <span className="admission-portal__step-desc">Scan & upload photo, marksheet.</span>
+                </div>
               </li>
               <li className="admission-portal__step admission-portal__step--teal">
                 <span className="admission-portal__step-badge">04</span>
                 <span className="admission-portal__step-icon">
                   <i className="bi bi-check2-circle"></i>
                 </span>
-                <span className="admission-portal__step-text">Submit Application</span>
+                <div className="admission-portal__step-content">
+                  <span className="admission-portal__step-text">Submit Application</span>
+                  <span className="admission-portal__step-desc">Review details and submit form.</span>
+                </div>
               </li>
             </ol>
           </div>

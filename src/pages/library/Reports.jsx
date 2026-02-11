@@ -446,8 +446,8 @@ export default function Reports() {
               summaryFilter === 'available'
                 ? copyInfo.available > 0
                 : summaryFilter === 'out'
-                ? copyInfo.available === 0
-                : true
+                  ? copyInfo.available === 0
+                  : true
           }
         })
         .filter((row) => row.availabilityFlag)
@@ -802,7 +802,7 @@ export default function Reports() {
   }
 
   return (
-    <div className="desktop-container" style={{ overflowX: 'hidden' }}>
+    <div className="desktop-container">
       <div className="row g-4 justify-content-center mx-0 mt-4">
         <div className="col-12 col-md-6 col-xl-3">
           <div className="card card-soft p-4 h-100">
@@ -1396,11 +1396,10 @@ export default function Reports() {
                                   <td>{item.category || '-'}</td>
                                   <td>{item.shelf_code || '-'}</td>
                                   <td>
-                                    <span className={`badge ${ 
-                                      item.status === 'INACTIVE' ? 'bg-secondary' :
-                                      item.status === 'ARCHIVED' ? 'bg-warning text-dark' :
-                                      'bg-success'
-                                    }`}> 
+                                    <span className={`badge ${item.status === 'INACTIVE' ? 'bg-secondary' :
+                                        item.status === 'ARCHIVED' ? 'bg-warning text-dark' :
+                                          'bg-success'
+                                      }`}>
                                       {item.status || 'ACTIVE'}
                                     </span>
                                   </td>
@@ -1442,12 +1441,11 @@ export default function Reports() {
                                   <td>{item.library_book_copies?.library_books?.author || '-'}</td>
                                   <td>{item.library_book_copies?.library_books?.shelf_code || '-'}</td>
                                   <td>
-                                    <span className={`badge ${ 
-                                      item.status === 'ISSUED' ? 'bg-warning text-dark' :
-                                      item.status === 'RETURNED' ? 'bg-success' :
-                                      item.status === 'DAMAGED' ? 'bg-warning text-dark' :
-                                      item.status === 'MISSING' ? 'bg-info text-white' : 'bg-secondary'
-                                    }`}> 
+                                    <span className={`badge ${item.status === 'ISSUED' ? 'bg-warning text-dark' :
+                                        item.status === 'RETURNED' ? 'bg-success' :
+                                          item.status === 'DAMAGED' ? 'bg-warning text-dark' :
+                                            item.status === 'MISSING' ? 'bg-info text-white' : 'bg-secondary'
+                                      }`}>
                                       {item.status}
                                     </span>
                                   </td>

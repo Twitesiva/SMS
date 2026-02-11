@@ -180,6 +180,30 @@
   min-height: 100vh;
   padding: clamp(2rem, 5vw, 3.5rem);
   background: linear-gradient(180deg, #f7f9fc 0%, #ffffff 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .admin-login-portal {
+    padding: 1rem;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .admin-login-portal__content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    width: 100%;
+    margin-top: 2rem;
+  }
+
+  .admin-login-card--portal {
+    width: 100%;
+    margin: 0;
+  }
 }
 
 .admin-login-portal__content {
@@ -424,4 +448,14 @@
   text-decoration: none;
   color: #1a73e8;
   font-weight: 600;
+}
+
+@media (max-width: 480px) {
+  .student-login {
+    padding: 1rem;
+  }
+
+  .student-login__card {
+    padding: 1.5rem;
+  }
 }

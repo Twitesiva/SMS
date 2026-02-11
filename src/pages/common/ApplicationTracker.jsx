@@ -207,6 +207,19 @@ export default function ApplicationTracker() {
                 .step-content {
                     position: relative;
                 }
+                @media (max-width: 576px) {
+                    .step-container {
+                        padding-left: 2.5rem;
+                    } 
+                    .step-line {
+                        left: 11px;
+                    }
+                    .step-icon {
+                        width: 24px;
+                        height: 24px;
+                        font-size: 0.8rem;
+                    }
+                }
             `}</style>
             <div className="admission-portal__header admission-portal__hero public-apply-hero">
                 <div className="public-apply-hero-brand">

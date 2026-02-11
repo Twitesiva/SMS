@@ -70,8 +70,8 @@ export default function ApplicationLogin() {
                 </div>
             </div>
 
-            <div className="container py-5 d-flex justify-content-center align-items-center" style={{ flexGrow: 1 }}>
-                <div className="card border-0 shadow-lg p-4" style={{ maxWidth: '450px', width: '100%', borderRadius: '16px' }}>
+            <div className="container py-3 py-md-5 d-flex justify-content-center align-items-center" style={{ flexGrow: 1 }}>
+                <div className="card border-0 shadow-lg p-3 p-md-4" style={{ maxWidth: '450px', width: '100%', borderRadius: '16px' }}>
                     <div className="text-center mb-4">
                         <h3 className="fw-bold text-primary">Application Tracker</h3>
                         <p className="text-muted">Login to track your application status</p>
@@ -114,7 +114,7 @@ export default function ApplicationLogin() {
                     </form>
 
                     <div className="text-center mt-3 border-top pt-3">
-                        <a href="/" className="text-decoration-none text-muted small">
+                        <a href="/admission" className="text-decoration-none text-muted small d-inline-block mt-2">
                             <i className="bi bi-arrow-left me-1"></i> Back to Admission Portal
                         </a>
                     </div>

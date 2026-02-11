@@ -152,7 +152,7 @@ export default function StaffShell({ children }) {
                             </div>
                         </div>
                         <button className="staff-header__logout" type="button" onClick={handleLogout}>
-                            <i className="bi bi-box-arrow-right"></i> Logout
+                            <i className="bi bi-box-arrow-right"></i> <span className="d-none d-sm-inline">Logout</span>
                         </button>
                     </div>
                 </header>

@@ -69,7 +69,7 @@ export default function History() {
 
       const issued = loans.filter(l => l.status === 'ISSUED')
       const returned = loans.filter(l => l.status === 'RETURNED' || l.status === 'MISSING' || l.status === 'DAMAGED') // Include other terminal statuses
-      
+
       const today = new Date().toISOString().slice(0, 10)
       const overdue = issued.filter(l => l.due_date && l.due_date < today)
 
@@ -122,7 +122,7 @@ export default function History() {
   }
 
   return (
-    <div className="desktop-container" style={{ overflowX: 'hidden' }}>
+    <div className="desktop-container">
       {/* Search Section */}
       <div className="row justify-content-center mb-4 mt-4">
         <div className="col-12 col-md-6">

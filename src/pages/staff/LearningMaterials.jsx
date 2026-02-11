@@ -5,7 +5,7 @@ import { supabase } from '../../../supabaseClient'
 import { useStaffAuth } from '../../store/staffAuth'
 import { showToast } from '../../store/ui'
 import './StaffPortal.css'
-import '../student/Student.css'
+
 
 export default function LearningMaterials() {
   const { staff } = useStaffAuth()
@@ -413,9 +413,7 @@ export default function LearningMaterials() {
             Assigned Subjects
           </div>
           <div className="student-card__body">
-            <p className="students-section-copy mb-4">
-              View uploaded resources for your courses.
-            </p>
+
 
             {/* ASSIGNED SUBJECTS LIST */}
             <div className="mb-4">

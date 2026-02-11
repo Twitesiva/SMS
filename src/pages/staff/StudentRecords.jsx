@@ -52,12 +52,12 @@ export default function StudentRecords() {
     const fetchGroups = async () => {
         let data = []
         let error = null
-        ;({ data, error } = await supabase.from('groups').select('group_id, group_name, group_code'))
+            ; ({ data, error } = await supabase.from('groups').select('group_id, group_name, group_code'))
         if (error) {
-            ;({ data, error } = await supabase.from('groups').select('group_id, group_name'))
+            ; ({ data, error } = await supabase.from('groups').select('group_id, group_name'))
         }
         if (error) {
-            ;({ data } = await supabase.from('groups').select('group_name'))
+            ; ({ data } = await supabase.from('groups').select('group_name'))
         }
 
         setGroups(data || [])
@@ -67,21 +67,21 @@ export default function StudentRecords() {
         setLoading(true)
         let data = []
         let error = null
-        ;({ data, error } = await supabase
-            .from('courses')
-            .select('course_id, course_code, course_name, group_id, group_name'))
+            ; ({ data, error } = await supabase
+                .from('courses')
+                .select('course_id, course_code, course_name, group_id, group_name'))
         if (error) {
-            ;({ data, error } = await supabase
+            ; ({ data, error } = await supabase
                 .from('courses')
                 .select('course_id, course_code, course_name, group_name'))
         }
         if (error) {
-            ;({ data, error } = await supabase
+            ; ({ data, error } = await supabase
                 .from('courses')
                 .select('course_id, course_code, course_name, group_id'))
         }
         if (error) {
-            ;({ data } = await supabase
+            ; ({ data } = await supabase
                 .from('courses')
                 .select('course_id, course_code, course_name'))
         }
@@ -116,21 +116,21 @@ export default function StudentRecords() {
                 let subjectError = null
 
                 if (selectedGroup?.group_id) {
-                    ;({ data: subjectRows, error: subjectError } = await supabase
+                    ; ({ data: subjectRows, error: subjectError } = await supabase
                         .from('subjects')
                         .select('course_name')
                         .eq('group_id', selectedGroup.group_id))
                 }
 
                 if ((subjectError || !subjectRows?.length) && selectedGroup?.group_name) {
-                    ;({ data: subjectRows, error: subjectError } = await supabase
+                    ; ({ data: subjectRows, error: subjectError } = await supabase
                         .from('subjects')
                         .select('course_name')
                         .eq('group_name', selectedGroup.group_name))
                 }
 
                 if ((subjectError || !subjectRows?.length) && selectedGroup?.group_code) {
-                    ;({ data: subjectRows, error: subjectError } = await supabase
+                    ; ({ data: subjectRows, error: subjectError } = await supabase
                         .from('subjects')
                         .select('course_name')
                         .eq('group_name', selectedGroup.group_code))
@@ -418,13 +418,13 @@ export default function StudentRecords() {
                                 <table className="table table-bordered mb-0">
                                     <thead>
                                         <tr>
-                                            <th className="text-center" style={{ width: '60px' }}>S.No</th>
-                                            <th className="text-center" style={{ minWidth: '120px' }}>Student ID</th>
-                                            <th className="text-center" style={{ minWidth: '140px' }}>Hall Ticket</th>
-                                            <th className="records-header--name" style={{ minWidth: '240px' }}>Full Name</th>
-                                            <th style={{ minWidth: '100px' }}>Gender</th>
-                                            <th style={{ minWidth: '120px' }}>DOB</th>
-                                            <th style={{ minWidth: '150px' }}>Parent No</th>
+                                            <th className="text-center">S.No</th>
+                                            <th className="text-center">Student ID</th>
+                                            <th className="text-center">Hall Ticket</th>
+                                            <th className="records-header--name">Full Name</th>
+                                            <th>Gender</th>
+                                            <th>DOB</th>
+                                            <th>Parent No</th>
                                         </tr>
                                     </thead>
                                     <tbody>

@@ -886,11 +886,11 @@
   text-align: left;
 }
 
-.library-insights-stats > [class^="col-"] {
+.library-insights-stats>[class^="col-"] {
   display: flex;
 }
 
-.library-insights-stats > [class^="col-"] > .library-insights-stat {
+.library-insights-stats>[class^="col-"]>.library-insights-stat {
   width: 100%;
 }
 
@@ -944,7 +944,7 @@
   white-space: nowrap;
 }
 
-.activity-table th + th {
+.activity-table th+th {
   padding-left: 1.5rem;
 }
 
@@ -1190,7 +1190,351 @@
   0% {
     background-position: 200% 0;
   }
+
   100% {
     background-position: -200% 0;
+  }
+}
+
+/* Library Books Page Styles */
+.library-books-page {
+  display: grid;
+  gap: 1.5rem;
+  padding: 1rem;
+}
+
+.library-books-form-card {
+  border-radius: 24px;
+  padding: 1.5rem;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(235, 241, 247, 0.95));
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 28px 55px rgba(15, 23, 42, 0.1);
+}
+
+.library-books-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.library-books-table-card {
+  border-radius: 24px;
+  padding: 1.5rem;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 28px 55px rgba(15, 23, 42, 0.1);
+  margin-top: 1.5rem;
+}
+
+.library-books-table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.2rem;
+  flex-wrap: wrap;
+}
+
+.library-books-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.library-books-table thead th {
+  background: rgba(15, 23, 42, 0.05);
+  color: #0f2a3f;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+.library-books-table tbody td {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  vertical-align: middle;
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .library-books-page {
+    padding: 0.5rem;
+    gap: 1rem;
+  }
+
+  .library-books-form-card {
+    padding: 1rem;
+    border-radius: 16px;
+  }
+
+  .library-books-form-header {
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 1rem;
+  }
+
+  .library-books-form-header button {
+    width: 100%;
+  }
+
+  .library-books-table-card {
+    padding: 1rem;
+    border-radius: 16px;
+    margin-top: 1rem;
+    overflow: hidden;
+  }
+
+  .library-books-table-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .library-books-table-header .btn {
+    width: 100%;
+    white-space: nowrap;
+  }
+
+  /* Make table scrollable on mobile */
+  .library-books-table-card .table-responsive {
+    margin: 0 -1rem;
+    padding: 0 1rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .library-books-table {
+    min-width: 600px;
+  }
+
+  .library-books-table thead th,
+  .library-books-table tbody td {
+    padding: 0.65rem 0.75rem;
+    font-size: 0.9rem;
+    white-space: nowrap;
+  }
+
+  .library-books-table thead th {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .library-books-page {
+    padding: 0;
+  }
+
+  .library-books-form-card,
+  .library-books-table-card {
+    border-radius: 12px;
+    padding: 0.75rem;
+  }
+
+  .library-books-form-header h4 {
+    font-size: 1.1rem;
+  }
+
+  .library-books-form-header p {
+    font-size: 0.85rem;
+  }
+
+  .library-books-table-header h5 {
+    font-size: 1rem;
+  }
+
+  .library-books-table-header p {
+    font-size: 0.8rem;
+  }
+
+  .library-books-table-card .table-responsive {
+    margin: 0 -0.75rem;
+    padding: 0 0.75rem;
+  }
+
+  .library-books-table {
+    min-width: 550px;
+  }
+
+  .library-books-table thead th,
+  .library-books-table tbody td {
+    padding: 0.5rem 0.6rem;
+    font-size: 0.85rem;
+  }
+
+  .library-books-table thead th {
+    font-size: 0.65rem;
+  }
+
+  /* Stack form buttons vertically on very small screens */
+  .library-books-form-card .col-12.d-flex {
+    flex-direction: column;
+  }
+
+  .library-books-form-card .col-12.d-flex .btn {
+    width: 100%;
+  }
+}
+
+/* General Mobile Responsive Styles for All Library Pages */
+@media (max-width: 768px) {
+
+  /* Ensure all tables are scrollable on mobile */
+  .desktop-container .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -1rem;
+    padding: 0 1rem;
+  }
+
+  /* Card adjustments */
+  .card-soft {
+    padding: 1rem !important;
+  }
+
+  /* Dashboard panels */
+  .library-dashboard-panel {
+    padding: 1rem;
+  }
+
+  /* All library page containers */
+  .library-catalogue-page,
+  .library-insights-page,
+  .library-dashboard-page {
+    gap: 1rem;
+  }
+
+  /* Stats grids */
+  .library-catalogue-stats,
+  .library-insights-stats {
+    gap: 0.75rem !important;
+  }
+
+  /* Toolbar adjustments */
+  .library-catalogue-toolbar {
+    padding: 1rem;
+  }
+
+  .library-catalogue-toolbar__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .library-catalogue-search {
+    min-width: 100%;
+  }
+
+  /* Hero sections */
+  .library-catalogue-hero,
+  .library-insights-hero {
+    padding: 1.25rem;
+    border-radius: 18px;
+  }
+
+  /* Table headers and content */
+  .library-dashboard-table thead th,
+  .library-dashboard-table tbody td {
+    padding: 0.65rem 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  /* Panel headers */
+  .library-dashboard-panel__header,
+  .library-insights-panel__header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .library-dashboard-panel__header .btn,
+  .library-insights-panel__header .btn {
+    width: 100%;
+  }
+
+  /* Ensure tables don't break layout */
+  .table {
+    min-width: 500px;
+  }
+
+  /* Button groups should stack */
+  .btn-group {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .btn-group .btn {
+    width: 100%;
+    border-radius: 0.5rem !important;
+    margin-bottom: 0.25rem;
+  }
+}
+
+@media (max-width: 576px) {
+
+  /* Extra small screens */
+  .desktop-container {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .desktop-container .table-responsive {
+    margin: 0 -0.75rem;
+    padding: 0 0.75rem;
+  }
+
+  .card-soft {
+    padding: 0.75rem !important;
+    border-radius: 12px !important;
+  }
+
+  .library-catalogue-hero,
+  .library-insights-hero {
+    padding: 1rem;
+    border-radius: 12px;
+  }
+
+  .library-dashboard-panel {
+    padding: 0.75rem;
+    border-radius: 16px;
+  }
+
+  /* Reduce font sizes */
+  .library-catalogue-hero__title,
+  .library-insights-hero__title {
+    font-size: 1.5rem !important;
+  }
+
+  .library-dashboard-table thead th,
+  .library-dashboard-table tbody td,
+  .table thead th,
+  .table tbody td {
+    padding: 0.5rem 0.6rem;
+    font-size: 0.85rem;
+  }
+
+  .table thead th {
+    font-size: 0.7rem;
+  }
+
+  /* Smaller stat cards */
+  .library-catalogue-stat,
+  .library-insights-stat {
+    padding: 1rem;
+  }
+
+  .library-catalogue-stat__value,
+  .library-insights-stat__value {
+    font-size: 1.5rem;
+  }
+
+  /* Hero crest */
+  .library-catalogue-hero__crest,
+  .library-insights-hero__crest {
+    width: 48px;
+    height: 48px;
   }
 }

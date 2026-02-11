@@ -304,8 +304,8 @@
   }
 
   .home-hero__control--panel {
-    padding-right: clamp(1.25rem, 3vw, 2rem);
-    overflow: hidden;
+    padding-right: 1.5rem;
+    overflow: visible;
   }
 
   .home-hero__control--panel .home-hero__control-badge {
@@ -526,6 +526,7 @@
 }
 
 @media (max-width: 768px) {
+
   .home-hero--modern .home-hero__actions,
   .home-hero--modern .home-hero__stats,
   .home-hero--modern .home-hero__stats--stacked {
@@ -553,14 +554,19 @@
   }
 
   .home-back-btn {
-    top: 1rem !important;
-    left: 1rem !important;
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    margin: 1rem 0 0 1rem;
+    display: inline-flex !important;
+    width: fit-content;
     padding: 0.6rem 1rem !important;
     font-size: 0.85rem;
   }
 }
 
 @media (max-width: 480px) {
+
   .home-hero__primary,
   .home-hero__control {
     padding: 1.5rem;
@@ -575,6 +581,18 @@
 
   .home-hero__stat-value {
     font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .home-hero__title {
+    font-size: 2rem;
+  }
+
+  .home-hero__control-badge {
+    width: 100px !important;
+    height: 100px !important;
+    right: -20px;
   }
 }
 

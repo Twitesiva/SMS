@@ -85,6 +85,7 @@
     font-size: 3rem;
     font-weight: 800;
     background: linear-gradient(135deg, #2b32b2 0%, #1488cc 100%);
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin: 0;
@@ -278,6 +279,16 @@
         font-size: 0.95rem;
         padding: 0.9rem 1.6rem;
         letter-spacing: 1px;
+    }
+}
+
+@media (max-width: 380px) {
+    .intro-title {
+        font-size: 1.35rem;
+    }
+
+    .glass-panel {
+        padding: 1.5rem 1rem;
     }
 }
 

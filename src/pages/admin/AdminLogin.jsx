@@ -51,7 +51,7 @@ export default function AdminLogin() {
             <div className="admission-portal__brand-sub">Admin Access</div>
           </div>
         </div>
-        <Link to="/roles" className="admission-portal__back" style={{ position: 'fixed', top: '18px', right: '24px', zIndex: 1000 }}>
+        <Link to="/roles" className="admission-portal__back">
           <i className="bi bi-arrow-left"></i> Back to Roles
         </Link>
       </div>

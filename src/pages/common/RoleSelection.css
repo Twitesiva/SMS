@@ -227,6 +227,7 @@
 @media (max-width: 576px) {
     .role-selection-container {
         padding: 1.25rem;
+        flex-direction: column;
     }
 
     .role-title {
@@ -258,6 +259,19 @@
     .role-description {
         font-size: 1rem;
     }
+
+    .role-back-btn {
+        position: relative;
+        top: 0;
+        left: 0;
+        margin-bottom: 1rem;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .role-content {
+        padding-top: 0;
+    }
 }
 
 @media (max-width: 420px) {
@@ -288,15 +302,50 @@
 }
 
 /* Professional Icon Colors */
-.role-card.admission-card .role-icon-wrapper { color: #2b6cb0; background: #ebf8ff; }
-.role-card.admin .role-icon-wrapper { color: #c53030; background: #fff5f5; }
-.role-card.staff .role-icon-wrapper { color: #2f855a; background: #f0fff4; }
-.role-card.exam-portal .role-icon-wrapper { color: #744210; background: #fffff0; }
-.role-card.student .role-icon-wrapper { color: #2c5282; background: #ebf8ff; }
-.role-card.library .role-icon-wrapper { color: #553c9a; background: #faf5ff; }
-.role-card.parent .role-icon-wrapper { color: #805ad5; background: #faf5ff; }
-.role-card.hostel .role-icon-wrapper { color: #9c4221; background: #fffaf0; }
-.role-card.transport .role-icon-wrapper { color: #285e61; background: #e6fffa; }
+.role-card.admission-card .role-icon-wrapper {
+    color: #2b6cb0;
+    background: #ebf8ff;
+}
+
+.role-card.admin .role-icon-wrapper {
+    color: #c53030;
+    background: #fff5f5;
+}
+
+.role-card.staff .role-icon-wrapper {
+    color: #2f855a;
+    background: #f0fff4;
+}
+
+.role-card.exam-portal .role-icon-wrapper {
+    color: #744210;
+    background: #fffff0;
+}
+
+.role-card.student .role-icon-wrapper {
+    color: #2c5282;
+    background: #ebf8ff;
+}
+
+.role-card.library .role-icon-wrapper {
+    color: #553c9a;
+    background: #faf5ff;
+}
+
+.role-card.parent .role-icon-wrapper {
+    color: #805ad5;
+    background: #faf5ff;
+}
+
+.role-card.hostel .role-icon-wrapper {
+    color: #9c4221;
+    background: #fffaf0;
+}
+
+.role-card.transport .role-icon-wrapper {
+    color: #285e61;
+    background: #e6fffa;
+}
 
 /* Simplified Hover states - keep the distinct color or go solid */
 .role-card:hover .role-icon-wrapper {

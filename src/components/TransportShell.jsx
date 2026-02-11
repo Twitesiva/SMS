@@ -167,7 +167,7 @@ export default function TransportShell({ children, brandTitle = "TRANSPORT PORTA
           </div>
 
           <div className="transport-header__right">
-            <div className="d-flex align-items-center gap-3 me-3 text-white border-end pe-3">
+            <div className="d-none d-md-flex align-items-center gap-3 me-3 text-white border-end pe-3">
               {/* Notification Bell */}
               <Link to="/transport/notifications" className="position-relative me-3 text-white">
                 <i className="bi bi-bell fs-5"></i>
@@ -185,7 +185,7 @@ export default function TransportShell({ children, brandTitle = "TRANSPORT PORTA
               </div>
             </div>
             <button className="transport-header__logout" type="button" onClick={handleLogout}>
-              <i className="bi bi-box-arrow-right"></i> Logout
+              <i className="bi bi-box-arrow-right"></i> <span className="d-none d-sm-inline">Logout</span>
             </button>
           </div>
         </header>
@@ -199,4 +199,3 @@ export default function TransportShell({ children, brandTitle = "TRANSPORT PORTA
     </div>
   )
 }
-

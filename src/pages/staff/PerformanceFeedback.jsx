@@ -1,7 +1,7 @@
 import React from 'react'
 import StaffShell from '../../components/StaffShell'
 import './StaffPortal.css'
-import '../student/Student.css'
+
 
 export default function PerformanceFeedback() {
     return (

@@ -340,4 +340,85 @@
   .transport-sidebar__toggle {
     display: none;
   }
+
+  .transport-header__portal {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    width: auto;
+    white-space: nowrap;
+    font-size: 1rem;
+    margin: 0;
+  }
+
+  .transport-header {
+    position: relative;
+    justify-content: space-between;
+  }
+
+  /* Override brandbar mobile styles for transport portal with maximum specificity */
+  .admin-shell.transport-shell .brandbar,
+  .transport-shell main .brandbar,
+  .transport-portal .brandbar {
+    position: relative !important;
+    padding: 0.7rem 1rem !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 0 !important;
+  }
+
+  .admin-shell.transport-shell .brandbar-title,
+  .transport-shell main .brandbar-title,
+  .transport-portal .brandbar-title {
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    text-align: center !important;
+    width: auto !important;
+    white-space: nowrap !important;
+    font-size: 1rem !important;
+    margin: 0 !important;
+  }
+
+  .admin-shell.transport-shell .modern-signout,
+  .transport-shell main .modern-signout,
+  .transport-portal .modern-signout {
+    margin-left: auto !important;
+    min-width: auto !important;
+    width: auto !important;
+    padding: 0.45rem 0.7rem !important;
+    border-radius: 0.5rem !important;
+  }
+
+  .admin-shell.transport-shell .modern-signout .bi,
+  .transport-shell main .modern-signout .bi,
+  .transport-portal .modern-signout .bi {
+    margin-right: 0 !important;
+    font-size: 1.1rem !important;
+  }
+
+
+}
+
+@media (max-width: 576px) {
+
+  /* Specific fix for TransportShell.jsx (dashboard) logout button on mobile */
+  .transport-header__logout {
+    padding: 0.5rem !important;
+    border-radius: 50% !important;
+    width: 36px !important;
+    height: 36px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: auto !important;
+  }
+
+  .transport-header__logout .bi {
+    margin-right: 0 !important;
+    font-size: 1.1rem;
+  }
 }

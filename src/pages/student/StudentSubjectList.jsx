@@ -506,44 +506,46 @@ export default function StudentSubjectList() {
                           </div>
                         </div>
                         <div className="student-subjects-accordion__panel">
-                          <table className="student-subjects-accordion__table">
-                            <thead>
-                              <tr>
-                                <th>Serial No</th>
-                                <th>Sub category</th>
-                                <th>Subject name</th>
-                                <th className="text-end">Materials</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {rows.map((row) => (
-                                <tr key={row.key}>
-                                  <td>{row.index}</td>
-                                  <td>{row.category}</td>
-                                  <td>{row.subjectName}</td>
-                                  <td className="text-end">
-                                    {materialSubjectSet.has(String(row.subjectName || '').toLowerCase()) ? (
-                                      <button
-                                        type="button"
-                                        className="btn btn-sm btn-primary fw-bold"
-                                        onClick={() =>
-                                          handleOpenFile(
-                                            materialUrlBySubject.get(
-                                              String(row.subjectName || '').toLowerCase()
-                                            )
-                                          )
-                                        }
-                                      >
-                                        View
-                                      </button>
-                                    ) : (
-                                      <span className="student-subjects-accordion__muted">No materials</span>
-                                    )}
-                                  </td>
+                          <div className="table-responsive">
+                            <table className="student-subjects-accordion__table">
+                              <thead>
+                                <tr>
+                                  <th>Serial No</th>
+                                  <th>Sub category</th>
+                                  <th>Subject name</th>
+                                  <th className="text-end">Materials</th>
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                              </thead>
+                              <tbody>
+                                {rows.map((row) => (
+                                  <tr key={row.key}>
+                                    <td>{row.index}</td>
+                                    <td>{row.category}</td>
+                                    <td>{row.subjectName}</td>
+                                    <td className="text-end">
+                                      {materialSubjectSet.has(String(row.subjectName || '').toLowerCase()) ? (
+                                        <button
+                                          type="button"
+                                          className="btn btn-sm btn-primary fw-bold"
+                                          onClick={() =>
+                                            handleOpenFile(
+                                              materialUrlBySubject.get(
+                                                String(row.subjectName || '').toLowerCase()
+                                              )
+                                            )
+                                          }
+                                        >
+                                          View
+                                        </button>
+                                      ) : (
+                                        <span className="student-subjects-accordion__muted">No materials</span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
                       </div>
                     )

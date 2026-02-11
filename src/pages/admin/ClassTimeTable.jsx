@@ -660,18 +660,25 @@ export default function ClassTimeTable() {
       footerSubtitle="Crafted for Vijayam College"
     >
       <style>{`
-        .tt-wrapper { border: 2px solid #1f2937; }
-        table.tt-table { border-collapse: collapse; width: 100%; table-layout: auto; }
-        .tt-table th, .tt-table td { border: 1px solid #1f2937; padding: 8px; vertical-align: middle; }
+        .tt-wrapper { border: 2px solid #1f2937; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table.tt-table { border-collapse: collapse; width: 100%; min-width: 800px; table-layout: fixed; }
+        .tt-table th, .tt-table td { border: 1px solid #1f2937; padding: 8px; vertical-align: middle; word-wrap: break-word; }
         thead th { white-space: normal; text-align: center; }
         .tt-head-title { display: block; font-size: 0.8rem; font-weight: 600; }
         .tt-head-time { display: block; font-size: 0.7rem; color: #6b7280; margin-top: 4px; }
-        .tt-day { background: #f8fafc; fontWeight: 600; width: 130px; }
+        .tt-day { background: #f8fafc; fontWeight: 600; width: 100px; }
         .tt-period { width: auto; }
         .tt-select { width: 100%; min-height: 38px; height: auto; padding: 6px 12px; font-size: 0.9rem; line-height: 1.2; white-space: normal; overflow: visible; }
-        .tt-break, .tt-lunch { width: 34px; min-width: 34px; padding: 0; text-align: center; font-weight: 800; vertical-align: middle; font-size: 0.85rem; }
+        .tt-break, .tt-lunch { width: 40px; min-width: 40px; padding: 0; text-align: center; font-weight: 800; vertical-align: middle; font-size: 0.85rem; }
         .tt-break { background: #fff3cd; color: #92400e; }
         .tt-lunch { background: #dbeafe; color: #1e3a8a; }
+
+        @media (max-width: 576px) {
+          .modal-body { padding: 0.75rem !important; }
+          .tt-select { font-size: 0.8rem; padding: 4px 8px; }
+          .tt-head-title { font-size: 0.7rem; }
+          .tt-head-time { font-size: 0.6rem; }
+        }
       `}</style>
 
       <div className="desktop-container" style={{ overflowX: 'hidden' }}>

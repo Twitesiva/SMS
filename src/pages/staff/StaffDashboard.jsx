@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import StaffShell from '../../components/StaffShell'
 import { useStaffAuth } from '../../store/staffAuth'
 import { supabase } from '../../../supabaseClient'
-import '../student/Student.css'
 import './StaffPortal.css'
 
 const buildProfileRows = (staff) => [
@@ -168,42 +167,44 @@ export default function StaffDashboard() {
                             </div>
 
                             <div className="student-card__body records-page p-0">
-                                <table className="table mb-0">
-                                    <thead>
-                                        <tr>
-                                            <th className="text-center" style={{ width: '60px' }}>S.NO</th>
-                                            <th>COURSE</th>
-                                            <th>GROUP</th>
-                                            <th>SUBJECT</th>
-                                            <th>SEMESTER</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {assignments.length === 0 ? (
+                                <div className="table-responsive">
+                                    <table className="table mb-0">
+                                        <thead>
                                             <tr>
-                                                <td
-                                                    colSpan="5"
-                                                    className="text-center text-muted py-4"
-                                                >
-                                                    No course and group details found
-                                                </td>
+                                                <th className="text-center" style={{ width: '60px' }}>S.NO</th>
+                                                <th>COURSE</th>
+                                                <th>GROUP</th>
+                                                <th>SUBJECT</th>
+                                                <th>SEMESTER</th>
                                             </tr>
-                                        ) : (
-                                            assignments.map((row, index) => (
-                                                <tr key={index}>
-                                                    <td className="text-center">{index + 1}</td>
-                                                    <td>{row.courses?.course_name}</td>
-                                                    <td>{row.groups?.group_name}</td>
-                                                    <td>
-                                                        {row.subjects?.subject_code} –{' '}
-                                                        {row.subjects?.subject_name}
+                                        </thead>
+                                        <tbody>
+                                            {assignments.length === 0 ? (
+                                                <tr>
+                                                    <td
+                                                        colSpan="5"
+                                                        className="text-center text-muted py-4"
+                                                    >
+                                                        No course and group details found
                                                     </td>
-                                                    <td>Semester {row.semester}</td>
                                                 </tr>
-                                            ))
-                                        )}
-                                    </tbody>
-                                </table>
+                                            ) : (
+                                                assignments.map((row, index) => (
+                                                    <tr key={index}>
+                                                        <td className="text-center">{index + 1}</td>
+                                                        <td>{row.courses?.course_name}</td>
+                                                        <td>{row.groups?.group_name}</td>
+                                                        <td>
+                                                            {row.subjects?.subject_code} –{' '}
+                                                            {row.subjects?.subject_name}
+                                                        </td>
+                                                        <td>Semester {row.semester}</td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </>

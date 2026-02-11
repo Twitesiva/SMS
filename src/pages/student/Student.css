@@ -148,6 +148,21 @@
   gap: 1.5rem;
 }
 
+@media (max-width: 992px) {
+  .student-dashboard__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .student-card__body {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .student-card__body .table {
+    min-width: 600px;
+  }
+}
+
 .student-card {
   background: #ffffff;
   border: 1px solid #e1e8f5;
@@ -394,6 +409,9 @@
 .student-loader__spinner {
   width: 44px;
   height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
   border-radius: 50%;
   border: 3px solid rgba(59, 130, 246, 0.25);
   border-top-color: #1d4ed8;
@@ -1326,6 +1344,7 @@
   width: 100%;
   border-collapse: separate;
   border-spacing: 0 0.6rem;
+  min-width: 600px;
 }
 
 .student-subjects-accordion__table thead th {
@@ -2239,4 +2258,183 @@
   background: rgba(239, 68, 68, 0.15);
   color: #b91c1c;
   border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+/* Mobile Responsiveness Fixes */
+
+@media (max-width: 768px) {
+
+  /* Stack Profile Rows and Detail Rows */
+  .student-profile__row,
+  .student-detail-row {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+    padding: 1rem 0;
+  }
+
+  /* Hide colons in stacked view */
+  .student-profile__colon,
+  .student-detail-colon,
+  .student-profile-colon {
+    display: none;
+  }
+
+  /* Adjust Label Styles for stacked view */
+  .student-profile__label,
+  .student-detail-label,
+  .student-profile-label {
+    color: #64748b;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+  }
+
+  /* Adjust Value Styles */
+  .student-profile__value,
+  .student-detail-value,
+  .student-profile-value {
+    font-size: 1.05rem;
+    padding-left: 0;
+    color: #0f172a;
+    font-weight: 600;
+  }
+
+  /* Student Dashboard Grid */
+  .student-dashboard__grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  /* Circulars Card Header */
+  .student-circulars__card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .student-circulars__card-title-wrap {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  /* Materials Card Header */
+  .student-materials__card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .student-materials__card-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+
+  /* Payment Tables */
+  /* Payment Tables */
+  /* Headers kept visible for horizontal scroll context */
+
+  /* Make Payment Card Stack */
+  .student-payments-summary {
+    grid-template-columns: 1fr;
+  }
+
+  /* Circulars adjustments for mobile utility usage */
+  .student-card__header.d-flex {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  /* Parent Marks Hero */
+  .parent-marks__hero {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .parent-marks__status {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  /* General Padding Reductions */
+  .student-card__body {
+    padding: 1rem;
+  }
+
+  .student-shell__main {
+    padding: 1rem;
+  }
+
+  /* Stack flex containers on mobile generally if needed */
+  .d-flex.flex-wrap {
+    gap: 0.5rem;
+  }
+}
+
+/* Specific Fix for Student Dashboard Profile Rows in JS */
+.student-profile-row-item {
+  display: flex;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #eef2f7;
+  gap: 1rem;
+}
+
+.student-profile-label {
+  width: 160px;
+  font-weight: 700;
+  color: #6c757d;
+  /* text-secondary */
+}
+
+.student-profile-colon {
+  margin-right: 1rem;
+}
+
+.student-profile-value {
+  font-weight: 600;
+  color: #212529;
+  /* text-dark */
+  flex: 1;
+}
+
+@media (max-width: 576px) {
+  .student-profile-row-item {
+    flex-direction: column;
+    gap: 0.25rem;
+    align-items: flex-start;
+  }
+
+  .student-profile-label {
+    width: auto;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .student-profile-colon {
+    display: none;
+  }
+
+  .student-profile-value {
+    font-size: 1rem;
+  }
+
+  .student-avatar {
+    width: 140px;
+    height: 168px;
+  }
+}
+
+/* Avatar on Dashboard */
+.student-avatar-dashboard {
+  width: 180px;
+  height: 180px;
+}
+
+@media (max-width: 576px) {
+  .student-avatar-dashboard {
+    width: 120px;
+    height: 120px;
+  }
 }

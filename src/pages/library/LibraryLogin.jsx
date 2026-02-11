@@ -51,7 +51,7 @@ export default function LibraryLogin() {
             <div className="admission-portal__brand-sub">Library Services</div>
           </div>
         </div>
-        <Link to="/roles" className="admission-portal__back" style={{ position: 'fixed', top: '18px', right: '24px', zIndex: 1000 }}>
+        <Link to="/roles" className="admission-portal__back">
           <i className="bi bi-arrow-left"></i> Back to Roles
         </Link>
       </div>

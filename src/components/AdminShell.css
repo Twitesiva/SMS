@@ -760,22 +760,62 @@
     padding: 0.75rem !important;
   }
 
-  .brandbar {
+  /* Generic brandbar for other portals */
+  .brandbar:not(.transport-shell .brandbar):not(.transport-portal .brandbar) {
     padding: 0.75rem !important;
     flex-direction: column;
     gap: 0.75rem;
     align-items: flex-start !important;
   }
 
-  .brandbar-title {
+  .brandbar-title:not(.transport-shell .brandbar-title):not(.transport-portal .brandbar-title) {
     font-size: 1.1rem;
   }
 
-  .modern-signout {
+  .modern-signout:not(.transport-shell .modern-signout):not(.transport-portal .modern-signout) {
     width: 100%;
     justify-content: center;
   }
+
+  /* Transport Portal specific mobile styles */
+  .transport-shell .brandbar,
+  .transport-portal .brandbar {
+    position: relative !important;
+    padding: 0.7rem 1rem !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 0 !important;
+  }
+
+  .transport-shell .brandbar-title,
+  .transport-portal .brandbar-title {
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    text-align: center !important;
+    width: auto !important;
+    white-space: nowrap !important;
+    font-size: 1rem !important;
+    margin: 0 !important;
+  }
+
+  .transport-shell .modern-signout,
+  .transport-portal .modern-signout {
+    margin-left: auto !important;
+    min-width: auto !important;
+    width: auto !important;
+    padding: 0.45rem 0.7rem !important;
+    border-radius: 0.5rem !important;
+  }
+
+  .transport-shell .modern-signout .bi,
+  .transport-portal .modern-signout .bi {
+    margin-right: 0 !important;
+    font-size: 1.1rem !important;
+  }
 }
+
 
 .brandbar {
   background: #ffffff;

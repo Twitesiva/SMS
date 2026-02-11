@@ -13,7 +13,30 @@
   flex-direction: column;
   gap: 2.5rem;
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  /* Prevent horizontal scroll on body */
+  overflow-y: auto;
+  /* Ensure vertical scroll is allowed */
+}
+
+@media (max-width: 576px) {
+  .admission-portal__steps-heading {
+    font-size: 1.35rem;
+    /* Smaller heading on mobile */
+  }
+
+  .admission-portal__steps-eyebrow {
+    font-size: 0.8rem;
+  }
+
+  .admission-portal__steps-text {
+    padding: 1.25rem;
+    /* Reduce padding */
+  }
+
+  .admission-portal__step-text {
+    font-size: 0.95rem;
+  }
 }
 
 .admission-portal::before,
@@ -227,9 +250,9 @@
 
 .admission-portal__steps {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  grid-template-columns: 1fr 1fr;
   gap: 1.75rem;
-  align-items: start;
+  align-items: stretch;
   margin-top: 0.5rem;
 }
 
@@ -241,6 +264,9 @@
   border: 1px solid #e3e8f3;
   padding: 1.6rem;
   box-shadow: 0 16px 32px rgba(35, 45, 72, 0.08);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .admission-portal__steps-eyebrow {
@@ -334,6 +360,9 @@
   border: 1px solid #e3e8f3;
   padding: 1.4rem;
   box-shadow: 0 16px 32px rgba(35, 45, 72, 0.08);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .admission-portal__steps-card-title {
@@ -363,7 +392,7 @@
   gap: 0.7rem;
   padding: 0.6rem 0.9rem 0.6rem 0.6rem;
   background: #ffffff;
-  border-radius: 999px;
+  border-radius: 24px;
   border: 1px solid #e3e8f3;
 }
 
@@ -371,9 +400,9 @@
   content: "";
   position: absolute;
   left: 46px;
-  bottom: -14px;
+  bottom: -15px;
   width: 2px;
-  height: 14px;
+  height: 15px;
   background: #d7deeb;
 }
 
@@ -399,10 +428,23 @@
   font-size: 1.05rem;
 }
 
+.admission-portal__step-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
 .admission-portal__step-text {
   font-size: 1rem;
-  font-weight: 600;
-  color: #3c475a;
+  font-weight: 700;
+  color: #1f2a44;
+  line-height: 1.25;
+}
+
+.admission-portal__step-desc {
+  font-size: 0.85rem;
+  color: #64748b;
+  line-height: 1.35;
 }
 
 .admission-portal__step--green .admission-portal__step-icon {
@@ -437,7 +479,8 @@
   box-shadow: 0 18px 34px rgba(35, 45, 72, 0.08);
   padding: 0;
   overflow-x: auto;
-  overflow: hidden;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .admission-portal__table-title {
@@ -551,6 +594,7 @@
   0% {
     background-position: 200% 0;
   }
+
   100% {
     background-position: -200% 0;
   }
@@ -659,18 +703,173 @@
   }
 
   .admission-portal__steps-card {
-    max-width: 420px;
-    margin: 0 auto;
+    max-width: 100%;
+    margin: 0;
+  }
+}
+
+@media (max-width: 576px) {
+  .admission-portal__header {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 1rem;
+    text-align: center;
+    margin-bottom: 1.5rem;
   }
 
-  .admission-portal__header {
+  .admission-portal__brand-block {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .admission-portal__brand-text {
+    align-items: center;
   }
 
   .admission-portal__back {
-    order: -1;
-    /* Move back button to top on mobile */
+    justify-content: center;
+    width: 100%;
+  }
+
+  .admission-portal {
+    padding: 1rem;
+    gap: 2rem;
+  }
+
+  .admission-portal__hero {
+    padding: 2rem 1.5rem;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 2rem;
+  }
+
+  .admission-portal__hero-content {
+    display: flex !important;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  .admission-portal__hero-title {
+    font-size: 1.75rem;
+    /* Specific for mobile */
+    line-height: 1.2;
+  }
+
+  .admission-portal__hero-eyebrow {
+    margin-bottom: 0.5rem;
+  }
+
+  .admission-portal__hero-actions {
+    width: 100%;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+    margin-top: 0.5rem;
+  }
+
+  .admission-portal__hero-track {
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+  }
+
+  .admission-portal__back--hero {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .admission-portal__content h1 {
+    font-size: 2rem;
+    line-height: 1.2;
+  }
+
+  .admission-portal__content {
+    gap: 1.5rem;
+  }
+
+  .admission-portal__table-wrapper {
+    margin: 0;
+    width: 100%;
+    border-radius: 14px;
+    border: 1px solid #e3e8f3;
+  }
+
+  /* Unhide columns to allow full scrolling experience as requested */
+  .admission-portal__col-sno,
+  .admission-portal__col-duration {
+    display: table-cell;
+  }
+
+  .admission-portal__table th,
+  .admission-portal__table td {
+    padding: 0.75rem 1rem;
+    white-space: nowrap;
+    /* Force single line to trigger scrolling */
+  }
+
+  /* Make Apply Now column sticky */
+  .admission-portal__table th.admission-portal__col-register,
+  .admission-portal__table td.admission-portal__col-register {
+    position: sticky;
+    right: 0;
+    z-index: 10;
+    border-left: 2px solid #e2e8f0;
+    /* Separator */
+  }
+
+  .admission-portal__table thead th.admission-portal__col-register {
+    background: #606c88;
+    /* Match header color */
+    color: #ffffff;
+  }
+
+  .admission-portal__table tbody td.admission-portal__col-register {
+    background: #ffffff;
+  }
+
+  .admission-portal__table tbody tr:nth-child(even) td.admission-portal__col-register {
+    background: #f8fafd;
+    /* Match zebra stripe */
+  }
+
+  .admission-portal__steps {
+    gap: 1rem;
+  }
+
+  .admission-portal__steps-card {
+    padding: 1.25rem;
+  }
+
+  .admission-portal__step {
+    grid-template-columns: auto 1fr;
+    /* Stack icon and text better */
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .admission-portal__step-badge {
+    grid-column: 1 / -1;
+    justify-self: start;
+    margin-bottom: 0.25rem;
+  }
+
+  .admission-portal__step-icon {
+    grid-row: 2;
+  }
+
+  .admission-portal__step-content {
+    grid-row: 2;
+    grid-column: 2;
+  }
+
+  /* Make header stack nicely */
+  .admission-portal__header {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
   }
 }

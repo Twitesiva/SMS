@@ -71,10 +71,10 @@ export default function StudentDashboard() {
               ) : (
                 <div className="d-flex flex-column gap-3">
                   {rows.map((row) => (
-                    <div key={row.label} className="d-flex border-bottom pb-2">
-                      <div className="fw-bold text-secondary" style={{ width: '160px' }}>{row.label}</div>
-                      <div className="me-3">:</div>
-                      <div className="fw-semibold text-dark">{row.value}</div>
+                    <div key={row.label} className="student-profile-row-item">
+                      <div className="student-profile-label">{row.label}</div>
+                      <div className="student-profile-colon">:</div>
+                      <div className="student-profile-value">{row.value}</div>
                     </div>
                   ))}
                 </div>
@@ -85,10 +85,8 @@ export default function StudentDashboard() {
           <div className="student-card h-100">
             <div className="student-card__body d-flex flex-column align-items-center justify-content-center p-5 gap-4">
               <div
-                className="rounded-circle shadow-sm"
+                className="rounded-circle shadow-sm student-avatar-dashboard"
                 style={{
-                  width: '180px',
-                  height: '180px',
                   borderRadius: '50%',
                   border: '5px solid #fff',
                   overflow: 'hidden',

@@ -221,10 +221,10 @@ export default function InventoryInsights() {
   }
 
   return (
-    <div className="desktop-container library-insights-page" style={{ overflowX: 'hidden' }}>
+    <div className="desktop-container library-insights-page">
       <div className="library-insights-stats row g-3 mb-4 mt-4">
         <div className="col-12 col-sm-6 col-xl-3">
-          <div 
+          <div
             className="library-insights-stat"
             onClick={() => navigate('/library/books/all')}
             style={{ cursor: 'pointer' }}
@@ -235,7 +235,7 @@ export default function InventoryInsights() {
           </div>
         </div>
         <div className="col-12 col-sm-6 col-xl-3">
-          <div 
+          <div
             className="library-insights-stat"
             onClick={() => navigate('/library/books/all')}
             style={{ cursor: 'pointer' }}
@@ -246,7 +246,7 @@ export default function InventoryInsights() {
           </div>
         </div>
         <div className="col-12 col-sm-6 col-xl-3">
-          <div 
+          <div
             className="library-insights-stat"
             onClick={() => navigate('/library/circulation')}
             style={{ cursor: 'pointer' }}
@@ -257,7 +257,7 @@ export default function InventoryInsights() {
           </div>
         </div>
         <div className="col-12 col-sm-6 col-xl-3">
-          <div 
+          <div
             className="library-insights-stat"
             onClick={() => navigate('/library/circulation')}
             style={{ cursor: 'pointer' }}
@@ -306,8 +306,8 @@ export default function InventoryInsights() {
                     </tr>
                   ) : (
                     balanceRows.slice(0, 10).map((row) => (
-                      <tr 
-                        key={row.id} 
+                      <tr
+                        key={row.id}
                         style={{ cursor: 'pointer' }}
                       >
                         <td onClick={() => handleBookClick(row, 'all')}>
@@ -348,9 +348,9 @@ export default function InventoryInsights() {
                   // Construct a book object compatible with handleBookClick
                   const bookData = loan.library_book_copies?.library_books
                   const bookId = loan.library_book_copies?.book_id
-                  const bookObj = bookData ? { 
-                    id: bookId, 
-                    title: bookData.title, 
+                  const bookObj = bookData ? {
+                    id: bookId,
+                    title: bookData.title,
                     author: bookData.author,
                     shelf: bookData.shelf_code,
                     // We don't have total/issued/damaged counts here easily without full balance rows,
@@ -359,8 +359,8 @@ export default function InventoryInsights() {
                   } : null
 
                   return (
-                    <div 
-                      key={loan.id} 
+                    <div
+                      key={loan.id}
                       className="library-insights-issued-item"
                       onClick={() => bookObj && handleBookClick(bookObj, 'issued')}
                       style={{ cursor: bookObj ? 'pointer' : 'default' }}
@@ -400,7 +400,7 @@ export default function InventoryInsights() {
                         {selectedBook.title}
                       </h3>
                     </div>
-                    
+
                     {/* Info Bar */}
                     <div className="row g-0 border-top border-bottom py-3 bg-light w-100">
                       <div className="col-6 border-end px-2">
@@ -421,10 +421,10 @@ export default function InventoryInsights() {
                       </div>
                     </div>
                   </div>
-                  <button 
-                    type="button" 
-                    className="btn-close position-absolute" 
-                    style={{ right: '1.25rem', top: '1.25rem' }} 
+                  <button
+                    type="button"
+                    className="btn-close position-absolute"
+                    style={{ right: '1.25rem', top: '1.25rem' }}
                     onClick={() => setSelectedBook(null)}
                   ></button>
                 </div>
@@ -439,48 +439,48 @@ export default function InventoryInsights() {
                       {/* Stats Row */}
                       <div className="row g-2 justify-content-center">
                         <div className="col-4 col-sm">
-                          <div 
+                          <div
                             className={`p-2 border rounded text-center h-100 d-flex flex-column justify-content-center ${modalTab === 'all' ? 'bg-primary text-white' : 'bg-light'}`}
                             style={{ cursor: 'pointer' }}
                             onClick={() => setModalTab('all')}
                           >
-                            <div className={`small text-uppercase fw-bold ${modalTab === 'all' ? 'text-white-50' : 'text-muted'}`} style={{fontSize: '0.75rem'}}>Total</div>
+                            <div className={`small text-uppercase fw-bold ${modalTab === 'all' ? 'text-white-50' : 'text-muted'}`} style={{ fontSize: '0.75rem' }}>Total</div>
                             <div className="fs-3 fw-bold">{selectedBook.total}</div>
                           </div>
                         </div>
                         <div className="col-4 col-sm">
-                          <div 
+                          <div
                             className={`p-2 border rounded text-center h-100 d-flex flex-column justify-content-center ${modalTab === 'issued' ? 'bg-primary text-white' : 'bg-light'}`}
                             style={{ cursor: 'pointer' }}
                             onClick={() => setModalTab('issued')}
                           >
-                            <div className={`small text-uppercase fw-bold ${modalTab === 'issued' ? 'text-white-50' : 'text-muted'}`} style={{fontSize: '0.75rem'}}>Issued</div>
+                            <div className={`small text-uppercase fw-bold ${modalTab === 'issued' ? 'text-white-50' : 'text-muted'}`} style={{ fontSize: '0.75rem' }}>Issued</div>
                             <div className={`fs-3 fw-bold ${modalTab === 'issued' ? 'text-white' : 'text-primary'}`}>{selectedBook.issued}</div>
                           </div>
                         </div>
                         <div className="col-4 col-sm">
-                          <div 
+                          <div
                             className={`p-2 border rounded text-center h-100 d-flex flex-column justify-content-center ${modalTab === 'missed' ? 'bg-primary text-white' : 'bg-light'}`}
                             style={{ cursor: 'pointer' }}
                             onClick={() => setModalTab('missed')}
                           >
-                            <div className={`small text-uppercase fw-bold ${modalTab === 'missed' ? 'text-white-50' : 'text-muted'}`} style={{fontSize: '0.75rem'}}>Missed</div>
+                            <div className={`small text-uppercase fw-bold ${modalTab === 'missed' ? 'text-white-50' : 'text-muted'}`} style={{ fontSize: '0.75rem' }}>Missed</div>
                             <div className={`fs-3 fw-bold ${modalTab === 'missed' ? 'text-white' : 'text-danger'}`}>{selectedBook.missing}</div>
                           </div>
                         </div>
-                         <div className="col-4 col-sm">
-                          <div 
+                        <div className="col-4 col-sm">
+                          <div
                             className={`p-2 border rounded text-center h-100 d-flex flex-column justify-content-center ${modalTab === 'damaged' ? 'bg-primary text-white' : 'bg-light'}`}
                             style={{ cursor: 'pointer' }}
                             onClick={() => setModalTab('damaged')}
                           >
-                            <div className={`small text-uppercase fw-bold ${modalTab === 'damaged' ? 'text-white-50' : 'text-muted'}`} style={{fontSize: '0.75rem'}}>Damaged</div>
+                            <div className={`small text-uppercase fw-bold ${modalTab === 'damaged' ? 'text-white-50' : 'text-muted'}`} style={{ fontSize: '0.75rem' }}>Damaged</div>
                             <div className={`fs-3 fw-bold ${modalTab === 'damaged' ? 'text-white' : 'text-warning text-dark'}`}>{selectedBook.damaged}</div>
                           </div>
                         </div>
                         <div className="col-4 col-sm">
                           <div className="p-2 border rounded bg-light text-center h-100 d-flex flex-column justify-content-center">
-                            <div className="small text-muted text-uppercase fw-bold" style={{fontSize: '0.75rem'}}>Balance</div>
+                            <div className="small text-muted text-uppercase fw-bold" style={{ fontSize: '0.75rem' }}>Balance</div>
                             <div className="fs-3 fw-bold text-success">{selectedBook.available}</div>
                           </div>
                         </div>

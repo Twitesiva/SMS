@@ -43,7 +43,7 @@ export default function Home() {
                 <img src={crestPrimary} alt="Vijayam crest" />
               </div>
               <h1 className="home-hero__title">Vijayam Arts & Science College</h1>
-              <p className="home-hero__subtitle">Exam Management System</p>
+              <p className="home-hero__subtitle">College Management System</p>
               <p className="home-hero__tagline">
                 <span className="home-hero__tagline-text">Access Student Portal, Results & Timetables.</span>
                 <span className="home-hero__tagline-arrow" aria-hidden="true">{'\u2193'}</span>
@@ -56,12 +56,7 @@ export default function Home() {
                 >
                   Application
                 </Link>
-                <Link
-                  to="/public/results"
-                  className="btn btn-hero-secondary home-hero__action-btn home-hero__action-btn--results"
-                >
-                  Check Results
-                </Link>
+
                 <Link
                   to="/public/timetable"
                   className="btn btn-hero-secondary home-hero__action-btn home-hero__action-btn--timetable"

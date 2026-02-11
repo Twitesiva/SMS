@@ -216,7 +216,7 @@ export default function ChargesAndPenalties() {
   }
 
   return (
-    <div className="desktop-container" style={{ overflowX: 'hidden' }}>
+    <div className="desktop-container">
       <div className="row g-3 mb-4 justify-content-center">
         <div className="col-6 col-md-4">
           <div className="card card-soft p-3 h-100 text-center">
@@ -311,7 +311,7 @@ export default function ChargesAndPenalties() {
               <h4 className="mb-1 fw-bold text-dark">Custom Charge Categories</h4>
               <p className="text-muted mb-0 small">Define other fee types (e.g., Lost Card, Late Return).</p>
             </div>
-            
+
             <div className="table-responsive mb-3">
               <table className="table table-sm table-hover align-middle library-charges-table">
                 <thead className="table-light">
@@ -332,7 +332,7 @@ export default function ChargesAndPenalties() {
                         <td className="fw-semibold">{charge.name}</td>
                         <td>Rs. {charge.amount}</td>
                         <td className="text-end">
-                          <button 
+                          <button
                             className="btn btn-link text-danger p-0 text-decoration-none small"
                             onClick={() => handleDeleteCharge(charge.id)}
                           >
@@ -369,8 +369,8 @@ export default function ChargesAndPenalties() {
                 />
               </div>
               <div className="col-md-2">
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   className="btn btn-primary w-100"
                   disabled={addingCustom}
                 >

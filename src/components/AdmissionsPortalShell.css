@@ -605,9 +605,64 @@
 
     .staff-header__toggle--mobile {
         display: inline-flex;
+        margin-right: 0.5rem;
     }
 
     .staff-sidebar__toggle {
         display: none;
+    }
+
+    /* Hide user info on tablet/mobile */
+    div.staff-header__meta,
+    .staff-header__meta {
+        display: none !important;
+    }
+}
+
+@media (max-width: 576px) {
+
+    /* Consistent Title - Centered */
+    .staff-header {
+        position: relative;
+    }
+
+    .staff-header__portal {
+        display: block !important;
+        font-size: 1.1rem;
+        white-space: nowrap;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        margin: 0;
+        text-align: center;
+    }
+
+    .staff-header__brand {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .staff-header__right {
+        display: flex;
+        margin-left: auto;
+        width: auto;
+        justify-content: flex-end;
+        gap: 0.5rem;
+    }
+
+    /* Circular Logout Button */
+    .staff-header__logout {
+        padding: 0.5rem !important;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+    }
+
+    .staff-main {
+        padding: 1rem;
     }
 }

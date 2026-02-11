@@ -94,7 +94,7 @@ export default function ParentShell({ children }) {
                     </div>
 
                     <div className="parent-header__right">
-                        <div className="d-flex align-items-center gap-3 me-3 text-white border-end pe-3">
+                        <div className="parent-header__user-info d-flex align-items-center gap-3 me-3 text-white border-end pe-3">
                             <div className="text-end" style={{ lineHeight: '1.2' }}>
                                 <div className="fw-bold small">{parent?.full_name || 'Student'}</div>
                                 <div className="small opacity-75">{parent?.student_id || '—'}</div>
@@ -105,7 +105,7 @@ export default function ParentShell({ children }) {
                             </div>
                         </div>
                         <button className="parent-header__logout" type="button" onClick={handleLogout}>
-                            <i className="bi bi-box-arrow-right"></i> Logout
+                            <i className="bi bi-box-arrow-right"></i> <span className="d-none d-sm-inline">Logout</span>
                         </button>
                     </div>
                 </header>

@@ -278,7 +278,7 @@ export default function PublicResults() {
                           SGPA : {calculateGPA(items)}
                         </div>
                       </div>
-                      <div className="table-responsive">
+                      <div className="table-responsive" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                         {/* Inline style for strict table borders */}
                         <style>
                           {`

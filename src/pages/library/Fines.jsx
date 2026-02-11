@@ -43,7 +43,7 @@ export default function Fines() {
     amount: '100',
     paymentMode: 'Cash'
   })
-  
+
   // Separate states for Missing and Damaged forms
   const [missingBookForm, setMissingBookForm] = useState({
     studentId: '',
@@ -62,13 +62,13 @@ export default function Fines() {
 
   const [missingBookLoans, setMissingBookLoans] = useState([])
   const [damagedBookLoans, setDamagedBookLoans] = useState([])
-  
+
   const [reasonCharges, setReasonCharges] = useState([])
   const [fineChargeDefaults, setFineChargeDefaults] = useState({ missing: 500, damaged: 500 })
   const [savingMissing, setSavingMissing] = useState(false)
   const [savingDamaged, setSavingDamaged] = useState(false)
   const [collecting, setCollecting] = useState(false)
-  
+
   // States for Other Fines
   const [otherChargeCategories, setOtherChargeCategories] = useState([])
   const [savingOther, setSavingOther] = useState(false)
@@ -132,7 +132,7 @@ export default function Fines() {
       } else if (defaultsError) {
         console.error('Unable to load default fine amounts', defaultsError)
       }
-      
+
       // Table library_fine_reasons does not exist yet, using defaults.
       setReasonCharges([])
     } catch (err) {
@@ -342,9 +342,9 @@ export default function Fines() {
     const trimmedStu = otherFineForm.studentId.trim()
     if (!trimmedStu) return showToast('Enter Student ID.', { type: 'warning' })
     if (!otherFineForm.categoryId) return showToast('Select a category.', { type: 'warning' })
-    
+
     const category = otherChargeCategories.find(c => String(c.id) === String(otherFineForm.categoryId))
-    
+
     setSavingOther(true)
     try {
       const { error } = await supabase.from('library_fines').insert([{
@@ -371,7 +371,7 @@ export default function Fines() {
     const setLoans = type === 'MISSING' ? setMissingBookLoans : setDamagedBookLoans
     const setForm = type === 'MISSING' ? setMissingBookForm : setDamagedBookForm
     const defaultReason = missingReasonOptions[0]
-    
+
     if (!trimmed) {
       setLoans([])
       setForm((prev) => ({
@@ -411,7 +411,7 @@ export default function Fines() {
     const value = event.target.value
     const setForm = type === 'MISSING' ? setMissingBookForm : setDamagedBookForm
     const setLoans = type === 'MISSING' ? setMissingBookLoans : setDamagedBookLoans
-    
+
     setForm((prev) => {
       const next = { ...prev, [key]: value }
       if (key === 'studentId') {
@@ -422,7 +422,7 @@ export default function Fines() {
       }
       return next
     })
-    
+
     if (key === 'studentId') {
       setLoans([])
     }
@@ -457,7 +457,7 @@ export default function Fines() {
     setSaving(true)
     const successes = []
     const failures = []
-    
+
     // Process logic similar to before
     try {
       const loanRow = loans.find((l) => l.id === loanIdNum)
@@ -488,9 +488,9 @@ export default function Fines() {
       if (fineError) throw fineError
 
       successes.push(loanIdNum)
-      
+
       showToast(`${type === 'MISSING' ? 'Missing' : 'Damaged'} book reported and fine raised.`, { type: 'success' })
-      
+
       // Reset form
       setForm({
         studentId: '',
@@ -510,7 +510,7 @@ export default function Fines() {
     }
   }
   return (
-    <div className="desktop-container" style={{ overflowX: 'hidden' }}>
+    <div className="desktop-container">
 
       <div className="row g-4 justify-content-center mx-0 mb-4">
         <div className="col-12 col-md-4">
@@ -544,8 +544,8 @@ export default function Fines() {
                 <h4 className="mb-1">Collect Fine</h4>
                 <p className="text-muted mb-0">Record payment details.</p>
               </div>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="btn btn-outline-secondary"
                 onClick={() => {
                   setFineForm({ studentId: '', fineId: '', bookTitle: '', amount: '100', paymentMode: 'Cash' })
@@ -582,9 +582,9 @@ export default function Fines() {
 
               <div className="col-12">
                 <label className="form-label">Select Fine</label>
-                <select 
-                  className="form-select" 
-                  value={fineForm.fineId} 
+                <select
+                  className="form-select"
+                  value={fineForm.fineId}
                   onChange={handleFineChange('fineId')}
                   disabled={!studentFines.length}
                 >
@@ -673,7 +673,7 @@ export default function Fines() {
                         if (loanStatus === 'MISSING') reason = 'Missing'
                         else if (loanStatus === 'DAMAGED') reason = 'Damaged'
                         else if (dueDate && new Date(dueDate) < today) {
-                            reason = `Delayed${days > 0 ? ` (${days} days)` : ''}`
+                          reason = `Delayed${days > 0 ? ` (${days} days)` : ''}`
                         } else {
                           reason = 'Fine'
                         }
@@ -950,8 +950,8 @@ export default function Fines() {
                 />
               </div>
               <div className="col-12 d-flex justify-content-end mt-4">
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   className="btn btn-primary px-4"
                   disabled={savingOther}
                 >

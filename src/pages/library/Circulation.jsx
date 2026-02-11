@@ -428,7 +428,7 @@ export default function Circulation() {
   }
 
   return (
-    <div className="desktop-container" style={{ overflowX: 'hidden' }}>
+    <div className="desktop-container">
 
       <div className="row g-4 justify-content-center mx-0">
         <div className="col-12 col-lg-6">
@@ -679,7 +679,7 @@ export default function Circulation() {
                       const student = loan.students
                       const bookData = loan.library_book_copies?.library_books
                       const bookId = loan.library_book_copies?.book_id
-                      
+
                       const bookObj = bookData ? {
                         id: bookId,
                         title: bookData.title,
@@ -690,7 +690,7 @@ export default function Circulation() {
                       return (
                         <tr key={loan.id}>
                           <td>{student?.full_name || 'Unknown'} ({student?.student_id || '--'})</td>
-                          <td 
+                          <td
                             onClick={() => bookObj && handleBookClick(bookObj, 'issued')}
                             style={{ cursor: bookObj ? 'pointer' : 'default' }}
                             className={bookObj ? 'text-primary fw-semibold' : ''}
@@ -728,7 +728,7 @@ export default function Circulation() {
                         {selectedBook.title}
                       </h4>
                     </div>
-                    
+
                     <div className="row g-0 border-top border-bottom py-3 bg-light w-100">
                       <div className="col-6 border-end px-2">
                         <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.65rem', letterSpacing: '0.12em' }}>
@@ -748,10 +748,10 @@ export default function Circulation() {
                       </div>
                     </div>
                   </div>
-                  <button 
-                    type="button" 
-                    className="btn-close position-absolute" 
-                    style={{ right: '1.25rem', top: '1.25rem' }} 
+                  <button
+                    type="button"
+                    className="btn-close position-absolute"
+                    style={{ right: '1.25rem', top: '1.25rem' }}
                     onClick={() => setSelectedBook(null)}
                   ></button>
                 </div>
@@ -766,7 +766,7 @@ export default function Circulation() {
                       {/* Stats Row */}
                       <div className="row g-3">
                         <div className="col-6 col-sm-3">
-                          <div 
+                          <div
                             className={`p-3 border rounded text-center ${modalTab === 'all' ? 'bg-primary text-white' : 'bg-light'}`}
                             style={{ cursor: 'pointer' }}
                             onClick={() => setModalTab('all')}
@@ -776,7 +776,7 @@ export default function Circulation() {
                           </div>
                         </div>
                         <div className="col-6 col-sm-3">
-                          <div 
+                          <div
                             className={`p-3 border rounded text-center ${modalTab === 'issued' ? 'bg-primary text-white' : 'bg-light'}`}
                             style={{ cursor: 'pointer' }}
                             onClick={() => setModalTab('issued')}
@@ -786,7 +786,7 @@ export default function Circulation() {
                           </div>
                         </div>
                         <div className="col-6 col-sm-3">
-                          <div 
+                          <div
                             className={`p-3 border rounded text-center ${modalTab === 'damaged' ? 'bg-primary text-white' : 'bg-light'}`}
                             style={{ cursor: 'pointer' }}
                             onClick={() => setModalTab('damaged')}
@@ -870,9 +870,8 @@ export default function Circulation() {
                                           <td className="font-monospace">{copy.id}</td>
                                           <td>
                                             <span
-                                              className={`badge ${
-                                                copy.availability === 'MISSING' ? 'bg-danger' : 'bg-warning text-dark'
-                                              }`}
+                                              className={`badge ${copy.availability === 'MISSING' ? 'bg-danger' : 'bg-warning text-dark'
+                                                }`}
                                             >
                                               {copy.availability}
                                             </span>

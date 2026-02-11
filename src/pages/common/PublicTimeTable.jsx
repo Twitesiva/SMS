@@ -314,7 +314,7 @@ export default function PublicTimeTable() {
             ) : examSchedule.length === 0 ? (
               <div className="text-muted">No exam schedule published yet.</div>
             ) : (
-              <div className="table-responsive">
+              <div className="table-responsive" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 <table className="table mb-0">
                   <thead>
                     <tr>

@@ -232,189 +232,189 @@ export default function LibraryDashboard() {
   ]
 
   return (
-    <div className="desktop-container library-dashboard-page" style={{ overflowX: 'hidden' }}>
-        <section className="mb-4">
-          <div className="dashboard-cards">
-            {statCards.map((card) => (
-              <div
-                key={card.label}
-                className="dashboard-card card-shadow dashboard-card-link"
-                role="button"
-                tabIndex={0}
-                onClick={card.onClick}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault()
-                    card.onClick()
-                  }
-                }}
-              >
-                <div className="dashboard-card-icon">
-                  <i className={`bi ${card.icon}`}></i>
-                </div>
-                <div>
-                  <div className="dashboard-card-value">{card.value}</div>
-                  <div className="dashboard-card-label">{card.label}</div>
-                  <p className="mb-0 fw-bold">{card.detail}</p>
-                </div>
+    <div className="desktop-container library-dashboard-page">
+      <section className="mb-4">
+        <div className="dashboard-cards">
+          {statCards.map((card) => (
+            <div
+              key={card.label}
+              className="dashboard-card card-shadow dashboard-card-link"
+              role="button"
+              tabIndex={0}
+              onClick={card.onClick}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault()
+                  card.onClick()
+                }
+              }}
+            >
+              <div className="dashboard-card-icon">
+                <i className={`bi ${card.icon}`}></i>
               </div>
-            ))}
-          </div>
-        </section>
-
-        <div className="row g-4 justify-content-center mx-0">
-          <div className="col-12 col-lg-7">
-            <div className="library-dashboard-panel h-100">
-              <div className="library-dashboard-panel__header">
-                <div>
-                  <h5 className="mb-1">Recent Circulation</h5>
-                  <p className="text-muted mb-0">Latest issue and return activity.</p>
-                </div>
-                <button type="button" className="btn btn-outline-secondary btn-sm">View All</button>
-              </div>
-              <div className="table-responsive">
-                <table className="table library-dashboard-table mb-0">
-                  <thead>
-                    <tr>
-                      <th>Member</th>
-                      <th>Book</th>
-                      <th>Status</th>
-                      <th className="text-end">Due</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentLoans.length === 0 ? (
-                      <tr>
-                        <td colSpan="4" className="text-center text-muted py-4">No circulation activity yet.</td>
-                      </tr>
-                    ) : (
-                      recentLoans.map((loan) => {
-                        const student = loan.students
-                        const book = loan.library_book_copies?.library_books
-                        return (
-                          <tr key={loan.id}>
-                            <td>{student?.full_name || 'Unknown'} ({student?.student_id || '--'})</td>
-                            <td>{book?.title || 'Unknown'}</td>
-                            <td>
-                              <span
-                                className={`library-status ${loan.status === 'ISSUED' ? 'library-status--issued' : 'library-status--returned'}`}
-                              >
-                                {loan.status || 'Unknown'}
-                              </span>
-                            </td>
-                            <td className="text-end">{formatDate(loan.due_date)}</td>
-                          </tr>
-                        )
-                      })
-                    )}
-                  </tbody>
-                </table>
+              <div>
+                <div className="dashboard-card-value">{card.value}</div>
+                <div className="dashboard-card-label">{card.label}</div>
+                <p className="mb-0 fw-bold">{card.detail}</p>
               </div>
             </div>
-          </div>
-          <div className="col-12 col-lg-5">
-            <div className="library-dashboard-panel h-100">
-              <div className="library-dashboard-panel__header">
-                <div>
-                  <h5 className="mb-1">Today Details</h5>
-                  <p className="text-muted mb-0">
-                    {statPreview === 'issuedToday' && 'Issued today'}
-                    {statPreview === 'returnedToday' && 'Returned today'}
-                    {!statPreview && 'Click a stat tile to view details.'}
-                  </p>
-                </div>
-                {statPreview && (
-                  <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setStatPreview(null)}>
-                    Clear
-                  </button>
-                )}
-              </div>
-              <div className="table-responsive">
-                <table className="table library-dashboard-table mb-0">
-                  <thead>
-                    <tr>
-                      <th>Member</th>
-                      <th>Book</th>
-                      <th className="text-end">Time</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {!statPreview ? (
-                      <tr>
-                        <td colSpan="3" className="text-center text-muted py-4">Select Issued Today or Returned Today to view details.</td>
-                      </tr>
-                    ) : previewRows.length === 0 ? (
-                      <tr>
-                        <td colSpan="3" className="text-center text-muted py-4">No records for today.</td>
-                      </tr>
-                    ) : (
-                      previewRows.map((loan) => (
-                        <tr key={loan.id}>
-                          <td>{loan.students?.full_name || 'Unknown'} ({loan.students?.student_id || '--'})</td>
-                          <td>{loan.library_book_copies?.library_books?.title || 'Unknown'}</td>
-                          <td className="text-end">
-                            {statPreview === 'issuedToday'
-                              ? (loan.issued_at ? new Date(loan.issued_at).toLocaleTimeString('en-GB') : '--')
-                              : (loan.returned_at ? new Date(loan.returned_at).toLocaleTimeString('en-GB') : '--')}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
+      </section>
 
-        <div className="library-dashboard-panel mt-4">
-          <div className="library-dashboard-panel__header">
-            <div>
-              <h5 className="mb-1">Activity Log</h5>
-              <p className="text-muted mb-0">Latest library actions and updates.</p>
+      <div className="row g-4 justify-content-center mx-0">
+        <div className="col-12 col-lg-7">
+          <div className="library-dashboard-panel h-100">
+            <div className="library-dashboard-panel__header">
+              <div>
+                <h5 className="mb-1">Recent Circulation</h5>
+                <p className="text-muted mb-0">Latest issue and return activity.</p>
+              </div>
+              <button type="button" className="btn btn-outline-secondary btn-sm">View All</button>
             </div>
-          </div>
-          <div className="table-responsive">
-            <table className="table library-dashboard-table mb-0 activity-table">
-              <thead>
-                <tr>
-                  <th>Activity</th>
-                  <th>Member</th>
-                  <th>Book</th>
-                  <th className="text-end">Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {activityEvents.length === 0 ? (
+            <div className="table-responsive">
+              <table className="table library-dashboard-table mb-0">
+                <thead>
                   <tr>
-                    <td colSpan="4" className="text-center text-muted py-4">No activity yet.</td>
+                    <th>Member</th>
+                    <th>Book</th>
+                    <th>Status</th>
+                    <th className="text-end">Due</th>
                   </tr>
-                ) : (
-                  activityEvents.map((event) => (
-                    <tr key={event.id}>
-                      <td>
-                        <span className={`activity-badge ${event.title === 'Book Issued' ? 'is-issued' : event.title === 'Book Returned' ? 'is-returned' : 'is-fine'}`}>
-                          {event.title}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="activity-name">
-                          {event.studentName || 'Unknown'} <span>({event.studentId || '--'})</span>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="activity-book fw-bold text-dark">{event.bookTitle || 'Unknown'}</div>
-                      </td>
-                      <td className="text-end activity-time">
-                        {event.time ? new Date(event.time).toLocaleString('en-GB') : '--'}
-                      </td>
+                </thead>
+                <tbody>
+                  {recentLoans.length === 0 ? (
+                    <tr>
+                      <td colSpan="4" className="text-center text-muted py-4">No circulation activity yet.</td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    recentLoans.map((loan) => {
+                      const student = loan.students
+                      const book = loan.library_book_copies?.library_books
+                      return (
+                        <tr key={loan.id}>
+                          <td>{student?.full_name || 'Unknown'} ({student?.student_id || '--'})</td>
+                          <td>{book?.title || 'Unknown'}</td>
+                          <td>
+                            <span
+                              className={`library-status ${loan.status === 'ISSUED' ? 'library-status--issued' : 'library-status--returned'}`}
+                            >
+                              {loan.status || 'Unknown'}
+                            </span>
+                          </td>
+                          <td className="text-end">{formatDate(loan.due_date)}</td>
+                        </tr>
+                      )
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
+        <div className="col-12 col-lg-5">
+          <div className="library-dashboard-panel h-100">
+            <div className="library-dashboard-panel__header">
+              <div>
+                <h5 className="mb-1">Today Details</h5>
+                <p className="text-muted mb-0">
+                  {statPreview === 'issuedToday' && 'Issued today'}
+                  {statPreview === 'returnedToday' && 'Returned today'}
+                  {!statPreview && 'Click a stat tile to view details.'}
+                </p>
+              </div>
+              {statPreview && (
+                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setStatPreview(null)}>
+                  Clear
+                </button>
+              )}
+            </div>
+            <div className="table-responsive">
+              <table className="table library-dashboard-table mb-0">
+                <thead>
+                  <tr>
+                    <th>Member</th>
+                    <th>Book</th>
+                    <th className="text-end">Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {!statPreview ? (
+                    <tr>
+                      <td colSpan="3" className="text-center text-muted py-4">Select Issued Today or Returned Today to view details.</td>
+                    </tr>
+                  ) : previewRows.length === 0 ? (
+                    <tr>
+                      <td colSpan="3" className="text-center text-muted py-4">No records for today.</td>
+                    </tr>
+                  ) : (
+                    previewRows.map((loan) => (
+                      <tr key={loan.id}>
+                        <td>{loan.students?.full_name || 'Unknown'} ({loan.students?.student_id || '--'})</td>
+                        <td>{loan.library_book_copies?.library_books?.title || 'Unknown'}</td>
+                        <td className="text-end">
+                          {statPreview === 'issuedToday'
+                            ? (loan.issued_at ? new Date(loan.issued_at).toLocaleTimeString('en-GB') : '--')
+                            : (loan.returned_at ? new Date(loan.returned_at).toLocaleTimeString('en-GB') : '--')}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="library-dashboard-panel mt-4">
+        <div className="library-dashboard-panel__header">
+          <div>
+            <h5 className="mb-1">Activity Log</h5>
+            <p className="text-muted mb-0">Latest library actions and updates.</p>
+          </div>
+        </div>
+        <div className="table-responsive">
+          <table className="table library-dashboard-table mb-0 activity-table">
+            <thead>
+              <tr>
+                <th>Activity</th>
+                <th>Member</th>
+                <th>Book</th>
+                <th className="text-end">Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activityEvents.length === 0 ? (
+                <tr>
+                  <td colSpan="4" className="text-center text-muted py-4">No activity yet.</td>
+                </tr>
+              ) : (
+                activityEvents.map((event) => (
+                  <tr key={event.id}>
+                    <td>
+                      <span className={`activity-badge ${event.title === 'Book Issued' ? 'is-issued' : event.title === 'Book Returned' ? 'is-returned' : 'is-fine'}`}>
+                        {event.title}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="activity-name">
+                        {event.studentName || 'Unknown'} <span>({event.studentId || '--'})</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="activity-book fw-bold text-dark">{event.bookTitle || 'Unknown'}</div>
+                    </td>
+                    <td className="text-end activity-time">
+                      {event.time ? new Date(event.time).toLocaleString('en-GB') : '--'}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
 }

@@ -210,8 +210,8 @@ export default function AdminShell({
           </div>
 
           <div className="staff-header__right">
-            <div className="d-flex align-items-center gap-3 me-3 text-white border-end pe-3">
-              <div className="text-end" style={{ lineHeight: '1.2', display: 'none' }}>
+            <div className="d-flex align-items-center gap-3 me-3 text-white border-end pe-3 staff-header__meta">
+              <div className="text-end" style={{ lineHeight: '1.2' }}>
                 <div className="fw-bold small">{user?.user_metadata?.full_name || user?.email || 'Admin User'}</div>
                 <div className="small opacity-75">{user?.role ? (user.role.charAt(0).toUpperCase() + user.role.slice(1)) : 'Admin'}</div>
               </div>
@@ -221,7 +221,7 @@ export default function AdminShell({
               </div>
             </div>
             <button className="staff-header__logout" type="button" onClick={handleLogout}>
-              <i className="bi bi-box-arrow-right"></i> Logout
+              <i className="bi bi-box-arrow-right"></i> <span className="d-none d-sm-inline">Logout</span>
             </button>
           </div>
         </header>

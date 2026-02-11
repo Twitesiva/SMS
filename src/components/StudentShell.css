@@ -356,4 +356,72 @@
     display: none;
     /* Hide sidebar collapse button on mobile */
   }
+
+  .student-header__portal {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    width: auto;
+    white-space: nowrap;
+    font-size: 1rem;
+    margin: 0;
+  }
+
+  .student-header {
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 576px) {
+
+  /* Show "Student Portal" */
+  .student-header__portal {
+    display: block !important;
+    font-size: 1.1rem;
+    white-space: nowrap;
+  }
+
+  /* Reset layout basics */
+  .student-header__brand {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .student-header__right {
+    margin-left: auto;
+    width: auto;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+
+  /* Hide user info container on very small screens to save space */
+  .student-header__right>.d-flex {
+    display: none !important;
+  }
+
+  /* Make user info text smaller */
+  .student-header__right .fw-bold {
+    font-size: 0.9rem !important;
+  }
+
+  .student-header__right .small {
+    font-size: 0.75rem !important;
+  }
+
+  /* Circular Logout Button */
+  .student-header__logout {
+    padding: 0.5rem !important;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+  }
+
+  .student-main {
+    padding: 1rem;
+  }
 }
