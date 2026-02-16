@@ -171,11 +171,12 @@ export default function ParentMarks() {
 
   return (
     <ParentShell>
-      <div className="student-card mb-4">
-        <div className="student-card__header">Marks</div>
-      </div>
+
 
       <div className="students-section-shell">
+        <div className="student-card mb-4">
+          <div className="student-card__header">Marks</div>
+        </div>
         {loading && (
           <div className="student-details__loading" role="status" aria-live="polite">
             <div className="student-details__loading-header">
@@ -287,6 +288,10 @@ export default function ParentMarks() {
               </div>
             </div>
           </div>
+        )}
+
+        {!loading && !error && !studentRecord && (
+          <div className="student-details__status" style={{ textAlign: 'center', color: '#64748b', padding: '2rem' }}>No student record found.</div>
         )}
       </div>
     </ParentShell>
