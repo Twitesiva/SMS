@@ -47,7 +47,7 @@ export default function LibraryLogin() {
             <img src={crestAccent} alt="Vijayam crest" />
           </div>
           <div className="admission-portal__brand-text">
-            <div className="admission-portal__brand-title">Vijayam Arts & Science College</div>
+            <div className="admission-portal__brand-title">Jazz Public School</div>
             <div className="admission-portal__brand-sub">Library Services</div>
           </div>
         </div>
@@ -145,3 +145,4 @@ export default function LibraryLogin() {
     </main>
   )
 }
+

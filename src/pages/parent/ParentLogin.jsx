@@ -60,7 +60,7 @@ export default function ParentLogin() {
                         <img src={crest} alt="Vijayam crest" />
                     </div>
                     <div className="admission-portal__brand-text">
-                        <div className="admission-portal__brand-title">Vijayam Arts & Science College</div>
+                        <div className="admission-portal__brand-title">Jazz Public School</div>
                         <div className="admission-portal__brand-sub">Parent Portal</div>
                     </div>
                 </div>
@@ -118,3 +118,4 @@ export default function ParentLogin() {
         </main>
     )
 }
+

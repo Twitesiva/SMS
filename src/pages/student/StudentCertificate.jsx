@@ -108,7 +108,7 @@ export default function StudentCertificate() {
               <div className="student-certificate__brand">
                 <img src={crest} alt="Vijayam crest" className="student-certificate__logo" />
                 <div>
-                  <div className="student-certificate__college">Vijayam Arts & Science College</div>
+                  <div className="student-certificate__college">Jazz Public School</div>
                   <div className="student-certificate__subtitle">Bonafide Certificate</div>
                 </div>
               </div>
@@ -139,7 +139,7 @@ export default function StudentCertificate() {
                   , son/daughter of Mr./Ms.{` `}
                   {renderField(details?.father_name)}
                   , is a bonafide student of{' '}
-                  <span className="student-certificate__fill">Vijayam Arts & Science College</span>
+                  <span className="student-certificate__fill">Jazz Public School</span>
                   .
                 </p>
 
@@ -182,4 +182,5 @@ export default function StudentCertificate() {
     </StudentShell>
   )
 }
+
 

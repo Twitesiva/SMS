@@ -27,7 +27,7 @@ export default function Intro() {
             <div className={`intro-content ${loaded ? 'visible' : ''}`}>
                 <div className="intro-card glass-panel">
                     <img src={logo} alt="College Logo" className="intro-logo" />
-                    <h1 className="intro-title">"Vijayam Arts & Science College"</h1>
+                    <h1 className="intro-title">"Jazz Public School"</h1>
                     <div className="intro-divider"></div>
                     <p className="intro-subtitle">"Smarter systems for smarter campuses.<br />Simplifying college management, enhancing success."</p>
 
@@ -42,3 +42,4 @@ export default function Intro() {
         </div>
     );
 }
+

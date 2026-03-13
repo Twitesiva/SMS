@@ -87,7 +87,7 @@ export default function AdminLogin() {
             <img src={crestAccent} alt="Vijayam crest" />
           </div>
           <div className="admission-portal__brand-text">
-            <div className="admission-portal__brand-title">Vijayam Arts & Science College</div>
+            <div className="admission-portal__brand-title">Jazz Public School</div>
             <div className="admission-portal__brand-sub">Admission Office</div>
           </div>
         </div>
@@ -99,7 +99,7 @@ export default function AdminLogin() {
       <div className="admin-login-portal__content">
         <div className="admin-login-portal__intro">
           <h1>Admission portal login</h1>
-          <p>Sign in to manage Vijayam Admissions.</p>
+          <p>Sign in to manage Jazz Admissions.</p>
         </div>
 
         <section className="admin-login-card admin-login-card--portal" aria-live="polite">
@@ -197,3 +197,4 @@ export default function AdminLogin() {
     </main>
   )
 }
+

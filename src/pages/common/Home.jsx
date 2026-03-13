@@ -42,8 +42,8 @@ export default function Home() {
               <div className="home-hero__crest">
                 <img src={crestPrimary} alt="Vijayam crest" />
               </div>
-              <h1 className="home-hero__title">Vijayam Arts & Science College</h1>
-              <p className="home-hero__subtitle">College Management System</p>
+              <h1 className="home-hero__title">Jazz Public School</h1>
+              <p className="home-hero__subtitle">School Management System</p>
               <p className="home-hero__tagline">
                 <span className="home-hero__tagline-text">Access Student Portal, Results & Timetables.</span>
                 <span className="home-hero__tagline-arrow" aria-hidden="true">{'\u2193'}</span>
@@ -98,3 +98,4 @@ export default function Home() {
     </div>
   )
 }
+

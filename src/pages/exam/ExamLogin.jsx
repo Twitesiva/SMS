@@ -74,7 +74,7 @@ export default function ExamLogin() {
             <img src={crestAccent} alt="Vijayam crest" />
           </div>
           <div className="admission-portal__brand-text">
-            <div className="admission-portal__brand-title">Vijayam Arts & Science College</div>
+            <div className="admission-portal__brand-title">Jazz Public School</div>
             <div className="admission-portal__brand-sub">Exam Control Centre</div>
           </div>
         </div>
@@ -184,3 +184,4 @@ export default function ExamLogin() {
     </main>
   )
 }
+

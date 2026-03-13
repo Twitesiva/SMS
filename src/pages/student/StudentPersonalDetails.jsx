@@ -31,7 +31,7 @@ const buildRows = (details) => ({
   general: [
     { label: 'Student Name', value: details.full_name },
     { label: 'Register No.', value: details.register_no || details.hall_ticket_no },
-    { label: 'Institution', value: details.institution || 'Vijayam Arts & Science College' },
+    { label: 'Institution', value: details.institution || 'Jazz Public School' },
     { label: 'Program', value: details.program || details.course_display || details.course_name || details.course },
     { label: 'Batch', value: details.batch || details.admission_year || details.academic_year },
     { label: 'Semester', value: formatSemester(details.current_semester || details.semester) },
@@ -196,4 +196,5 @@ export default function StudentPersonalDetails() {
     </StudentShell>
   )
 }
+
 
