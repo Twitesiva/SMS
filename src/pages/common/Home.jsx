@@ -45,23 +45,23 @@ export default function Home() {
               <h1 className="home-hero__title">Jazz Public School</h1>
               <p className="home-hero__subtitle">School Management System</p>
               <p className="home-hero__tagline">
-                <span className="home-hero__tagline-text">Access Student Portal, Results & Timetables.</span>
+                <span className="home-hero__tagline-text">Access Admin and Staff portals.</span>
                 <span className="home-hero__tagline-arrow" aria-hidden="true">{'\u2193'}</span>
               </p>
 
               <div className="home-hero__actions home-hero__actions--triple">
                 <Link
-                  to="/admission"
+                  to="/admin-portal/login"
                   className="btn btn-hero-primary home-hero__action-btn home-hero__action-btn--apply"
                 >
-                  Application
+                  Admin Login
                 </Link>
 
                 <Link
-                  to="/public/timetable"
+                  to="/staff/login"
                   className="btn btn-hero-secondary home-hero__action-btn home-hero__action-btn--timetable"
                 >
-                  Exam Timetable
+                  Staff Login
                 </Link>
               </div>
             </section>
@@ -71,7 +71,7 @@ export default function Home() {
                 <img src={crestAccent} alt="Vijayam alternate crest" />
               </div>
               <div className="home-hero__control-header">
-                <p className="home-hero__control-label">Exam Control Centre</p>
+                <p className="home-hero__control-label">Portal Access Centre</p>
               </div>
               <div className="home-hero__microcopy">
                 <span>Official control room for approvals & schedules</span>

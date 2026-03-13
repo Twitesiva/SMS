@@ -79,8 +79,8 @@ export default function HostelShell({ children, navGroups, brandTitle = "HOSTEL 
         <div className={`staff-sidebar__header d-flex align-items-center ${collapsed ? 'flex-column justify-content-center py-4 gap-3' : 'px-4 py-4'}`}>
           <img src={logo} alt="Vijayam crest" className="staff-header__logo" />
           <div className={`staff-sidebar__brand ms-3 ${collapsed ? 'd-none' : ''}`}>
-            <div className="fw-bold text-white text-uppercase" style={{ fontSize: '1rem', letterSpacing: '0.05em', lineHeight: '1.2' }}>Vijayam</div>
-            <div className="text-white-50 small text-uppercase" style={{ fontSize: '0.75rem', letterSpacing: '0.1em' }}>Arts & Science College</div>
+            <div className="fw-bold text-white text-uppercase" style={{ fontSize: '1rem', letterSpacing: '0.05em', lineHeight: '1.2' }}>Jazz</div>
+            <div className="text-white-50 small text-uppercase" style={{ fontSize: '0.75rem', letterSpacing: '0.1em' }}>Public School</div>
           </div>
 
           <button

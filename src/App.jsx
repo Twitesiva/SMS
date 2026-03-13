@@ -1,29 +1,14 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./store/auth";
-import { useStudentAuth } from "./store/studentAuth";
 import { useStaffAuth } from "./store/staffAuth";
-import { useParentAuth } from "./store/parentAuth";
-import { useTransportAuth } from "./store/transportAuth";
-import { useHostelAuth } from "./store/hostelAuth";
-import PublicApply from "./pages/common/PublicApply.jsx";
 import Home from "./pages/common/Home.jsx";
 import Intro from "./pages/common/Intro.jsx";
 import RoleSelection from "./pages/common/RoleSelection.jsx";
-import AdmissionPortal from "./pages/common/AdmissionPortal.jsx";
+import GuardedRoute from "./components/GuardedRoute.jsx";
+import Preloader from "./components/Preloader.jsx";
+import ToastStack from "./components/ToastStack.jsx";
 
-
-import PublicResults from "./pages/common/PublicResults.jsx";
-import PublicTimeTable from "./pages/common/PublicTimeTable.jsx";
-import ApplicationManual from "./pages/common/ApplicationManual.jsx";
-import ApplicationLogin from "./pages/common/ApplicationLogin.jsx";
-import ApplicationTracker from "./pages/common/ApplicationTracker.jsx";
-import Circulars from "./pages/admin/Circulars.jsx";
-import AdminApplications from "./pages/admin/AdminApplications.jsx";
-import MainDashboard from "./pages/admin/MainDashboard.jsx";
-import AdmissionsLogin from "./pages/admissions/AdminLogin.jsx";
 import AdminLogin from "./pages/admin/AdminLogin.jsx";
-import AdminStudents from "./pages/admin/Students.jsx";
-import AdminStaff from "./pages/admin/Staff.jsx";
 import ProfileCreation from "./pages/admin/ProfileCreation.jsx";
 import FeesCreation from "./pages/admin/FeesCreation.jsx";
 import AcademicYears from "./pages/admin/AcademicYears.jsx";
@@ -33,277 +18,47 @@ import FeesCollection from "./pages/admin/FeesCollection.jsx";
 import PaymentReports from "./pages/admin/PaymentReports.jsx";
 import ClassTimeTable from "./pages/admin/ClassTimeTable.jsx";
 import ClassTimeTableCreation from "./pages/admin/ClassTimeTableCreation.jsx";
-import LibraryLogin from "./pages/library/LibraryLogin.jsx";
-import LibraryShell from "./components/LibraryShell.jsx";
-import LibraryDashboard from "./pages/library/LibraryDashboard.jsx";
-import LibraryBooks from "./pages/library/Books.jsx";
-import LibraryAllBooks from "./pages/library/AllBooks.jsx";
-import LibraryBookCategories from "./pages/library/BookCategories.jsx";
-import LibraryInventoryInsights from "./pages/library/InventoryInsights.jsx";
-import LibraryCirculation from "./pages/library/Circulation.jsx";
-import LibraryFines from "./pages/library/Fines.jsx";
-import LibraryReports from "./pages/library/Reports.jsx";
-import LibraryHistory from "./pages/library/History.jsx";
-import ChargesAndPenalties from "./pages/library/ChargesAndPenalties.jsx";
-
+import Circulars from "./pages/admin/Circulars.jsx";
+import AdminApplications from "./pages/admin/AdminApplications.jsx";
+import MainDashboard from "./pages/admin/MainDashboard.jsx";
+import AdminStudents from "./pages/admin/Students.jsx";
+import AdminStaff from "./pages/admin/Staff.jsx";
 import StaffSubjectMapping from "./pages/admin/StaffSubjectMapping.jsx";
 
-import ExamLogin from "./pages/exam/ExamLogin.jsx";
-import StudentLogin from "./pages/student/StudentLogin.jsx";
 import StaffLogin from "./pages/staff/StaffLogin.jsx";
-import StudentDashboard from "./pages/student/StudentDashboard.jsx";
 import StaffDashboard from "./pages/staff/StaffDashboard.jsx";
 import StaffStudentAttendance from "./pages/staff/StudentAttendance.jsx";
 import StudentRecords from "./pages/staff/StudentRecords.jsx";
 import AcademicTimetable from "./pages/staff/AcademicTimetable.jsx";
 import PerformanceFeedback from "./pages/staff/PerformanceFeedback.jsx";
-
 import LearningMaterials from "./pages/staff/LearningMaterials.jsx";
 import MyAttendance from "./pages/staff/MyAttendance.jsx";
 import LeaveManagement from "./pages/staff/LeaveManagement.jsx";
 import StaffCirculars from "./pages/staff/StaffCirculars.jsx";
 
-import StudentSection from "./pages/student/StudentSection.jsx";
-import ParentLogin from "./pages/parent/ParentLogin.jsx";
-import ParentStudentDetails from "./pages/parent/ParentStudentDetails.jsx";
-import ParentAttendance from "./pages/parent/ParentAttendance.jsx";
-import ParentMarks from "./pages/parent/ParentMarks.jsx";
-import ParentNotifications from "./pages/parent/ParentNotifications.jsx";
-
-
-import StudentPersonalDetails from "./pages/student/StudentPersonalDetails.jsx";
-import StudentSubjectList from "./pages/student/StudentSubjectList.jsx";
-import StudentCertificate from "./pages/student/StudentCertificate.jsx";
-import StudentFeePayment from "./pages/student/StudentFeePayment.jsx";
-import StudentHostelDetails from "./pages/student/StudentHostelDetails.jsx";
-import StudentTimeTable from "./pages/student/StudentTimeTable.jsx";
-import StudentLeaveRequest from "./pages/student/StudentLeaveRequest.jsx";
-import StudentAttendance from "./pages/student/StudentAttendance.jsx";
-import StudentNotifications from "./pages/student/StudentNotifications.jsx";
-import StudentCirculars from "./pages/student/StudentCirculars.jsx";
-import StudentResults from "./pages/student/StudentResults.jsx";
-import StudentTransport from "./pages/student/StudentTransport.jsx";
-import StudentLibrary from "./pages/student/StudentLibrary.jsx";
-import Batches from "./pages/exam/Batches.jsx";
-import Courses from "./pages/exam/Courses.jsx";
-import Students from "./pages/exam/Students.jsx";
-import Promote from "./pages/exam/Promote.jsx";
-import CreateExam from "./pages/exam/CreateExam.jsx";
-import ExamNameCreation from "./pages/exam/ExamNameCreation.jsx";
-import CompleteRegistration from "./pages/exam/CompleteRegistration.jsx";
-import SubjectMapping from "./pages/exam/SubjectMapping.jsx";
-import HallTickets from "./pages/exam/HallTickets.jsx";
-import SeatAllocation from "./pages/exam/SeatAllocation.jsx";
-import MarksEntry from "./pages/exam/MarksEntry.jsx";
-import ResultPublish from "./pages/exam/ResultPublish.jsx";
-import Setup from "./pages/exam/Setup.jsx";
-import FeesGeneration from "./pages/exam/FeesGeneration.jsx";
-import Decode from "./pages/exam/Decode.jsx";
-import GuardedRoute from "./components/GuardedRoute.jsx";
-import Preloader from "./components/Preloader.jsx";
-import ToastStack from "./components/ToastStack.jsx";
-import StudentPayOverview from "./pages/exam/StudentPayOverview.jsx";
-import Reports from "./pages/exam/Reports.jsx";
-import Dashboard from "./pages/exam/Dashboard.jsx";
-import Revaluation from "./pages/exam/Revaluation.jsx";
-import MarksReports from "./pages/exam/MarksReports.jsx";
-import InternalMarks from "./pages/exam/InternalMarks.jsx";
-import History from "./pages/exam/History.jsx";
-import AdmissionsOverview from "./pages/admissions/AdmissionsOverview.jsx";
-import ApplicationReview from "./pages/admissions/ApplicationReview";
-import ConfirmedAdmissions from "./pages/admissions/ConfirmedAdmissions.jsx";
-import AdmissionsApplication from "./pages/admissions/AdmissionsApplication.jsx";
-import TransportLogin from "./pages/transport/TransportLogin.jsx";
-import TransportDashboard from "./pages/transport/TransportDashboard.jsx";
-import TransportRoutes from "./pages/transport/TransportRoutes.jsx";
-import TransportViewRoutes from "./pages/transport/TransportViewRoutes.jsx";
-import TransportVehicles from "./pages/transport/TransportVehicles.jsx";
-import TransportPasses from "./pages/transport/TransportPasses.jsx";
-import TransportAllocation from "./pages/transport/TransportAllocation.jsx";
-import TransportReports from "./pages/transport/TransportReports.jsx";
-import TransportNotifications from "./pages/transport/TransportNotifications.jsx";
-import Practical from "./pages/exam/Practical.jsx";
-import HostelLogin from "./pages/hostel/HostelLogin.jsx";
-import HostelDashboard from "./pages/hostel/HostelDashboard.jsx";
-
-// Hostel Admin Pages
-import HostelBlocks from "./pages/hostel/Blocks.jsx";
-import HostelRooms from "./pages/hostel/Rooms.jsx";
-import RoomYearMapping from "./pages/hostel/RoomYearMapping.jsx";
-import HostelAllocations from "./pages/hostel/Allocations.jsx";
-import HostelReports from "./pages/hostel/Reports.jsx";
-import HostelStudents from "./pages/hostel/Students.jsx";
-
-
 export default function App() {
-  const { user, signOut } = useAuth();
-  const { student } = useStudentAuth();
+  const { user } = useAuth();
   const { staff } = useStaffAuth();
-  const { parent } = useParentAuth();
-  const { transportUser } = useTransportAuth();
-  const { hostelUser } = useHostelAuth();
+
   const isAuthed = !!user;
-  const isStudentAuthed = !!student;
   const isStaffAuthed = !!staff;
-  const isParentAuthed = !!parent;
-  const isTransportAuthed = !!transportUser;
-  const isHostelAuthed = !!hostelUser;
+
   return (
     <>
       <Routes>
         <Route path="/" element={<Intro />} />
         <Route path="/home" element={<Home />} />
         <Route path="/roles" element={<RoleSelection />} />
-        <Route path="/admission" element={<AdmissionPortal />} />
 
-        <Route path="/hostel/login" element={<HostelLogin />} />
-        <Route
-          path="/hostel/dashboard"
-          element={
-            <GuardedRoute isAuthed={isHostelAuthed} redirectTo="/hostel/login">
-              <HostelDashboard />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/hostel/blocks"
-          element={
-            <GuardedRoute isAuthed={isHostelAuthed} redirectTo="/hostel/login">
-              <HostelBlocks />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/hostel/rooms"
-          element={
-            <GuardedRoute isAuthed={isHostelAuthed} redirectTo="/hostel/login">
-              <HostelRooms />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/hostel/beds"
-          element={
-            <GuardedRoute isAuthed={isHostelAuthed} redirectTo="/hostel/login">
-              <Navigate to="/hostel/rooms" replace />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/hostel/room-year-mapping"
-          element={
-            <GuardedRoute isAuthed={isHostelAuthed} redirectTo="/hostel/login">
-              <RoomYearMapping />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/hostel/applications"
-          element={
-            <GuardedRoute isAuthed={isHostelAuthed} redirectTo="/hostel/login">
-              <Navigate to="/hostel/allocations" replace />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/hostel/allocations"
-          element={
-            <GuardedRoute isAuthed={isHostelAuthed} redirectTo="/hostel/login">
-              <HostelAllocations />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/hostel/reports"
-          element={
-            <GuardedRoute isAuthed={isHostelAuthed} redirectTo="/hostel/login">
-              <HostelReports />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/hostel/students"
-          element={
-            <GuardedRoute isAuthed={isHostelAuthed} redirectTo="/hostel/login">
-              <HostelStudents />
-            </GuardedRoute>
-          }
-        />
-
-        <Route path="/transport/login" element={<TransportLogin />} />
-        <Route
-          path="/transport/dashboard"
-          element={
-            <GuardedRoute isAuthed={isTransportAuthed} redirectTo="/transport/login">
-              <TransportDashboard />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/transport/routes"
-          element={
-            <GuardedRoute isAuthed={isTransportAuthed} redirectTo="/transport/login">
-              <TransportRoutes />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/transport/view-routes"
-          element={
-            <GuardedRoute isAuthed={isTransportAuthed} redirectTo="/transport/login">
-              <TransportViewRoutes />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/transport/vehicles"
-          element={
-            <GuardedRoute isAuthed={isTransportAuthed} redirectTo="/transport/login">
-              <TransportVehicles />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/transport/passes"
-          element={
-            <GuardedRoute isAuthed={isTransportAuthed} redirectTo="/transport/login">
-              <TransportPasses />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/transport/allocation"
-          element={
-            <GuardedRoute isAuthed={isTransportAuthed} redirectTo="/transport/login">
-              <TransportAllocation />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/transport/reports"
-          element={
-            <GuardedRoute isAuthed={isTransportAuthed} redirectTo="/transport/login">
-              <TransportReports />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/transport/notifications"
-          element={
-            <GuardedRoute isAuthed={isTransportAuthed} redirectTo="/transport/login">
-              <TransportNotifications />
-            </GuardedRoute>
-          }
-        />
-
-        <Route path="/apply" element={<PublicApply />} />
-        <Route path="/admission/login" element={<ApplicationLogin />} />
-        <Route path="/admission/tracker" element={<ApplicationTracker />} />
-        <Route path="/application" element={<ApplicationManual />} />
-        <Route path="/public/results" element={<PublicResults />} />
-        <Route path="/public/timetable" element={<PublicTimeTable />} />
-        <Route path="/admin/login" element={<ExamLogin />} />
         <Route path="/admin-portal/login" element={<AdminLogin />} />
+        <Route
+          path="/admin-portal"
+          element={
+            <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
+              <Navigate to="/admin-portal/main-dashboard" replace />
+            </GuardedRoute>
+          }
+        />
         <Route
           path="/admin-portal/profile-creation"
           element={
@@ -312,7 +67,6 @@ export default function App() {
             </GuardedRoute>
           }
         />
-
         <Route
           path="/admin-portal/fees-creation"
           element={
@@ -417,11 +171,6 @@ export default function App() {
             </GuardedRoute>
           }
         />
-
-        {/* Hostel Management Admin Routes */}
-
-
-
         <Route
           path="/admin-portal/subject-mapping"
           element={
@@ -430,24 +179,16 @@ export default function App() {
             </GuardedRoute>
           }
         />
-        <Route path="/admissions/login" element={<AdmissionsLogin />} />
-        <Route path="/parent/login" element={<ParentLogin />} />
-        <Route path="/student/login" element={<StudentLogin />} />
+
         <Route path="/staff/login" element={<StaffLogin />} />
-        <Route path="/library/login" element={<LibraryLogin />} />
-        <Route path="/library" element={<LibraryShell />}>
-          <Route index element={<LibraryDashboard />} />
-          <Route path="books" element={<LibraryBooks />} />
-          <Route path="books/all" element={<LibraryAllBooks />} />
-          <Route path="books/categories" element={<LibraryBookCategories />} />
-          <Route path="shelves" element={<Navigate to="/library/books/all" replace />} />
-          <Route path="inventory" element={<LibraryInventoryInsights />} />
-          <Route path="circulation" element={<LibraryCirculation />} />
-          <Route path="fines" element={<LibraryFines />} />
-          <Route path="settings" element={<ChargesAndPenalties />} />
-          <Route path="reports" element={<LibraryReports />} />
-          <Route path="history" element={<LibraryHistory />} />
-        </Route>
+        <Route
+          path="/staff"
+          element={
+            <GuardedRoute isAuthed={isStaffAuthed} redirectTo="/staff/login">
+              <Navigate to="/staff/dashboard" replace />
+            </GuardedRoute>
+          }
+        />
         <Route
           path="/staff/dashboard"
           element={
@@ -488,7 +229,6 @@ export default function App() {
             </GuardedRoute>
           }
         />
-
         <Route
           path="/staff/circulars"
           element={
@@ -521,430 +261,8 @@ export default function App() {
             </GuardedRoute>
           }
         />
-        <Route
-          path="/admin"
-          element={
-            <GuardedRoute isAuthed={isAuthed}>
-              <Navigate to="/admin/dashboard" replace />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin/batches"
-          element={
-            <GuardedRoute isAuthed={isAuthed}>
-              <Batches />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin/courses"
-          element={
-            <GuardedRoute isAuthed={isAuthed}>
-              <Courses />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/parent/student-details"
-          element={
-            <GuardedRoute isAuthed={isParentAuthed} redirectTo="/parent/login">
-              <ParentStudentDetails />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/parent/attendance"
-          element={
-            <GuardedRoute isAuthed={isParentAuthed} redirectTo="/parent/login">
-              <ParentAttendance />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/parent/marks"
-          element={
-            <GuardedRoute isAuthed={isParentAuthed} redirectTo="/parent/login">
-              <ParentMarks />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/parent/notifications"
-          element={
-            <GuardedRoute isAuthed={isParentAuthed} redirectTo="/parent/login">
-              <ParentNotifications />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/parent/results"
-          element={
-            <GuardedRoute isAuthed={isParentAuthed} redirectTo="/parent/login">
-              <ParentMarks />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/parent/*"
-          element={
-            <GuardedRoute isAuthed={isParentAuthed} redirectTo="/parent/login">
-              <ParentStudentDetails />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin/students"
-          element={
-            <GuardedRoute isAuthed={isAuthed}>
-              <Students />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin/exam-name-creation"
-          element={
-            <GuardedRoute isAuthed={isAuthed}>
-              <ExamNameCreation />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin/create-exam"
-          element={
-            <GuardedRoute isAuthed={isAuthed}>
-              <CreateExam />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin/subject-mapping"
-          element={
-            <GuardedRoute isAuthed={isAuthed}>
-              <SubjectMapping />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin/decode"
-          element={
-            <GuardedRoute isAuthed={isAuthed}>
-              <Decode />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin/complete-registration"
-          element={
-            <GuardedRoute isAuthed={isAuthed}>
-              <CompleteRegistration />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin/hall-tickets"
-          element={
-            <GuardedRoute isAuthed={isAuthed}>
-              <HallTickets />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin/practical"
-          element={
-            <GuardedRoute isAuthed={isAuthed}>
-              <Practical />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin/seat-allocation"
-          element={
-            <GuardedRoute isAuthed={isAuthed}>
-              <SeatAllocation />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin/marks-entry"
-          element={
-            <GuardedRoute isAuthed={isAuthed}>
-              <MarksEntry />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin/result-publish"
-          element={
-            <GuardedRoute isAuthed={isAuthed}>
-              <ResultPublish />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin/internal-marks"
-          element={
-            <GuardedRoute isAuthed={isAuthed}>
-              <InternalMarks />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin/promote"
-          element={
-            <GuardedRoute isAuthed={isAuthed}>
-              <Promote />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin/revaluation"
-          element={
-            <GuardedRoute isAuthed={isAuthed}>
-              <Revaluation />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin/fees-generation"
-          element={
-            <GuardedRoute isAuthed={isAuthed}>
-              <FeesGeneration />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin/studentpayoverview"
-          element={
-            <GuardedRoute isAuthed={isAuthed}>
-              <StudentPayOverview />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin/setup"
-          element={
-            <GuardedRoute isAuthed={isAuthed}>
-              <Navigate to="/admin/setup/years" replace />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin/setup/:tab"
-          element={
-            <GuardedRoute isAuthed={isAuthed}>
-              <Setup />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin/marks-reports"
-          element={
-            <GuardedRoute isAuthed={isAuthed}>
-              <MarksReports />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin/reports"
-          element={
-            <GuardedRoute isAuthed={isAuthed}>
-              <Reports />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin/applications"
-          element={
-            <GuardedRoute isAuthed={isAuthed}>
-              <AdminApplications />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin/history"
-          element={
-            <GuardedRoute isAuthed={isAuthed}>
-              <History />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin/dashboard"
-          element={
-            <GuardedRoute isAuthed={isAuthed}>
-              <Dashboard />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin/admissions-overview"
-          element={
-            <GuardedRoute isAuthed={isAuthed}>
-              <Navigate to="/admissions/overview" replace />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admissions/overview"
-          element={
-            <GuardedRoute isAuthed={isAuthed} redirectTo="/admissions/login">
-              <AdmissionsOverview />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admissions/review"
-          element={
-            <GuardedRoute isAuthed={isAuthed} redirectTo="/admissions/login">
-              <ApplicationReview />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admissions/application"
-          element={
-            <GuardedRoute isAuthed={isAuthed} redirectTo="/admissions/login">
-              <AdmissionsApplication />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admissions/confirmed"
-          element={
-            <GuardedRoute isAuthed={isAuthed} redirectTo="/admissions/login">
-              <ConfirmedAdmissions />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/student/dashboard"
-          element={
-            <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
-              <StudentDashboard />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/student/personal-details"
-          element={
-            <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
-              <StudentPersonalDetails />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/student/course-list"
-          element={
-            <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
-              <StudentSubjectList />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/student/certificate"
-          element={
-            <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
-              <StudentCertificate />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/student/leave-request"
-          element={
-            <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
-              <StudentLeaveRequest />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/student/fee-payment"
-          element={
-            <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
-              <StudentFeePayment />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/student/attendance"
-          element={
-            <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
-              <StudentAttendance />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/student/notifications"
-          element={
-            <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
-              <StudentNotifications />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/student/results"
-          element={
-            <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
-              <StudentResults />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/student/exam-result"
-          element={
-            <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
-              <StudentResults />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/student/circulars"
-          element={
-            <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
-              <StudentCirculars />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/student/hostel-details"
-          element={
-            <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
-              <StudentHostelDetails />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/student/time-table"
-          element={
-            <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
-              <StudentTimeTable />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/student/transport"
-          element={
-            <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
-              <StudentTransport />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/student/library"
-          element={
-            <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
-              <StudentLibrary />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/student/:section"
-          element={
-            <GuardedRoute isAuthed={isStudentAuthed} redirectTo="/student/login">
-              <StudentSection />
-            </GuardedRoute>
-          }
-        />
+
+        <Route path="*" element={<Navigate to="/roles" replace />} />
       </Routes>
       <Preloader />
       <ToastStack />
