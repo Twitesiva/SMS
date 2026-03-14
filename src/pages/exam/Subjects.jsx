@@ -47,9 +47,9 @@ export default function SubjectsSection({
       try {
         setLoading(true)
         const { data, error } = await supabase
-          .from('academic_year')
+          .from('academic_years')
           .select('*')
-          .order('academic_year', { ascending: false })
+          .order('year_name', { ascending: true })
 
         if (error) throw error
 
@@ -66,7 +66,7 @@ export default function SubjectsSection({
   }, [])
 
   const yearNameById = useMemo(() => (academicYears || []).reduce((acc, year) => {
-    if (year?.academic_year) acc[year.id] = year.academic_year
+    if (year?.year_name) acc[year.id] = year.year_name
     return acc
   }, {}), [academicYears])
   const selectedYearName = yearNameById[subjectForm.academicYearId] || ''
@@ -518,8 +518,9 @@ export default function SubjectsSection({
                 }}
               >
                 <option value="">Select category</option>
-                <option value="UG">UG</option>
-                <option value="PG">PG</option>
+                <option value="Primary">Primary</option>
+                <option value="Middle">Middle</option>
+                <option value="Secondary">Secondary</option>
               </select>
             </div>
 
@@ -542,14 +543,14 @@ export default function SubjectsSection({
                       setSubjectForm({
                         ...subjectForm,
                         academicYearId: value,
-                        academicYearName: selected?.academic_year || ''
+                        academicYearName: selected?.year_name || ''
                       })
                     }}
                   >
                     <option value="">Select Year</option>
                     {yearOptions.map(year => (
                       <option key={year.id} value={year.id}>
-                        {year.academic_year}
+                        {year.year_name}
                       </option>
                     ))}
                   </select>
@@ -561,7 +562,7 @@ export default function SubjectsSection({
             </div>
 
             <div className="col-md-3">
-              <label className="form-label fw-bold mb-1">Group *</label>
+              <label className="form-label fw-bold mb-1">Class *</label>
               <select
                 className="form-select"
                 required
@@ -569,7 +570,7 @@ export default function SubjectsSection({
                 disabled={!programmeCategory}
                 onChange={e => setSubjectForm({ ...subjectForm, groupCode: e.target.value, courseCode: '', semester: '' })}
               >
-                <option value="">Select Group</option>
+                <option value="">Select Class</option>
                 {filteredGroupOptions.map(g => (
                   <option key={g.id} value={g.code}>
                     {g.name || g.code}
@@ -578,7 +579,7 @@ export default function SubjectsSection({
               </select>
             </div>
             <div className="col-md-3">
-              <label className="form-label fw-bold mb-1">Course *</label>
+              <label className="form-label fw-bold mb-1">Section *</label>
               <select
                 className="form-select"
                 required
@@ -595,7 +596,7 @@ export default function SubjectsSection({
                   })
                 }}
               >
-                <option value="">Select Course</option>
+                <option value="">Select Section</option>
                 {coursesForGroup.map(c => (
                   <option key={c.id} value={c.courseCode}>
                     {c.courseName || c.name || c.courseCode}
@@ -604,7 +605,7 @@ export default function SubjectsSection({
               </select>
             </div>
             <div className="col-md-3">
-              <label className="form-label fw-bold mb-1">Semester *</label>
+              <label className="form-label fw-bold mb-1">Term *</label>
               <select
                 className="form-select"
                 required
@@ -612,9 +613,9 @@ export default function SubjectsSection({
                 value={subjectForm.semester}
                 onChange={e => setSubjectForm({ ...subjectForm, semester: e.target.value })}
               >
-                <option value="">Select Semester</option>
-                {semForCourse.map(s => (
-                  <option key={s.id} value={s.number}>Semester {s.number}</option>
+                <option value="">Select Term</option>
+                {[1, 2, 3].map((term) => (
+                  <option key={term} value={term}>Term {term}</option>
                 ))}
               </select>
             </div>
@@ -623,6 +624,20 @@ export default function SubjectsSection({
               <select className="form-select" required value={subjectForm.category} onChange={e => setSubjectForm({ ...subjectForm, category: e.target.value, subjectSelections: [], subjectName: '' })}>
                 <option value="">Select Sub-category</option>
                 {subCategories.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+            <div className="col-md-3">
+              <label className="form-label fw-bold mb-1">Subject Type *</label>
+              <select
+                className="form-select"
+                required
+                value={subjectForm.subjectType || 'core'}
+                onChange={(e) => setSubjectForm({ ...subjectForm, subjectType: e.target.value })}
+              >
+                <option value="core">Core</option>
+                <option value="activity">Activity</option>
+                <option value="language">Language</option>
+                <option value="skill">Skill</option>
               </select>
             </div>
             <div className="col-md-9">
@@ -750,7 +765,7 @@ export default function SubjectsSection({
                                   <strong>{combo.academicYear}</strong>
                                 </div>
                                 <div className="text-dark fw-bold">
-                                  {displayGroupName(combo.groupCode)} · {combo.courseName || combo.courseCode || '-'} · Sem {combo.semester}
+                                  {displayGroupName(combo.groupCode)} · {combo.courseName || combo.courseCode || '-'} · Term {combo.semester}
                                 </div>
                               </div>
                               {combo.categories.map(cat => (
@@ -792,9 +807,9 @@ export default function SubjectsSection({
                         <thead>
                           <tr>
                             <th>Academic Year</th>
-                            <th>Group</th>
-                            <th>Course</th>
-                            <th>Semester</th>
+                            <th>Class</th>
+                            <th>Section</th>
+                            <th>Term</th>
                             <th>Categories & Subjects</th>
                             <th>Actions</th>
                           </tr>
@@ -830,7 +845,7 @@ export default function SubjectsSection({
                                     <td rowSpan={catEntries.length} className="align-middle border-end">{combo.academicYear}</td>
                                     <td rowSpan={catEntries.length} className="align-middle border-end">{displayGroupName(combo.groupCode)}</td>
                                     <td rowSpan={catEntries.length} className="align-middle border-end">{combo.courseName || combo.courseCode || '-'}</td>
-                                    <td rowSpan={catEntries.length} className="align-middle border-end">Sem {combo.semester}</td>
+                                    <td rowSpan={catEntries.length} className="align-middle border-end">Term {combo.semester}</td>
                                   </>
                                 )}
                                 <td>
@@ -916,7 +931,7 @@ export default function SubjectsSection({
                         {modalCategory.combo.academicYear} · {displayGroupName(modalCategory.combo.groupCode)}
                       </span>
                       <span>
-                        {modalCategory.combo.courseName || modalCategory.combo.courseCode || '-'} · Sem {modalCategory.combo.semester}
+                        {modalCategory.combo.courseName || modalCategory.combo.courseCode || '-'} · Term {modalCategory.combo.semester}
                       </span>
                     </div>
                   </div>

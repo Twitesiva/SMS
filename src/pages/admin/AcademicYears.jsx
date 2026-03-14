@@ -71,7 +71,7 @@ function AcademicYears() {
 
   const editYear = (year) => {
     setYearForm({
-      name: year.name || year.academic_year || '',
+      name: year.name || year.year_name || year.academic_year || '',
       category: year.category || '',
       active: year.active ?? true
     })
@@ -152,7 +152,7 @@ function AcademicYears() {
                       const start = 2025 + i;
                       const val = `${start}-${start + 1}`;
                       const isCreated = academicYears.some(
-                        (y) => (y.name === val || y.academic_year === val)
+                        (y) => (y.name === val || y.year_name === val || y.academic_year === val)
                       );
                       return (
                         <option key={val} value={val} disabled={isCreated}>
@@ -187,7 +187,7 @@ function AcademicYears() {
                   <tbody>
                     {academicYears.map((year) => (
                       <tr key={year.id}>
-                        <td className="fw-bold">{year.name || year.academic_year}</td>
+                        <td className="fw-bold">{year.name || year.year_name || year.academic_year}</td>
                         <td className="text-end">
                           <div className="d-flex justify-content-end gap-2">
                             <button

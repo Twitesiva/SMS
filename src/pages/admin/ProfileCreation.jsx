@@ -1,74 +1,98 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import AdShellAdmin from '../../components/AdShellAdmin'
 import { supabase } from '../../../supabaseClient'
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
+const SUBJECT_TYPES = ['core', 'activity', 'language', 'skill']
 
+const buildDefaultForm = () => ({
+  staff_id: '',
+  full_name: '',
+  gender: '',
+  dob: '',
+  phone: '',
+  aadhar: '',
+  email: '',
+  address: '',
+  designation: '',
+  qualification: '',
+  experience: '',
+  joining_date: ''
+})
 
 export default function ProfileCreation() {
-  const [formData, setFormData] = useState({
-    staff_id: '',
-    full_name: '',
-    gender: '',
-    dob: '',
-    phone: '',
-    aadhar: '',
-    email: '',
-    address: '',
-    designation: '',
-    qualification: '',
-    experience: '',
-    joining_date: ''
-  })
-
-  // Track validation errors and duplicate checks
+  const [formData, setFormData] = useState(buildDefaultForm)
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
   const [checkingId, setCheckingId] = useState(false)
   const [photo, setPhoto] = useState(null)
 
+  const [subjects, setSubjects] = useState([])
+  const [selectedSubjectIds, setSelectedSubjectIds] = useState([])
+  const [subjectSearch, setSubjectSearch] = useState('')
+
+  useEffect(() => {
+    const loadSubjects = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('subjects')
+          .select('subject_id, subject_name, subject_code, subject_type')
+          .order('subject_name')
+        if (error) throw error
+        setSubjects(data || [])
+      } catch (error) {
+        console.error('Failed to load subjects', error)
+        toast.error('Unable to load subjects list')
+      }
+    }
+
+    loadSubjects()
+  }, [])
+
+  const filteredSubjects = useMemo(() => {
+    const term = subjectSearch.trim().toLowerCase()
+    if (!term) return subjects
+    return subjects.filter((subject) => {
+      const name = String(subject.subject_name || '').toLowerCase()
+      const code = String(subject.subject_code || '').toLowerCase()
+      const type = String(subject.subject_type || '').toLowerCase()
+      return name.includes(term) || code.includes(term) || type.includes(term)
+    })
+  }, [subjectSearch, subjects])
+
   const handleChange = (e) => {
     const { name, value } = e.target
 
-    // Validation for specific fields
     if (name === 'phone') {
-      // Allow only numbers and max 10 chars
       if (!/^\d*$/.test(value)) return
       if (value.length > 10) return
     }
 
     if (name === 'aadhar') {
-      // Allow only numbers and max 12 chars
       if (!/^\d*$/.test(value)) return
       if (value.length > 12) return
     }
 
-    setFormData(prev => ({ ...prev, [name]: value }))
-
-    // Clear specific errors when user types
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: null }))
-    }
+    setFormData((prev) => ({ ...prev, [name]: value }))
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: null }))
   }
 
-  // Check for duplicate Staff ID
   const checkStaffId = async (id) => {
     if (!id) return
     setCheckingId(true)
     try {
       const { data, error } = await supabase
-        .from('teachers')
+        .from('staff')
         .select('staff_id')
         .eq('staff_id', id)
         .maybeSingle()
 
       if (error) throw error
-
       if (data) {
-        setErrors(prev => ({ ...prev, staff_id: 'Staff ID already exists' }))
+        setErrors((prev) => ({ ...prev, staff_id: 'Staff ID already exists' }))
       } else {
-        setErrors(prev => ({ ...prev, staff_id: null }))
+        setErrors((prev) => ({ ...prev, staff_id: null }))
       }
     } catch (err) {
       console.error('Error checking staff ID:', err)
@@ -77,7 +101,6 @@ export default function ProfileCreation() {
     }
   }
 
-  // Helper: Convert file to Base64 (fallback)
   const fileToDataUrl = (file) => new Promise((resolve, reject) => {
     if (!file) { resolve(null); return }
     const reader = new FileReader()
@@ -86,30 +109,21 @@ export default function ProfileCreation() {
     reader.readAsDataURL(file)
   })
 
-  // Helper: Upload file to Supabase
   const uploadFile = async (file) => {
     if (!file) return null
     try {
       const fileExt = file.name.split('.').pop()
-      const fileName = `staff_photos/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
-      const { data, error } = await supabase.storage
-        .from('documents')
-        .upload(fileName, file)
-
+      const fileName = `staff_photos/${Date.now()}_${Math.random().toString(36).slice(2)}.${fileExt}`
+      const { error } = await supabase.storage.from('documents').upload(fileName, file)
       if (error) throw error
-
-      const { data: publicData } = supabase.storage
-        .from('documents')
-        .getPublicUrl(fileName)
-
+      const { data: publicData } = supabase.storage.from('documents').getPublicUrl(fileName)
       return publicData.publicUrl
     } catch (err) {
-      console.warn('Upload failed, falling back to Base64:', err)
-      return await fileToDataUrl(file)
+      console.warn('Upload failed, using Base64 fallback:', err)
+      return fileToDataUrl(file)
     }
   }
 
-  // Derive form validity
   const isFormValid = () => {
     const requiredFields = [
       'staff_id', 'full_name', 'gender', 'dob', 'phone',
@@ -117,17 +131,20 @@ export default function ProfileCreation() {
       'qualification', 'experience', 'joining_date'
     ]
 
-    // Check all required fields are filled
-    const allFilled = requiredFields.every(field => formData[field] && formData[field].toString().trim() !== '')
-
-    // Check specific length requirements
+    const allFilled = requiredFields.every((field) => String(formData[field] || '').trim() !== '')
     const phoneValid = formData.phone.length === 10
     const aadharValid = formData.aadhar.length === 12
-
-    // Check no errors exist
-    const noErrors = !Object.values(errors).some(err => err !== null)
+    const noErrors = !Object.values(errors).some((err) => err !== null)
 
     return allFilled && phoneValid && aadharValid && noErrors && !checkingId
+  }
+
+  const toggleSubject = (subjectId) => {
+    setSelectedSubjectIds((prev) => {
+      const exists = prev.includes(subjectId)
+      if (exists) return prev.filter((id) => id !== subjectId)
+      return [...prev, subjectId]
+    })
   }
 
   const handleSubmit = async (e) => {
@@ -135,52 +152,51 @@ export default function ProfileCreation() {
     if (!isFormValid()) return
 
     setLoading(true)
-
     try {
-      // 1. Upload photo if exists
       const photoUrl = photo ? await uploadFile(photo) : null
 
-      // 2. Insert record
-      const { error } = await supabase
-        .from('teachers')
-        .insert([
-          {
-            staff_id: formData.staff_id,
-            full_name: formData.full_name,
-            gender: formData.gender,
-            date_of_birth: formData.dob,
-            aadhar_number: formData.aadhar,
-            phone_number: formData.phone,
-            email: formData.email,
-            address: formData.address,
-            designation: formData.designation,
-            qualification: formData.qualification,
-            experience_years: parseInt(formData.experience) || 0,
-            joining_date: formData.joining_date,
-            image_url: photoUrl
-          }
-        ])
+      const payload = {
+        staff_id: formData.staff_id,
+        full_name: formData.full_name,
+        gender: formData.gender,
+        date_of_birth: formData.dob,
+        aadhar_number: formData.aadhar,
+        phone_number: formData.phone,
+        email: formData.email,
+        address: formData.address,
+        designation: formData.designation,
+        qualification: formData.qualification,
+        experience_years: parseInt(formData.experience, 10) || 0,
+        joining_date: formData.joining_date,
+        image_url: photoUrl,
+        status: 'ACTIVE'
+      }
 
-      if (error) throw error
+      const { data: insertedStaff, error: staffError } = await supabase
+        .from('staff')
+        .insert([payload])
+        .select('id')
+        .single()
 
-      toast.success('Successfully created staff profile!')
-      // Reset form
-      setFormData({
-        staff_id: '',
-        full_name: '',
-        gender: '',
-        dob: '',
-        phone: '',
-        aadhar: '',
-        email: '',
-        address: '',
-        designation: '',
-        qualification: '',
-        experience: '',
-        joining_date: ''
-      })
+      if (staffError) throw staffError
+
+      if (selectedSubjectIds.length > 0) {
+        const rows = selectedSubjectIds.map((subjectId) => ({
+          staff_id: insertedStaff.id,
+          subject_id: subjectId
+        }))
+        const { error: mappingError } = await supabase
+          .from('staff_subjects')
+          .insert(rows)
+        if (mappingError) throw mappingError
+      }
+
+      toast.success('Successfully created staff profile')
+      setFormData(buildDefaultForm())
       setPhoto(null)
       setErrors({})
+      setSelectedSubjectIds([])
+      setSubjectSearch('')
     } catch (err) {
       console.error('Error creating profile:', err)
       toast.error(err.message || 'Failed to create profile.')
@@ -205,31 +221,23 @@ export default function ProfileCreation() {
                 <div className="d-flex justify-content-between align-items-center w-100">
                   <div>
                     <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>Staff Profile Creation</h5>
-                    <p className="students-section-copy mb-0">Create new staff profiles with academic, contact, and employment details.</p>
+                    <p className="students-section-copy mb-0">Create new staff profiles and assign subjects.</p>
                   </div>
-                  <button type="button" className="btn btn-outline-light btn-sm" onClick={() => {
-                    setFormData({
-                      staff_id: '',
-                      full_name: '',
-                      gender: '',
-                      dob: '',
-                      phone: '',
-                      aadhar: '',
-                      email: '',
-                      address: '',
-                      designation: '',
-                      qualification: '',
-                      experience: '',
-                      joining_date: ''
-                    })
-                    setErrors({})
-                  }}>Reset</button>
+                  <button
+                    type="button"
+                    className="btn btn-outline-light btn-sm"
+                    onClick={() => {
+                      setFormData(buildDefaultForm())
+                      setErrors({})
+                      setSelectedSubjectIds([])
+                    }}
+                  >
+                    Reset
+                  </button>
                 </div>
               </div>
 
               <form className="row g-3" onSubmit={handleSubmit}>
-
-
                 <div className="col-md-6">
                   <label className="form-label">Staff ID <span className="text-danger">*</span></label>
                   <input
@@ -247,25 +255,11 @@ export default function ProfileCreation() {
                 </div>
                 <div className="col-md-6">
                   <label className="form-label">Full Name <span className="text-danger">*</span></label>
-                  <input
-                    className="form-control"
-                    type="text"
-                    name="full_name"
-                    value={formData.full_name}
-                    onChange={handleChange}
-                    placeholder="Enter full name"
-                    required
-                  />
+                  <input className="form-control" type="text" name="full_name" value={formData.full_name} onChange={handleChange} required />
                 </div>
                 <div className="col-md-6">
                   <label className="form-label">Gender <span className="text-danger">*</span></label>
-                  <select
-                    className="form-select"
-                    name="gender"
-                    value={formData.gender}
-                    onChange={handleChange}
-                    required
-                  >
+                  <select className="form-select" name="gender" value={formData.gender} onChange={handleChange} required>
                     <option value="" disabled>Select gender</option>
                     <option value="MALE">Male</option>
                     <option value="FEMALE">Female</option>
@@ -274,131 +268,78 @@ export default function ProfileCreation() {
                 </div>
                 <div className="col-md-6">
                   <label className="form-label">DOB <span className="text-danger">*</span></label>
-                  <input
-                    className="form-control"
-                    type="date"
-                    name="dob"
-                    value={formData.dob}
-                    onChange={handleChange}
-                    onClick={(e) => e.target.showPicker()}
-                    required
-                  />
+                  <input className="form-control" type="date" name="dob" value={formData.dob} onChange={handleChange} onClick={(e) => e.target.showPicker()} required />
                 </div>
                 <div className="col-md-6">
                   <label className="form-label">Phone <span className="text-danger">*</span></label>
-                  <input
-                    className="form-control"
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    placeholder="Enter phone number (10 digits)"
-                    required
-                  />
-                  {formData.phone && formData.phone.length !== 10 && (
-                    <div className="form-text text-danger">Must be 10 digits</div>
-                  )}
+                  <input className="form-control" type="tel" name="phone" value={formData.phone} onChange={handleChange} required />
                 </div>
                 <div className="col-md-6">
                   <label className="form-label">Aadhar no <span className="text-danger">*</span></label>
-                  <input
-                    className="form-control"
-                    type="text"
-                    name="aadhar"
-                    value={formData.aadhar}
-                    onChange={handleChange}
-                    placeholder="Enter Aadhar number (12 digits)"
-                    required
-                  />
-                  {formData.aadhar && formData.aadhar.length !== 12 && (
-                    <div className="form-text text-danger">Must be 12 digits</div>
-                  )}
+                  <input className="form-control" type="text" name="aadhar" value={formData.aadhar} onChange={handleChange} required />
                 </div>
                 <div className="col-md-6">
                   <label className="form-label">Email <span className="text-danger">*</span></label>
-                  <input
-                    className="form-control"
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="name@vijayam.in"
-                    required
-                  />
+                  <input className="form-control" type="email" name="email" value={formData.email} onChange={handleChange} required />
                 </div>
                 <div className="col-md-6">
                   <label className="form-label">Address <span className="text-danger">*</span></label>
-                  <input
-                    className="form-control"
-                    type="text"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    placeholder="Enter address"
-                    required
-                  />
+                  <input className="form-control" type="text" name="address" value={formData.address} onChange={handleChange} required />
                 </div>
                 <div className="col-md-6">
                   <label className="form-label">Designation <span className="text-danger">*</span></label>
-                  <select
-                    className="form-select"
-                    name="designation"
-                    value={formData.designation}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="" disabled>Select designation</option>
-                    <option value="PROFESSOR">Professor</option>
-                    <option value="ASSISTANT_PROFESSOR">Assistant Professor</option>
-                    <option value="HOD">HOD</option>
-                  </select>
+                  <input className="form-control" type="text" name="designation" value={formData.designation} onChange={handleChange} required />
                 </div>
                 <div className="col-md-6">
                   <label className="form-label">Qualification <span className="text-danger">*</span></label>
-                  <input
-                    className="form-control"
-                    type="text"
-                    name="qualification"
-                    value={formData.qualification}
-                    onChange={handleChange}
-                    placeholder="Enter qualification"
-                    required
-                  />
+                  <input className="form-control" type="text" name="qualification" value={formData.qualification} onChange={handleChange} required />
                 </div>
                 <div className="col-md-6">
                   <label className="form-label">Experience <span className="text-danger">*</span></label>
-                  <input
-                    className="form-control"
-                    type="text"
-                    name="experience"
-                    value={formData.experience}
-                    onChange={handleChange}
-                    placeholder="Enter experience"
-                    required
-                  />
+                  <input className="form-control" type="text" name="experience" value={formData.experience} onChange={handleChange} required />
                 </div>
                 <div className="col-md-6">
                   <label className="form-label">Joining Date <span className="text-danger">*</span></label>
-                  <input
-                    className="form-control"
-                    type="date"
-                    name="joining_date"
-                    value={formData.joining_date}
-                    onChange={handleChange}
-                    onClick={(e) => e.target.showPicker()}
-                    required
-                  />
+                  <input className="form-control" type="date" name="joining_date" value={formData.joining_date} onChange={handleChange} onClick={(e) => e.target.showPicker()} required />
                 </div>
-
                 <div className="col-md-6">
                   <label className="form-label">Profile Photo</label>
-                  <input
-                    className="form-control"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setPhoto(e.target.files[0])}
-                  />
+                  <input className="form-control" type="file" accept="image/*" onChange={(e) => setPhoto(e.target.files?.[0] || null)} />
                   <div className="form-text">Max size 2MB. JPG/PNG only.</div>
+                </div>
+
+                <div className="col-12">
+                  <label className="form-label">Subjects</label>
+                  <input
+                    type="text"
+                    className="form-control mb-2"
+                    placeholder="Search by subject name, code or type"
+                    value={subjectSearch}
+                    onChange={(e) => setSubjectSearch(e.target.value)}
+                  />
+                  <div className="border rounded p-2" style={{ maxHeight: 220, overflowY: 'auto', background: '#fff' }}>
+                    {filteredSubjects.length === 0 ? (
+                      <div className="text-muted small px-2 py-1">No subjects found.</div>
+                    ) : (
+                      filteredSubjects.map((subject) => (
+                        <label key={subject.subject_id} className="d-flex align-items-center justify-content-between gap-2 px-2 py-1">
+                          <span>
+                            <input
+                              type="checkbox"
+                              className="form-check-input me-2"
+                              checked={selectedSubjectIds.includes(subject.subject_id)}
+                              onChange={() => toggleSubject(subject.subject_id)}
+                            />
+                            {subject.subject_code ? `${subject.subject_code} - ` : ''}{subject.subject_name}
+                          </span>
+                          <span className="badge bg-light text-dark border text-capitalize">
+                            {SUBJECT_TYPES.includes(subject.subject_type) ? subject.subject_type : 'core'}
+                          </span>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                  <div className="form-text">Selected: {selectedSubjectIds.length}</div>
                 </div>
 
                 <div className="col-12 d-flex justify-content-end gap-2">
@@ -415,7 +356,3 @@ export default function ProfileCreation() {
     </AdShellAdmin>
   )
 }
-
-
-
-

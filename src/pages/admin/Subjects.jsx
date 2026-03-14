@@ -31,6 +31,7 @@ const buildSubjectForm = (category = '') => ({
   categoryId: '',
   subjectName: '',
   subjectCode: '',
+  subjectType: 'core',
   extraSubjectNames: [],
   extraSubjectCodes: [],
   subjectSelections: [],
@@ -98,6 +99,7 @@ const normalizeSubjectRecord = (subject = {}, context = {}) => {
     ''
 
   const subjectName = subject.subjectName || subject.subject_name || subjectCode
+  const subjectType = subject.subjectType || subject.subject_type || 'core'
 
   const subjectNames =
     subject.subjectNames && Array.isArray(subject.subjectNames)
@@ -166,6 +168,7 @@ const normalizeSubjectRecord = (subject = {}, context = {}) => {
     category: categoryName,
     subjectCode,
     subjectName,
+    subjectType,
     feeCategory:
       subject.feeCategory ||
       subject.fee_category ||
@@ -642,6 +645,7 @@ export default function Subjects() {
         categoryId,
         subjectCode: codes[idx] || '',
         subjectName: name,
+        subjectType: subjectForm.subjectType || 'core',
         feeCategory: feeCategory || null,
         feeAmount: feeAmount ? Number(feeAmount) : null
       }))
@@ -669,6 +673,7 @@ export default function Subjects() {
         ...subjectForm,
         subjectName: '',
         subjectCode: '',
+        subjectType: subjectForm.subjectType || 'core',
         extraSubjectNames: [],
         extraSubjectCodes: [],
         subjectSelections: [],
@@ -805,7 +810,7 @@ export default function Subjects() {
     })
 
     setEditingSubjectId(template.subjectId || template.id || '')
-    setEditingBatchId(batchRef || '')
+    setEditingBatchId(buildSubjectBatchKey(template) || '')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -849,6 +854,7 @@ export default function Subjects() {
             category_id: categoryId,
             subject_code: item.subjectCode,
             subject_name: item.subjectName,
+            subject_type: item.subjectType || 'core',
             amount: item.feeAmount ? Number(item.feeAmount) : null,
             fees_categories: null,
             created_at: new Date().toISOString()
@@ -874,6 +880,7 @@ export default function Subjects() {
               category_id: categoryId,
               subject_code: code,
               subject_name: name,
+              subject_type: item.subjectType || 'core',
               amount: item.feeAmount ? Number(item.feeAmount) : null,
               fees_categories: null,
               created_at: new Date().toISOString()
@@ -944,6 +951,7 @@ export default function Subjects() {
         categoryId: '',
         subjectName: '',
         subjectCode: '',
+        subjectType: 'core',
         extraSubjectNames: [],
         extraSubjectCodes: [],
         subjectSelections: [],

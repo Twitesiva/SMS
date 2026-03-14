@@ -3,7 +3,7 @@ import { trackPromise } from "../store/ui.js";
 
 const TABLES = {
   applications: "applications",
-  academicYears: "academic_year",
+  academicYears: "academic_years",
   groups: "groups",
   courses: "courses",
   subCategories: "subject_category",
@@ -44,7 +44,7 @@ const runMaybeSingle = async (query, label) => {
 };
 
 const DUPLICATE_RULES = {
-  [TABLES.academicYears]: { cols: ["academic_year"], pk: "id" },
+  [TABLES.academicYears]: { cols: ["year_name"], pk: "id" },
   [TABLES.groups]: { cols: ["group_code", "group_name"], pk: "group_id" },
   [TABLES.courses]: { cols: ["course_code", "course_name"], pk: "course_id" },
   [TABLES.subCategories]: { cols: ["category_name"], pk: "category_id" },
@@ -175,10 +175,11 @@ const ensureNoDuplicate = async (table, row = {}, opts = {}) => {
 };
 
 const mapYear = (row = {}) => {
-  const academicYear = row.academic_year ?? row.name ?? "";
+  const academicYear = row.year_name ?? row.academic_year ?? row.name ?? "";
   // Category/Status columns removed from DB, defaulting to inferred values
   return {
     id: row.id,
+    year_name: academicYear,
     academic_year: academicYear,
     name: academicYear,
     active: true,
@@ -187,22 +188,38 @@ const mapYear = (row = {}) => {
 };
 
 const toYearRow = ({ name }) => ({
-  academic_year: name,
+  year_name: name,
 });
 
-const mapGroup = (row = {}) => ({
-  id: row.group_id ?? row.id,
-  code: row.group_code,
-  name: row.group_name,
-  category: row.category || row.Category || "",
-  years: row.duration_years ?? 0,
-  semesters: row.number_semesters ?? 0,
-});
+const mapGroup = (row = {}) => {
+  const classCodeRaw = row.class_number ?? row.group_code ?? row.code ?? "";
+  const classCode = String(classCodeRaw || "");
+  return {
+    id: row.group_id ?? row.id,
+    code: classCode,
+    name: row.class_name || row.group_name || row.name || (classCode ? `Class ${classCode}` : ""),
+    category: row.school_level || row.category || row.Category || "",
+    years: row.duration_years ?? 0,
+    semesters: row.number_semesters ?? 0,
+    class_number: classCode ? Number(classCode) : null,
+    class_name: row.class_name || row.group_name || row.name || "",
+    school_level: row.school_level || row.category || row.Category || "",
+  };
+};
 
 const toGroupRow = ({ code, name, years, semesters, category }) => {
+  const classCode = String(code || "").trim();
+  const classNumber = Number(classCode);
+  const normalizedClassNumber =
+    Number.isInteger(classNumber) && classNumber >= 1 && classNumber <= 12
+      ? classNumber
+      : null;
   const row = {
-    group_code: code,
-    group_name: name,
+    group_code: classCode || null,
+    group_name: name || (classCode ? `Class ${classCode}` : null),
+    class_number: normalizedClassNumber,
+    class_name: name || (classCode ? `Class ${classCode}` : null),
+    school_level: category ?? null,
     duration_years: years ?? null,
     number_semesters: semesters ?? null,
   };
@@ -215,10 +232,10 @@ const toGroupRow = ({ code, name, years, semesters, category }) => {
 };
 
 const mapCourse = (row = {}) => {
-  const code = row.course_code || row.code;
-  const name = row.course_name || row.name;
-  const groupCode = row.group_code || row.groupCode || "";
-  const groupName = row.group_name || row.groupName || "";
+  const code = row.section_name || row.course_code || row.code;
+  const name = row.course_name || row.name || (code ? `Section ${code}` : "");
+  const groupCode = row.group_code || row.groupCode || row.class_number || "";
+  const groupName = row.group_name || row.groupName || row.class_name || "";
   const semesters = Number(row.no_of_semesters ?? row.semesters ?? 0) || 0;
   const duration =
     row.duration_years ?? (semesters ? Math.ceil(semesters / 2) : null);
@@ -232,6 +249,9 @@ const mapCourse = (row = {}) => {
     groupCode,
     group_name: groupName,
     groupName,
+    section_name: row.section_name || code || "",
+    class_number: row.class_number || null,
+    class_name: row.class_name || groupName || "",
     semesters,
     duration_years: duration,
   };
@@ -239,10 +259,14 @@ const mapCourse = (row = {}) => {
 
 const toCourseRow = ({ code, name, group_name, groupName, semesters, duration_years }) => {
   const normalizedGroupName = group_name ?? groupName ?? null;
+  const normalizedClassNumber = Number.parseInt(String(normalizedGroupName || "").replace(/[^\d]/g, ""), 10);
   return {
     course_code: code,
-    course_name: name,
+    section_name: code,
+    course_name: name || (code ? `Section ${code}` : null),
     group_name: normalizedGroupName,
+    class_name: normalizedGroupName,
+    class_number: Number.isFinite(normalizedClassNumber) ? normalizedClassNumber : null,
     no_of_semesters: semesters ?? null,
     duration_years:
       duration_years ?? (semesters ? Math.ceil(semesters / 2) : null),
@@ -330,6 +354,7 @@ const mapSubject = (row = {}) => {
     subjectCode,
     subjectCodes,
     subjectName,
+    subjectType: row.subject_type || row.type || "core",
     subjectNames: parseSubjectList(
       row.subjects_name || row.subject_name || row.subjectName
     ),
@@ -385,6 +410,10 @@ const toSubjectRow = (subject = {}) => {
       subject.subject_code ||
       subject.subjectCode ||
       null,
+    subject_type:
+      subject.subject_type ||
+      subject.subjectType ||
+      "core",
     fees_categories: subject.fees_categories || subject.feeCategory || null,
     amount: normalizedFee,
   };
@@ -733,8 +762,8 @@ export const api = {
     const rows = await runQuery(
       supabase
         .from(TABLES.academicYears)
-        .select("id, academic_year")
-        .order("academic_year"),
+        .select("id, year_name")
+        .order("year_name"),
       "Unable to fetch academic years"
     );
     return rows.map(mapYear);
@@ -746,7 +775,7 @@ export const api = {
       supabase
         .from(TABLES.academicYears)
         .insert(toYearRow(payload))
-        .select("id, academic_year")
+        .select("id, year_name")
         .single(),
       "Unable to add academic year"
     );
@@ -762,7 +791,7 @@ export const api = {
         .from(TABLES.academicYears)
         .update(toYearRow(payload))
         .eq("id", id)
-        .select("id, academic_year")
+        .select("id, year_name")
         .single(),
       "Unable to update academic year"
     );
@@ -778,7 +807,7 @@ export const api = {
 
   listGroups: async () => {
     const rows = await runQuery(
-      supabase.from(TABLES.groups).select("*").order("group_code"),
+      supabase.from(TABLES.groups).select("*").order("class_number", { ascending: true }).order("group_code"),
       "Unable to fetch groups"
     );
     return rows.map(mapGroup);
@@ -825,7 +854,7 @@ export const api = {
       supabase
         .from(TABLES.courses)
         .select(
-          "course_id, course_code, course_name, group_name, no_of_semesters, duration_years"
+          "course_id, course_code, section_name, course_name, group_name, class_name, class_number, no_of_semesters, duration_years"
         )
         .order("course_code"),
       "Unable to fetch courses"
@@ -840,7 +869,7 @@ export const api = {
         .from(TABLES.courses)
         .insert(toCourseRow(course))
         .select(
-          "course_id, course_code, course_name, group_name, no_of_semesters, duration_years"
+          "course_id, course_code, section_name, course_name, group_name, class_name, class_number, no_of_semesters, duration_years"
         )
         .single(),
       "Unable to add course"
@@ -858,7 +887,7 @@ export const api = {
         .update(toCourseRow(course))
         .eq("course_id", id)
         .select(
-          "course_id, course_code, course_name, group_name, no_of_semesters, duration_years"
+          "course_id, course_code, section_name, course_name, group_name, class_name, class_number, no_of_semesters, duration_years"
         )
         .single(),
       "Unable to update course"
@@ -939,7 +968,7 @@ export const api = {
       supabase
         .from(TABLES.subjects)
         .select(
-          "subject_id, academic_year, course_name, semester_number, category_id, subject_code, subject_name, fees_categories, amount"
+          "subject_id, academic_year, course_name, semester_number, category_id, subject_code, subject_name, subject_type, fees_categories, amount"
         )
         .order("academic_year", { ascending: false })
         .order("course_name")
@@ -1054,7 +1083,7 @@ export const api = {
         .update(updateRow)
         .eq("subject_id", id)
         .select(
-          "subject_id, academic_year, course_name, semester_number, category_id, subject_code, subject_name, fees_categories, amount"
+          "subject_id, academic_year, course_name, semester_number, category_id, subject_code, subject_name, subject_type, fees_categories, amount"
         )
         .single(),
       "Unable to update subject"

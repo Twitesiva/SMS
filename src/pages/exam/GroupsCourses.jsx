@@ -1,5 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ConfirmationModal from '../../components/ConfirmationModal.jsx';
+
+const LEVELS = ["Primary", "Middle", "Secondary"];
+const SECTION_OPTIONS = ["A", "B", "C", "D", "E", "F"];
+
+const getLevelForClass = (classCode) => {
+  const value = Number(classCode);
+  if (value >= 1 && value <= 5) return "Primary";
+  if (value >= 6 && value <= 9) return "Middle";
+  if (value >= 10 && value <= 12) return "Secondary";
+  return "";
+};
 
 export default function GroupsCoursesSection({
   groupForm,
@@ -19,72 +30,43 @@ export default function GroupsCoursesSection({
   editCourse,
   deleteCourse,
 }) {
-
-  // When category is UG/PG we auto-fill standard duration and semesters
-  useEffect(() => {
-    if (!groupForm) return;
-    if (groupForm.category === "UG") {
-      setGroupForm((prev) => ({ ...prev, years: 3, semesters: 6 }));
-    } else if (groupForm.category === "PG") {
-      setGroupForm((prev) => ({ ...prev, years: 2, semesters: 4 }));
-    }
-    // note: we intentionally do not clear years/semesters when category is empty
-  }, [groupForm?.category, setGroupForm]);
-
-  const isFixedDuration =
-    groupForm && (groupForm.category === "UG" || groupForm.category === "PG");
-
-  // State for category filter in courses section
   const [categoryFilter, setCategoryFilter] = useState("");
-  const [duplicateErrors, setDuplicateErrors] = useState({
-    groupCode: false,
-    groupName: false,
-    courseCode: false,
-    courseName: false
-  });
-
-  // Filter groups based on selected category
-  const filteredGroups = categoryFilter
-    ? groups.filter(group => group.category === categoryFilter)
-    : groups;
-
-  // Check for duplicate Group Code and Name
-  useEffect(() => {
-    const checkGroup = () => {
-      if (!groupForm) return;
-
-      const codeExists = groupForm.code
-        ? groups.some(g => g.code === groupForm.code && g.id !== groupForm.id)
-        : false;
-
-      const nameExists = groupForm.name
-        ? groups.some(g => g.name?.toLowerCase() === groupForm.name.toLowerCase() && g.id !== groupForm.id)
-        : false;
-
-      setDuplicateErrors(prev => ({ ...prev, groupCode: codeExists, groupName: nameExists }));
-    };
-    checkGroup();
-  }, [groupForm?.code, groupForm?.name, groups, groupForm?.id]);
-
-  // Check for duplicate Course Code and Name
-  useEffect(() => {
-    const checkCourse = () => {
-      if (!courseForm) return;
-
-      const codeExists = courseForm.courseCode
-        ? courses.some(c => c.courseCode === courseForm.courseCode && c.id !== editingCourseId)
-        : false;
-
-      const nameExists = courseForm.courseName
-        ? courses.some(c => c.courseName?.toLowerCase() === courseForm.courseName.toLowerCase() && c.id !== editingCourseId)
-        : false;
-
-      setDuplicateErrors(prev => ({ ...prev, courseCode: codeExists, courseName: nameExists }));
-    };
-    checkCourse();
-  }, [courseForm?.courseCode, courseForm?.courseName, courses, editingCourseId]);
-
   const [confirmModalState, setConfirmModalState] = useState({ isOpen: false, type: null, id: null });
+
+  const duplicateErrors = useMemo(() => {
+    const classCode = String(groupForm?.code || "").trim().toUpperCase();
+    const classExists = classCode
+      ? groups.some((g) => String(g.code || "").toUpperCase() === classCode && g.id !== groupForm?.id)
+      : false;
+
+    const sectionCode = String(courseForm?.courseCode || "").trim().toUpperCase();
+    const selectedClass = courseForm?.groupName || "";
+    const sectionExists = sectionCode && selectedClass
+      ? courses.some(
+          (c) =>
+            String(c.courseCode || c.code || "").toUpperCase() === sectionCode &&
+            String(c.groupName || c.group_name || "") === String(selectedClass) &&
+            c.id !== editingCourseId
+        )
+      : false;
+
+    return {
+      classCode: classExists,
+      sectionCode: sectionExists,
+    };
+  }, [groupForm?.code, groupForm?.id, courseForm?.courseCode, courseForm?.groupName, courses, editingCourseId, groups]);
+
+  const filteredGroups = useMemo(() => {
+    if (!categoryFilter) return groups;
+    return groups.filter((group) => String(group.category || "").toLowerCase() === categoryFilter.toLowerCase());
+  }, [categoryFilter, groups]);
+
+  useEffect(() => {
+    const inferredLevel = getLevelForClass(groupForm?.code);
+    if (inferredLevel && groupForm.category !== inferredLevel) {
+      setGroupForm((prev) => ({ ...prev, category: inferredLevel }));
+    }
+  }, [groupForm?.code, groupForm?.category, setGroupForm]);
 
   const handleDeleteGroupClick = (id) => {
     setConfirmModalState({ isOpen: true, type: 'group', id });
@@ -110,114 +92,77 @@ export default function GroupsCoursesSection({
         <div className="students-section-shell card card-soft mb-4">
           <div className="students-section-shell-header mb-3">
             <div>
-              <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>Groups</h5>
+              <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>Classes</h5>
               <p className="students-section-copy mb-0">
-                Create and manage cohorts with their academic category, duration, and semesters.
+                Create classes from 1 to 12 and map school level category.
               </p>
             </div>
           </div>
+
           <div className="students-section-form row g-2 align-items-end">
             <div className="col-md-3">
-              <label className="form-label fw-bold mb-1">Category</label>
+              <label className="form-label fw-bold mb-1">Class</label>
+              <input
+                className={`form-control ${duplicateErrors.classCode ? 'is-invalid' : ''}`}
+                type="number"
+                min="1"
+                max="12"
+                placeholder="1 to 12"
+                required
+                value={groupForm.code}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setGroupForm((prev) => ({
+                    ...prev,
+                    code: next,
+                    name: next ? `Class ${next}` : '',
+                    category: getLevelForClass(next) || prev.category,
+                  }));
+                }}
+              />
+              {duplicateErrors.classCode && <div className="text-danger fw-bold mt-1">Class already exists</div>}
+            </div>
+
+            <div className="col-md-3">
+              <label className="form-label fw-bold mb-1">School Level</label>
               <select
                 className="form-select"
                 value={groupForm.category}
-                onChange={(e) =>
-                  setGroupForm({ ...groupForm, category: e.target.value })
-                }
+                onChange={(e) => setGroupForm({ ...groupForm, category: e.target.value })}
                 required
               >
-                <option value="">Select Category</option>
-                <option value="UG">UG</option>
-                <option value="PG">PG</option>
+                <option value="">Select Level</option>
+                {LEVELS.map((level) => (
+                  <option key={level} value={level}>{level}</option>
+                ))}
               </select>
             </div>
+
             <div className="col-md-3">
-              <label className="form-label fw-bold mb-1">Group Code</label>
+              <label className="form-label fw-bold mb-1">Class Name</label>
               <input
-                className={`form-control ${duplicateErrors.groupCode ? 'is-invalid' : ''}`}
-                placeholder="Group Code"
-                required
-                value={groupForm.code}
-                onChange={(e) =>
-                  setGroupForm({
-                    ...groupForm,
-                    code: e.target.value.toUpperCase(),
-                  })
-                }
-              />
-              {duplicateErrors.groupCode && <div className="text-danger fw-bold mt-1">Already Exists</div>}
-            </div>
-            <div className="col-md-3">
-              <label className="form-label fw-bold mb-1">Group Name</label>
-              <input
-                className={`form-control ${duplicateErrors.groupName ? 'is-invalid' : ''}`}
-                placeholder="Group Name"
-                required
+                className="form-control"
+                placeholder="Class Name"
                 value={groupForm.name}
-                onChange={(e) =>
-                  setGroupForm({ ...groupForm, name: e.target.value })
-                }
-              />
-              {duplicateErrors.groupName && <div className="text-danger small mt-1">Already Exists</div>}
-            </div>
-            <div className="col-md-3 col-lg-2">
-              <label className="form-label fw-bold mb-1">
-                Duration (years)
-              </label>
-              <input
-                type="number"
-                className="form-control no-spinner"
-                placeholder="Years"
-                value={groupForm.years}
-                onChange={(e) => {
-                  if (!isFixedDuration)
-                    setGroupForm({ ...groupForm, years: e.target.value });
-                }}
-                disabled={isFixedDuration}
-                style={{ MozAppearance: "textfield" }}
-                onWheel={(e) => e.target.blur()}
-              />
-            </div>
-            <div className="col-md-3 col-lg-2">
-              <label className="form-label fw-bold mb-1">
-                Number of semesters
-              </label>
-              <input
-                type="number"
-                className="form-control no-spinner"
-                placeholder="No. of Semesters"
-                value={groupForm.semesters}
-                onChange={(e) => {
-                  if (!isFixedDuration)
-                    setGroupForm({ ...groupForm, semesters: e.target.value });
-                }}
-                disabled={isFixedDuration}
-                style={{ MozAppearance: "textfield" }}
-                onWheel={(e) => e.target.blur()}
+                onChange={(e) => setGroupForm({ ...groupForm, name: e.target.value })}
+                required
               />
             </div>
           </div>
+
           <div className="students-section-actions mt-3 d-flex flex-wrap gap-2">
             <button
               className="btn btn-primary students-button"
               onClick={saveGroup}
-              disabled={duplicateErrors.groupCode || duplicateErrors.groupName}
+              disabled={duplicateErrors.classCode}
             >
-              {editingGroupId ? "Update Group" : "Add Group"}
+              {editingGroupId ? "Update Class" : "Add Class"}
             </button>
             {editingGroupId && (
               <button
                 className="btn btn-outline-secondary students-button"
                 onClick={() => {
-                  setGroupForm({
-                    id: "",
-                    category: "",
-                    code: "",
-                    name: "",
-                    years: 0,
-                    semesters: 0,
-                  });
+                  setGroupForm({ id: "", category: "", code: "", name: "", years: 0, semesters: 0 });
                   setEditingGroupId("");
                 }}
               >
@@ -228,14 +173,6 @@ export default function GroupsCoursesSection({
 
           {groups.length > 0 && (
             <div className="students-section-list mt-4">
-              <div className="d-flex justify-content-between align-items-center mb-3">
-                <span
-                  className="text-dark text-uppercase fw-bold"
-                  style={{ letterSpacing: "0.08em" }}
-                >
-                  Showing {groups.length} group{groups.length === 1 ? "" : "s"}
-                </span>
-              </div>
               <div className="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
                 {groups.map((g) => (
                   <div className="col" key={g.id}>
@@ -243,35 +180,12 @@ export default function GroupsCoursesSection({
                       <div className="card-body d-flex flex-column">
                         <div className="d-flex justify-content-between align-items-start mb-2">
                           <div>
-                            <div className="text-uppercase text-dark fw-bold mb-1">
-                              Group Name
-                            </div>
-                            <div className="fs-5 fw-bold">{g.name || "-"}</div>
-                            <div className="text-dark fw-bold">
-                              {g.code || "-"}
-                            </div>
+                            <div className="text-uppercase text-dark fw-bold mb-1">{g.name || '-'}</div>
+                            <div className="fs-6 fw-bold">Class {g.code || '-'}</div>
                           </div>
-                          <div className="d-flex flex-column align-items-end gap-2">
-                            {g.category ? (
-                              <span className="students-section-badge students-section-badge-category">
-                                {g.category}
-                              </span>
-                            ) : null}
-                          </div>
-                        </div>
-                        <div className="d-flex flex-wrap gap-4 mb-4 text-dark fw-bold">
-                          <div>
-                            <div className="text-uppercase small">Duration</div>
-                            <div className="fw-semibold text-dark">
-                              {g.years || "-"} Years
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-uppercase small">Semesters</div>
-                            <div className="fw-semibold text-dark">
-                              {g.semesters || "-"}
-                            </div>
-                          </div>
+                          {g.category ? (
+                            <span className="students-section-badge students-section-badge-category">{g.category}</span>
+                          ) : null}
                         </div>
                         <div className="mt-auto d-flex gap-2">
                           <button
@@ -303,111 +217,99 @@ export default function GroupsCoursesSection({
         <div className="students-section-shell card card-soft mb-4">
           <div className="students-section-shell-header mb-3">
             <div>
-              <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>Courses</h5>
+              <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>Sections</h5>
               <p className="students-section-copy mb-0">
-                Assign course codes and group mappings so academic programs stay organized.
+                Create sections A to F for each class. Maximum 6 sections per class.
               </p>
             </div>
           </div>
+
           <div className="students-section-form row g-3">
             <div className="col-md-2">
-              <label className="form-label fw-bold mb-1">Category</label>
+              <label className="form-label fw-bold mb-1">School Level</label>
               <select
                 className="form-select"
                 value={categoryFilter}
                 onChange={(e) => {
                   setCategoryFilter(e.target.value);
-                  setCourseForm((prev) => ({ ...prev, groupCode: "" }));
+                  setCourseForm((prev) => ({ ...prev, groupCode: '', groupName: '' }));
                 }}
               >
-                <option value="">All Categories</option>
-                <option value="UG">UG</option>
-                <option value="PG">PG</option>
+                <option value="">All Levels</option>
+                {LEVELS.map((level) => (
+                  <option key={level} value={level}>{level}</option>
+                ))}
               </select>
             </div>
+
             <div className="col-md-3">
-              <label className="form-label fw-bold mb-1">Group</label>
+              <label className="form-label fw-bold mb-1">Class</label>
               <select
                 className="form-select"
                 required
                 value={courseForm.groupCode}
                 onChange={(e) => {
                   const value = e.target.value;
-                  const selected = filteredGroups.find(
-                    (g) =>
-                      (g.groupCode || g.code || g.group_code) === value ||
-                      (g.group_name || g.name) === value
-                  );
-                  const groupNameValue =
-                    selected?.group_name ||
-                    selected?.name ||
-                    selected?.groupName ||
-                    "";
+                  const selected = filteredGroups.find((g) => String(g.code || '') === String(value));
                   setCourseForm({
                     ...courseForm,
                     groupCode: value,
-                    groupName: groupNameValue,
+                    groupName: selected?.name || '',
                   });
                 }}
-                disabled={!categoryFilter}
               >
-                <option value="">Select Group</option>
+                <option value="">Select Class</option>
                 {filteredGroups.map((g) => (
-                  <option key={g.id} value={g.code}>
-                    {g.name || g.code}
-                  </option>
+                  <option key={g.id} value={g.code}>{g.name || `Class ${g.code}`}</option>
                 ))}
               </select>
             </div>
+
             <div className="col-md-3">
-              <label className="form-label fw-bold mb-1">Course Code</label>
-              <input
-                className={`form-control ${duplicateErrors.courseCode ? 'is-invalid' : ''}`}
-                placeholder="Enter Course Code"
+              <label className="form-label fw-bold mb-1">Section</label>
+              <select
+                className={`form-select ${duplicateErrors.sectionCode ? 'is-invalid' : ''}`}
                 required
                 value={courseForm.courseCode}
-                onChange={(e) =>
-                  setCourseForm({
-                    ...courseForm,
-                    courseCode: e.target.value.toUpperCase(),
-                  })
-                }
-              />
-              {duplicateErrors.courseCode && <div className="text-danger small mt-1">Already Exists</div>}
+                onChange={(e) => setCourseForm({
+                  ...courseForm,
+                  courseCode: e.target.value,
+                  courseName: `Section ${e.target.value}`,
+                })}
+              >
+                <option value="">Select Section</option>
+                {SECTION_OPTIONS.map((section) => (
+                  <option key={section} value={section}>{section}</option>
+                ))}
+              </select>
+              {duplicateErrors.sectionCode && <div className="text-danger small mt-1">Section already exists for this class</div>}
             </div>
+
             <div className="col-md-4">
-              <label className="form-label fw-bold mb-1">Course Name</label>
+              <label className="form-label fw-bold mb-1">Section Name</label>
               <input
-                className={`form-control ${duplicateErrors.courseName ? 'is-invalid' : ''}`}
-                placeholder="Enter Course Name"
+                className="form-control"
+                placeholder="Section Name"
                 required
                 value={courseForm.courseName}
-                onChange={(e) =>
-                  setCourseForm({ ...courseForm, courseName: e.target.value })
-                }
+                onChange={(e) => setCourseForm({ ...courseForm, courseName: e.target.value })}
               />
-              {duplicateErrors.courseName && <div className="text-danger small mt-1">Already Exists</div>}
             </div>
           </div>
+
           <div className="students-section-actions mt-3 d-flex flex-wrap gap-2">
             <button
               className="btn btn-primary students-button"
               onClick={saveCourse}
-              disabled={duplicateErrors.courseCode || duplicateErrors.courseName}
+              disabled={duplicateErrors.sectionCode}
             >
-              {editingCourseId ? "Update Course" : "Add Course"}
+              {editingCourseId ? "Update Section" : "Add Section"}
             </button>
             {editingCourseId && (
               <button
                 className="btn btn-outline-secondary students-button"
                 onClick={() => {
-                  setCourseForm({
-                    id: "",
-                    groupCode: "",
-                    courseCode: "",
-                    courseName: "",
-                    semesters: 6,
-                  });
+                  setCourseForm({ id: "", groupCode: "", groupName: "", courseCode: "", courseName: "", semesters: 1 });
                   setEditingCourseId("");
                 }}
               >
@@ -418,14 +320,6 @@ export default function GroupsCoursesSection({
 
           {courses.length > 0 && (
             <div className="students-section-list mt-4">
-              <div className="d-flex justify-content-between align-items-center mb-3">
-                <span
-                  className="text-dark text-uppercase fw-bold"
-                  style={{ letterSpacing: "0.08em" }}
-                >
-                  Showing {courses.length} course{courses.length === 1 ? "" : "s"}
-                </span>
-              </div>
               <div className="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
                 {courses.map((c) => (
                   <div className="col" key={c.id}>
@@ -433,29 +327,12 @@ export default function GroupsCoursesSection({
                       <div className="card-body d-flex flex-column">
                         <div className="d-flex justify-content-between align-items-start mb-2">
                           <div>
-                            <div className="text-uppercase text-dark fw-bold mb-1">
-                              Course Name
-                            </div>
-                            <div className="fs-5 fw-bold">{c.courseName}</div>
-                          </div>
-                          <span className="students-section-badge students-section-badge-course">
-                            {c.semesters} sems
-                          </span>
-                        </div>
-                        <div className="mb-2">
-                          <div className="text-muted text-uppercase small mb-1">
-                            Course Code
-                          </div>
-                          <div className="fw-semibold text-dark">
-                            {c.courseCode}
+                            <div className="text-uppercase text-dark fw-bold mb-1">{c.courseName || `Section ${c.courseCode}`}</div>
+                            <div className="fs-6 fw-bold">Section {c.courseCode || '-'}</div>
                           </div>
                         </div>
-                        <p className="text-muted text-uppercase small mb-1">
-                          Group
-                        </p>
-                        <p className="fw-semibold text-dark mb-4">
-                          {c.groupName || c.groupCode || "-"}
-                        </p>
+                        <p className="text-muted text-uppercase small mb-1">Class</p>
+                        <p className="fw-semibold text-dark mb-4">{c.groupName || c.groupCode || '-'}</p>
                         <div className="mt-auto d-flex gap-2">
                           <button
                             type="button"
@@ -481,12 +358,13 @@ export default function GroupsCoursesSection({
           )}
         </div>
       </section>
+
       <ConfirmationModal
         isOpen={confirmModalState.isOpen}
         onClose={() => setConfirmModalState({ isOpen: false, type: null, id: null })}
         onConfirm={handleConfirmDelete}
-        title={`Confirm ${confirmModalState.type === 'group' ? 'Group' : 'Course'} Delete`}
-        message={`Are you sure you want to delete this ${confirmModalState.type}?`}
+        title={`Confirm ${confirmModalState.type === 'group' ? 'Class' : 'Section'} Delete`}
+        message={`Are you sure you want to delete this ${confirmModalState.type === 'group' ? 'class' : 'section'}?`}
         confirmText="Confirm Delete"
       />
     </>

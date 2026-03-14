@@ -65,7 +65,7 @@ export default function MainDashboard() {
                     .select('*', { count: 'exact', head: true })
 
                 const { count: teacherCount } = await supabase
-                    .from('teachers')
+                    .from('staff')
                     .select('*', { count: 'exact', head: true })
 
                 setCounts({
@@ -193,7 +193,7 @@ export default function MainDashboard() {
 
                 // 2. Staff Distribution
                 const { data: teachersData } = await supabase
-                    .from('teachers')
+                    .from('staff')
                     .select('designation')
 
                 if (teachersData) {

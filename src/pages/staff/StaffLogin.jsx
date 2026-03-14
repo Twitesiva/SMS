@@ -4,7 +4,6 @@ import { supabase } from '../../../supabaseClient'
 import { useStaffAuth } from '../../store/staffAuth'
 import crest from '../../assets/media/images.png'
 import '../common/Auth.css'
-import '../common/AdmissionPortal.css'
 
 export default function StaffLogin() {
     const nav = useNavigate()

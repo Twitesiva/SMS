@@ -1,7 +1,5 @@
-import { useEffect, useState, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../lib/mockApi'
-import { supabase } from '../../../supabaseClient'
 import AdShellAdmin from '../../components/AdShellAdmin'
 
 import GroupsCoursesSection from '../exam/GroupsCourses'
@@ -95,10 +93,16 @@ export default function GroupsCourses() {
     )
       return
 
-    const code = groupForm.code.toUpperCase()
+    const code = String(groupForm.code || '').trim().toUpperCase()
+    const classNumber = Number(code)
+    if (!Number.isInteger(classNumber) || classNumber < 1 || classNumber > 12) {
+      showToast('Class must be between 1 and 12.', { type: 'warning', title: 'Validation' })
+      return
+    }
+
     const payload = {
       code,
-      name: groupForm.name,
+      name: groupForm.name || `Class ${classNumber}`,
       category: groupForm.category,
       years: Number(groupForm.years) || 0,
       semesters: Number(groupForm.semesters) || 0
@@ -180,7 +184,14 @@ export default function GroupsCourses() {
     )
       return
 
-    const code = courseCode.toUpperCase()
+    const code = String(courseCode || '').trim().toUpperCase()
+    if (!/^[A-F]$/.test(code)) {
+      showToast('Section must be one letter from A to F.', {
+        type: 'warning',
+        title: 'Validation'
+      })
+      return
+    }
 
     const selectedGroup =
       groups.find((g) => (g.groupCode || g.code || g.group_code) === groupCode) ||
@@ -195,7 +206,7 @@ export default function GroupsCourses() {
 
     const payload = {
       code,
-      name: courseName,
+      name: courseName || `Section ${code}`,
       group_name: groupNameValue,
       semesters: Number(semCount) || 0
     }
@@ -220,7 +231,25 @@ export default function GroupsCourses() {
       }
       setEditingCourseId('')
     } else {
-      if (courses.some((c) => (c.courseCode || c.code) === code)) return
+      if (courses.some((c) => (c.courseCode || c.code) === code && (c.group_name || c.groupName) === groupNameValue)) {
+        showToast('Section already exists for this class.', {
+          type: 'danger',
+          title: 'Duplicate section'
+        })
+        return
+      }
+
+      const sectionCountForClass = courses.filter(
+        (c) =>
+          (c.group_name || c.groupName || c.groupCode) === groupNameValue
+      ).length
+      if (sectionCountForClass >= 6) {
+        showToast('Maximum 6 sections are allowed for each class.', {
+          type: 'warning',
+          title: 'Section limit'
+        })
+        return
+      }
 
       try {
         const created = await api.addCourse(payload)
@@ -314,7 +343,7 @@ export default function GroupsCourses() {
       footerSubtitle="Crafted for Vijayam College"
     >
       <div className="desktop-container" style={{ overflowX: 'hidden' }}>
-        <h4 className="mb-4">Groups & Courses Creation</h4>
+        <h4 className="mb-4">Classes & Sections Creation</h4>
 
         <div className="row g-4 justify-content-center mx-0">
           <div className="col-12">

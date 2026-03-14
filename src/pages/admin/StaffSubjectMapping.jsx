@@ -1,398 +1,305 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../../supabaseClient'
 import AdShellAdmin from '../../components/AdShellAdmin'
-
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import './AdminContent.css'
 
-// --- Navigation Definition ---
-
-
 export default function StaffSubjectMapping() {
-    const [courses, setCourses] = useState([])
-    const [groups, setGroups] = useState([])
-    const [subjects, setSubjects] = useState([])
-    const [teachers, setTeachers] = useState([])
-    const [availableSemesters, setAvailableSemesters] = useState([])
-    const [categories, setCategories] = useState([]) // Store category map
+  const [sections, setSections] = useState([])
+  const [classes, setClasses] = useState([])
+  const [subjects, setSubjects] = useState([])
+  const [staff, setStaff] = useState([])
 
-    const [selectedGroup, setSelectedGroup] = useState('')
-    const [selectedGroupId, setSelectedGroupId] = useState(null)
-    const [selectedCourse, setSelectedCourse] = useState('')
-    const [selectedCourseId, setSelectedCourseId] = useState(null)
-    const [selectedSemester, setSelectedSemester] = useState('')
+  const [selectedClassId, setSelectedClassId] = useState('')
+  const [selectedClassName, setSelectedClassName] = useState('')
+  const [selectedSectionId, setSelectedSectionId] = useState('')
+  const [selectedSectionCode, setSelectedSectionCode] = useState('')
+  const [selectedTerm, setSelectedTerm] = useState('')
 
-    const [loading, setLoading] = useState(false)
-    const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
 
-    useEffect(() => {
-        fetchInitialData()
-    }, [])
+  useEffect(() => {
+    fetchInitialData()
+  }, [])
 
-    useEffect(() => {
-        if (selectedCourse) {
-            fetchAvailableSemesters(selectedCourse)
-        } else {
-            setAvailableSemesters([])
-            setSelectedSemester('')
-        }
-    }, [selectedCourse])
-
-    useEffect(() => {
-        if (selectedCourse && selectedSemester && selectedGroup) {
-            fetchSubjectsAndMappings()
-        } else {
-            setSubjects([])
-        }
-    }, [selectedCourse, selectedSemester, selectedGroup])
-
-    const fetchInitialData = async () => {
-        try {
-            setLoading(true)
-            const { data: grps } = await supabase.from('groups').select('group_name, group_id')
-            const { data: tchs } = await supabase.from('teachers').select('id, full_name, staff_id').eq('status', 'ACTIVE')
-            const { data: cats } = await supabase.from('subject_category').select('*') // Load categories
-
-            setGroups(grps || [])
-            setTeachers(tchs || [])
-            setCategories(cats || [])
-        } catch (error) {
-            console.error('Error fetching initial data', error)
-            toast.error('Failed to load initial data')
-        } finally {
-            setLoading(false)
-        }
+  useEffect(() => {
+    if (selectedClassName) {
+      fetchSections(selectedClassName)
+    } else {
+      setSections([])
+      setSelectedSectionId('')
+      setSelectedSectionCode('')
     }
+  }, [selectedClassName])
 
-    // Helper to get category name
-    const getCategoryName = (catId) => {
-        const cat = categories.find(c => c.category_id === catId || c.id === catId)
-        return cat ? cat.category_name : '-'
+  useEffect(() => {
+    if (selectedSectionCode && selectedTerm) {
+      fetchSubjectsAndMappings()
+    } else {
+      setSubjects([])
     }
+  }, [selectedSectionCode, selectedTerm, selectedClassId, selectedSectionId])
 
-    const fetchAvailableSemesters = async (courseCode) => {
-        try {
-            const { data, error } = await supabase
-                .from('subjects')
-                .select('semester_number')
-                .eq('course_name', courseCode)
+  const fetchInitialData = async () => {
+    try {
+      setLoading(true)
+      const [{ data: classRows, error: classError }, { data: staffRows, error: staffError }] = await Promise.all([
+        supabase.from('groups').select('group_id, group_name').order('group_name'),
+        supabase.from('staff').select('id, full_name, staff_id').eq('status', 'ACTIVE').order('full_name')
+      ])
 
-            if (error) throw error
+      if (classError) throw classError
+      if (staffError) throw staffError
 
-            const sems = new Set()
-            data?.forEach(row => {
-                if (row.semester_number) sems.add(row.semester_number)
-            })
-
-            const sortedSems = Array.from(sems).sort((a, b) => a - b)
-            setAvailableSemesters(sortedSems)
-
-        } catch (error) {
-            console.error('Error fetching semesters', error)
-        }
+      setClasses(classRows || [])
+      setStaff(staffRows || [])
+    } catch (error) {
+      console.error('Error fetching initial data', error)
+      toast.error('Failed to load initial data')
+    } finally {
+      setLoading(false)
     }
+  }
 
-    const findGroupId = (groupName) => {
-        const grp = groups.find(g => g.group_name === groupName)
-        return grp ? grp.group_id : null
+  const fetchSections = async (className) => {
+    try {
+      const { data, error } = await supabase
+        .from('courses')
+        .select('course_id, course_code, course_name, group_name')
+        .eq('group_name', className)
+        .order('course_code')
+      if (error) throw error
+      setSections(data || [])
+    } catch (error) {
+      console.error('Error fetching sections', error)
+      toast.error('Unable to load sections')
     }
+  }
 
-    const findCourseId = (courseCode) => {
-        const crs = courses.find(c => c.course_code === courseCode)
-        return crs ? crs.course_id : null
+  const fetchSubjectsAndMappings = async () => {
+    try {
+      setLoading(true)
+
+      const { data: subjectData, error: subjectError } = await supabase
+        .from('subjects')
+        .select('subject_id, subject_name, subject_code, subject_type, course_name, semester_number')
+        .eq('course_name', selectedSectionCode)
+        .eq('semester_number', Number(selectedTerm))
+        .order('subject_name')
+
+      if (subjectError) throw subjectError
+
+      if (!subjectData || subjectData.length === 0) {
+        setSubjects([])
+        return
+      }
+
+      const { data: mappingData, error: mappingError } = await supabase
+        .from('class_subjects')
+        .select('subject_id, staff_id')
+        .eq('class_id', Number(selectedClassId))
+        .eq('section_id', Number(selectedSectionId))
+        .eq('term', Number(selectedTerm))
+
+      if (mappingError) throw mappingError
+
+      const mappingMap = new Map()
+      ;(mappingData || []).forEach((row) => {
+        mappingMap.set(row.subject_id, row.staff_id)
+      })
+
+      setSubjects(
+        subjectData.map((sub, index) => ({
+          ...sub,
+          staff_id: mappingMap.get(sub.subject_id) || '',
+          sNo: index + 1,
+        }))
+      )
+    } catch (error) {
+      console.error('Error fetching subjects/mappings', error)
+      toast.error('Failed to load subjects and mappings')
+    } finally {
+      setLoading(false)
     }
+  }
 
-    const fetchCourses = async (groupName) => {
-        if (!groupName) {
-            setCourses([])
-            return
-        }
-        const { data } = await supabase
-            .from('courses')
-            .select('course_name, course_code, course_id')
-            .eq('group_name', groupName)
-        setCourses(data || [])
-    }
-
-    const fetchSubjectsAndMappings = async () => {
-        try {
-            setLoading(true)
-
-            // 1. Fetch Subjects
-            const { data: subjectData, error: subjectError } = await supabase
-                .from('subjects')
-                .select('*')
-                .eq('course_name', selectedCourse)
-                .eq('semester_number', selectedSemester)
-                .order('subject_name')
-
-            if (subjectError) throw subjectError
-
-            if (!subjectData || subjectData.length === 0) {
-                setSubjects([])
-                return
-            }
-
-            // 2. Fetch Existing Mappings
-            const groupId = selectedGroupId || findGroupId(selectedGroup)
-            const courseId = selectedCourseId || findCourseId(selectedCourse)
-
-            if (!groupId || !courseId) {
-                console.warn('Group ID or Course ID missing for mapping query')
-            }
-
-            const { data: mappingData, error: mappingError } = await supabase
-                .from('teacher_subject_mapping')
-                .select('subject_id, teacher_id')
-                .eq('course_id', courseId)
-                .eq('group_id', groupId)
-                .eq('semester', selectedSemester)
-                .eq('is_active', true)
-
-            if (mappingError) throw mappingError
-
-            const mappingMap = new Map()
-            mappingData?.forEach(m => {
-                mappingMap.set(m.subject_id, m.teacher_id)
-            })
-
-            // Merge data with index for S.No
-            const mergedSubjects = subjectData.map((sub, index) => ({
-                ...sub,
-                teacher_id: mappingMap.get(sub.subject_id || sub.id) || '', // Check both subject_id and id
-                sNo: index + 1
-            }))
-
-            setSubjects(mergedSubjects)
-
-        } catch (error) {
-            console.error('Error fetching subjects/mappings', error)
-            toast.error('Failed to load subjects and mappings')
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    const handleStaffAssignment = (subjectId, staffId) => {
-        // subjectId passed here is usually 'id' or 'subject_id' from database
-        // Ensure we match correct property
-        setSubjects(prev => prev.map(sub =>
-            (sub.id === subjectId || sub.subject_id === subjectId) ? { ...sub, teacher_id: staffId } : sub
-        ))
-    }
-
-    const saveAssignments = async () => {
-        if (!selectedGroup || !selectedCourse || !selectedSemester) {
-            toast.error('Please select all filters first')
-            return
-        }
-
-        const groupId = groups.find(g => g.group_name === selectedGroup)?.group_id
-        const courseId = courses.find(c => c.course_code === selectedCourse)?.course_id
-
-        if (!groupId || !courseId) {
-            toast.error('Invalid Group or Course selection (ID not found)')
-            return
-        }
-
-        try {
-            setSaving(true)
-
-            // Map subject IDs properly (prefer subject_id if available, else id)
-            const subjectIds = subjects.map(s => s.subject_id || s.id)
-
-            // 1. Deactivate/Delete old mappings
-            await supabase
-                .from('teacher_subject_mapping')
-                .delete()
-                .in('subject_id', subjectIds)
-                .eq('group_id', groupId)
-                .eq('course_id', courseId)
-                .eq('semester', selectedSemester)
-
-            // 2. Insert new mappings
-            const newMappings = subjects
-                .filter(sub => sub.teacher_id)
-                .map(sub => ({
-                    teacher_id: sub.teacher_id,
-                    subject_id: sub.subject_id || sub.id,
-                    course_id: courseId,
-                    group_id: groupId,
-                    semester: parseInt(selectedSemester),
-                    is_active: true
-                }))
-
-            if (newMappings.length > 0) {
-                const { error } = await supabase
-                    .from('teacher_subject_mapping')
-                    .insert(newMappings)
-
-                if (error) throw error
-            }
-
-            toast.success('Subject mapping saved successfully!')
-
-            // Refreshes reset
-            setSelectedGroup('')
-            setSelectedGroupId(null)
-            setSelectedCourse('')
-            setSelectedCourseId(null)
-            setSelectedSemester('')
-            setSubjects([]) // Explicitly clear, though useEffect will likely handle it
-
-        } catch (error) {
-            console.error('Error saving assignments', error)
-            toast.error('Failed to save assignments.' + error.message)
-        } finally {
-            setSaving(false)
-        }
-    }
-
-    return (
-        <AdShellAdmin
-            brandTitle="ADMIN PORTAL"
-            footerTitle="Admin Management Studio"
-            footerSubtitle="Crafted for Vijayam College"
-        >
-            <div className="desktop-container">
-                <h4 className="mb-4">Subject Mapping for Staff</h4>
-
-                <div className="card card-soft p-4 mb-4">
-                    <div className="row g-3">
-                        <div className="col-md-4">
-                            <label className="form-label fw-semibold">Group</label>
-                            <select
-                                className="form-select"
-                                value={selectedGroup}
-                                onChange={e => {
-                                    const val = e.target.value
-                                    setSelectedGroup(val)
-                                    const grp = groups.find(g => g.group_name === val)
-                                    setSelectedGroupId(grp ? grp.group_id : null)
-                                    fetchCourses(val)
-                                }}
-                            >
-                                <option value="">Select Group</option>
-                                {groups.map(g => (
-                                    <option key={g.group_id} value={g.group_name}>{g.group_name}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="col-md-4">
-                            <label className="form-label fw-semibold">Course</label>
-                            <select
-                                className="form-select"
-                                value={selectedCourse}
-                                onChange={e => {
-                                    const val = e.target.value
-                                    setSelectedCourse(val)
-                                    const crs = courses.find(c => c.course_code === val)
-                                    setSelectedCourseId(crs ? crs.course_id : null)
-                                }}
-                            >
-                                <option value="">Select Course</option>
-                                {courses.map(c => (
-                                    <option key={c.course_code} value={c.course_code}>{c.course_name}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="col-md-4">
-                            <label className="form-label fw-semibold">Semester</label>
-                            <select
-                                className="form-select"
-                                value={selectedSemester}
-                                onChange={e => setSelectedSemester(e.target.value)}
-                                disabled={!selectedCourse}
-                            >
-                                <option value="">Select Semester</option>
-                                {availableSemesters.length > 0 ? (
-                                    availableSemesters.map(s => (
-                                        <option key={s} value={s}>Semester {s}</option>
-                                    ))
-                                ) : null}
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                {subjects.length > 0 ? (
-                    <div className="card card-soft p-4">
-                        <div className="d-flex justify-content-between align-items-center mb-4">
-                            <h5 className="mb-0">Subject List</h5>
-                            <button
-                                className="btn btn-primary"
-                                onClick={saveAssignments}
-                                disabled={saving}
-                            >
-                                {saving ? 'Saving...' : 'Click to Save'}
-                            </button>
-                        </div>
-
-                        <div className="table-responsive">
-                            <table className="table table-hover align-middle staff-subject-mapping-table">
-                                <thead>
-                                    <tr>
-                                        <th>S.No</th>
-                                        <th>Subject</th>
-                                        <th>Type</th>
-                                        <th>Assigned Staff</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {subjects.map((subject, index) => (
-                                        <tr key={subject.id || subject.subject_id || index}>
-                                            <td className="fw-bold text-dark">{index + 1}</td>
-                                            <td>
-                                                <div className="d-flex flex-column">
-                                                    <span className="fw-bold text-dark">
-                                                        {subject.subject_code} - {subject.subject_name}
-                                                    </span>
-                                                    {/* Display sub-category if available */}
-                                                    {getCategoryName(subject.category_id) !== '-' && (
-                                                        <span className="text-dark fw-bold">
-                                                            {getCategoryName(subject.category_id)}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className="badge bg-light text-dark border">
-                                                    {/* If subject_type isn't in DB, fallback to category name logic or generic */}
-                                                    {getCategoryName(subject.category_id)}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <select
-                                                    className="form-select"
-                                                    value={subject.teacher_id || ''}
-                                                    onChange={e => handleStaffAssignment(subject.id || subject.subject_id, e.target.value)}
-                                                >
-                                                    <option value="">Select Staff</option>
-                                                    {teachers.map(t => (
-                                                        <option key={t.id} value={t.id}>
-                                                            {t.full_name} ({t.staff_id})
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="text-center p-5 text-muted">
-                        {selectedSemester ? (loading ? 'Loading...' : 'No subjects found for selection.') : 'Please select all filters to view subjects.'}
-                    </div>
-                )}
-
-            </div>
-            <ToastContainer position="top-right" autoClose={3000} />
-        </AdShellAdmin>
+  const handleStaffAssignment = (subjectId, staffId) => {
+    setSubjects((prev) =>
+      prev.map((sub) =>
+        sub.subject_id === subjectId ? { ...sub, staff_id: staffId } : sub
+      )
     )
-}
+  }
 
+  const saveAssignments = async () => {
+    if (!selectedClassId || !selectedSectionId || !selectedTerm) {
+      toast.error('Please select class, section and term first')
+      return
+    }
+
+    try {
+      setSaving(true)
+
+      const { error: deleteError } = await supabase
+        .from('class_subjects')
+        .delete()
+        .eq('class_id', Number(selectedClassId))
+        .eq('section_id', Number(selectedSectionId))
+        .eq('term', Number(selectedTerm))
+
+      if (deleteError) throw deleteError
+
+      const rows = subjects
+        .filter((sub) => sub.staff_id)
+        .map((sub) => ({
+          class_id: Number(selectedClassId),
+          section_id: Number(selectedSectionId),
+          term: Number(selectedTerm),
+          subject_id: sub.subject_id,
+          staff_id: sub.staff_id,
+        }))
+
+      if (rows.length > 0) {
+        const { error: insertError } = await supabase
+          .from('class_subjects')
+          .insert(rows)
+        if (insertError) throw insertError
+      }
+
+      toast.success('Class subject mapping saved successfully')
+    } catch (error) {
+      console.error('Error saving assignments', error)
+      toast.error(`Failed to save assignments: ${error.message}`)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const selectedClassOptions = useMemo(() => classes, [classes])
+
+  return (
+    <AdShellAdmin
+      brandTitle="ADMIN PORTAL"
+      footerTitle="Admin Management Studio"
+      footerSubtitle="Crafted for Vijayam College"
+    >
+      <div className="desktop-container">
+        <h4 className="mb-4">Subject Mapping for Staff</h4>
+
+        <div className="card card-soft p-4 mb-4">
+          <div className="row g-3">
+            <div className="col-md-4">
+              <label className="form-label fw-semibold">Class</label>
+              <select
+                className="form-select"
+                value={selectedClassId}
+                onChange={(e) => {
+                  const selectedId = e.target.value
+                  const selected = classes.find((row) => String(row.group_id) === String(selectedId))
+                  setSelectedClassId(selectedId)
+                  setSelectedClassName(selected?.group_name || '')
+                  setSelectedSectionId('')
+                  setSelectedSectionCode('')
+                }}
+              >
+                <option value="">Select Class</option>
+                {selectedClassOptions.map((row) => (
+                  <option key={row.group_id} value={row.group_id}>{row.group_name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="col-md-4">
+              <label className="form-label fw-semibold">Section</label>
+              <select
+                className="form-select"
+                value={selectedSectionId}
+                onChange={(e) => {
+                  const selectedId = e.target.value
+                  const selected = sections.find((row) => String(row.course_id) === String(selectedId))
+                  setSelectedSectionId(selectedId)
+                  setSelectedSectionCode(selected?.course_code || '')
+                }}
+                disabled={!selectedClassId}
+              >
+                <option value="">Select Section</option>
+                {sections.map((row) => (
+                  <option key={row.course_id} value={row.course_id}>{row.course_name || row.course_code}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="col-md-4">
+              <label className="form-label fw-semibold">Term</label>
+              <select
+                className="form-select"
+                value={selectedTerm}
+                onChange={(e) => setSelectedTerm(e.target.value)}
+                disabled={!selectedSectionId}
+              >
+                <option value="">Select Term</option>
+                {[1, 2, 3].map((term) => (
+                  <option key={term} value={term}>Term {term}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {subjects.length > 0 ? (
+          <div className="card card-soft p-4">
+            <div className="d-flex justify-content-between align-items-center mb-4">
+              <h5 className="mb-0">Subject List</h5>
+              <button className="btn btn-primary" onClick={saveAssignments} disabled={saving}>
+                {saving ? 'Saving...' : 'Click to Save'}
+              </button>
+            </div>
+
+            <div className="table-responsive">
+              <table className="table table-hover align-middle staff-subject-mapping-table">
+                <thead>
+                  <tr>
+                    <th>S.No</th>
+                    <th>Subject</th>
+                    <th>Type</th>
+                    <th>Assigned Staff</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {subjects.map((subject) => (
+                    <tr key={subject.subject_id}>
+                      <td className="fw-bold text-dark">{subject.sNo}</td>
+                      <td className="fw-bold text-dark">{subject.subject_code} - {subject.subject_name}</td>
+                      <td>
+                        <span className="badge bg-light text-dark border text-capitalize">{subject.subject_type || 'core'}</span>
+                      </td>
+                      <td>
+                        <select
+                          className="form-select"
+                          value={subject.staff_id || ''}
+                          onChange={(e) => handleStaffAssignment(subject.subject_id, e.target.value)}
+                        >
+                          <option value="">Select Staff</option>
+                          {staff.map((row) => (
+                            <option key={row.id} value={row.id}>{row.full_name} ({row.staff_id})</option>
+                          ))}
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center p-5 text-muted">
+            {selectedTerm ? (loading ? 'Loading...' : 'No subjects found for selection.') : 'Please select all filters to view subjects.'}
+          </div>
+        )}
+      </div>
+      <ToastContainer position="top-right" autoClose={3000} />
+    </AdShellAdmin>
+  )
+}
