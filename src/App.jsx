@@ -10,18 +10,12 @@ import ToastStack from "./components/ToastStack.jsx";
 
 import AdminLogin from "./pages/admin/AdminLogin.jsx";
 import ProfileCreation from "./pages/admin/ProfileCreation.jsx";
-import FeesCreation from "./pages/admin/FeesCreation.jsx";
 import AcademicYears from "./pages/admin/AcademicYears.jsx";
 import GroupsCourses from "./pages/admin/GroupsCourses.jsx";
 import Subjects from "./pages/admin/Subjects.jsx";
-import FeesCollection from "./pages/admin/FeesCollection.jsx";
-import PaymentReports from "./pages/admin/PaymentReports.jsx";
 import ClassTimeTable from "./pages/admin/ClassTimeTable.jsx";
 import ClassTimeTableCreation from "./pages/admin/ClassTimeTableCreation.jsx";
-import Circulars from "./pages/admin/Circulars.jsx";
-import AdminApplications from "./pages/admin/AdminApplications.jsx";
 import MainDashboard from "./pages/admin/MainDashboard.jsx";
-import AdminStudents from "./pages/admin/Students.jsx";
 import AdminStaff from "./pages/admin/Staff.jsx";
 import StaffSubjectMapping from "./pages/admin/StaffSubjectMapping.jsx";
 
@@ -68,30 +62,6 @@ export default function App() {
           }
         />
         <Route
-          path="/admin-portal/fees-creation"
-          element={
-            <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
-              <FeesCreation />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin-portal/fees-collection"
-          element={
-            <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
-              <FeesCollection />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin-portal/payment-reports"
-          element={
-            <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
-              <PaymentReports />
-            </GuardedRoute>
-          }
-        />
-        <Route
           path="/admin-portal/academic-years"
           element={
             <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
@@ -132,34 +102,10 @@ export default function App() {
           }
         />
         <Route
-          path="/admin-portal/circulars"
-          element={
-            <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
-              <Circulars />
-            </GuardedRoute>
-          }
-        />
-        <Route
           path="/admin-portal/main-dashboard"
           element={
             <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
               <MainDashboard />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin-portal/applications"
-          element={
-            <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
-              <AdminApplications />
-            </GuardedRoute>
-          }
-        />
-        <Route
-          path="/admin-portal/students"
-          element={
-            <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
-              <AdminStudents />
             </GuardedRoute>
           }
         />

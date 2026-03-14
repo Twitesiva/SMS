@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { api } from '../../lib/mockApi'
 import { supabase } from '../../../supabaseClient'
 import AdShellAdmin from '../../components/AdShellAdmin'
@@ -30,7 +30,6 @@ ChartJS.register(
 )
 
 export default function MainDashboard() {
-    const navigate = useNavigate()
     // State for dashboard metrics
     const [counts, setCounts] = useState({ students: 0, teachers: 0 })
     const [groups, setGroups] = useState([])
@@ -306,7 +305,7 @@ export default function MainDashboard() {
             value: counts.students,
             detail: "All enrolled learners",
             icon: "bi-people-fill",
-            path: "/admin-portal/students"
+            path: "/admin-portal/groups-courses"
         },
         {
             label: "Total Staffs",
@@ -365,10 +364,10 @@ export default function MainDashboard() {
                             <article className="dashboard-chart-card card-shadow h-100" style={{ minHeight: '400px' }}>
                                 <div className="dashboard-chart-header">
                                     <div className="d-flex justify-content-between align-items-center w-100">
-                                        <Link to="/admin-portal/students" className="dashboard-chart-link">
+                                        <div className="dashboard-chart-link">
                                             <h3>Student Classification</h3>
                                             <p className="mb-0 fw-bold">Enrolled students status</p>
-                                        </Link>
+                                        </div>
                                         <div className="btn-group btn-group-sm">
                                             <button
                                                 className={`btn ${studentView === 'group' ? 'btn-primary' : 'btn-outline-primary'}`}
@@ -423,15 +422,6 @@ export default function MainDashboard() {
                             <article
                                 className="dashboard-chart-card dashboard-chart-card--link card-shadow h-100"
                                 style={{ minHeight: '400px', display: 'flex', flexDirection: 'column' }}
-                                role="link"
-                                tabIndex={0}
-                                onClick={() => navigate('/admin-portal/payment-reports')}
-                                onKeyDown={(event) => {
-                                    if (event.key === 'Enter' || event.key === ' ') {
-                                        event.preventDefault()
-                                        navigate('/admin-portal/payment-reports')
-                                    }
-                                }}
                             >
                                 <div className="dashboard-chart-header">
                                     <div className="dashboard-chart-link">

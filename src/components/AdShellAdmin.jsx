@@ -17,17 +17,6 @@ const adminPortalNavGroups = [
         ]
     },
     {
-        title: 'Applications',
-        static: true,
-        items: [
-            {
-                to: '/admin-portal/applications',
-                label: 'Applications',
-                icon: 'bi-inboxes'
-            }
-        ]
-    },
-    {
         title: 'Creation Portal',
         items: [
             {
@@ -46,11 +35,6 @@ const adminPortalNavGroups = [
                 icon: 'bi-journal-text'
             },
             {
-                to: '/admin-portal/fees-creation',
-                label: 'Student Fees Creation',
-                icon: 'bi-currency-rupee'
-            },
-            {
                 to: '/admin-portal/profile-creation',
                 label: 'Staff Profile Creation',
                 icon: 'bi-person-plus-fill'
@@ -59,13 +43,8 @@ const adminPortalNavGroups = [
     },
     {
         title: 'Student and Staff Details',
-        static: false,
+        static: true,
         items: [
-            {
-                to: '/admin-portal/students',
-                label: 'Student Details',
-                icon: 'bi-person-badge'
-            },
             {
                 to: '/admin-portal/staff',
                 label: 'Staff Details',
@@ -92,40 +71,6 @@ const adminPortalNavGroups = [
                 to: '/admin-portal/class-time-table',
                 label: 'Class Time Table',
                 icon: 'bi-calendar-date'
-            }
-        ]
-    },
-    {
-        title: 'Circulars',
-        static: true,
-        items: [
-            {
-                to: '/admin-portal/circulars',
-                label: 'Circulars',
-                icon: 'bi-megaphone'
-            }
-        ]
-    },
-    {
-        title: 'Fees Collection',
-        static: true,
-        items: [
-            {
-                to: '/admin-portal/fees-collection',
-                label: 'Fees Collection',
-                icon: 'bi-cash-stack'
-            }
-        ]
-    },
-
-    {
-        title: 'Payment Reports',
-        static: true,
-        items: [
-            {
-                to: '/admin-portal/payment-reports',
-                label: 'Payment Reports',
-                icon: 'bi-file-earmark-bar-graph'
             }
         ]
     },
