@@ -29,7 +29,7 @@ export default function Intro() {
                     <img src={logo} alt="College Logo" className="intro-logo" />
                     <h1 className="intro-title">"Jazz Public School"</h1>
                     <div className="intro-divider"></div>
-                    <p className="intro-subtitle">"Smarter systems for smarter campuses.<br />Simplifying college management, enhancing success."</p>
+                    <p className="intro-subtitle">"Smarter systems for smarter campuses.<br />Simplifying School management, enhancing success."</p>
 
                     <button className="intro-button btn-shine" onClick={handleBegin}>
                         <span>Let's Begin</span>
