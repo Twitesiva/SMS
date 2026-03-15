@@ -1,1171 +1,558 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import AdShellAdmin from '../../components/AdShellAdmin'
-
-import SubjectsSection from '../exam/Subjects'
-import { api } from '../../lib/mockApi'
+import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
 import ConfirmationModal from '../../components/ConfirmationModal'
 import './AdminContent.css'
 
-
-
-const randomId = () => {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID()
-  }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0
-    const v = c === 'x' ? r : (r & 0x3) | 8
-    return v.toString(16)
-  })
-}
-
-const buildSubjectForm = (category = '') => ({
-  academicYearId: '',
-  academicYearName: '',
-  groupCode: '',
-  courseCode: '',
-  courseName: '',
-  semester: '',
-  category,
-  categoryId: '',
-  subjectName: '',
-  subjectCode: '',
-  subjectType: 'core',
-  extraSubjectNames: [],
-  extraSubjectCodes: [],
-  subjectSelections: [],
-  feeCategory: '',
-  feeAmount: '',
-  subjectId: ''
-})
-
-const itemsToNames = (items = []) =>
-  (items || []).map((item) => (item?.name || '').trim()).filter(Boolean)
-
-const subjectsToItems = (subjects = []) => {
-  if (!Array.isArray(subjects)) return []
-  return subjects
-    .map((name) => ({ id: randomId(), name }))
-    .filter((item) => item.name)
-}
-
-const buildCourseLookup = (courses = []) => {
-  return courses.reduce((acc, course) => {
-    if (!course) return acc
-    const courseCode = course.courseCode || course.code || course.course_code || ''
-    const courseName = course.courseName || course.name || course.course_name || courseCode
-    const groupCode = course.groupCode || course.group_code || course.group_name || ''
-    const entry = { courseCode, courseName, groupCode }
-    if (courseName) acc[courseName] = entry
-    if (courseCode) acc[courseCode] = entry
-    return acc
-  }, {})
-}
-
-const buildYearNameLookup = (years = []) => {
-  return years.reduce((acc, year) => {
-    if (year?.name && year?.id !== undefined) acc[year.name] = year.id
-    return acc
-  }, {})
-}
-
-const invertMap = (mapObj = {}) => {
-  return Object.entries(mapObj).reduce((acc, [key, value]) => {
-    if (value !== undefined && value !== null && value !== '') {
-      acc[value] = key
-    }
-    return acc
-  }, {})
-}
-
-const normalizeSubjectRecord = (subject = {}, context = {}) => {
-  const { courseLookup = {}, categoryNameById = {}, yearNameToId = {} } =
-    context
-
-  const semesterValue =
-    subject.semester ??
-    subject.semester_number ??
-    subject.semesterNo ??
-    subject.semesterNumber
-
-  const feeAmountValue = subject.amount ?? subject.feeAmount ?? subject.fee_amount
-
-  const subjectCode =
-    subject.subjectCode ||
-    subject.subject_code ||
-    subject.subjectName ||
-    subject.subject_name ||
-    ''
-
-  const subjectName = subject.subjectName || subject.subject_name || subjectCode
-  const subjectType = subject.subjectType || subject.subject_type || 'core'
-
-  const subjectNames =
-    subject.subjectNames && Array.isArray(subject.subjectNames)
-      ? subject.subjectNames
-      : subject.subjectName
-        ? [subject.subjectName]
-        : []
-
-  const subjectCodes =
-    subject.subjectCodes && Array.isArray(subject.subjectCodes)
-      ? subject.subjectCodes
-      : subject.subjectCode
-        ? [subject.subjectCode]
-        : subject.subject_code
-          ? [subject.subject_code]
-          : []
-
-  const courseKey =
-    subject.courseName ||
-    subject.course_name ||
-    subject.courseCode ||
-    subject.course_code ||
-    ''
-
-  const courseMeta = courseLookup[courseKey] || {}
-
-  const academicYearName =
-    subject.academicYearName ||
-    subject.academic_year_name ||
-    subject.academic_year ||
-    ''
-
-  const academicYearId =
-    subject.academicYearId ||
-    subject.academic_year_id ||
-    yearNameToId[academicYearName] ||
-    ''
-
-  const categoryId = subject.category_id ?? subject.categoryId ?? ''
-  const categoryName =
-    subject.category ||
-    subject.category_name ||
-    categoryNameById[categoryId] ||
-    ''
-
-  const supabaseId = subject.subject_id || subject.subjectId || subject.id || ''
-
-  return {
-    id: supabaseId || subject.id || randomId(),
-    subjectId: supabaseId || '',
-    academicYearId,
-    academicYearName,
-    groupCode:
-      subject.groupCode || subject.group_code || courseMeta.groupCode || '',
-    courseCode:
-      subject.courseCode ||
-      subject.course_code ||
-      courseMeta.courseCode ||
-      courseKey,
-    courseName: courseMeta.courseName || courseKey,
-    semester:
-      semesterValue === undefined || semesterValue === null || semesterValue === ''
-        ? ''
-        : Number(semesterValue),
-    categoryId,
-    category: categoryName,
-    subjectCode,
-    subjectName,
-    subjectType,
-    feeCategory:
-      subject.feeCategory ||
-      subject.fee_category ||
-      subject.fees_categories ||
-      '',
-    feeAmount:
-      feeAmountValue === undefined ||
-        feeAmountValue === null ||
-        feeAmountValue === ''
-        ? ''
-        : Number(feeAmountValue),
-    subjectNames,
-    subjectCodes
-  }
-}
-
-const buildSubjectBatchKey = (subject = {}) => {
-  if (!subject) return ''
-  if (subject.batchId) return subject.batchId
-  const parts = [
-    subject.academicYearId || subject.academicYearName || '',
-    subject.groupCode || '',
-    subject.courseCode || '',
-    subject.semester === undefined || subject.semester === null
-      ? ''
-      : subject.semester,
-    subject.categoryId || subject.category || ''
-  ]
-  const derived = parts
-    .map((part) => (part === undefined || part === null ? '' : String(part)))
-    .join('__')
-  return derived || subject.subjectId || subject.id || ''
-}
-
-const ensureSubjectBatchKey = (subject = {}) => {
-  if (!subject) return subject
-  if (subject.batchId) return subject
-  const batchKey = buildSubjectBatchKey(subject)
-  return batchKey ? { ...subject, batchId: batchKey } : subject
-}
-
-const buildGroupNameMap = (groups = []) => {
-  return (groups || []).reduce((acc, group) => {
-    const code = group.code || group.group_code || group.groupName || ''
-    const name = group.name || group.group_name || group.groupName || ''
-    if (code) acc[code] = name || code
-    return acc
-  }, {})
-}
-
 export default function Subjects() {
   const [academicYears, setAcademicYears] = useState([])
-  const [groups, setGroups] = useState([])
-  const [courses, setCourses] = useState([])
-
+  const [classes, setClasses] = useState([])
+  const [sections, setSections] = useState([])
+  
   const [categories, setCategories] = useState([])
-  const [catItems, setCatItems] = useState({})
   const [categoryName, setCategoryName] = useState('')
-  const [categoryCredits, setCategoryCredits] = useState('')
-  const [editingCategory, setEditingCategory] = useState('')
-  const [categoryCreditsMap, setCategoryCreditsMap] = useState({})
-  const [categoryIdMap, setCategoryIdMap] = useState({})
 
   const [subjects, setSubjects] = useState([])
-  const [pendingSubjects, setPendingSubjects] = useState([])
-  const [subjectIdsToDelete, setSubjectIdsToDelete] = useState([])
-  const [subjectEditBackup, setSubjectEditBackup] = useState([])
-  const [subjectForm, setSubjectForm] = useState(() => buildSubjectForm(''))
 
-  const [editingSubjectId, setEditingSubjectId] = useState('')
-  const [editingBatchId, setEditingBatchId] = useState('')
-
-  // Delete Modal State
-  const [deleteConfirmation, setDeleteConfirmation] = useState({
-    show: false,
-    type: null, // 'category' | 'pending' | 'subject'
-    data: null,
-    message: ''
+  const [subjectForm, setSubjectForm] = useState({
+    academic_year_id: '',
+    school_level: '',
+    class_id: '',
+    section_id: '',
+    term: '',
+    category_id: '',
+    subject_title: '',
+    subject_code: '',
+    extraSubjects: []
   })
 
-  const groupNameByCode = useMemo(() => buildGroupNameMap(groups), [groups])
-  const courseLookup = useMemo(() => buildCourseLookup(courses), [courses])
-  const yearNameToId = useMemo(
-    () => buildYearNameLookup(academicYears),
-    [academicYears]
-  )
-  const categoryNameById = useMemo(
-    () => invertMap(categoryIdMap),
-    [categoryIdMap]
-  )
+  const [confirmModalState, setConfirmModalState] = useState({ isOpen: false, type: null, payload: null })
 
-  const subjectContext = useMemo(
-    () => ({
-      courseLookup,
-      categoryNameById,
-      yearNameToId
-    }),
-    [courseLookup, categoryNameById, yearNameToId]
-  )
+  const loadInitialData = async () => {
+    try {
+      const { data: years } = await supabase.from('academic_years').select('id, year_name')
+      if (years) setAcademicYears(years)
 
-  const resolveYearName = (yearId) => {
-    if (!yearId) return ''
-    const match = academicYears.find((y) => String(y.id) === String(yearId))
-    return match?.name || match?.academic_year || ''
+      const { data: cls } = await supabase.from('classes').select('id, class_name')
+      if (cls) setClasses(cls)
+
+      const { data: cats, error: catsError } = await supabase.from('subject_categories').select('id, category_name')
+      if (cats) {
+        setCategories(cats)
+      } else if (catsError && catsError.code === '42P01') {
+        // Table doesn't exist yet, ignore gracefully
+        console.warn('subject_categories table is missing')
+      }
+
+      loadSubjects()
+    } catch (err) {
+      console.error('Error loading initial data', err)
+    }
   }
 
-  const semesters = useMemo(() => {
-    return courses.flatMap((course) => {
-      const code = course.courseCode || course.code
-      const count = Number(course.semesters || course.no_of_semesters || 0)
-      if (!code || !count) return []
-      return Array.from({ length: count }, (_, i) => ({
-        id: `${code}-${i + 1}`,
-        courseCode: code,
-        number: i + 1
-      }))
-    })
-  }, [courses])
-
-  const loadSubjects = useCallback(async () => {
+  const loadSubjects = async () => {
     try {
-      const rows = (await api.listSubjects?.()) || []
-      setSubjects(
-        rows.map((rec) =>
-          ensureSubjectBatchKey(normalizeSubjectRecord(rec, subjectContext))
-        )
-      )
-    } catch (error) {
-      console.error('Failed to reload subjects', error)
+      let { data: subs, error: subsError } = await supabase
+        .from('subjects')
+        .select(`
+          id, subject_title, subject_code, term, school_level, academic_year_id, class_id, section_id, category_id,
+          academic_years ( year_name ),
+          classes ( class_name ),
+          sections ( section_name ),
+          subject_categories ( category_name )
+        `)
+      
+      if (subsError) {
+        console.error("Supabase subjects fetch error:", subsError)
+        // Fallback to basic query if relation joins fail
+        const fallback = await supabase.from('subjects').select('*')
+        subs = fallback.data
+        subsError = fallback.error
+      }
+
+      if (subs) {
+        setSubjects(subs)
+      } else if (subsError && subsError.code === '42P01') {
+        // Table doesn't exist yet, ignore gracefully
+        console.warn('subjects table is missing')
+      } else if (subsError) {
+        console.error("Supabase subjects fetch error basic:", subsError)
+      }
+    } catch (err) {
+      console.error('Error loading subjects', err)
     }
-  }, [subjectContext])
+  }
 
   useEffect(() => {
-    setSubjectForm((prev) => {
-      if (!categories.length) {
-        return prev.category ? { ...prev, category: '' } : prev
-      }
-      if (categories.includes(prev.category)) return prev
-      if (!prev.category) return prev
-      return { ...prev, category: '' }
-    })
-  }, [categories])
-
-  useEffect(() => {
-    const loadInitial = async () => {
-      try {
-        const [yrs, grps, crs, subcats, subs] = await Promise.all([
-          api.listAcademicYears?.() || [],
-          api.listGroups?.() || [],
-          api.listCourses?.() || [],
-          api.listSubCategories?.() || [],
-          api.listSubjects?.() || []
-        ])
-
-        setAcademicYears(yrs || [])
-        setGroups(grps || [])
-        setCourses(crs || [])
-
-        const catNameByIdInit = {}
-
-        if (subcats.length) {
-          const names = []
-          const itemsMap = {}
-          const idMap = {}
-          const creditsMap = {}
-
-          subcats.forEach((cat) => {
-            names.push(cat.name)
-            idMap[cat.name] = cat.id
-            creditsMap[cat.name] = cat.credits || 0
-            itemsMap[cat.name] = subjectsToItems(cat.subjects)
-            if (cat.id) catNameByIdInit[cat.id] = cat.name
-          })
-
-          setCategories(names)
-          setCatItems(itemsMap)
-          setCategoryIdMap(idMap)
-          setCategoryCreditsMap(creditsMap)
-        } else {
-          setCategories([])
-          setCatItems({})
-          setCategoryIdMap({})
-          setCategoryCreditsMap({})
-        }
-
-        const initialSubjectContext = {
-          courseLookup: buildCourseLookup(crs || []),
-          categoryNameById: catNameByIdInit,
-          yearNameToId: buildYearNameLookup(yrs || [])
-        }
-
-        if (subs?.length) {
-          setSubjects(
-            subs.map((rec) =>
-              ensureSubjectBatchKey(
-                normalizeSubjectRecord(rec, initialSubjectContext)
-              )
-            )
-          )
-        } else {
-          setSubjects([])
-        }
-      } catch (error) {
-        console.error('Failed to load subjects data', error)
-        showToast(error?.message || 'Failed to load subjects data', {
-          type: 'danger'
-        })
-      }
-    }
-
-    loadInitial()
+    loadInitialData()
   }, [])
 
-  const selectedGroupName = groupNameByCode[subjectForm.groupCode] || ''
-  const coursesForGroup = courses.filter((c) => {
-    if (!subjectForm.groupCode) return false
-    const groupNameValue =
-      c.groupName ||
-      c.group_name ||
-      groupNameByCode[c.groupCode] ||
-      groupNameByCode[c.group_code] ||
-      ''
-    return groupNameValue && groupNameValue === selectedGroupName
-  })
-  const semForCourse = semesters.filter(
-    (s) => s.courseCode === subjectForm.courseCode
-  )
-
-  const saveCategory = async () => {
-    const trimmed = (categoryName || '').trim()
-    if (!trimmed) {
-      showToast('Enter a sub-category name.', {
-        type: 'warning',
-        title: 'Required field'
-      })
-      return
-    }
-    const creditsValue = Number(categoryCredits)
-    if (!Number.isFinite(creditsValue) || !Number.isInteger(creditsValue) || creditsValue <= 0) {
-      showToast('Enter whole-number credits (1, 2, 3...).', {
-        type: 'warning',
-        title: 'Required field'
-      })
-      return
-    }
-
-    if (editingCategory) {
-      const oldName = editingCategory
-      const id = categoryIdMap[oldName]
-      if (!id) {
-        showToast('Unable to locate the category to update.', {
-          type: 'danger'
-        })
-        return
+  useEffect(() => {
+    if (subjectForm.class_id) {
+      const fetchSections = async () => {
+        // Fetch mapped sections for this class
+        const { data } = await supabase
+          .from('class_sections')
+          .select('sections(id, section_name)')
+          .eq('class_id', subjectForm.class_id)
+        
+        if (data) {
+          const uniqueSections = []
+          const map = new Set()
+          for (let row of data) {
+            if (row.sections && !map.has(row.sections.id)) {
+               map.add(row.sections.id)
+               uniqueSections.push(row.sections)
+            }
+          }
+          setSections(uniqueSections)
+          setSubjectForm(prev => ({ ...prev, section_id: '' }))
+        }
       }
-      const items = itemsToNames(catItems[oldName] || [])
-      try {
-        const updated = await api.updateSubCategory?.(id, {
-          name: trimmed,
-          credits: creditsValue,
-          subjects: items
-        })
-        setCategories((prev) =>
-          prev.map((n) => (n === oldName ? updated.name : n))
-        )
-        setCatItems((prev) => {
-          const copy = { ...prev }
-          copy[updated.name] = subjectsToItems(updated.subjects || [])
-          if (oldName !== updated.name) delete copy[oldName]
-          return copy
-        })
-        setCategoryIdMap((prev) => {
-          const copy = { ...prev }
-          if (oldName !== updated.name) delete copy[oldName]
-          copy[updated.name] = updated.id
-          return copy
-        })
-        setCategoryCreditsMap((prev) => {
-          const copy = { ...prev }
-          if (oldName !== updated.name) delete copy[oldName]
-          copy[updated.name] = updated.credits
-          return copy
-        })
+      fetchSections()
+    } else {
+      setSections([])
+      setSubjectForm(prev => ({ ...prev, section_id: '' }))
+    }
+  }, [subjectForm.class_id])
+
+  const handleAddCategory = async () => {
+    if (!categoryName.trim()) {
+      showToast('Category Name is required', { type: 'warning' })
+      return
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('subject_categories')
+        .insert({ category_name: categoryName.trim() })
+        .select()
+        .single()
+      
+      if (data) {
+        setCategories(prev => [...prev, data])
         setCategoryName('')
-        setCategoryCredits('')
-        setEditingCategory('')
-        showToast('Sub-category updated.', { type: 'success' })
-      } catch (error) {
-        console.error('Failed to update sub-category', error)
-        showToast(error?.message || 'Unable to update sub-category.', {
-          type: 'danger'
-        })
+        showToast('Category added successfully', { type: 'success' })
+      } else if (error) {
+        showToast(error.message, { type: 'danger' })
       }
-    } else {
-      try {
-        const created = await api.addSubCategory?.({
-          name: trimmed,
-          credits: creditsValue
-        })
-        if (created) {
-          setCategories((prev) => [...prev, created.name])
-          setCatItems((prev) => ({
-            ...prev,
-            [created.name]: subjectsToItems(created.subjects || [])
-          }))
-          setCategoryIdMap((prev) => ({ ...prev, [created.name]: created.id }))
-          setCategoryCreditsMap((prev) => ({
-            ...prev,
-            [created.name]: created.credits
-          }))
-          setCategoryName('')
-          setCategoryCredits('')
-          showToast('Sub-category added.', { type: 'success' })
-        }
-      } catch (error) {
-        console.error('Failed to add sub-category', error)
-        showToast(error?.message || 'Unable to add sub-category.', {
-          type: 'danger'
-        })
-      }
+    } catch (err) {
+      console.error(err)
+      showToast('Error saving category. Have you created the subject_categories table?', { type: 'danger' })
     }
   }
 
+  const handleConfirmDelete = async () => {
+    const { type, payload } = confirmModalState
+    if (type === 'CATEGORY') {
+      const { error } = await supabase.from('subject_categories').delete().eq('id', payload)
+      if (!error) {
+        setCategories(categories.filter(c => c.id !== payload))
+        showToast('Category deleted', { type: 'success' })
+      } else {
+        showToast(error.message, { type: 'danger' })
+      }
+    } else if (type === 'SUBJECT') {
+      const { error } = await supabase.from('subjects').delete().eq('id', payload)
+      if (!error) {
+        setSubjects(subjects.filter(s => s.id !== payload))
+        showToast('Subject deleted', { type: 'success' })
+      } else {
+        showToast(error.message, { type: 'danger' })
+      }
+    }
+    setConfirmModalState({ isOpen: false, type: null, payload: null })
+  }
 
+  const selectedClassInfo = classes.find(c => String(c.id) === String(subjectForm.class_id));
+  let classNumber = 0;
+  if (selectedClassInfo) {
+    const match = selectedClassInfo.class_name.match(/\d+/);
+    if (match) classNumber = parseInt(match[0], 10);
+  }
+  const isLowerClass = subjectForm.class_id && classNumber <= 10;
+  const isHigherClass = subjectForm.class_id && classNumber >= 11;
 
-  const saveSubject = () => {
-    const {
-      academicYearId,
-      groupCode,
-      courseCode,
-      semester,
-      category,
-      subjectName,
-      extraSubjectNames = [],
-      extraSubjectCodes = [],
-      subjectCode,
-      subjectSelections = [],
-      feeCategory,
-      feeAmount
-    } = subjectForm
+  const saveSubjects = async () => {
+    const { academic_year_id, school_level, class_id, section_id, term, category_id, subject_title, subject_code } = subjectForm
+    
+    const finalSectionId = isLowerClass ? null : section_id;
 
-    const selectedNames = Array.isArray(subjectSelections)
-      ? subjectSelections
-      : []
-
-    const hasSelection = selectedNames.length > 0
-
-    const manualEntries = [
-      {
-        name: subjectName,
-        code: subjectCode
-      },
-      ...(Array.isArray(extraSubjectNames)
-        ? extraSubjectNames.map((name, idx) => ({
-          name,
-          code:
-            Array.isArray(extraSubjectCodes) && idx < extraSubjectCodes.length
-              ? extraSubjectCodes[idx]
-              : ''
-        }))
-        : [])
-    ]
-      .map((entry) => ({
-        name: (entry.name || '').trim(),
-        code: (entry.code || '').trim()
-      }))
-      .filter((entry) => entry.name)
-
-    if (
-      !academicYearId ||
-      !groupCode ||
-      !courseCode ||
-      !semester ||
-      !category
-    ) {
-      showToast(
-        'Fill in academic year, group, course, semester and sub-category before adding a subject.',
-        { type: 'warning', title: 'Missing details' }
-      )
+    if (!academic_year_id || !school_level || !class_id || (isHigherClass && !finalSectionId) || !term || !category_id || !subject_title || !subject_code) {
+      showToast('Please fill out all required fields marked with *', { type: 'warning' })
       return
     }
 
-    if (hasSelection && !subjectCode?.trim()) {
-      showToast('Enter a subject code for your selected subject(s).', {
-        type: 'warning',
-        title: 'Subject code required'
-      })
-      return
+    const newSubjects = [];
+    newSubjects.push({ title: subject_title.trim(), code: subject_code.trim() });
+    for (const ex of subjectForm.extraSubjects) {
+      if (ex.title.trim() && ex.code.trim()) {
+         newSubjects.push({ title: ex.title.trim(), code: ex.code.trim() });
+      }
     }
 
-    if (!hasSelection && manualEntries.some((entry) => !entry.code)) {
-      showToast('Enter a subject code for every typed subject.', {
-        type: 'warning',
-        title: 'Subject code required'
-      })
-      return
-    }
-
-    if (!hasSelection && manualEntries.length === 0) {
-      showToast('Enter at least one subject name.', {
-        type: 'warning',
-        title: 'Subject name required'
-      })
-      return
-    }
-
-    const names = hasSelection
-      ? selectedNames
-      : manualEntries.map((entry) => entry.name)
-    const codes = hasSelection
-      ? Array(names.length).fill(subjectCode.trim())
-      : manualEntries.map((entry) => entry.code)
-
-    const academicYearName = resolveYearName(academicYearId)
-    const categoryId = categoryIdMap[category] || ''
-    const courseMeta = courses.find(
-      (c) => c.courseCode === courseCode || c.code === courseCode
-    )
-    const courseName = courseMeta?.courseName || courseCode
-
-    // Check for duplicates
-    const yearIdStr = String(academicYearId || '')
-    const semStr = String(semester || '')
-    const courseCodeStr = (courseCode || '').trim().toLowerCase()
-
-    const duplicates = names.filter((name) => {
-      const nLower = (name || '').trim().toLowerCase()
-      if (!nLower) return false
-
-      const exists = [...subjects, ...pendingSubjects].some((s) => {
-        const sYear = String(s.academicYearId || '')
-        const sSem = String(s.semester === undefined || s.semester === null ? '' : s.semester)
-        const sCourse = (s.courseCode || '').trim().toLowerCase()
-
-        if (sYear !== yearIdStr) return false
-        if (sSem !== semStr) return false
-        if (sCourse !== courseCodeStr) return false
-
-        const sName = (s.subjectName || '').trim().toLowerCase()
-        if (sName === nLower) return true
-
-        if (Array.isArray(s.subjectNames)) {
-          return s.subjectNames.some((sub) => (sub || '').trim().toLowerCase() === nLower)
+    for (const ns of newSubjects) {
+      const duplicate = subjects.some(s => {
+        const sameYear = String(s.academic_year_id || '') === String(academic_year_id);
+        const sameClass = String(s.class_id || '') === String(class_id);
+        const sameTerm = s.term === term;
+        const sameTitle = (s.subject_title || '').toLowerCase() === ns.title.toLowerCase();
+        
+        if (isLowerClass) {
+           return sameYear && sameClass && sameTerm && sameTitle;
+        } else {
+           const sameSection = String(s.section_id || '') === String(finalSectionId);
+           return sameYear && sameClass && sameSection && sameTerm && sameTitle;
         }
-
-        return false
-      })
-
-      return exists
-    })
-
-    if (duplicates.length > 0) {
-      showToast(`Subject(s) already exist: ${duplicates.join(', ')}`, {
-        type: 'warning',
-        title: 'Duplicate Entry'
-      })
-      return
+      });
+      if (duplicate) {
+        showToast(`Subject "${ns.title}" already exists for this selection.`, { type: 'warning' });
+        return;
+      }
     }
+
+    const payload = newSubjects.map(ns => ({
+      academic_year_id,
+      school_level,
+      class_id,
+      section_id: finalSectionId,
+      term,
+      category_id,
+      subject_title: ns.title,
+      subject_code: ns.code
+    }));
 
     try {
-      const sharedBatchId = editingBatchId || randomId()
-
-      const newEntries = names.map((name, idx) => ({
-        id: editingSubjectId || randomId(),
-        subjectId: editingSubjectId || randomId(),
-        batchId: sharedBatchId,
-        academicYearId,
-        academicYearName,
-        groupCode,
-        courseCode,
-        courseName,
-        semester: Number(semester),
-        category,
-        categoryId,
-        subjectCode: codes[idx] || '',
-        subjectName: name,
-        subjectType: subjectForm.subjectType || 'core',
-        feeCategory: feeCategory || null,
-        feeAmount: feeAmount ? Number(feeAmount) : null
-      }))
-
-      setPendingSubjects((prev) => {
-        if (editingSubjectId) {
-          return [
-            ...prev.filter(
-              (s) =>
-                s.id !== editingSubjectId &&
-                s.id !== editingSubjectId.toString()
-            ),
-            ...newEntries
-          ]
-        }
-        return [...prev, ...newEntries]
-      })
-
-      showToast(
-        `${names.length} subject${names.length === 1 ? '' : 's'} added to pending list. Click 'Submit All' to save to database.`,
-        { type: 'info' }
-      )
-
-      setSubjectForm({
-        ...subjectForm,
-        subjectName: '',
-        subjectCode: '',
-        subjectType: subjectForm.subjectType || 'core',
-        extraSubjectNames: [],
-        extraSubjectCodes: [],
-        subjectSelections: [],
-        feeCategory: '',
-        feeAmount: ''
-      })
-
-      if (editingSubjectId) {
-        setEditingSubjectId('')
-        setEditingBatchId('')
-        setSubjectEditBackup([])
+      const { data, error } = await supabase.from('subjects').insert(payload).select()
+      
+      if (error) {
+        showToast(error.message, { type: 'danger' })
+      } else {
+        showToast(`Successfully added ${payload.length} subject(s)`, { type: 'success' })
+        setSubjectForm(prev => ({ ...prev, subject_title: '', subject_code: '', extraSubjects: [] }))
+        loadSubjects()
       }
-    } catch (error) {
-      console.error('Error preparing subjects:', error)
-      showToast(error?.message || 'Failed to prepare subjects.', {
-        type: 'danger',
-        title: 'Error'
-      })
+    } catch (err) {
+      console.error(err)
+      showToast('Failed to insert subjects. Make sure subjects table is created properly.', { type: 'danger' })
     }
-  }
-
-  const editPendingSubject = (rec) => {
-    // Helper to identify logically related items (same container)
-    const getLogicalKey = (s) => [
-      String(s.academicYearId || s.academicYearName || ''),
-      String(s.groupCode || ''),
-      String(s.courseCode || ''),
-      String(s.semester === undefined || s.semester === null ? '' : s.semester),
-      String(s.category || '')
-    ].join('__')
-
-    const targetKey = getLogicalKey(rec)
-
-    const pendingSiblings = pendingSubjects.filter(
-      (s) => getLogicalKey(s) === targetKey
-    )
-
-    setPendingSubjects((prev) =>
-      prev.filter((s) => getLogicalKey(s) !== targetKey)
-    )
-
-    let unifiedNames = []
-    let unifiedCodes = []
-    let template = rec
-
-    if (pendingSiblings.length > 0) {
-      pendingSiblings.forEach((item) => {
-        const ns = item.subjectNames?.length
-          ? item.subjectNames
-          : [item.subjectName].filter(Boolean)
-        const cs = item.subjectCodes?.length
-          ? item.subjectCodes
-          : item.subjectCode
-            ? [item.subjectCode]
-            : []
-
-        const itemPrimaryCode = item.subjectCode || ''
-
-        ns.forEach((name, i) => {
-          unifiedNames.push(name)
-          const code = cs[i] !== undefined ? cs[i] : (i === 0 ? itemPrimaryCode : '')
-          unifiedCodes.push(code)
-        })
-      })
-      if (pendingSiblings[0]) template = pendingSiblings[0]
-    } else {
-      unifiedNames = rec.subjectNames?.length
-        ? rec.subjectNames
-        : [rec.subjectName].filter(Boolean)
-      unifiedCodes = rec.subjectCodes?.length
-        ? rec.subjectCodes
-        : rec.subjectCode
-          ? [rec.subjectCode]
-          : []
-    }
-
-    const options = catItems[template.category] || []
-    const courseMeta =
-      courseLookup[template.courseCode] ||
-      courseLookup[template.courseName] ||
-      courseLookup[template.course_name] ||
-      {}
-    const resolvedGroupCode =
-      template.groupCode ||
-      template.group_code ||
-      courseMeta.groupCode ||
-      courseMeta.group_code ||
-      ''
-    const resolvedCourseCode =
-      template.courseCode ||
-      template.course_code ||
-      courseMeta.courseCode ||
-      courseMeta.course_code ||
-      template.courseName ||
-      template.course_name ||
-      ''
-    const resolvedCourseName =
-      courseMeta.courseName ||
-      courseMeta.course_name ||
-      template.courseName ||
-      template.course_name ||
-      resolvedCourseCode
-
-    const names = unifiedNames
-    const codes = unifiedCodes
-    const primaryCode = codes[0] || ''
-
-    const allPreset =
-      names.length > 0 &&
-      names.every((name) => options.some((item) => item.name === name))
-
-    const fixedCategoryId =
-      categoryIdMap[template.category] || template.categoryId || template.category_id || ''
-
-    setSubjectForm({
-      ...template,
-      groupCode: resolvedGroupCode,
-      courseCode: resolvedCourseCode,
-      courseName: resolvedCourseName,
-      categoryId: fixedCategoryId,
-      semester:
-        template.semester === undefined || template.semester === null
-          ? ''
-          : template.semester.toString(),
-      feeCategory: template.feeCategory || '',
-      feeAmount: template.feeAmount?.toString() || '',
-      subjectCode: primaryCode,
-      subjectName: allPreset ? '' : names[0] || '',
-      extraSubjectNames: allPreset ? [] : names.slice(1),
-      extraSubjectCodes: allPreset
-        ? []
-        : names.slice(1).map((_, idx) => codes[idx + 1] || ''),
-      subjectSelections: allPreset ? names : []
-    })
-
-    setEditingSubjectId(template.subjectId || template.id || '')
-    setEditingBatchId(buildSubjectBatchKey(template) || '')
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-  const submitPendingSubjects = async () => {
-    if (!pendingSubjects.length) {
-      showToast('No pending subjects to save.', { type: 'warning' })
-      return
-    }
-
-    try {
-      showToast('Saving subjects to database...', { type: 'info' })
-
-      if (subjectIdsToDelete.length) {
-        try {
-          await Promise.all(
-            subjectIdsToDelete.map((id) => api.deleteSubject?.(Number(id)))
-          )
-          setSubjectIdsToDelete([])
-        } catch (error) {
-          console.error('Failed to delete subject(s) before update', error)
-          throw error
-        }
-      }
-
-      const payload = []
-
-      for (const item of pendingSubjects) {
-        const academicYearName =
-          item.academicYearName || resolveYearName(item.academicYearId)
-        const courseMeta =
-          courseLookup[item.courseCode] || courseLookup[item.courseName] || {}
-        const categoryId = item.categoryId || categoryIdMap[item.category] || null
-        const courseCodeValue =
-          courseMeta.courseCode || item.courseCode || item.courseName || null
-
-        if (item.subjectName && item.subjectCode) {
-          const subjectData = {
-            academic_year: academicYearName,
-            course_name: courseCodeValue,
-            semester_number: item.semester ? Number(item.semester) : null,
-            category_id: categoryId,
-            subject_code: item.subjectCode,
-            subject_name: item.subjectName,
-            subject_type: item.subjectType || 'core',
-            amount: item.feeAmount ? Number(item.feeAmount) : null,
-            fees_categories: null,
-            created_at: new Date().toISOString()
-          }
-
-          if (subjectData.subject_code && subjectData.subject_name) {
-            payload.push(subjectData)
-          }
-        }
-
-        const extraNames = item.extraSubjectNames || []
-        const extraCodes = item.extraSubjectCodes || []
-
-        for (let i = 0; i < Math.max(extraNames.length, extraCodes.length); i++) {
-          const name = extraNames[i]
-          const code = extraCodes[i] || ''
-
-          if (name) {
-            payload.push({
-              academic_year: academicYearName,
-              course_name: courseCodeValue,
-              semester_number: item.semester ? Number(item.semester) : null,
-              category_id: categoryId,
-              subject_code: code,
-              subject_name: name,
-              subject_type: item.subjectType || 'core',
-              amount: item.feeAmount ? Number(item.feeAmount) : null,
-              fees_categories: null,
-              created_at: new Date().toISOString()
-            })
-          }
-        }
-      }
-
-      const existingSubjects = (await api.listSubjects?.()) || []
-      const existingSubjectKeys = new Set(
-        existingSubjects.map(
-          (sub) =>
-            `${sub.academic_year}|${sub.course_name}|${sub.semester_number}|${sub.subject_code}`.toLowerCase()
-        )
-      )
-
-      const newSubjects = payload.filter((subject) => {
-        if (!subject.subject_code || !subject.subject_name) {
-          console.warn('Skipping subject with missing required fields:', subject)
-          return false
-        }
-
-        const key =
-          `${subject.academic_year}|${subject.course_name}|${subject.semester_number}|${subject.subject_code}`.toLowerCase()
-        const isNew = !existingSubjectKeys.has(key)
-
-        if (!isNew) {
-          console.log('Skipping duplicate subject:', key)
-        }
-
-        return isNew
-      })
-
-      if (newSubjects.length === 0) {
-        showToast('All subjects already exist in the database.', {
-          type: 'warning',
-          title: 'No new subjects to add'
-        })
-        return
-      }
-
-      const BATCH_SIZE = 50
-      for (let i = 0; i < newSubjects.length; i += BATCH_SIZE) {
-        const batch = newSubjects.slice(i, i + BATCH_SIZE)
-        try {
-          await api.addSubjects?.(batch)
-        } catch (error) {
-          console.error('Error adding subjects batch:', error)
-          throw error
-        }
-      }
-
-      setPendingSubjects([])
-      await loadSubjects()
-
-      showToast(`Successfully added ${newSubjects.length} subject(s) to the database.`, {
-        type: 'success'
-      })
-
-      setSubjectForm({
-        academicYearId: '',
-        academicYearName: '',
-        groupCode: '',
-        courseCode: '',
-        courseName: '',
-        semester: '',
-        category: '',
-        categoryId: '',
-        subjectName: '',
-        subjectCode: '',
-        subjectType: 'core',
-        extraSubjectNames: [],
-        extraSubjectCodes: [],
-        subjectSelections: [],
-        feeAmount: ''
-      })
-      setEditingSubjectId('')
-      setEditingBatchId('')
-    } catch (error) {
-      console.error('Failed to save subjects', error)
-      showToast(error?.message || 'Failed to save subjects. Please try again.', {
-        type: 'danger'
-      })
-    }
-  }
-
-  const editSubject = async (rec) => {
-    const batchRef = buildSubjectBatchKey(rec)
-    const snapshot = (rec.subjectRecords || [rec]).filter(Boolean)
-    if (snapshot.length) {
-      setSubjectEditBackup(snapshot)
-    }
-    const ids = (rec.subjectIds || []).filter(Boolean)
-    if (ids.length) {
-      setSubjectIdsToDelete(ids)
-    }
-
-    setSubjects((prev) =>
-      prev.filter((s) => buildSubjectBatchKey(s) !== batchRef)
-    )
-
-    editPendingSubject(rec)
-  }
-
-  const confirmDeleteAction = async () => {
-    const { type, data } = deleteConfirmation
-    if (!type || !data) return
-
-    if (type === 'category') {
-      const name = data
-      const id = categoryIdMap[name]
-      setCategories((prev) => prev.filter((n) => n !== name))
-      setCatItems((prev) => {
-        const copy = { ...prev }
-        delete copy[name]
-        return copy
-      })
-      setCategoryCreditsMap((prev) => {
-        const copy = { ...prev }
-        delete copy[name]
-        return copy
-      })
-      setCategoryIdMap((prev) => {
-        const copy = { ...prev }
-        delete copy[name]
-        return copy
-      })
-      try {
-        if (id) await api.deleteSubCategory?.(id)
-        showToast('Sub-category deleted.', { type: 'info' })
-      } catch (error) {
-        console.error('Failed to delete sub-category', error)
-        showToast('Unable to delete sub-category.', { type: 'danger' })
-      }
-    } else if (type === 'pending') {
-      const item = data
-      const getLogicalKey = (s) => [
-        String(s.academicYearId || s.academicYearName || ''),
-        String(s.groupCode || ''),
-        String(s.courseCode || ''),
-        String(s.semester === undefined || s.semester === null ? '' : s.semester),
-        String(s.category || '')
-      ].join('__')
-
-      const targetKey = getLogicalKey(item)
-
-      setPendingSubjects((prev) =>
-        prev.filter((s) => getLogicalKey(s) !== targetKey)
-      )
-
-      if (editingSubjectId === (item.subjectId || item.id)) {
-        setSubjectForm(buildSubjectForm(categories[0] || ''))
-        setEditingSubjectId('')
-      }
-    } else if (type === 'subject') {
-      const group = data
-      const batchRef = buildSubjectBatchKey(group)
-
-      const ids = (
-        group.subjectIds?.length ? group.subjectIds : [group.subjectId || group.id]
-      ).filter(Boolean)
-
-      setSubjects((prev) =>
-        prev.filter((s) => buildSubjectBatchKey(s) !== batchRef)
-      )
-
-      try {
-        const numericIds = ids
-          .map((id) => Number(id))
-          .filter((n) => Number.isFinite(n))
-        if (numericIds.length) {
-          await Promise.all(numericIds.map((id) => api.deleteSubject?.(id)))
-        }
-
-        showToast('Subject entries deleted.', { type: 'info' })
-      } catch (error) {
-        console.error('Failed to delete subject', error)
-        showToast('Unable to delete subject.', { type: 'danger' })
-      }
-    }
-
-    closeDeleteModal()
-  }
-
-  const closeDeleteModal = () => {
-    setDeleteConfirmation({ show: false, type: null, data: null, message: '' })
-  }
-
-  const deleteCategory = (name) => {
-    if (!name) return
-    setDeleteConfirmation({
-      show: true,
-      type: 'category',
-      data: name,
-      message: 'Are you sure you want to delete this sub-category?'
-    })
-  }
-
-  const deletePendingSubject = (item) => {
-    setDeleteConfirmation({
-      show: true,
-      type: 'pending',
-      data: item,
-      message: 'Are you sure you want to remove this pending subject?'
-    })
-  }
-
-  const deleteSubject = (group) => {
-    setDeleteConfirmation({
-      show: true,
-      type: 'subject',
-      data: group,
-      message: 'Are you sure you want to delete this subject?'
-    })
-  }
-
-  const cancelSubjectEdit = () => {
-    if (subjectEditBackup.length) {
-      setSubjects((prev) => [...subjectEditBackup, ...prev])
-      setSubjectEditBackup([])
-    }
-    setEditingSubjectId('')
-    setEditingBatchId('')
-    setSubjectForm(buildSubjectForm(categories[0] || ''))
-    setSubjectIdsToDelete([])
   }
 
   return (
-    <AdShellAdmin
-      brandTitle="ADMIN PORTAL"
-      footerTitle="Admin Management Studio"
-      footerSubtitle="Crafted for Vijayam College"
-    >
-      <div className="desktop-container" style={{ overflowX: 'hidden' }}>
-        <h4 className="mb-4">Subject Creation</h4>
+    <AdShellAdmin>
+      <div className="desktop-container admin-content" style={{ overflowX: 'hidden' }}>
+        <h4 className="mb-4">Subjects Overview</h4>
 
-        <div className="row g-4 justify-content-center mx-0">
-          <div className="col-12">
-            <SubjectsSection
-              subjectForm={subjectForm}
-              setSubjectForm={setSubjectForm}
-              groups={groups}
-              coursesForGroup={coursesForGroup}
-              semForCourse={semForCourse}
-              categories={categories}
-              setCategories={setCategories}
-              catItems={catItems}
-              setCatItems={setCatItems}
-              categoryName={categoryName}
-              setCategoryName={setCategoryName}
-              categoryCredits={categoryCredits}
-              setCategoryCredits={setCategoryCredits}
-              categoryCreditsMap={categoryCreditsMap}
-              editingCategory={editingCategory}
-              setEditingCategory={setEditingCategory}
-              deleteCategory={deleteCategory}
-              saveCategory={saveCategory}
-              pendingSubjects={pendingSubjects}
-              subjects={subjects}
-              editingSubjectId={editingSubjectId}
-              saveSubject={saveSubject}
-              submitPendingSubjects={submitPendingSubjects}
-              editPendingSubject={editPendingSubject}
-              deletePendingSubject={deletePendingSubject}
-              editSubject={editSubject}
-              deleteSubject={deleteSubject}
-              onCancelSubjectEdit={cancelSubjectEdit}
-            />
+        <section className="setup-section mb-4">
+          <div className="students-section-shell card card-soft mb-4">
+            <div className="students-section-shell-header mb-3">
+              <div>
+                <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>Subject Categories</h5>
+                <p className="students-section-copy mb-0">
+                  Organise subjects into meaningful buckets (e.g., Main, Activity, Language).
+                </p>
+              </div>
+            </div>
+
+            <div className="students-section-form row g-3 align-items-end">
+              <div className="col-md-6">
+                <label className="form-label fw-bold mb-1">Category Name *</label>
+                <input
+                  className="form-control"
+                  placeholder="e.g., Main"
+                  value={categoryName}
+                  onChange={e => setCategoryName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleAddCategory() }}
+                />
+              </div>
+              <div className="col-md-6">
+                <button type="button" className="btn btn-primary students-button" onClick={handleAddCategory}>
+                  Add Category
+                </button>
+              </div>
+            </div>
+
+            {categories.length > 0 && (
+              <div className="row g-3 mt-3">
+                {categories.map(cat => (
+                  <div key={cat.id} className="col-md-4">
+                    <div className="card h-100 students-category-card">
+                      <div className="card-body d-flex flex-column gap-3">
+                        <div>
+                          <p className="fw-bold mb-0 text-dark">{cat.category_name}</p>
+                        </div>
+                      </div>
+                      <div className="mt-auto d-flex gap-2 flex-wrap">
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-danger students-button students-button-sm flex-fill"
+                          onClick={() => setConfirmModalState({ isOpen: true, type: 'CATEGORY', payload: cat.id })}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
+        </section>
+
+        <section className="setup-section mb-4">
+          <div className="students-section-shell card card-soft mb-4">
+            <div className="students-section-shell-header mb-3">
+              <div>
+                <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>Create Subjects</h5>
+                <p className="students-section-copy mb-0">
+                  Select your mapping layout and insert subject details separately per term.
+                </p>
+              </div>
+            </div>
+
+            <div className="students-section-form row g-3">
+              <div className="col-md-3">
+                <label className="form-label fw-bold mb-1">Academic Year *</label>
+                <select
+                  className="form-select"
+                  value={subjectForm.academic_year_id}
+                  onChange={(e) => setSubjectForm({ ...subjectForm, academic_year_id: e.target.value })}
+                >
+                  <option value="">Select Year</option>
+                  {academicYears.map(y => <option key={y.id} value={y.id}>{y.year_name}</option>)}
+                </select>
+              </div>
+
+              <div className="col-md-3">
+                <label className="form-label fw-bold mb-1">School Level *</label>
+                <select
+                  className="form-select"
+                  value={subjectForm.school_level}
+                  onChange={(e) => setSubjectForm({ ...subjectForm, school_level: e.target.value })}
+                >
+                  <option value="">Select Level</option>
+                  <option value="Primary">Primary</option>
+                  <option value="Middle">Middle</option>
+                  <option value="Secondary">Secondary</option>
+                </select>
+              </div>
+
+              <div className="col-md-3">
+                <label className="form-label fw-bold mb-1">Class *</label>
+                <select
+                  className="form-select"
+                  value={subjectForm.class_id}
+                  onChange={(e) => setSubjectForm({ ...subjectForm, class_id: e.target.value, section_id: '' })}
+                >
+                  <option value="">Select Class</option>
+                  {classes.map(c => <option key={c.id} value={c.id}>{c.class_name}</option>)}
+                </select>
+              </div>
+
+              {isHigherClass && (
+                <div className="col-md-3">
+                  <label className="form-label fw-bold mb-1">Section *</label>
+                  <select
+                    className="form-select"
+                    value={subjectForm.section_id}
+                    disabled={!subjectForm.class_id}
+                    onChange={(e) => setSubjectForm({ ...subjectForm, section_id: e.target.value })}
+                  >
+                    <option value="">Select Section</option>
+                    {sections.map(s => <option key={s.id} value={s.id}>{s.section_name}</option>)}
+                  </select>
+                  <div className="text-muted small mt-1">Subjects will be created for the selected section.</div>
+                </div>
+              )}
+
+              {isLowerClass && (
+                <div className="col-md-3 d-flex align-items-center">
+                  <div className="text-primary small fw-bold mt-4">
+                    Subjects will be applied to all sections of this class.
+                  </div>
+                </div>
+              )}
+
+              {!subjectForm.class_id && (
+                <div className="col-md-3">
+                  <label className="form-label fw-bold mb-1">Section *</label>
+                  <select className="form-select" disabled>
+                    <option value="">Select Section</option>
+                  </select>
+                </div>
+              )}
+
+              <div className="col-md-3">
+                <label className="form-label fw-bold mb-1">Term *</label>
+                <select
+                  className="form-select"
+                  value={subjectForm.term}
+                  onChange={(e) => setSubjectForm({ ...subjectForm, term: e.target.value })}
+                >
+                  <option value="">Select Term</option>
+                  <option value="Term 1">Term 1</option>
+                  <option value="Term 2">Term 2</option>
+                  <option value="Term 3">Term 3</option>
+                </select>
+              </div>
+
+              <div className="col-md-3">
+                <label className="form-label fw-bold mb-1">Category *</label>
+                <select
+                  className="form-select"
+                  value={subjectForm.category_id}
+                  onChange={(e) => setSubjectForm({ ...subjectForm, category_id: e.target.value })}
+                >
+                  <option value="">Select Category</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.category_name}</option>)}
+                </select>
+              </div>
+
+              <div className="col-md-6 border rounded p-3 bg-light">
+                <div className="row mb-2">
+                  <div className="col-6">
+                    <label className="form-label fw-bold mb-1">Subject Title *</label>
+                  </div>
+                  <div className="col-6">
+                    <label className="form-label fw-bold mb-1">Subject Code *</label>
+                  </div>
+                </div>
+
+                <div className="d-flex gap-2 align-items-center mb-2">
+                  <input
+                    className="form-control"
+                    style={{ flex: "0 0 48%", minWidth: "48%" }}
+                    placeholder="e.g. Mathematics"
+                    value={subjectForm.subject_title}
+                    onChange={(e) => setSubjectForm({ ...subjectForm, subject_title: e.target.value })}
+                  />
+                  <input
+                    className="form-control"
+                    style={{ flex: "0 0 50%", minWidth: "50%" }}
+                    placeholder="e.g. MATH101"
+                    value={subjectForm.subject_code}
+                    onChange={(e) => setSubjectForm({ ...subjectForm, subject_code: e.target.value })}
+                  />
+                </div>
+
+                {subjectForm.extraSubjects.map((ex, idx) => (
+                  <div key={idx} className="d-flex gap-2 align-items-center mb-2">
+                    <input
+                      className="form-control"
+                      style={{ flex: "0 0 44%", minWidth: "44%" }}
+                      placeholder="Subject Title"
+                      value={ex.title}
+                      onChange={(e) => {
+                        const newEx = [...subjectForm.extraSubjects]
+                        newEx[idx].title = e.target.value
+                        setSubjectForm({ ...subjectForm, extraSubjects: newEx })
+                      }}
+                    />
+                    <input
+                      className="form-control"
+                      style={{ flex: "0 0 44%", minWidth: "44%" }}
+                      placeholder="Subject Code"
+                      value={ex.code}
+                      onChange={(e) => {
+                        const newEx = [...subjectForm.extraSubjects]
+                        newEx[idx].code = e.target.value
+                        setSubjectForm({ ...subjectForm, extraSubjects: newEx })
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-outline-danger btn-sm px-2"
+                      onClick={() => {
+                        const newEx = [...subjectForm.extraSubjects]
+                        newEx.splice(idx, 1)
+                        setSubjectForm({ ...subjectForm, extraSubjects: newEx })
+                      }}
+                    >
+                      <i className="bi bi-x-lg"></i>
+                    </button>
+                  </div>
+                ))}
+
+                <button 
+                  type="button" 
+                  className="btn btn-sm btn-outline-primary mt-2 fw-bold"
+                  onClick={() => setSubjectForm({ ...subjectForm, extraSubjects: [...subjectForm.extraSubjects, { title: '', code: '' }] })}
+                >
+                  <i className="bi bi-plus-lg me-1"></i> Add another subject
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-3 text-end">
+              <button type="button" className="btn btn-primary students-button fw-bold px-4" onClick={saveSubjects}>
+                Add Entry
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {subjects.length > 0 && (
+          <section className="setup-section mb-4">
+            <div className="students-table-panel card card-soft mb-4">
+              <div className="students-table-panel-header mb-3">
+                <div>
+                  <p className="students-table-panel-title mb-1 text-white">Saved Subjects</p>
+                  <p className="students-table-panel-copy mb-0">Review previously created subjects combinations across all terms.</p>
+                </div>
+              </div>
+              <div className="table-responsive">
+                <table className="table students-table align-middle">
+                  <thead>
+                    <tr>
+                      <th>Year</th>
+                      <th>Level</th>
+                      <th>Class/Section</th>
+                      <th>Term</th>
+                      <th>Category</th>
+                      <th>Subject (Code)</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {subjects.map(s => (
+                      <tr key={s.id}>
+                        <td className="fw-semibold text-dark">{s.academic_years?.year_name || s.academic_year_id || '-'}</td>
+                        <td>{s.school_level}</td>
+                        <td>
+                          {s.classes?.class_name || s.class_id || '-'}
+                          {(s.sections?.section_name || s.section_id) ? <span className="text-muted fw-bold ms-1">({s.sections?.section_name || s.section_id})</span> : null}
+                        </td>
+                        <td><span className="badge bg-light text-dark border px-2 py-1">{s.term}</span></td>
+                        <td>{s.subject_categories?.category_name || s.category_id || '-'}</td>
+                        <td className="fw-bold text-dark">{s.subject_title} <span className="text-muted ms-1">({s.subject_code})</span></td>
+                        <td className="text-end">
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-danger py-1 px-2"
+                            onClick={() => setConfirmModalState({ isOpen: true, type: 'SUBJECT', payload: s.id })}
+                          >
+                            <i className="bi bi-trash"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        )}
       </div>
 
       <ConfirmationModal
-        isOpen={deleteConfirmation.show}
-        onClose={closeDeleteModal}
-        onConfirm={confirmDeleteAction}
-        title="Confirm Delete"
-        message={deleteConfirmation.message}
+        isOpen={confirmModalState.isOpen}
+        onClose={() => setConfirmModalState({ isOpen: false, type: null, payload: null })}
+        onConfirm={handleConfirmDelete}
+        title={confirmModalState.type === 'CATEGORY' ? "Delete Category" : "Delete Subject"}
+        message={`Are you sure you want to delete this ${confirmModalState.type === 'CATEGORY' ? 'category' : 'subject'}? This action cannot be undone.`}
         confirmText="Confirm Delete"
-        cancelText="Cancel"
       />
-    </AdShellAdmin >
+    </AdShellAdmin>
   )
 }
-
-
-
-
