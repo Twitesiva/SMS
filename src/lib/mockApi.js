@@ -4,8 +4,9 @@ import { trackPromise } from "../store/ui.js";
 const TABLES = {
   applications: "applications",
   academicYears: "academic_years",
-  groups: "groups",
-  courses: "courses",
+  groups: "classes",
+  courses: "sections",
+  classSections: "class_sections",
   subCategories: "subject_category",
   subjects: "subjects",
   batches: "batches", // Note: 'batches' table not found in passed schema, but keeping for now or mapping null
@@ -45,8 +46,12 @@ const runMaybeSingle = async (query, label) => {
 
 const DUPLICATE_RULES = {
   [TABLES.academicYears]: { cols: ["year_name"], pk: "id" },
-  [TABLES.groups]: { cols: ["group_code", "group_name"], pk: "group_id" },
-  [TABLES.courses]: { cols: ["course_code", "course_name"], pk: "course_id" },
+  [TABLES.groups]: { cols: ["class_name", "class_number"], pk: "id" },
+  [TABLES.courses]: { cols: ["section_name"], pk: "id" },
+  [TABLES.classSections]: {
+    composite: ["class_id", "section_id", "academic_year_id"],
+    pk: "id",
+  },
   [TABLES.subCategories]: { cols: ["category_name"], pk: "category_id" },
   [TABLES.subjects]: {
     // treat subjects as batched by year/course/semester/category —
@@ -192,84 +197,53 @@ const toYearRow = ({ name }) => ({
 });
 
 const mapGroup = (row = {}) => {
-  const classCodeRaw = row.class_number ?? row.group_code ?? row.code ?? "";
+  const classCodeRaw = row.class_number ?? row.code ?? "";
   const classCode = String(classCodeRaw || "");
   return {
-    id: row.group_id ?? row.id,
+    id: row.id,
     code: classCode,
-    name: row.class_name || row.group_name || row.name || (classCode ? `Class ${classCode}` : ""),
-    category: row.school_level || row.category || row.Category || "",
-    years: row.duration_years ?? 0,
-    semesters: row.number_semesters ?? 0,
+    name: row.class_name || row.name || (classCode ? `Class ${classCode}` : ""),
+    category: row.category_name || row.school_level || row.category || "",
+    years: 0,
+    semesters: 0,
     class_number: classCode ? Number(classCode) : null,
-    class_name: row.class_name || row.group_name || row.name || "",
-    school_level: row.school_level || row.category || row.Category || "",
+    class_name: row.class_name || row.name || "",
+    school_level: row.school_level || row.category_name || row.category || "",
+    category_id: row.category_id ?? null,
   };
 };
 
-const toGroupRow = ({ code, name, years, semesters, category }) => {
+const toGroupRow = ({ code, name, category, category_id }) => {
   const classCode = String(code || "").trim();
   const classNumber = Number(classCode);
   const normalizedClassNumber =
     Number.isInteger(classNumber) && classNumber >= 1 && classNumber <= 12
       ? classNumber
       : null;
-  const row = {
-    group_code: classCode || null,
-    group_name: name || (classCode ? `Class ${classCode}` : null),
+  return {
     class_number: normalizedClassNumber,
     class_name: name || (classCode ? `Class ${classCode}` : null),
+    category_id: category_id ?? null,
     school_level: category ?? null,
-    duration_years: years ?? null,
-    number_semesters: semesters ?? null,
   };
-  // include category only when provided to avoid sending an unknown
-  // column to Supabase (some schemas may not have this column).
-  // Some DB schemas use a capitalized column name Category (legacy).
-  // Write to that column name when present so UG/PG values persist.
-  if (category !== undefined) row.Category = category ?? null;
-  return row;
 };
 
 const mapCourse = (row = {}) => {
-  const code = row.section_name || row.course_code || row.code;
-  const name = row.course_name || row.name || (code ? `Section ${code}` : "");
-  const groupCode = row.group_code || row.groupCode || row.class_number || "";
-  const groupName = row.group_name || row.groupName || row.class_name || "";
-  const semesters = Number(row.no_of_semesters ?? row.semesters ?? 0) || 0;
-  const duration =
-    row.duration_years ?? (semesters ? Math.ceil(semesters / 2) : null);
+  const code = row.section_name || row.code;
+  const name = row.section_name || row.name || (code ? `Section ${code}` : "");
   return {
-    id: row.course_id ?? row.id,
+    id: row.id,
     code,
     name,
     courseCode: code,
     courseName: name,
-    group_code: groupCode,
-    groupCode,
-    group_name: groupName,
-    groupName,
     section_name: row.section_name || code || "",
-    class_number: row.class_number || null,
-    class_name: row.class_name || groupName || "",
-    semesters,
-    duration_years: duration,
   };
 };
 
-const toCourseRow = ({ code, name, group_name, groupName, semesters, duration_years }) => {
-  const normalizedGroupName = group_name ?? groupName ?? null;
-  const normalizedClassNumber = Number.parseInt(String(normalizedGroupName || "").replace(/[^\d]/g, ""), 10);
+const toCourseRow = ({ code, name }) => {
   return {
-    course_code: code,
-    section_name: code,
-    course_name: name || (code ? `Section ${code}` : null),
-    group_name: normalizedGroupName,
-    class_name: normalizedGroupName,
-    class_number: Number.isFinite(normalizedClassNumber) ? normalizedClassNumber : null,
-    no_of_semesters: semesters ?? null,
-    duration_years:
-      duration_years ?? (semesters ? Math.ceil(semesters / 2) : null),
+    section_name: name || code || null,
   };
 };
 
@@ -807,10 +781,13 @@ export const api = {
 
   listGroups: async () => {
     const rows = await runQuery(
-      supabase.from(TABLES.groups).select("*").order("class_number", { ascending: true }).order("group_code"),
+      supabase
+        .from(TABLES.groups)
+        .select("id, class_name, class_number, category_id, school_level")
+        .order("class_name", { ascending: true }),
       "Unable to fetch groups"
     );
-    return rows.map(mapGroup);
+    return rows.map((row) => mapGroup(row));
   },
 
   addGroup: async (group) => {
@@ -819,7 +796,7 @@ export const api = {
       supabase
         .from(TABLES.groups)
         .insert(toGroupRow(group))
-        .select("*")
+        .select("id, class_name, class_number, category_id, school_level")
         .single(),
       "Unable to add group"
     );
@@ -834,8 +811,8 @@ export const api = {
       supabase
         .from(TABLES.groups)
         .update(toGroupRow(group))
-        .eq("group_id", id)
-        .select("*")
+        .eq("id", id)
+        .select("id, class_name, class_number, category_id, school_level")
         .single(),
       "Unable to update group"
     );
@@ -844,7 +821,7 @@ export const api = {
 
   deleteGroup: async (id) => {
     await runQuery(
-      supabase.from(TABLES.groups).delete().eq("group_id", id),
+      supabase.from(TABLES.groups).delete().eq("id", id),
       "Unable to delete group"
     );
   },
@@ -853,10 +830,8 @@ export const api = {
     const rows = await runQuery(
       supabase
         .from(TABLES.courses)
-        .select(
-          "course_id, course_code, section_name, course_name, group_name, class_name, class_number, no_of_semesters, duration_years"
-        )
-        .order("course_code"),
+        .select("id, section_name")
+        .order("section_name", { ascending: true }),
       "Unable to fetch courses"
     );
     return rows.map(mapCourse);
@@ -868,9 +843,7 @@ export const api = {
       supabase
         .from(TABLES.courses)
         .insert(toCourseRow(course))
-        .select(
-          "course_id, course_code, section_name, course_name, group_name, class_name, class_number, no_of_semesters, duration_years"
-        )
+        .select("id, section_name")
         .single(),
       "Unable to add course"
     );
@@ -885,10 +858,8 @@ export const api = {
       supabase
         .from(TABLES.courses)
         .update(toCourseRow(course))
-        .eq("course_id", id)
-        .select(
-          "course_id, course_code, section_name, course_name, group_name, class_name, class_number, no_of_semesters, duration_years"
-        )
+        .eq("id", id)
+        .select("id, section_name")
         .single(),
       "Unable to update course"
     );
@@ -897,8 +868,68 @@ export const api = {
 
   deleteCourse: async (id) => {
     await runQuery(
-      supabase.from(TABLES.courses).delete().eq("course_id", id),
+      supabase.from(TABLES.courses).delete().eq("id", id),
       "Unable to delete course"
+    );
+  },
+
+  listClassSections: async () => {
+    const rows = await runQuery(
+      supabase
+        .from(TABLES.classSections)
+        .select(
+          "id, class_id, section_id, academic_year_id, classes(id, class_name, class_number), sections(id, section_name)"
+        )
+        .order("id", { ascending: true }),
+      "Unable to fetch class-section mappings"
+    );
+
+    return (rows || []).map((row) => ({
+      id: row.id,
+      classId: row.class_id,
+      sectionId: row.section_id,
+      academicYearId: row.academic_year_id ?? null,
+      className: row.classes?.class_name || "",
+      classNumber: row.classes?.class_number ?? null,
+      sectionName: row.sections?.section_name || "",
+    }));
+  },
+
+  addClassSection: async ({ classId, sectionId, academicYearId }) => {
+    await ensureNoDuplicate(TABLES.classSections, {
+      class_id: classId,
+      section_id: sectionId,
+      academic_year_id: academicYearId ?? null,
+    });
+    const row = await runQuery(
+      supabase
+        .from(TABLES.classSections)
+        .insert({
+          class_id: classId,
+          section_id: sectionId,
+          academic_year_id: academicYearId ?? null,
+        })
+        .select(
+          "id, class_id, section_id, academic_year_id, classes(id, class_name, class_number), sections(id, section_name)"
+        )
+        .single(),
+      "Unable to add class-section mapping"
+    );
+    return {
+      id: row.id,
+      classId: row.class_id,
+      sectionId: row.section_id,
+      academicYearId: row.academic_year_id ?? null,
+      className: row.classes?.class_name || "",
+      classNumber: row.classes?.class_number ?? null,
+      sectionName: row.sections?.section_name || "",
+    };
+  },
+
+  deleteClassSection: async (id) => {
+    await runQuery(
+      supabase.from(TABLES.classSections).delete().eq("id", id),
+      "Unable to delete class-section mapping"
     );
   },
 

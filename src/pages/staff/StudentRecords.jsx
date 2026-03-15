@@ -42,141 +42,46 @@ export default function StudentRecords() {
     ================================ */
     const fetchAcademicYears = async () => {
         const { data } = await supabase
-            .from('students')
-            .select('academic_year')
+            .from('academic_years')
+            .select('year_name')
+            .order('year_name', { ascending: true })
 
-        const unique = [...new Set((data || []).map(d => d.academic_year))]
+        const unique = [...new Set((data || []).map(d => d.year_name))]
         setAcademicYears(unique)
     }
 
     const fetchGroups = async () => {
-        let data = []
-        let error = null
-            ; ({ data, error } = await supabase.from('groups').select('group_id, group_name, group_code'))
-        if (error) {
-            ; ({ data, error } = await supabase.from('groups').select('group_id, group_name'))
-        }
-        if (error) {
-            ; ({ data } = await supabase.from('groups').select('group_name'))
-        }
-
+        const { data } = await supabase
+            .from('classes')
+            .select('id, class_name, class_number, category_id')
+            .order('class_number', { ascending: true })
         setGroups(data || [])
     }
 
     const fetchCoursesByGroup = async (groupValue) => {
         setLoading(true)
-        let data = []
-        let error = null
-            ; ({ data, error } = await supabase
-                .from('courses')
-                .select('course_id, course_code, course_name, group_id, group_name'))
-        if (error) {
-            ; ({ data, error } = await supabase
-                .from('courses')
-                .select('course_id, course_code, course_name, group_name'))
-        }
-        if (error) {
-            ; ({ data, error } = await supabase
-                .from('courses')
-                .select('course_id, course_code, course_name, group_id'))
-        }
-        if (error) {
-            ; ({ data } = await supabase
-                .from('courses')
-                .select('course_id, course_code, course_name'))
-        }
+        const { data } = await supabase
+            .from('class_sections')
+            .select('id, class_id, section_id, sections(id, section_name)')
+            .eq('class_id', Number(groupValue))
+            .order('id')
 
-        const selectedGroup = (groups || []).find(g =>
-            String(g.group_id) === String(groupValue) ||
-            String(g.group_name) === String(groupValue) ||
-            String(g.group_code) === String(groupValue)
-        )
-
-        let filtered = data || []
-        if (selectedGroup) {
-            const hasGroupId = (data || []).some(c => c.group_id !== undefined && c.group_id !== null)
-            const hasGroupName = (data || []).some(c => c.group_name)
-
-            if (hasGroupId || hasGroupName) {
-                filtered = (data || []).filter(c => {
-                    if (selectedGroup?.group_id && c.group_id) {
-                        return String(c.group_id) === String(selectedGroup.group_id)
-                    }
-                    if (selectedGroup?.group_name && c.group_name) {
-                        return String(c.group_name) === String(selectedGroup.group_name)
-                    }
-                    if (selectedGroup?.group_code && c.group_name) {
-                        return String(c.group_name) === String(selectedGroup.group_code)
-                    }
-                    return false
-                })
-            } else {
-                // Fallback: derive courses from subjects (if group info exists there)
-                let subjectRows = []
-                let subjectError = null
-
-                if (selectedGroup?.group_id) {
-                    ; ({ data: subjectRows, error: subjectError } = await supabase
-                        .from('subjects')
-                        .select('course_name')
-                        .eq('group_id', selectedGroup.group_id))
-                }
-
-                if ((subjectError || !subjectRows?.length) && selectedGroup?.group_name) {
-                    ; ({ data: subjectRows, error: subjectError } = await supabase
-                        .from('subjects')
-                        .select('course_name')
-                        .eq('group_name', selectedGroup.group_name))
-                }
-
-                if ((subjectError || !subjectRows?.length) && selectedGroup?.group_code) {
-                    ; ({ data: subjectRows, error: subjectError } = await supabase
-                        .from('subjects')
-                        .select('course_name')
-                        .eq('group_name', selectedGroup.group_code))
-                }
-
-                if (!subjectError && subjectRows?.length) {
-                    const courseKeys = new Set(subjectRows.map(r => String(r.course_name)))
-                    filtered = (data || []).filter(c =>
-                        courseKeys.has(String(c.course_name)) ||
-                        courseKeys.has(String(c.course_code)) ||
-                        courseKeys.has(String(c.course_id))
-                    )
-                } else {
-                    filtered = []
-                }
-            }
-        }
-
-        setCourses(filtered)
+        setCourses((data || []).map((row) => ({
+            course_id: row.section_id,
+            course_code: row.sections?.section_name || '',
+            course_name: row.sections?.section_name || ''
+        })))
         setLoading(false)
     }
 
     const fetchSemestersByCourse = async (courseCode) => {
         setLoading(true)
-        const selectedCourse = (courses || []).find(c =>
-            String(c.course_id) === String(courseCode) ||
-            String(c.course_code) === String(courseCode) ||
-            String(c.course_name) === String(courseCode)
-        )
-
-        const candidates = [
-            selectedCourse?.course_name,
-            selectedCourse?.course_code,
-            selectedCourse?.course_id,
-            courseCode
-        ]
-            .filter((v) => v !== undefined && v !== null && String(v).trim() !== '')
-            .map((v) => String(v))
-
-        const orParts = candidates.map((v) => `course_name.eq.\"${v.replace(/\"/g, '\\\\\"')}\"`)
         const { data } = await supabase
-            .from('subjects')
-            .select('semester_number, course_name')
-            .or(orParts.join(','))
+            .from('timetable_sessions')
+            .select('term')
+            .order('term', { ascending: true })
 
-        const unique = [...new Set((data || []).map(d => d.semester_number))]
+        const unique = [...new Set((data || []).map(d => d.term))]
         setSemesters(unique)
         setLoading(false)
     }
@@ -196,75 +101,28 @@ export default function StudentRecords() {
         setLoading(true)
         try {
             let query = supabase
-                .from('students')
+                .from('staff')
                 .select(`
-                    student_id,
-                    hall_ticket_no,
+                    id,
+                    staff_id,
                     full_name,
-                    group_name,
-                    course_name,
                     gender,
                     date_of_birth,
-                    father_name,
-                    mother_name,
                     nationality,
                     state,
                     aadhar_number,
                     address,
-                    phone_number,
-                    religion,
-                    Parent_no,
-                    admission_year
+                    phone_number
                 `)
-
-            if (academicYear) {
-                query = query.eq('academic_year', academicYear)
-            }
-
-            if (group) {
-                const selectedGroup = (groups || []).find(g =>
-                    String(g.group_id) === String(group) ||
-                    String(g.group_name) === String(group) ||
-                    String(g.group_code) === String(group)
-                )
-                if (selectedGroup?.group_id) {
-                    const orParts = [`group_id.eq.${selectedGroup.group_id}`]
-                    if (selectedGroup.group_name) orParts.push(`group_name.eq.\"${String(selectedGroup.group_name).replace(/\"/g, '\\\\\"')}\"`)
-                    if (selectedGroup.group_code) orParts.push(`group_name.eq.\"${String(selectedGroup.group_code).replace(/\"/g, '\\\\\"')}\"`)
-                    query = query.or(orParts.join(','))
-                } else if (selectedGroup?.group_name) {
-                    query = query.eq('group_name', selectedGroup.group_name)
-                } else {
-                    query = query.eq('group_name', group)
-                }
-            }
-
-            if (courseCode) {
-                const selectedCourse = (courses || []).find(c =>
-                    String(c.course_id) === String(courseCode) ||
-                    String(c.course_code) === String(courseCode) ||
-                    String(c.course_name) === String(courseCode)
-                )
-                if (selectedCourse?.course_id) {
-                    const orParts = [`course_id.eq.${selectedCourse.course_id}`]
-                    if (selectedCourse.course_name) orParts.push(`course_name.eq.\"${String(selectedCourse.course_name).replace(/\"/g, '\\\\\"')}\"`)
-                    if (selectedCourse.course_code) orParts.push(`course_name.eq.\"${String(selectedCourse.course_code).replace(/\"/g, '\\\\\"')}\"`)
-                    query = query.or(orParts.join(','))
-                } else if (selectedCourse?.course_name) {
-                    query = query.eq('course_name', selectedCourse.course_name)
-                } else {
-                    query = query.eq('course_name', courseCode)
-                }
-            }
-
-            if (semester) {
-                query = query.eq('current_semester', Number(semester))
-            }
 
             const { data, error } = await query
 
             if (!error) {
-                setStudents(data || [])
+                setStudents((data || []).map((row) => ({
+                    ...row,
+                    student_id: row.staff_id,
+                    hall_ticket_no: row.staff_id
+                })))
             }
         } catch (err) {
             console.error('Error fetching students:', err)
@@ -273,7 +131,7 @@ export default function StudentRecords() {
         }
     }
     const filteredStudents = students.filter((s) =>
-        s.student_id.toLowerCase().includes(searchId.toLowerCase())
+        String(s.student_id || '').toLowerCase().includes(searchId.toLowerCase())
     )
 
 

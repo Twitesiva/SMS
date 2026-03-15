@@ -1,339 +1,210 @@
 import { useEffect, useMemo, useState } from 'react'
-import { api } from '../../lib/mockApi'
 import AdShellAdmin from '../../components/AdShellAdmin'
-
 import GroupsCoursesSection from '../exam/GroupsCourses'
+import { api } from '../../lib/mockApi'
+import { showToast } from '../../store/ui'
+import ConfirmationModal from '../../components/ConfirmationModal'
 import '../exam/Dashboard.css'
 import './Setup.css'
 import './AdminContent.css'
-import { showToast } from '../../store/ui'
-import { validateRequiredFields } from '../../lib/validation'
-import ConfirmationModal from '../../components/ConfirmationModal'
-
-
-
-const buildGroupNameMap = (groups = []) => {
-  return (groups || []).reduce((acc, group) => {
-    const code = group.code || group.group_code || group.groupName || ''
-    const name = group.name || group.group_name || group.groupName || ''
-    if (code) acc[code] = name || code
-    return acc
-  }, {})
-}
-
-const enrichCourseRecord = (course = {}, groupNameByCode = {}) => {
-  const code = course.group_name || course.groupCode || course.group_code || ''
-  return {
-    ...course,
-    groupCode: code,
-    groupName: groupNameByCode[code] || code
-  }
-}
 
 export default function GroupsCourses() {
-  const [groups, setGroups] = useState([])
-  const [courses, setCourses] = useState([])
+  const [classes, setClasses] = useState([])
+  const [sections, setSections] = useState([])
+  const [mappings, setMappings] = useState([])
+  const [academicYears, setAcademicYears] = useState([])
+
   const [groupForm, setGroupForm] = useState({
     id: '',
     category: '',
+    categoryId: '',
     code: '',
     name: '',
-    years: 0,
-    semesters: 0
   })
   const [editingGroupId, setEditingGroupId] = useState('')
+
   const [courseForm, setCourseForm] = useState({
     id: '',
     groupCode: '',
     groupName: '',
     courseCode: '',
     courseName: '',
-    semesters: 6
+    academicYearId: '',
   })
   const [editingCourseId, setEditingCourseId] = useState('')
 
-  // Delete Modal State
   const [deleteConfirmation, setDeleteConfirmation] = useState({
     show: false,
-    type: null, // 'group' | 'course'
+    type: null,
     id: null,
     message: ''
   })
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [groupRows, courseRows] = await Promise.all([
-          api.listGroups?.() || [],
-          api.listCourses?.() || []
-        ])
-        setGroups(groupRows || [])
-        setCourses(courseRows || [])
-      } catch (error) {
-        console.error('Failed to load groups and courses:', error)
-        showToast(error?.message || 'Failed to load groups and courses', { type: 'danger' })
-      }
+  const loadData = async () => {
+    try {
+      const [classRows, sectionRows, mappingRows, yearRows] = await Promise.all([
+        api.listGroups?.() || [],
+        api.listCourses?.() || [],
+        api.listClassSections?.() || [],
+        api.listAcademicYears?.() || [],
+      ])
+      setClasses(classRows || [])
+      setSections(sectionRows || [])
+      setMappings(mappingRows || [])
+      setAcademicYears(yearRows || [])
+    } catch (error) {
+      console.error('Failed to load classes/sections data:', error)
+      showToast(error?.message || 'Failed to load classes/sections data', { type: 'danger' })
     }
+  }
 
+  useEffect(() => {
     loadData()
   }, [])
 
-  const groupNameByCode = useMemo(() => buildGroupNameMap(groups), [groups])
-  const coursesWithNames = useMemo(
-    () => courses.map((course) => enrichCourseRecord(course, groupNameByCode)),
-    [courses, groupNameByCode]
-  )
+  const sectionsWithClass = useMemo(() => {
+    const classById = classes.reduce((acc, row) => {
+      acc[row.id] = row
+      return acc
+    }, {})
+
+    return (mappings || []).map((row) => ({
+      id: row.id,
+      classId: row.classId,
+      sectionId: row.sectionId,
+      academicYearId: row.academicYearId,
+      groupCode: String(classById[row.classId]?.class_number || row.classNumber || ''),
+      groupName: classById[row.classId]?.class_name || row.className || '',
+      courseCode: row.sectionName || '',
+      courseName: row.sectionName || '',
+    }))
+  }, [mappings, classes])
 
   const saveGroup = async () => {
-    if (
-      !validateRequiredFields({
-        'Group code': groupForm.code,
-        'Group name': groupForm.name
-      })
-    )
-      return
-
-    const code = String(groupForm.code || '').trim().toUpperCase()
-    const classNumber = Number(code)
+    const classNumber = Number(groupForm.code)
     if (!Number.isInteger(classNumber) || classNumber < 1 || classNumber > 12) {
-      showToast('Class must be between 1 and 12.', { type: 'warning', title: 'Validation' })
+      showToast('Class must be between 1 and 12.', { type: 'warning' })
       return
     }
 
     const payload = {
-      code,
+      code: String(classNumber),
       name: groupForm.name || `Class ${classNumber}`,
-      category: groupForm.category,
-      years: Number(groupForm.years) || 0,
-      semesters: Number(groupForm.semesters) || 0
+      category: groupForm.category || '',
+      category_id: groupForm.categoryId || null,
     }
 
-    if (editingGroupId) {
-      try {
-        const updated = await api.updateGroup?.(editingGroupId, payload)
-        if (updated) {
-          setGroups((prev) =>
-            prev.map((g) => (g.id === editingGroupId ? updated : g))
-          )
-          showToast('Updated successfully', {
-            type: 'success',
-            title: 'Group'
-          })
-        }
-      } catch (error) {
-        console.error('Error updating group:', error)
-        showToast(error?.message || 'Error updating group', {
-          type: 'danger'
-        })
+    try {
+      if (editingGroupId) {
+        await api.updateGroup(editingGroupId, payload)
+        showToast('Class updated successfully', { type: 'success' })
+      } else {
+        await api.addGroup(payload)
+        showToast('Class added successfully', { type: 'success' })
       }
+      setGroupForm({ id: '', category: '', categoryId: '', code: '', name: '' })
       setEditingGroupId('')
-    } else {
-      if (groups.some((g) => g.code === code)) {
-        showToast('Group code already exists.', {
-          type: 'danger',
-          title: 'Duplicate code'
-        })
-        return
-      }
-
-      try {
-        const created = await api.addGroup(payload)
-        if (created) {
-          setGroups((prev) => [...prev, created])
-          showToast('Group created Successfully', {
-            type: 'success',
-            title: 'Group'
-          })
-        }
-      } catch (error) {
-        console.error('Error adding group:', error)
-        showToast(error?.message || 'Error adding group', { type: 'danger' })
-      }
+      await loadData()
+    } catch (error) {
+      console.error('Failed to save class:', error)
+      showToast(error?.message || 'Failed to save class', { type: 'danger' })
     }
-
-    setGroupForm({
-      id: '',
-      category: '',
-      code: '',
-      name: '',
-      years: 0,
-      semesters: 0
-    })
   }
 
   const editGroup = (group) => {
-    setGroupForm(group)
+    setGroupForm({
+      id: group.id,
+      category: group.category || group.school_level || '',
+      categoryId: group.category_id || '',
+      code: String(group.class_number || group.code || ''),
+      name: group.class_name || group.name || '',
+    })
     setEditingGroupId(group.id)
   }
 
   const saveCourse = async () => {
-    const {
-      groupCode,
-      courseCode,
-      courseName,
-      semesters: semCount
-    } = courseForm
-
-    if (
-      !validateRequiredFields({
-        'Group code': groupCode,
-        'Course code': courseCode,
-        'Course name': courseName,
-        'Number of semesters': semCount
-      })
-    )
-      return
-
-    const code = String(courseCode || '').trim().toUpperCase()
-    if (!/^[A-F]$/.test(code)) {
-      showToast('Section must be one letter from A to F.', {
-        type: 'warning',
-        title: 'Validation'
-      })
+    if (!courseForm.groupCode || !courseForm.courseCode) {
+      showToast('Select class and section.', { type: 'warning' })
       return
     }
 
-    const selectedGroup =
-      groups.find((g) => (g.groupCode || g.code || g.group_code) === groupCode) ||
-      groups.find((g) => (g.group_name || g.name) === courseForm.groupName)
-    const groupNameValue =
-      selectedGroup?.group_name ||
-      selectedGroup?.name ||
-      selectedGroup?.groupName ||
-      courseForm.groupName ||
-      groupNameByCode[groupCode] ||
-      groupCode
-
-    const payload = {
-      code,
-      name: courseName || `Section ${code}`,
-      group_name: groupNameValue,
-      semesters: Number(semCount) || 0
+    const selectedClass = classes.find((row) => String(row.class_number || row.code) === String(courseForm.groupCode))
+    if (!selectedClass) {
+      showToast('Invalid class selection.', { type: 'danger' })
+      return
     }
 
-    if (editingCourseId) {
-      try {
-        const updated = await api.updateCourse?.(editingCourseId, payload)
-        if (updated) {
-          setCourses((prev) =>
-            prev.map((c) => (c.id === editingCourseId ? updated : c))
-          )
-          showToast('Updated successfully', {
-            type: 'success',
-            title: 'Course'
-          })
-        }
-      } catch (error) {
-        console.error('Error updating course:', error)
-        showToast(error?.message || 'Error updating course', {
-          type: 'danger'
-        })
+    const selectedSection = sections.find((row) => String(row.section_name || row.courseName) === String(courseForm.courseCode))
+    if (!selectedSection) {
+      showToast('Invalid section selection.', { type: 'danger' })
+      return
+    }
+
+    try {
+      if (editingCourseId) {
+        await api.deleteClassSection(editingCourseId)
       }
+
+      await api.addClassSection({
+        classId: selectedClass.id,
+        sectionId: selectedSection.id,
+        academicYearId: courseForm.academicYearId ? Number(courseForm.academicYearId) : null,
+      })
+
+      setCourseForm({
+        id: '',
+        groupCode: '',
+        groupName: '',
+        courseCode: '',
+        courseName: '',
+        academicYearId: '',
+      })
       setEditingCourseId('')
-    } else {
-      if (courses.some((c) => (c.courseCode || c.code) === code && (c.group_name || c.groupName) === groupNameValue)) {
-        showToast('Section already exists for this class.', {
-          type: 'danger',
-          title: 'Duplicate section'
-        })
-        return
-      }
-
-      const sectionCountForClass = courses.filter(
-        (c) =>
-          (c.group_name || c.groupName || c.groupCode) === groupNameValue
-      ).length
-      if (sectionCountForClass >= 6) {
-        showToast('Maximum 6 sections are allowed for each class.', {
-          type: 'warning',
-          title: 'Section limit'
-        })
-        return
-      }
-
-      try {
-        const created = await api.addCourse(payload)
-        if (created) {
-          setCourses((prev) => [...prev, created])
-          showToast('Course created Successfully', {
-            type: 'success',
-            title: 'Course'
-          })
-        }
-      } catch (error) {
-        console.error('Error adding course:', error)
-        showToast(error?.message || 'Error adding course', { type: 'danger' })
-      }
+      showToast('Class-section mapping saved successfully', { type: 'success' })
+      await loadData()
+    } catch (error) {
+      console.error('Failed to save class-section mapping:', error)
+      showToast(error?.message || 'Failed to save class-section mapping', { type: 'danger' })
     }
-
-    setCourseForm({
-      id: '',
-      groupCode: '',
-      groupName: '',
-      courseCode: '',
-      courseName: '',
-      semesters: 6
-    })
   }
 
-  const editCourse = (course) => {
+  const editCourse = (mapping) => {
     setCourseForm({
-      id: course.id,
-      groupCode: course.groupCode || course.group_code || course.group_name || '',
-      groupName: course.groupName || course.group_name || course.groupName || '',
-      courseCode: course.courseCode || course.code || '',
-      courseName: course.courseName || course.name || '',
-      semesters: course.semesters ?? course.number_semesters ?? 6
+      id: mapping.id,
+      groupCode: String(mapping.groupCode || ''),
+      groupName: mapping.groupName || '',
+      courseCode: mapping.courseCode || '',
+      courseName: mapping.courseName || '',
+      academicYearId: String(mapping.academicYearId || ''),
     })
-    setEditingCourseId(course.id)
+    setEditingCourseId(mapping.id)
   }
 
   const confirmDelete = async () => {
     const { type, id } = deleteConfirmation
-    if (!type || !id) return
-
-    if (type === 'group') {
-      setGroups((prev) => prev.filter((g) => g.id !== id))
-      try {
+    try {
+      if (type === 'group') {
         await api.deleteGroup?.(id)
-        showToast('Group deleted successfully', { type: 'success', title: 'Group' })
-      } catch (error) {
-        console.error('Error deleting group:', error)
-        showToast(error?.message || 'Error deleting group', { type: 'danger' })
+        showToast('Class deleted successfully', { type: 'success' })
       }
-    } else if (type === 'course') {
-      setCourses((prev) => prev.filter((c) => c.id !== id))
-      try {
-        await api.deleteCourse?.(id)
-        showToast('Course deleted successfully', { type: 'success', title: 'Course' })
-      } catch (error) {
-        console.error('Error deleting course:', error)
-        showToast(error?.message || 'Error deleting course', { type: 'danger' })
+      if (type === 'course') {
+        await api.deleteClassSection?.(id)
+        showToast('Class-section mapping deleted successfully', { type: 'success' })
       }
+      await loadData()
+    } catch (error) {
+      console.error('Delete failed:', error)
+      showToast(error?.message || 'Delete failed', { type: 'danger' })
     }
-    closeDeleteModal()
-  }
-
-  const closeDeleteModal = () => {
     setDeleteConfirmation({ show: false, type: null, id: null, message: '' })
   }
 
   const deleteGroup = (id) => {
-    setDeleteConfirmation({
-      show: true,
-      type: 'group',
-      id,
-      message: 'Are you sure you want to delete this group?'
-    })
+    setDeleteConfirmation({ show: true, type: 'group', id, message: 'Are you sure you want to delete this class?' })
   }
 
   const deleteCourse = (id) => {
-    setDeleteConfirmation({
-      show: true,
-      type: 'course',
-      id,
-      message: 'Are you sure you want to delete this course?'
-    })
+    setDeleteConfirmation({ show: true, type: 'course', id, message: 'Are you sure you want to delete this class-section mapping?' })
   }
 
   return (
@@ -352,7 +223,7 @@ export default function GroupsCourses() {
               setGroupForm={setGroupForm}
               editingGroupId={editingGroupId}
               setEditingGroupId={setEditingGroupId}
-              groups={groups}
+              groups={classes}
               saveGroup={saveGroup}
               editGroup={editGroup}
               deleteGroup={deleteGroup}
@@ -360,17 +231,20 @@ export default function GroupsCourses() {
               setCourseForm={setCourseForm}
               editingCourseId={editingCourseId}
               setEditingCourseId={setEditingCourseId}
-              courses={coursesWithNames}
+              courses={sectionsWithClass}
               saveCourse={saveCourse}
               editCourse={editCourse}
               deleteCourse={deleteCourse}
+              sections={sections}
+              academicYears={academicYears}
             />
           </div>
         </div>
       </div>
+
       <ConfirmationModal
         isOpen={deleteConfirmation.show}
-        onClose={closeDeleteModal}
+        onClose={() => setDeleteConfirmation({ show: false, type: null, id: null, message: '' })}
         onConfirm={confirmDelete}
         title="Confirm Delete"
         message={deleteConfirmation.message}
@@ -380,8 +254,3 @@ export default function GroupsCourses() {
     </AdShellAdmin>
   )
 }
-
-
-
-
-

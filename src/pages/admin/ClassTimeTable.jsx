@@ -76,7 +76,7 @@ export default function ClassTimeTable() {
   const classNumberById = useMemo(
     () =>
       classes.reduce((acc, row) => {
-        acc[row.group_id] = Number(row.class_number || 0)
+        acc[row.id] = Number(row.class_number || 0)
         return acc
       }, {}),
     [classes]
@@ -90,7 +90,7 @@ export default function ClassTimeTable() {
         setLoading(true)
         const [{ data: sessionRows, error: sessionError }, { data: classRows, error: classError }, { data: staffRows, error: staffError }] = await Promise.all([
           supabase.from('timetable_sessions').select('*').order('created_at', { ascending: false }),
-          supabase.from('groups').select('group_id, group_name, class_number').order('class_number', { ascending: true }),
+          supabase.from('classes').select('id, class_name, class_number, category_id').order('class_number', { ascending: true }),
           supabase.from('staff').select('id, full_name')
         ])
 
@@ -116,7 +116,7 @@ export default function ClassTimeTable() {
   }, [])
 
   useEffect(() => {
-    if (!selectedClassName) {
+    if (!selectedClassId) {
       setSections([])
       setSelectedSectionId('')
       setSelectedSectionCode('')
@@ -126,12 +126,17 @@ export default function ClassTimeTable() {
     const loadSections = async () => {
       try {
         const { data, error } = await supabase
-          .from('courses')
-          .select('course_id, course_code, course_name, group_name')
-          .eq('group_name', selectedClassName)
-          .order('course_code')
+          .from('class_sections')
+          .select('id, class_id, section_id, sections(id, section_name)')
+          .eq('class_id', Number(selectedClassId))
+          .order('id')
         if (error) throw error
-        setSections(data || [])
+        setSections((data || []).map((row) => ({
+          id: row.id,
+          class_id: row.class_id,
+          section_id: row.section_id,
+          section_name: row.sections?.section_name || '',
+        })))
       } catch (error) {
         console.error('Error loading sections', error)
         toast.error('Failed to load sections')
@@ -139,7 +144,7 @@ export default function ClassTimeTable() {
     }
 
     loadSections()
-  }, [selectedClassName])
+  }, [selectedClassId])
 
   useEffect(() => {
     const canLoad = selectedSession && selectedClassId && selectedSectionId && selectedSectionCode
@@ -159,7 +164,7 @@ export default function ClassTimeTable() {
           supabase
             .from('subjects')
             .select('subject_id, subject_name, subject_code, subject_type')
-            .eq('course_name', selectedSectionCode)
+            .eq('section_name', selectedSectionCode)
             .eq('semester_number', term)
             .order('subject_name'),
           supabase
@@ -473,17 +478,17 @@ export default function ClassTimeTable() {
                 className="form-select"
                 value={selectedClassId}
                 onChange={(e) => {
-                  const selected = classes.find((row) => String(row.group_id) === String(e.target.value))
+                  const selected = classes.find((row) => String(row.id) === String(e.target.value))
                   setSelectedClassId(e.target.value)
                   setSelectedClassNumber(Number(selected?.class_number || 0))
-                  setSelectedClassName(selected?.group_name || '')
+                  setSelectedClassName(selected?.class_name || '')
                   setSelectedSectionId('')
                   setSelectedSectionCode('')
                 }}
               >
                 <option value="">Select Class</option>
                 {classes.map((row) => (
-                  <option key={row.group_id} value={row.group_id}>{row.group_name}</option>
+                  <option key={row.id} value={row.id}>{row.class_name}</option>
                 ))}
               </select>
             </div>
@@ -494,15 +499,15 @@ export default function ClassTimeTable() {
                 className="form-select"
                 value={selectedSectionId}
                 onChange={(e) => {
-                  const selected = sections.find((row) => String(row.course_id) === String(e.target.value))
+                  const selected = sections.find((row) => String(row.section_id) === String(e.target.value))
                   setSelectedSectionId(e.target.value)
-                  setSelectedSectionCode(selected?.course_code || '')
+                  setSelectedSectionCode(selected?.section_name || '')
                 }}
                 disabled={!selectedClassId}
               >
                 <option value="">Select Section</option>
                 {sections.map((row) => (
-                  <option key={row.course_id} value={row.course_id}>{row.course_name || row.course_code}</option>
+                  <option key={row.section_id} value={row.section_id}>{row.section_name}</option>
                 ))}
               </select>
             </div>
