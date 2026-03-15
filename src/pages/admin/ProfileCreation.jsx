@@ -112,10 +112,10 @@ export default function ProfileCreation() {
     if (!file) return null
     try {
       const fileExt = file.name.split('.').pop()
-      const fileName = `staff_photos/${Date.now()}_${Math.random().toString(36).slice(2)}.${fileExt}`
-      const { error } = await supabase.storage.from('documents').upload(fileName, file)
+      const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${fileExt}`
+      const { error } = await supabase.storage.from('staff_photos').upload(fileName, file)
       if (error) throw error
-      const { data: publicData } = supabase.storage.from('documents').getPublicUrl(fileName)
+      const { data: publicData } = supabase.storage.from('staff_photos').getPublicUrl(fileName)
       return publicData.publicUrl
     } catch (err) {
       console.warn('Upload failed, using Base64 fallback:', err)
@@ -158,16 +158,16 @@ export default function ProfileCreation() {
         staff_id: formData.staff_id,
         full_name: formData.full_name,
         gender: formData.gender,
-        date_of_birth: formData.dob,
+        dob: formData.dob,
         aadhar_number: formData.aadhar,
-        phone_number: formData.phone,
+        phone: formData.phone,
         email: formData.email,
         address: formData.address,
         designation: formData.designation,
         qualification: formData.qualification,
-        experience_years: parseInt(formData.experience, 10) || 0,
+        experience: parseInt(formData.experience, 10) || 0,
         joining_date: formData.joining_date,
-        image_url: photoUrl,
+        profile_photo: photoUrl,
         status: 'ACTIVE'
       }
 
