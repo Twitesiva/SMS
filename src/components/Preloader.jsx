@@ -10,13 +10,13 @@ const Preloader = () => {
 
   return (
     <div className={overlayClass.join(' ')} aria-hidden={!isActive}>
-      <div className="preloader" role="status" aria-live="polite" aria-label="Loading Vijayam Science and Arts College data">
+      <div className="preloader" role="status" aria-live="polite" aria-label="Loading Jazz Public School data">
         <div className="preloader__badge">
           <div className="preloader__crest">
             <img src={vijayamLogo} alt="Vijayam Science and Arts College logo" />
           </div>
           <div>
-            <div className="preloader__college">Vijayam Science and Arts College</div>
+            <div className="preloader__college">Jazz Public School</div>
             <div className="preloader__tagline">Preparing your academic space</div>
           </div>
         </div>

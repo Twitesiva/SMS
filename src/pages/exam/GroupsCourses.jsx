@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { supabase } from "../../../supabaseClient.js";
 import ConfirmationModal from '../../components/ConfirmationModal.jsx';
 
 const LEVELS = ["Primary", "Middle", "Secondary"];
@@ -33,33 +34,70 @@ export default function GroupsCoursesSection({
 }) {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [confirmModalState, setConfirmModalState] = useState({ isOpen: false, type: null, id: null });
+  const [overviewData, setOverviewData] = useState([]);
+
+  useEffect(() => {
+    const fetchOverview = async () => {
+      const { data, error } = await supabase
+        .from("class_sections")
+        .select(`
+          id,
+          classes(class_name),
+          sections(section_name)
+        `);
+      if (data) setOverviewData(data);
+    };
+    fetchOverview();
+  }, [courses]);
+
+  const groupedOverview = useMemo(() => {
+    const grouped = {};
+    overviewData.forEach(item => {
+      const className = item.classes?.class_name;
+      const sectionName = item.sections?.section_name;
+      if (!className || !sectionName) return;
+      if (!grouped[className]) grouped[className] = [];
+      grouped[className].push(sectionName);
+    });
+    // Sort the sections alphabetically
+    Object.keys(grouped).forEach(key => {
+      grouped[key].sort((a, b) => a.localeCompare(b));
+    });
+    return grouped;
+  }, [overviewData]);
+
+  const sortedOverviewKeys = useMemo(() => {
+    return Object.keys(groupedOverview).sort((a, b) => {
+      const aNum = Number(a.replace(/\D/g, '')) || 0;
+      const bNum = Number(b.replace(/\D/g, '')) || 0;
+      return aNum - bNum;
+    });
+  }, [groupedOverview]);
 
   const duplicateErrors = useMemo(() => {
     const classCode = String(groupForm?.code || "").trim();
-    const classExists = classCode
-      ? groups.some((g) => String(g.class_number || g.code || "") === classCode && g.id !== groupForm?.id)
-      : false;
+    const sectionName = String(groupForm?.sections || "").trim();
 
-    const selectedClassCode = String(courseForm?.groupCode || "");
-    const selectedSectionName = String(courseForm?.courseCode || "");
-    const mappingExists = selectedClassCode && selectedSectionName
+    const comboExists = classCode && sectionName
       ? courses.some((c) =>
-          String(c.groupCode || "") === selectedClassCode &&
-          String(c.courseCode || "") === selectedSectionName &&
-          c.id !== editingCourseId
-        )
+        String(c.groupCode || "") === classCode &&
+        (String(c.courseCode || "") === sectionName || String(c.courseName || "") === sectionName)
+      )
       : false;
 
     return {
-      classCode: classExists,
-      sectionCode: mappingExists,
+      classCode: comboExists,
+      sectionCode: false,
     };
-  }, [groupForm?.code, groupForm?.id, courseForm?.groupCode, courseForm?.courseCode, courses, editingCourseId, groups]);
+  }, [groupForm?.code, groupForm?.sections, courses]);
 
-  const filteredGroups = useMemo(() => {
-    if (!categoryFilter) return groups;
-    return groups.filter((group) => String(group.category || "").toLowerCase() === categoryFilter.toLowerCase());
-  }, [categoryFilter, groups]);
+  const sortedGroups = useMemo(() => {
+    return [...groups].sort((a, b) => {
+      const aNum = Number(a.code || a.class_number) || 0;
+      const bNum = Number(b.code || b.class_number) || 0;
+      return aNum - bNum;
+    });
+  }, [groups]);
 
   useEffect(() => {
     const inferredLevel = getLevelForClass(groupForm?.code);
@@ -88,7 +126,7 @@ export default function GroupsCoursesSection({
 
   return (
     <>
-<section className="setup-section mb-4">
+      <section className="setup-section mb-4">
         <div className="students-section-shell card card-soft mb-4">
           <div className="students-section-shell-header mb-3">
             <div>
@@ -120,7 +158,7 @@ export default function GroupsCoursesSection({
                   }));
                 }}
               />
-              {duplicateErrors.classCode && <div className="text-danger fw-bold mt-1">Class already exists</div>}
+              {duplicateErrors.classCode && <div className="text-danger fw-bold mt-1">Class-Section already exists</div>}
             </div>
 
             <div className="col-md-3">
@@ -150,16 +188,22 @@ export default function GroupsCoursesSection({
             </div>
 
             <div className="col-md-3">
-              <label className="form-label fw-bold mb-1">Sections</label>
-              <input
-                className="form-control"
-                placeholder="Enter sections (A,B,C...)"
+              <label className="form-label fw-bold mb-1">Section</label>
+              <select
+                className={`form-select ${duplicateErrors.classCode ? 'is-invalid' : ''}`}
                 value={groupForm.sections || ''}
                 onChange={(e) => setGroupForm({ ...groupForm, sections: e.target.value })}
                 required
-                onInvalid={(e) => e.target.setCustomValidity("Please fill out this field.")}
-                onInput={(e) => e.target.setCustomValidity("")}
-              />
+              >
+                <option value="">Select Section</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+                <option value="D">D</option>
+                <option value="E">E</option>
+                <option value="F">F</option>
+                <option value="G">G</option>
+              </select>
             </div>
           </div>
 
@@ -184,28 +228,36 @@ export default function GroupsCoursesSection({
             )}
           </div>
 
-          {groups.length > 0 && (
+          {sortedGroups.length > 0 && (
             <div className="students-section-list mt-4">
               <div className="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
-                {groups.map((g) => (
+                {sortedGroups.map((g) => {
+                  const classCourses = courses
+                    .filter(c => String(c.groupCode) === String(g.code || g.class_number))
+                    .sort((a, b) => {
+                      const nameA = a.courseCode || a.courseName || "";
+                      const nameB = b.courseCode || b.courseName || "";
+                      return nameA.localeCompare(nameB);
+                    });
+                    
+                  return (
                   <div className="col" key={g.id}>
                     <div className="card h-100 students-category-card">
                       <div className="card-body d-flex flex-column">
                         <div className="d-flex justify-content-between align-items-start mb-2">
                           <div>
-                            <div className="text-uppercase text-dark fw-bold mb-1">{g.name || g.class_name || '-'}</div>
-                            <div className="fs-6 fw-bold">Class {g.code || g.class_number || '-'}</div>
+                            <div className="text-uppercase text-dark fw-bold mb-1">CLASS {g.code || g.class_number || '-'}</div>
+                            <div className="fs-6 text-muted">{g.name || g.class_name || '-'}</div>
                           </div>
                           {g.category ? (
                             <span className="students-section-badge students-section-badge-category">{g.category}</span>
                           ) : null}
                         </div>
                         <div className="mt-2 mb-3 d-flex flex-wrap gap-2">
-                          {courses
-                            .filter(c => String(c.groupCode) === String(g.code || g.class_number))
-                            .map(c => (
-                              <span key={c.id} className="badge bg-light text-dark border px-2 py-1 fs-6">
+                          {classCourses.map(c => (
+                              <span key={c.id} className="badge bg-light text-dark border px-2 py-1 fs-6 d-inline-flex align-items-center gap-1">
                                 {c.groupCode}{c.courseCode || c.courseName}
+                                <button type="button" className="btn-close btn-close-sm" style={{ fontSize: "0.4rem", filter: "invert(0.5)" }} onClick={(e) => { e.stopPropagation(); handleDeleteCourseClick(c.id); }} aria-label="Delete mapping"></button>
                               </span>
                             ))
                           }
@@ -221,7 +273,8 @@ export default function GroupsCoursesSection({
                       </div>
                     </div>
                   </div>
-                ))}
+                );
+              })}
               </div>
             </div>
           )}
@@ -232,126 +285,40 @@ export default function GroupsCoursesSection({
         <div className="students-section-shell card card-soft mb-4">
           <div className="students-section-shell-header mb-3">
             <div>
-              <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>Class-Section Mapping</h5>
-              <p className="students-section-copy mb-0">
-                Map class and section using class_sections table.
+              <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>CLASS-SECTION OVERVIEW</h5>
+              <p className="students-section-copy mb-2">
+                View all class-section combinations created in the system.
               </p>
+              <div className="badge bg-primary text-white">Total Classes : {Object.keys(groupedOverview).length}</div>
             </div>
           </div>
 
-          <div className="students-section-form row g-3">
-            <div className="col-md-3">
-              <label className="form-label fw-bold mb-1">School Level</label>
-              <select className="form-select" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-                <option value="">All Levels</option>
-                {LEVELS.map((level) => <option key={level} value={level}>{level}</option>)}
-              </select>
-            </div>
-
-            <div className="col-md-3">
-              <label className="form-label fw-bold mb-1">Class</label>
-              <select
-                className="form-select"
-                required
-                value={courseForm.groupCode}
-                onChange={(e) => {
-                  const selected = filteredGroups.find((g) => String(g.class_number || g.code) === String(e.target.value));
-                  setCourseForm((prev) => ({
-                    ...prev,
-                    groupCode: e.target.value,
-                    groupName: selected?.class_name || selected?.name || '',
-                  }));
-                }}
-              >
-                <option value="">Select Class</option>
-                {filteredGroups.map((g) => (
-                  <option key={g.id} value={g.class_number || g.code}>{g.class_name || g.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="col-md-3">
-              <label className="form-label fw-bold mb-1">Section</label>
-              <select
-                className={`form-select ${duplicateErrors.sectionCode ? 'is-invalid' : ''}`}
-                required
-                value={courseForm.courseCode}
-                onChange={(e) => {
-                  setCourseForm((prev) => ({
-                    ...prev,
-                    courseCode: e.target.value,
-                    courseName: e.target.value,
-                  }));
-                }}
-              >
-                <option value="">Select Section</option>
-                {sections.map((section) => (
-                  <option key={section.id} value={section.section_name || section.courseCode || section.name}>
-                    {section.section_name || section.courseCode || section.name}
-                  </option>
-                ))}
-              </select>
-              {duplicateErrors.sectionCode && <div className="text-danger small mt-1">Mapping already exists</div>}
-            </div>
-
-            <div className="col-md-3">
-              <label className="form-label fw-bold mb-1">Academic Year</label>
-              <select
-                className="form-select"
-                value={courseForm.academicYearId || ''}
-                onChange={(e) => setCourseForm((prev) => ({ ...prev, academicYearId: e.target.value }))}
-              >
-                <option value="">Select Academic Year</option>
-                {academicYears.map((year) => (
-                  <option key={year.id} value={year.id}>{year.name || year.year_name || year.academic_year}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="students-section-actions mt-3 d-flex flex-wrap gap-2">
-            <button className="btn btn-primary students-button" onClick={saveCourse} disabled={duplicateErrors.sectionCode}>
-              {editingCourseId ? "Update Mapping" : "Add Mapping"}
-            </button>
-            {editingCourseId && (
-              <button
-                className="btn btn-outline-secondary students-button"
-                onClick={() => {
-                  setCourseForm({ id: "", groupCode: "", groupName: "", courseCode: "", courseName: "", academicYearId: "" });
-                  setEditingCourseId("");
-                }}
-              >
-                Cancel
-              </button>
-            )}
-          </div>
-
-          {courses.length > 0 && (
-            <div className="students-section-list mt-4">
-              <div className="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
-                {courses.map((c) => (
-                  <div className="col" key={c.id}>
+          <div className="students-section-list mt-2">
+            <div className="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+              {sortedOverviewKeys.map((className) => {
+                const title = className.toUpperCase().includes('CLASS') ? className.toUpperCase() : `CLASS ${className.toUpperCase()}`;
+                const prefix = className.replace(/class\s*/i, '').trim();
+                const sectionsList = groupedOverview[className];
+                return (
+                  <div className="col" key={className}>
                     <div className="card h-100 students-category-card">
                       <div className="card-body d-flex flex-column">
-                        <div className="text-uppercase text-dark fw-bold mb-1">Class {c.groupCode}</div>
-                        <div className="fw-semibold text-dark mb-2">{c.groupName || '-'}</div>
-                        <div className="fw-bold mb-1">Section {c.courseCode || '-'}</div>
-                        <div className="text-muted mb-3">{c.courseName || c.courseCode || '-'}</div>
-                        <div className="mt-auto d-flex gap-2">
-                          <button type="button" className="btn btn-sm btn-outline-primary students-button students-button-sm flex-fill" onClick={() => editCourse(c)}>
-                            Edit
-                          </button>
-                          <button type="button" className="btn btn-sm btn-outline-danger students-button students-button-sm flex-fill" onClick={() => handleDeleteCourseClick(c.id)}>
-                            Delete
-                          </button>
+                        <div className="text-uppercase text-dark fw-bold mb-1">{title}</div>
+                        <div className="text-muted small mb-3 fw-semibold">Sections : {sectionsList.length}</div>
+                        <div className="d-flex flex-wrap gap-2">
+                          {sectionsList.map((sec) => (
+                            <span key={`${className}-${sec}`} className="badge bg-light text-dark border px-2 py-1 fs-6">
+                              {prefix}{sec}
+                            </span>
+                          ))}
                         </div>
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
-          )}
+          </div>
         </div>
       </section>
 
