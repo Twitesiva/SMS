@@ -108,8 +108,9 @@ export default function LeaveManagement() {
         let name = 'Unknown'
         let details = ''
         if (req.applicant_type === 'STUDENT') {
-          const { data: st } = await supabase.from('students').select('full_name, group_name').eq('id', req.applicant_id).maybeSingle()
-          if (st) { name = st.full_name; details = st.group_name }
+          // Legacy student lookup commented - future migration
+          // const { data: st } = await supabase.from('staff').select('full_name, class_name as group_name').eq('id', req.applicant_id).maybeSingle()
+          // if (st) { name = st.full_name; details = st.group_name }
         } else if (req.applicant_type === 'STAFF') {
           const { data: st } = await supabase.from('teachers').select('full_name').eq('id', req.applicant_id).maybeSingle()
           if (st) { name = st.full_name; details = 'Staff' }

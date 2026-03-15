@@ -20,6 +20,7 @@ export default function GroupsCourses() {
     categoryId: '',
     code: '',
     name: '',
+    sections: '',
   })
   const [editingGroupId, setEditingGroupId] = useState('')
 
@@ -87,6 +88,21 @@ export default function GroupsCourses() {
       return
     }
 
+    if (!groupForm.category) {
+      showToast('School Level is required.', { type: 'warning' })
+      return
+    }
+
+    if (!groupForm.name?.trim()) {
+      showToast('Class Name is required.', { type: 'warning' })
+      return
+    }
+
+    if (!groupForm.sections?.trim()) {
+      showToast('Sections are required.', { type: 'warning' })
+      return
+    }
+
     const payload = {
       code: String(classNumber),
       name: groupForm.name || `Class ${classNumber}`,
@@ -95,14 +111,57 @@ export default function GroupsCourses() {
     }
 
     try {
+      let savedClass;
       if (editingGroupId) {
-        await api.updateGroup(editingGroupId, payload)
+        savedClass = await api.updateGroup(editingGroupId, payload)
         showToast('Class updated successfully', { type: 'success' })
       } else {
-        await api.addGroup(payload)
-        showToast('Class added successfully', { type: 'success' })
+        savedClass = await api.addGroup(payload)
       }
-      setGroupForm({ id: '', category: '', categoryId: '', code: '', name: '' })
+
+      const parsedSections = groupForm.sections.split(',').map(s => s.trim()).filter(Boolean);
+      
+      if (parsedSections.length > 0 && savedClass) {
+        const currentYearId = academicYears?.[0]?.id || null;
+        let currentSections = [...sections];
+
+        for (const secStr of parsedSections) {
+          let secObj = currentSections.find(s => 
+            String(s.section_name).toLowerCase() === secStr.toLowerCase() || 
+            String(s.name).toLowerCase() === secStr.toLowerCase() || 
+            String(s.courseCode).toLowerCase() === secStr.toLowerCase()
+          );
+          
+          let secId = secObj?.id;
+          if (!secId) {
+            try {
+              const newSec = await api.addCourse({ code: secStr, name: secStr });
+              secId = newSec.id;
+              currentSections.push(newSec);
+            } catch (e) {
+              console.error('Failed to add section', secStr, e);
+            }
+          }
+
+          if (secId) {
+            try {
+              await api.addClassSection({
+                classId: savedClass.id,
+                sectionId: secId,
+                academicYearId: currentYearId ? Number(currentYearId) : null,
+              });
+            } catch (e) {
+              // ignore duplicate mapping errors
+            }
+          }
+        }
+        
+        if (!editingGroupId) {
+          showToast('Class and sections added successfully', { type: 'success' })
+        }
+      }
+
+      setGroupForm({ id: '', category: '', categoryId: '', code: '', name: '', sections: '' })
       setEditingGroupId('')
       await loadData()
     } catch (error) {
@@ -112,12 +171,20 @@ export default function GroupsCourses() {
   }
 
   const editGroup = (group) => {
+    // Collect related mappings to populate sections input
+    const relatedSections = mappings
+      .filter(m => m.classId === group.id)
+      .map(m => m.sectionName || m.courseCode || '')
+      .filter(Boolean)
+      .join(',');
+
     setGroupForm({
       id: group.id,
       category: group.category || group.school_level || '',
       categoryId: group.category_id || '',
       code: String(group.class_number || group.code || ''),
       name: group.class_name || group.name || '',
+      sections: relatedSections || '',
     })
     setEditingGroupId(group.id)
   }

@@ -90,8 +90,8 @@ export default function LearningMaterials() {
       const [{ data: subjects }, { data: courses }, { data: groups }] =
         await Promise.all([
           supabase.from('subjects').select('subject_id, subject_name, subject_code').in('subject_id', subjectIds),
-          supabase.from('courses').select('course_id, course_name').in('course_id', courseIds),
-          supabase.from('groups').select('group_id, group_name').in('group_id', groupIds)
+supabase.from('sections').select('id as course_id, section_name as course_name').in('id', courseIds),
+supabase.from('classes').select('id as group_id, class_name as group_name').in('id', groupIds)
         ])
 
       // 3️⃣ Merge everything

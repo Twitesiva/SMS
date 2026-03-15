@@ -68,10 +68,16 @@ export default function MainDashboard() {
                     .from('classes')
                     .select('*', { count: 'exact', head: true })
 
+                const { count: sectionCount } = await supabase
+                    .from('sections')
+                    .select('*', { count: 'exact', head: true })
+
                 setCounts({
                     classes: classCount || 0,
+                    sections: sectionCount || 0,
                     teachers: teacherCount || 0
                 })
+
 
                 // Fetch groups and courses for counts
                 const [cs, gs] = await Promise.all([

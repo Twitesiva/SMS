@@ -67,8 +67,8 @@ export default function StaffTimetable() {
         group_id,
         semester,
         subjects ( subject_name ),
-        courses ( course_name ),
-        groups ( group_name )
+        sections ( section_name as course_name ),
+        classes ( class_name as group_name )
       `)
       .eq('teacher_id', teacher.id)
       .eq('is_active', true)

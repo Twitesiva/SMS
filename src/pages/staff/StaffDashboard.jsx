@@ -56,11 +56,11 @@ export default function StaffDashboard() {
                     subject_code,
                     subject_name
                 ),
-                courses (
-                    course_name
+                sections (
+                    section_name as course_name
                 ),
-                groups (
-                    group_name
+                classes (
+                    class_name as group_name
                 )
             `)
             .eq('teacher_id', teacherId)

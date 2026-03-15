@@ -88,7 +88,7 @@ export default function GroupsCoursesSection({
 
   return (
     <>
-      <section className="setup-section mb-4">
+<section className="setup-section mb-4">
         <div className="students-section-shell card card-soft mb-4">
           <div className="students-section-shell-header mb-3">
             <div>
@@ -148,6 +148,19 @@ export default function GroupsCoursesSection({
                 required
               />
             </div>
+
+            <div className="col-md-3">
+              <label className="form-label fw-bold mb-1">Sections</label>
+              <input
+                className="form-control"
+                placeholder="Enter sections (A,B,C...)"
+                value={groupForm.sections || ''}
+                onChange={(e) => setGroupForm({ ...groupForm, sections: e.target.value })}
+                required
+                onInvalid={(e) => e.target.setCustomValidity("Please fill out this field.")}
+                onInput={(e) => e.target.setCustomValidity("")}
+              />
+            </div>
           </div>
 
           <div className="students-section-actions mt-3 d-flex flex-wrap gap-2">
@@ -186,6 +199,16 @@ export default function GroupsCoursesSection({
                           {g.category ? (
                             <span className="students-section-badge students-section-badge-category">{g.category}</span>
                           ) : null}
+                        </div>
+                        <div className="mt-2 mb-3 d-flex flex-wrap gap-2">
+                          {courses
+                            .filter(c => String(c.groupCode) === String(g.code || g.class_number))
+                            .map(c => (
+                              <span key={c.id} className="badge bg-light text-dark border px-2 py-1 fs-6">
+                                {c.groupCode}{c.courseCode || c.courseName}
+                              </span>
+                            ))
+                          }
                         </div>
                         <div className="mt-auto d-flex gap-2">
                           <button type="button" className="btn btn-sm btn-outline-primary students-button students-button-sm flex-fill" onClick={() => editGroup(g)}>

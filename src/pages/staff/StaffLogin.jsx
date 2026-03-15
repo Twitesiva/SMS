@@ -2,116 +2,186 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../../../supabaseClient'
 import { useStaffAuth } from '../../store/staffAuth'
-import crest from '../../assets/media/images.png'
 import '../common/Auth.css'
 
+
 export default function StaffLogin() {
-    const nav = useNavigate()
-    const { setStaff } = useStaffAuth()
-    const [staffId, setStaffId] = useState('')
-    const [mobile, setMobile] = useState('')
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState('')
+  const nav = useNavigate()
+  const { setStaff } = useStaffAuth()
+  const [staffId, setStaffId] = useState('')
+  const [mobile, setMobile] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-    const onLogin = async (event) => {
-        event.preventDefault()
-        setLoading(true)
-        setError('')
+  const onLogin = async (event) => {
+    event.preventDefault()
+    setLoading(true)
+    setError('')
 
-        const cleanStaffId = staffId.trim()
-        const cleanMobile = mobile.trim()
+    const cleanStaffId = staffId.trim()
+    const cleanMobile = mobile.trim()
 
-        try {
-            const { data, error: fetchError } = await supabase
-                .from('teachers')
-                .select('*')
-                .eq('staff_id', cleanStaffId)
-                .eq('phone_number', cleanMobile)
-                .maybeSingle()
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('staff')
+        .select('*')
+        .eq('staff_id', cleanStaffId)
+        .eq('phone_number', cleanMobile)
+        .single()
 
-            if (fetchError) throw fetchError
-            if (!data) {
-                setError('Invalid Staff ID or mobile number')
-                setLoading(false)
-                return
-            }
+      if (fetchError) throw fetchError
+      if (!data) {
+        setError('Invalid Staff ID or mobile number')
+        setLoading(false)
+        return
+      }
 
-            setStaff(data)
-            nav('/staff/dashboard')
-        } catch (err) {
-            console.error(err)
-            setError(err?.message || 'Unable to sign in right now')
-        } finally {
-            setLoading(false)
-        }
+      setStaff(data)
+      nav('/staff/dashboard')
+    } catch (err) {
+      console.error(err)
+      setError(err?.message || 'Unable to sign in')
+    } finally {
+      setLoading(false)
     }
+  }
 
-    return (
-        <main className="admission-portal admin-login-portal">
-            <div className="admission-portal__header">
-                <div className="admission-portal__brand-block">
-                    <div className="admission-portal__brand">
-                        <img src={crest} alt="Vijayam crest" />
-                    </div>
-                    <div className="admission-portal__brand-text">
-                        <div className="admission-portal__brand-title">Jazz Public School</div>
-                        <div className="admission-portal__brand-sub">Staff Portal</div>
-                    </div>
-                </div>
-                <Link to="/roles" className="admission-portal__back">
-                    <i className="bi bi-arrow-left"></i> Back to Roles
-                </Link>
+  return (
+    <div style={{ minHeight: '100vh', backgroundColor: '#f4f6f9', display: 'flex', flexDirection: 'column' }}>
+      {/* HEADER SECTION */}
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '30px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <img src="/logo.png" alt="School Logo" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }} />
+          <div>
+            <h2 style={{ margin: 0, fontWeight: '600', fontSize: '18px', color: '#1a1a1a' }}>Jazz Public School</h2>
+            <p style={{ margin: 0, fontSize: '13px', color: '#666', fontWeight: '500' }}>Staff Access</p>
+          </div>
+        </div>
+        <Link 
+          to="/roles" 
+          style={{
+            textDecoration: 'none',
+            color: '#444',
+            fontSize: '14px',
+            fontWeight: '500',
+            border: '1px solid #ccc',
+            padding: '8px 16px',
+            borderRadius: '20px',
+            backgroundColor: 'white'
+          }}
+        >
+          ← Back to Roles
+        </Link>
+      </header>
+
+      {/* CENTER SECTION */}
+      <div style={{ textAlign: 'center', marginTop: '20px' }}>
+        <h1 style={{ fontSize: '30px', fontWeight: 'bold', color: '#111', margin: '0 0 8px 0' }}>
+          Staff portal login
+        </h1>
+        <p style={{ color: '#666', fontSize: '15px', margin: 0 }}>
+          Sign in to manage users and system settings.
+        </p>
+      </div>
+
+      {/* LOGIN CARD */}
+      <div style={{
+        width: '420px',
+        margin: '40px auto',
+        backgroundColor: 'white',
+        borderRadius: '10px',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.08)',
+        overflow: 'hidden'
+      }}>
+        {/* Gradient Top Border */}
+        <div style={{ height: '4px', background: 'linear-gradient(90deg, blue, green, yellow)', width: '100%' }}></div>
+        
+        <div style={{ padding: '35px 30px' }}>
+          <h3 style={{ textAlign: 'center', margin: '0 0 6px 0', fontSize: '22px', fontWeight: 'bold', color: '#222' }}>
+            Welcome back
+          </h3>
+          <p style={{ textAlign: 'center', color: '#666', marginBottom: '25px', fontSize: '14px' }}>
+            Use your staff credentials to continue.
+          </p>
+          
+          <form onSubmit={onLogin} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#333', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Staff ID
+              </label>
+              <input
+                type="text"
+                value={staffId}
+                onChange={(e) => setStaffId(e.target.value)}
+                placeholder="Enter Staff ID"
+                required
+                autoComplete="off"
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  padding: '12px 14px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
             </div>
 
-            <div className="admin-login-portal__content">
-                <div className="admin-login-portal__intro">
-                    <h1>Staff portal login</h1>
-                    <p>Use your Staff ID and registered mobile number.</p>
-                </div>
-
-                <section className="admin-login-card admin-login-card--portal" aria-live="polite">
-                    <div className="admin-login-card-header">
-                        <h2>Welcome back</h2>
-                        <p>Use your credentials to continue.</p>
-                    </div>
-                    <form className="admin-login-form" onSubmit={onLogin} autoComplete="off">
-                        <label className="admin-login-field">
-                            <span>Staff ID</span>
-                            <input
-                                type="text"
-                                className="admin-login-input"
-                                name="staff_id_input"
-                                value={staffId}
-                                onChange={(event) => setStaffId(event.target.value)}
-                                placeholder="Enter Staff ID"
-                                required
-                                autoComplete="off"
-                            />
-                        </label>
-
-                        <label className="admin-login-field">
-                            <span>Mobile Number</span>
-                            <input
-                                type="password"
-                                className="admin-login-input"
-                                name="staff_mobile_input"
-                                value={mobile}
-                                onChange={(event) => setMobile(event.target.value)}
-                                placeholder="Enter Mobile Number"
-                                required
-                                autoComplete="new-password"
-                            />
-                        </label>
-
-                        {error && <p className="admin-login-error">{error}</p>}
-
-                        <button type="submit" className="admin-login-submit" disabled={loading}>
-                            {loading ? 'Signing in...' : 'Sign in'}
-                        </button>
-                    </form>
-                </section>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#333', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Mobile Number
+              </label>
+              <input
+                type="tel"
+                value={mobile}
+                onChange={(e) => setMobile(e.target.value)}
+                placeholder="Enter Mobile Number"
+                required
+                autoComplete="new-password"
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  padding: '12px 14px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
             </div>
-        </main>
-    )
+
+            {error && (
+              <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', padding: '10px 14px', borderRadius: '6px', fontSize: '13px' }}>
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: '100%',
+                background: 'linear-gradient(90deg, #4f7cff, #5a8dee)',
+                color: 'white',
+                borderRadius: '6px',
+                height: '45px',
+                fontWeight: '600',
+                border: 'none',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                fontSize: '15px',
+                marginTop: '10px',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              {loading ? 'Signing in...' : 'SIGN IN'}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  )
 }
-
