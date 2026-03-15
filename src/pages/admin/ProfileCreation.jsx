@@ -37,13 +37,13 @@ export default function ProfileCreation() {
       try {
         const { data, error } = await supabase
           .from('subjects')
-          .select('subject_id, subject_name, subject_code, subject_type')
-          .order('subject_name')
+          .select('id, subject_title, subject_code')
+          .order('subject_title', { ascending: true })
         if (error) throw error
         setSubjects(data || [])
       } catch (error) {
         console.error('Failed to load subjects', error)
-        toast.error('Unable to load subjects list')
+        toast.error('Unable to load subjects list from Supabase')
       }
     }
 
@@ -54,10 +54,9 @@ export default function ProfileCreation() {
     const term = subjectSearch.trim().toLowerCase()
     if (!term) return subjects
     return subjects.filter((subject) => {
-      const name = String(subject.subject_name || '').toLowerCase()
+      const name = String(subject.subject_title || '').toLowerCase()
       const code = String(subject.subject_code || '').toLowerCase()
-      const type = String(subject.subject_type || '').toLowerCase()
-      return name.includes(term) || code.includes(term) || type.includes(term)
+      return name.includes(term) || code.includes(term)
     })
   }, [subjectSearch, subjects])
 
@@ -322,19 +321,15 @@ export default function ProfileCreation() {
                       <div className="text-muted small px-2 py-1">No subjects found.</div>
                     ) : (
                       filteredSubjects.map((subject) => (
-                        <label key={subject.subject_id} className="d-flex align-items-center justify-content-between gap-2 px-2 py-1">
-                          <span>
-                            <input
-                              type="checkbox"
-                              className="form-check-input me-2"
-                              checked={selectedSubjectIds.includes(subject.subject_id)}
-                              onChange={() => toggleSubject(subject.subject_id)}
-                            />
-                            {subject.subject_code ? `${subject.subject_code} - ` : ''}{subject.subject_name}
-                          </span>
-                          <span className="badge bg-light text-dark border text-capitalize">
-                            {SUBJECT_TYPES.includes(subject.subject_type) ? subject.subject_type : 'core'}
-                          </span>
+                        <label key={subject.id} className="d-flex align-items-center gap-2 px-2 py-1">
+                          <input
+                            type="checkbox"
+                            className="form-check-input me-2"
+                            value={subject.id}
+                            checked={selectedSubjectIds.includes(subject.id)}
+                            onChange={() => toggleSubject(subject.id)}
+                          />
+                          {subject.subject_code ? `${subject.subject_code} - ` : ''}{subject.subject_title}
                         </label>
                       ))
                     )}
