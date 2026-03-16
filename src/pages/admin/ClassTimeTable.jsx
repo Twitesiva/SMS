@@ -9,6 +9,12 @@ import './AdminContent.css'
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 
+const LEVEL_RANGES = {
+  Primary: { min: 1, max: 5 },
+  Middle: { min: 6, max: 9 },
+  Secondary: { min: 10, max: 12 },
+}
+
 const SLOT_TEMPLATE_8 = [
   { key: 'p1', label: 'P1', start: '10:00:00', end: '10:40:00', periodNumber: 1, periodType: 'class' },
   { key: 'p2', label: 'P2', start: '10:40:00', end: '11:20:00', periodNumber: 2, periodType: 'class' },
@@ -20,7 +26,7 @@ const SLOT_TEMPLATE_8 = [
   { key: 'p6', label: 'P6', start: '13:50:00', end: '14:30:00', periodNumber: 6, periodType: 'class' },
   { key: 'b2', label: 'Break', start: '14:30:00', end: '14:35:00', periodNumber: null, periodType: 'break' },
   { key: 'p7', label: 'P7', start: '14:35:00', end: '15:15:00', periodNumber: 7, periodType: 'class' },
-  { key: 'p8', label: 'P8', start: '15:15:00', end: '15:55:00', periodNumber: 8, periodType: 'class' }
+  { key: 'p8', label: 'P8', start: '15:15:00', end: '15:55:00', periodNumber: 8, periodType: 'class' },
 ]
 
 const SLOT_TEMPLATE_6 = [
@@ -31,83 +37,106 @@ const SLOT_TEMPLATE_6 = [
   { key: 'p4', label: 'P4', start: '12:05:00', end: '12:45:00', periodNumber: 4, periodType: 'class' },
   { key: 'l1', label: 'Lunch', start: '12:45:00', end: '13:10:00', periodNumber: null, periodType: 'lunch' },
   { key: 'p5', label: 'P5', start: '13:10:00', end: '13:50:00', periodNumber: 5, periodType: 'class' },
-  { key: 'p6', label: 'P6', start: '13:50:00', end: '14:30:00', periodNumber: 6, periodType: 'class' }
+  { key: 'p6', label: 'P6', start: '13:50:00', end: '14:30:00', periodNumber: 6, periodType: 'class' },
 ]
 
 const getSlotTemplate = (classNumber) => (classNumber >= 10 ? SLOT_TEMPLATE_6 : SLOT_TEMPLATE_8)
-
-const isActivitySlotValid = (classNumber, periodNumber) => {
-  if (classNumber >= 1 && classNumber <= 5) {
-    return periodNumber >= 1 && periodNumber <= 4
-  }
-  if (classNumber >= 6 && classNumber <= 9) {
-    return periodNumber >= 5 && periodNumber <= 8
-  }
-  return true
-}
 
 export default function ClassTimeTable() {
   const { user } = useAuth()
   const isAdmin = String(user?.role || '').toUpperCase() === 'ADMIN'
 
-  const [sessions, setSessions] = useState([])
-  const [classes, setClasses] = useState([])
-  const [sections, setSections] = useState([])
+  // ─── Base data ────────────────────────────────────────────────────────
+  const [academicYears, setAcademicYears] = useState([])
+  const [allClasses, setAllClasses] = useState([])
+  const [allGroups, setAllGroups] = useState([])
+  const [classSections, setClassSections] = useState([])
   const [subjects, setSubjects] = useState([])
   const [subjectStaffMap, setSubjectStaffMap] = useState({})
-  const [staffNameMap, setStaffNameMap] = useState({})
+  const [staffList, setStaffList] = useState([])
 
-  const [selectedSessionId, setSelectedSessionId] = useState('')
+  // ─── Selection state ──────────────────────────────────────────────────
+  const [selectedAcademicYearId, setSelectedAcademicYearId] = useState('')
+  const [selectedSchoolLevel, setSelectedSchoolLevel] = useState('')
   const [selectedClassId, setSelectedClassId] = useState('')
-  const [selectedClassNumber, setSelectedClassNumber] = useState(0)
-  const [selectedClassName, setSelectedClassName] = useState('')
+  const [selectedGroupId, setSelectedGroupId] = useState('')
   const [selectedSectionId, setSelectedSectionId] = useState('')
-  const [selectedSectionCode, setSelectedSectionCode] = useState('')
-  const [selectedGroupId, setSelectedGroupId] = useState(null)
+  const [selectedTerm, setSelectedTerm] = useState('')
 
+  // ─── Grid & UI state ──────────────────────────────────────────────────
   const [grid, setGrid] = useState({})
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  const selectedSession = useMemo(
-    () => sessions.find((row) => String(row.id) === String(selectedSessionId)) || null,
-    [sessions, selectedSessionId]
+  // ─── Derived values ───────────────────────────────────────────────────
+  const selectedClassObj = useMemo(
+    () => allClasses.find(c => String(c.id) === String(selectedClassId)),
+    [allClasses, selectedClassId]
+  )
+  const selectedClassNumber = selectedClassObj
+    ? Number(selectedClassObj.class_number || 0)
+    : 0
+
+  const isSecondary = selectedSchoolLevel === 'Secondary'
+  const isHigherSec = selectedClassNumber === 11 || selectedClassNumber === 12
+  const showGroupDropdown = isHigherSec
+  const showTermDropdown = !isSecondary && selectedSchoolLevel !== ''
+
+  const filteredClasses = useMemo(() => {
+    if (!selectedSchoolLevel) return []
+    const range = LEVEL_RANGES[selectedSchoolLevel]
+    if (!range) return allClasses
+    return allClasses.filter(c => {
+      const num = Number(c.class_number || 0)
+      return num >= range.min && num <= range.max
+    })
+  }, [allClasses, selectedSchoolLevel])
+
+  const filteredGroups = useMemo(
+    () => allGroups.filter(g => String(g.class_id) === String(selectedClassId)),
+    [allGroups, selectedClassId]
   )
 
-  const classNumberById = useMemo(
-    () =>
-      classes.reduce((acc, row) => {
-        acc[row.id] = Number(row.class_number || 0)
-        return acc
-      }, {}),
-    [classes]
-  )
+  const filteredSections = useMemo(() => {
+    if (!selectedClassId) return []
+    return classSections.filter(cs => String(cs.class_id) === String(selectedClassId))
+  }, [classSections, selectedClassId])
 
   const slots = useMemo(() => getSlotTemplate(selectedClassNumber), [selectedClassNumber])
+  const classSlots = useMemo(() => slots.filter(s => s.periodType === 'class'), [slots])
 
+  // Determine if all required fields are selected
+  const selectionComplete = useMemo(() => {
+    if (!selectedAcademicYearId || !selectedSchoolLevel || !selectedClassId || !selectedSectionId) return false
+    if (isHigherSec && !selectedGroupId) return false
+    if (showTermDropdown && !selectedTerm) return false
+    return true
+  }, [selectedAcademicYearId, selectedSchoolLevel, selectedClassId, selectedSectionId, selectedGroupId, selectedTerm, isHigherSec, showTermDropdown])
+
+  // ─── Load initial data ────────────────────────────────────────────────
   useEffect(() => {
     const loadInitial = async () => {
       try {
         setLoading(true)
-        const [{ data: sessionRows, error: sessionError }, { data: classRows, error: classError }, { data: staffRows, error: staffError }] = await Promise.all([
-          supabase.from('timetable_sessions').select('*').order('created_at', { ascending: false }),
-          supabase.from('classes').select('id, class_name, class_number, category_id').order('class_number', { ascending: true }),
-          supabase.from('staff').select('id, full_name')
+        const [yearRes, classRes, groupRes, staffRes] = await Promise.all([
+          supabase.from('academic_years').select('id, year_name').order('year_name'),
+          supabase.from('classes').select('id, class_name, class_number, school_level, category_id').order('class_number', { ascending: true }),
+          supabase.from('groups').select('id, group_name, class_id').order('group_name'),
+          supabase.from('staff').select('id, full_name'),
         ])
 
-        if (sessionError) throw sessionError
-        if (classError) throw classError
-        if (staffError) throw staffError
+        if (yearRes.error) throw yearRes.error
+        if (classRes.error) throw classRes.error
+        if (groupRes.error) throw groupRes.error
+        if (staffRes.error) throw staffRes.error
 
-        setSessions(sessionRows || [])
-        setClasses(classRows || [])
-        setStaffNameMap((staffRows || []).reduce((acc, row) => {
-          acc[row.id] = row.full_name || `Staff ${row.id}`
-          return acc
-        }, {}))
+        setAcademicYears(yearRes.data || [])
+        setAllClasses(classRes.data || [])
+        setAllGroups(groupRes.data || [])
+        setStaffList(staffRes.data || [])
       } catch (error) {
-        console.error('Error loading timetable data', error)
-        toast.error('Failed to load timetable data')
+        console.error('Error loading initial data:', error)
+        toast.error('Failed to load initial data')
       } finally {
         setLoading(false)
       }
@@ -116,11 +145,11 @@ export default function ClassTimeTable() {
     loadInitial()
   }, [])
 
+  // ─── Load sections when class changes ─────────────────────────────────
   useEffect(() => {
     if (!selectedClassId) {
-      setSections([])
+      setClassSections([])
       setSelectedSectionId('')
-      setSelectedSectionCode('')
       return
     }
 
@@ -131,8 +160,10 @@ export default function ClassTimeTable() {
           .select('id, class_id, section_id, sections(id, section_name, group_id)')
           .eq('class_id', Number(selectedClassId))
           .order('id')
+
         if (error) throw error
-        setSections((data || []).map((row) => ({
+
+        setClassSections((data || []).map(row => ({
           id: row.id,
           class_id: row.class_id,
           section_id: row.section_id,
@@ -140,7 +171,7 @@ export default function ClassTimeTable() {
           group_id: row.sections?.group_id || null,
         })))
       } catch (error) {
-        console.error('Error loading sections', error)
+        console.error('Error loading sections:', error)
         toast.error('Failed to load sections')
       }
     }
@@ -148,98 +179,129 @@ export default function ClassTimeTable() {
     loadSections()
   }, [selectedClassId])
 
+  // ─── Load subjects + staff map + existing grid when selection is complete ──
   useEffect(() => {
-    const canLoad = selectedSession && selectedClassId && selectedSectionId && selectedSectionCode
-    if (!canLoad) {
+    if (!selectionComplete) {
       setSubjects([])
       setSubjectStaffMap({})
       setGrid({})
       return
     }
 
-    const loadSubjectAndGrid = async () => {
+    const loadSubjectsAndGrid = async () => {
       try {
         setLoading(true)
-        const term = Number(selectedSession.term)
-        const termString = selectedClassNumber >= 10 ? 'Full Year' : `Term ${term}`;
-        const isHigherSecondary = selectedClassNumber === 11 || selectedClassNumber === 12;
+
+        const termString = isSecondary ? 'Full Year' : selectedTerm
 
         let subjectsQuery = supabase
           .from('subjects')
           .select('id, subject_title, subject_code, subject_categories!subjects_category_id_fkey(category_name)')
           .eq('class_id', Number(selectedClassId))
-          .eq('term', termString);
-        
-        if (isHigherSecondary && selectedGroupId) {
-          subjectsQuery = subjectsQuery.eq('group_id', selectedGroupId);
+          .eq('term', termString)
+
+        if (isHigherSec && selectedGroupId) {
+          subjectsQuery = subjectsQuery.eq('group_id', selectedGroupId)
         } else {
-          subjectsQuery = subjectsQuery.is('group_id', null);
+          subjectsQuery = subjectsQuery.is('group_id', null)
         }
 
-        // Subjects now apply to class/group level (section_id is null in subjects table)
-        subjectsQuery = subjectsQuery.is('section_id', null);
+        subjectsQuery = subjectsQuery.is('section_id', null)
 
         const [{ data: subjectRows, error: subjectError }, { data: mappingRows, error: mappingError }] = await Promise.all([
           subjectsQuery.order('subject_title'),
-          supabase
-            .from('staff_subjects')
-            .select('subject_id, staff_id')
+          supabase.from('staff_subjects').select('subject_id, staff_id'),
         ])
 
         if (subjectError) throw subjectError
         if (mappingError) throw mappingError
 
         setSubjects((subjectRows || []).map(s => ({
-            subject_id: s.id,
-            subject_name: s.subject_title,
-            subject_code: s.subject_code,
-            subject_type: s.subject_categories?.category_name || ''
+          subject_id: s.id,
+          subject_name: s.subject_title,
+          subject_code: s.subject_code,
+          subject_type: s.subject_categories?.category_name || '',
         })))
 
+        // Build subject → staff mapping
         const nextStaffMap = {}
-        ;(mappingRows || []).forEach((row) => {
-          if (row.subject_id && row.staff_id) {
-            nextStaffMap[row.subject_id] = row.staff_id
-          }
-        })
+          ; (mappingRows || []).forEach(row => {
+            if (row.subject_id && row.staff_id) {
+              nextStaffMap[row.subject_id] = row.staff_id
+            }
+          })
         setSubjectStaffMap(nextStaffMap)
 
-        const { data: existingRows, error: existingError } = await supabase
-          .from('timetable_session_classes')
-          .select('day_of_week, period_number, subject_id, period_type')
-          .eq('session_id', Number(selectedSessionId))
-          .eq('class_id', Number(selectedClassId))
-          .eq('section_id', Number(selectedSectionId))
-          .eq('term', term)
+        // Load existing timetable data
+        const termValue = isSecondary ? 0 : Number(String(selectedTerm).replace('Term ', ''))
 
-        if (existingError) throw existingError
+        // Find the timetable_session for this academic year
+        const selectedYear = academicYears.find(y => String(y.id) === String(selectedAcademicYearId))
+        const yearName = selectedYear?.year_name || ''
 
-        const nextGrid = {}
-        DAYS.forEach((day) => {
-          nextGrid[day] = {}
-        })
+        const { data: sessionRows } = await supabase
+          .from('timetable_sessions')
+          .select('id')
+          .eq('academic_year', yearName)
+          .eq('term', isSecondary ? 1 : termValue)
+          .limit(1)
 
-        ;(existingRows || []).forEach((row) => {
-          if (String(row.period_type || '').toLowerCase() !== 'class') return
-          const key = `p${row.period_number}`
-          if (!nextGrid[row.day_of_week]) nextGrid[row.day_of_week] = {}
-          nextGrid[row.day_of_week][key] = row.subject_id
-        })
+        const sessionId = sessionRows?.[0]?.id
+        if (sessionId) {
+          const { data: existingRows, error: existingError } = await supabase
+            .from('timetable_session_classes')
+            .select('day_of_week, period_number, subject_id, period_type')
+            .eq('session_id', sessionId)
+            .eq('class_id', Number(selectedClassId))
+            .eq('section_id', Number(selectedSectionId))
 
-        setGrid(nextGrid)
+          if (existingError) throw existingError
+
+          const nextGrid = {}
+          DAYS.forEach(day => { nextGrid[day] = {} })
+
+            ; (existingRows || []).forEach(row => {
+              if (String(row.period_type || '').toLowerCase() !== 'class') return
+              const key = `p${row.period_number}`
+              if (!nextGrid[row.day_of_week]) nextGrid[row.day_of_week] = {}
+              nextGrid[row.day_of_week][key] = row.subject_id
+            })
+
+          setGrid(nextGrid)
+        } else {
+          const emptyGrid = {}
+          DAYS.forEach(day => { emptyGrid[day] = {} })
+          setGrid(emptyGrid)
+        }
       } catch (error) {
-        console.error('Error loading subject and timetable grid', error)
+        console.error('Error loading subjects and grid:', error)
         toast.error('Failed to load timetable details')
       } finally {
         setLoading(false)
       }
     }
 
-    loadSubjectAndGrid()
-  }, [selectedSession, selectedSessionId, selectedClassId, selectedSectionId, selectedSectionCode])
+    loadSubjectsAndGrid()
+  }, [selectionComplete, selectedClassId, selectedSectionId, selectedGroupId, selectedTerm, selectedAcademicYearId, isSecondary, isHigherSec])
+
+  // ─── Handlers ─────────────────────────────────────────────────────────
+
+  const handleSchoolLevelChange = (level) => {
+    setSelectedSchoolLevel(level)
+    setSelectedClassId('')
+    setSelectedGroupId('')
+    setSelectedSectionId('')
+    setSelectedTerm('')
+  }
+
+  const handleClassChange = (classId) => {
+    setSelectedClassId(classId)
+    setSelectedGroupId('')
+    setSelectedSectionId('')
+  }
 
   const handleCellChange = (day, key, subjectId) => {
-    setGrid((prev) => ({
+    setGrid(prev => ({
       ...prev,
       [day]: {
         ...(prev[day] || {}),
@@ -248,183 +310,107 @@ export default function ClassTimeTable() {
     }))
   }
 
-  const classSlots = useMemo(() => slots.filter((slot) => slot.periodType === 'class'), [slots])
+  const getStaffForSubject = (subjectId) => {
+    const staffId = subjectStaffMap[subjectId]
+    if (!staffId) return null
+    const staff = staffList.find(s => String(s.id) === String(staffId))
+    return staff ? staff.full_name : `Staff ${staffId}`
+  }
 
+  // ─── Grid completeness ────────────────────────────────────────────────
   const isGridComplete = useMemo(() => {
-    if (!selectedSession || !selectedClassId || !selectedSectionId) return false
+    if (!selectionComplete) return false
     for (const day of DAYS) {
       for (const slot of classSlots) {
         if (!grid[day]?.[slot.key]) return false
       }
     }
     return true
-  }, [selectedSession, selectedClassId, selectedSectionId, classSlots, grid])
+  }, [selectionComplete, classSlots, grid])
 
-  const validateBeforeSave = async () => {
-    const term = Number(selectedSession.term)
-    const subjectById = subjects.reduce((acc, row) => {
-      acc[row.subject_id] = row
-      return acc
-    }, {})
-
-    const entries = []
-    for (const day of DAYS) {
-      for (const slot of classSlots) {
-        const subjectId = grid[day]?.[slot.key]
-        if (!subjectId) {
-          throw new Error('All class periods must have a subject assigned before saving.')
-        }
-
-        const staffId = subjectStaffMap[subjectId]
-        if (!staffId) {
-          const subjectName = subjectById[subjectId]?.subject_name || 'Selected subject'
-          throw new Error(`${subjectName} has no staff mapping. Please assign staff in Subject Mapping for Staff.`)
-        }
-
-        entries.push({
-          day,
-          periodNumber: slot.periodNumber,
-          subjectId,
-          staffId,
-        })
-      }
-    }
-
-    for (const day of DAYS) {
-      const countBySubject = {}
-      entries
-        .filter((row) => row.day === day)
-        .forEach((row) => {
-          countBySubject[row.subjectId] = (countBySubject[row.subjectId] || 0) + 1
-        })
-
-      const exceeded = Object.entries(countBySubject).find(([, count]) => count > 2)
-      if (exceeded) {
-        const [subjectId] = exceeded
-        const subjectName = subjectById[subjectId]?.subject_name || `Subject ${subjectId}`
-        throw new Error(`${subjectName} exceeds the daily limit (max 2 periods per day).`)
-      }
-    }
-
-    if (selectedClassNumber >= 1 && selectedClassNumber <= 9) {
-      const fridayEntries = entries.filter((row) => row.day === 'Friday')
-      const hasValidActivity = fridayEntries.some((row) => {
-        const subject = subjectById[row.subjectId]
-        if (!subject || String(subject.subject_type || '').toLowerCase() !== 'activity') return false
-        return isActivitySlotValid(selectedClassNumber, row.periodNumber)
-      })
-
-      if (!hasValidActivity) {
-        if (selectedClassNumber <= 5) {
-          throw new Error('Friday activity is required in first half (P1-P4) for Classes 1-5.')
-        }
-        throw new Error('Friday activity is required in second half (P5-P8) for Classes 6-9.')
-      }
-    }
-
-    const staffIds = [...new Set(entries.map((row) => row.staffId))]
-
-    if (staffIds.length) {
-      const { data: conflictRows, error: conflictError } = await supabase
-        .from('timetable_session_classes')
-        .select('day_of_week, period_number, staff_id, class_id, subject_id')
-        .eq('session_id', Number(selectedSessionId))
-        .eq('term', term)
-        .in('staff_id', staffIds)
-        .eq('period_type', 'class')
-        .neq('class_id', Number(selectedClassId))
-
-      if (conflictError) throw conflictError
-
-      const conflictMap = new Map()
-      ;(conflictRows || []).forEach((row) => {
-        const key = `${row.staff_id}__${row.day_of_week}__${row.period_number}`
-        const list = conflictMap.get(key) || []
-        list.push(row)
-        conflictMap.set(key, list)
-      })
-
-      for (const entry of entries) {
-        const key = `${entry.staffId}__${entry.day}__${entry.periodNumber}`
-        const clashes = conflictMap.get(key) || []
-        if (clashes.length === 0) continue
-
-        const allowed = clashes.every((clash) => {
-          const otherClass = Number(classNumberById[clash.class_id] || 0)
-          const sameSubject = Number(clash.subject_id) === Number(entry.subjectId)
-          return selectedClassNumber >= 10 && otherClass >= 10 && sameSubject
-        })
-
-        if (!allowed) {
-          const staffName = staffNameMap[entry.staffId] || 'Staff'
-          throw new Error(`${staffName} has a clash on ${entry.day} P${entry.periodNumber}.`)
-        }
-      }
-
-      const { data: workloadRows, error: workloadError } = await supabase
-        .from('timetable_session_classes')
-        .select('staff_id')
-        .eq('session_id', Number(selectedSessionId))
-        .eq('term', term)
-        .in('staff_id', staffIds)
-        .eq('period_type', 'class')
-        .neq('class_id', Number(selectedClassId))
-
-      if (workloadError) throw workloadError
-
-      const counts = {}
-      ;(workloadRows || []).forEach((row) => {
-        counts[row.staff_id] = (counts[row.staff_id] || 0) + 1
-      })
-      entries.forEach((entry) => {
-        counts[entry.staffId] = (counts[entry.staffId] || 0) + 1
-      })
-
-      const invalidWorkload = Object.entries(counts).find(([, count]) => count < 28 || count > 35)
-      if (invalidWorkload) {
-        const [staffId, count] = invalidWorkload
-        const name = staffNameMap[staffId] || `Staff ${staffId}`
-        throw new Error(`${name} workload is ${count} periods/week. Allowed range is 28 to 35.`)
-      }
-    }
-
-    return entries
-  }
-
+  // ─── Save ─────────────────────────────────────────────────────────────
   const saveTimetable = async () => {
     if (!isAdmin) {
       toast.error('Only Admin users can create or modify timetables.')
       return
     }
 
-    if (!selectedSession || !selectedClassId || !selectedSectionId) {
-      toast.warning('Select session, class and section first.')
+    if (!selectionComplete) {
+      toast.warning('Complete all required selections first.')
       return
     }
 
     setSaving(true)
     try {
-      const entries = await validateBeforeSave()
-      const term = Number(selectedSession.term)
+      // Validate all cells
+      const subjectById = subjects.reduce((acc, s) => { acc[s.subject_id] = s; return acc }, {})
+      const entries = []
 
+      for (const day of DAYS) {
+        for (const slot of classSlots) {
+          const subjectId = grid[day]?.[slot.key]
+          if (!subjectId) {
+            throw new Error('All class periods must have a subject assigned before saving.')
+          }
+
+          const staffId = subjectStaffMap[subjectId]
+          if (!staffId) {
+            const subjectName = subjectById[subjectId]?.subject_name || 'Selected subject'
+            throw new Error(`${subjectName} has no staff mapping. Please assign staff in Subject Mapping for Staff.`)
+          }
+
+          entries.push({ day, periodNumber: slot.periodNumber, subjectId, staffId })
+        }
+      }
+
+      // Find or create a timetable_session
+      const selectedYear = academicYears.find(y => String(y.id) === String(selectedAcademicYearId))
+      const yearName = selectedYear?.year_name || ''
+      const termValue = isSecondary ? 1 : Number(String(selectedTerm).replace('Term ', ''))
+
+      let sessionId
+      const { data: existingSessions } = await supabase
+        .from('timetable_sessions')
+        .select('id')
+        .eq('academic_year', yearName)
+        .eq('term', termValue)
+        .limit(1)
+
+      if (existingSessions?.length) {
+        sessionId = existingSessions[0].id
+      } else {
+        // Auto-create a session
+        const sessionName = `${yearName} - ${isSecondary ? 'Full Year' : selectedTerm}`
+        const { data: newSession, error: createErr } = await supabase
+          .from('timetable_sessions')
+          .insert([{ session_name: sessionName, academic_year: yearName, term: termValue, is_active: true }])
+          .select('id')
+          .single()
+
+        if (createErr) throw createErr
+        sessionId = newSession.id
+      }
+
+      // Delete existing entries for this class/section
       const { error: deleteError } = await supabase
         .from('timetable_session_classes')
         .delete()
-        .eq('session_id', Number(selectedSessionId))
+        .eq('session_id', sessionId)
         .eq('class_id', Number(selectedClassId))
         .eq('section_id', Number(selectedSectionId))
-        .eq('term', term)
+        .eq('term', termValue)
 
       if (deleteError) throw deleteError
 
+      // Build rows
       const rows = []
       for (const day of DAYS) {
         for (const slot of slots) {
           const row = {
-            session_id: Number(selectedSessionId),
+            session_id: sessionId,
             class_id: Number(selectedClassId),
             section_id: Number(selectedSectionId),
-            term,
+            term: termValue,
             day_of_week: day,
             period_number: slot.periodNumber,
             period_type: slot.periodType,
@@ -452,18 +438,19 @@ export default function ClassTimeTable() {
 
       toast.success('Timetable saved successfully')
     } catch (error) {
-      console.error('Error saving timetable', error)
+      console.error('Error saving timetable:', error)
       toast.error(error.message || 'Failed to save timetable')
     } finally {
       setSaving(false)
     }
   }
 
+  // ─── Render ───────────────────────────────────────────────────────────
   return (
     <AdShellAdmin
       brandTitle="ADMIN PORTAL"
       footerTitle="Admin Management Studio"
-      footerSubtitle="Crafted for Vijayam College"
+      footerSubtitle="Crafted for Jazz Public School"
     >
       <div className="desktop-container" style={{ overflowX: 'hidden' }}>
         <h4 className="mb-4">Class Time Table</h4>
@@ -472,123 +459,269 @@ export default function ClassTimeTable() {
           <div className="alert alert-danger mb-3">Only Admin users can create and modify timetables.</div>
         )}
 
+        {/* ─── SELECTION PANEL ─── */}
         <div className="card card-soft p-4 mb-4">
+          <h5 className="mb-3 fw-semibold">Select Timetable Parameters</h5>
+
           <div className="row g-3">
-            <div className="col-md-4">
-              <label className="form-label fw-semibold">Timetable Session</label>
+            {/* Academic Year */}
+            <div className="col-md-3">
+              <label className="form-label fw-semibold">Academic Year <span className="text-danger">*</span></label>
               <select
                 className="form-select"
-                value={selectedSessionId}
-                onChange={(e) => setSelectedSessionId(e.target.value)}
+                value={selectedAcademicYearId}
+                onChange={e => setSelectedAcademicYearId(e.target.value)}
               >
-                <option value="">Select Session</option>
-                {sessions.map((row) => (
-                  <option key={row.id} value={row.id}>{row.session_name} - {row.academic_year} (Term {row.term})</option>
+                <option value="">Select Academic Year</option>
+                {academicYears.map(y => (
+                  <option key={y.id} value={y.id}>{y.year_name}</option>
                 ))}
               </select>
             </div>
 
-            <div className="col-md-4">
-              <label className="form-label fw-semibold">Class</label>
+            {/* School Level */}
+            <div className="col-md-3">
+              <label className="form-label fw-semibold">School Level <span className="text-danger">*</span></label>
+              <select
+                className="form-select"
+                value={selectedSchoolLevel}
+                onChange={e => handleSchoolLevelChange(e.target.value)}
+                disabled={!selectedAcademicYearId}
+              >
+                <option value="">Select Level</option>
+                <option value="Primary">Primary (Class 1–5)</option>
+                <option value="Middle">Middle (Class 6–9)</option>
+                <option value="Secondary">Secondary (Class 10–12)</option>
+              </select>
+            </div>
+
+            {/* Class */}
+            <div className="col-md-3">
+              <label className="form-label fw-semibold">Class <span className="text-danger">*</span></label>
               <select
                 className="form-select"
                 value={selectedClassId}
-                onChange={(e) => {
-                  const selected = classes.find((row) => String(row.id) === String(e.target.value))
-                  setSelectedClassId(e.target.value)
-                  setSelectedClassNumber(Number(selected?.class_number || 0))
-                  setSelectedClassName(selected?.class_name || '')
-                  setSelectedSectionId('')
-                  setSelectedSectionCode('')
-                }}
+                onChange={e => handleClassChange(e.target.value)}
+                disabled={!selectedSchoolLevel}
               >
                 <option value="">Select Class</option>
-                {classes.map((row) => (
-                  <option key={row.id} value={row.id}>{row.class_name}</option>
+                {filteredClasses.map(c => (
+                  <option key={c.id} value={c.id}>{c.class_name}</option>
                 ))}
               </select>
             </div>
 
-            <div className="col-md-4">
-              <label className="form-label fw-semibold">Section</label>
+            {/* Group – only for Class 11 & 12 */}
+            {showGroupDropdown && (
+              <div className="col-md-3">
+                <label className="form-label fw-semibold">Group <span className="text-danger">*</span></label>
+                <select
+                  className="form-select"
+                  value={selectedGroupId}
+                  onChange={e => setSelectedGroupId(e.target.value)}
+                  disabled={!selectedClassId}
+                >
+                  <option value="">Select Group</option>
+                  {filteredGroups.map(g => (
+                    <option key={g.id} value={g.id}>{g.group_name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Section */}
+            <div className="col-md-3">
+              <label className="form-label fw-semibold">Section <span className="text-danger">*</span></label>
               <select
                 className="form-select"
                 value={selectedSectionId}
-                onChange={(e) => {
-                  const selected = sections.find((row) => String(row.section_id) === String(e.target.value))
-                  setSelectedSectionId(e.target.value)
-                  setSelectedSectionCode(selected?.section_name || '')
-                  setSelectedGroupId(selected?.group_id || null)
-                }}
-                disabled={!selectedClassId}
+                onChange={e => setSelectedSectionId(e.target.value)}
+                disabled={!selectedClassId || (showGroupDropdown && !selectedGroupId)}
               >
                 <option value="">Select Section</option>
-                {sections.map((row) => (
-                  <option key={row.section_id} value={row.section_id}>{row.section_name}</option>
+                {filteredSections.map(s => (
+                  <option key={s.id} value={s.section_id}>{s.section_name}</option>
                 ))}
               </select>
             </div>
+
+            {/* Term – only for Primary & Middle */}
+            {showTermDropdown && selectedClassId && (
+              <div className="col-md-3">
+                <label className="form-label fw-semibold">Term <span className="text-danger">*</span></label>
+                <select
+                  className="form-select"
+                  value={selectedTerm}
+                  onChange={e => setSelectedTerm(e.target.value)}
+                >
+                  <option value="">Select Term</option>
+                  <option value="Term 1">Term 1</option>
+                  <option value="Term 2">Term 2</option>
+                  <option value="Term 3">Term 3</option>
+                </select>
+              </div>
+            )}
+
+            {/* Secondary: Full Year badge */}
+            {isSecondary && selectedClassId && (
+              <div className="col-md-3">
+                <label className="form-label fw-semibold">Term</label>
+                <div className="form-control bg-light text-muted fw-semibold">Full Year</div>
+              </div>
+            )}
           </div>
+
+          {/* Selection summary */}
+          {selectionComplete && (
+            <div className="mt-3 d-flex align-items-center gap-2 flex-wrap">
+              <span className="badge bg-primary bg-opacity-10 text-primary px-3 py-2 fs-6">
+                {academicYears.find(y => String(y.id) === String(selectedAcademicYearId))?.year_name}
+              </span>
+              <span className="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2 fs-6">
+                {selectedSchoolLevel}
+              </span>
+              <span className="badge bg-success bg-opacity-10 text-success px-3 py-2 fs-6">
+                {selectedClassObj?.class_name}
+              </span>
+              {showGroupDropdown && selectedGroupId && (
+                <span className="badge bg-info bg-opacity-10 text-info px-3 py-2 fs-6">
+                  {filteredGroups.find(g => String(g.id) === String(selectedGroupId))?.group_name}
+                </span>
+              )}
+              <span className="badge bg-warning bg-opacity-10 text-warning px-3 py-2 fs-6">
+                Section {filteredSections.find(s => String(s.section_id) === String(selectedSectionId))?.section_name}
+              </span>
+              {showTermDropdown && (
+                <span className="badge bg-dark bg-opacity-10 text-dark px-3 py-2 fs-6">
+                  {selectedTerm}
+                </span>
+              )}
+              {isSecondary && (
+                <span className="badge bg-dark bg-opacity-10 text-dark px-3 py-2 fs-6">
+                  Full Year
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
-        {selectedSession && selectedClassId && selectedSectionId ? (
+        {/* ─── TIMETABLE GRID ─── */}
+        {selectionComplete ? (
           <div className="card card-soft p-4 mb-4">
             <div className="d-flex justify-content-between align-items-center mb-3">
-              <h5 className="mb-0">Timetable Grid ({selectedClassNumber >= 10 ? '6 periods/day' : '8 periods/day'})</h5>
-              <button className="btn btn-primary" onClick={saveTimetable} disabled={!isAdmin || saving || loading || !isGridComplete}>
+              <div>
+                <h5 className="mb-1">
+                  Timetable Grid
+                  <span className="text-muted fw-normal fs-6 ms-2">
+                    ({selectedClassNumber >= 10 ? '6 periods/day' : '8 periods/day'})
+                  </span>
+                </h5>
+                {subjects.length === 0 && (
+                  <p className="text-warning mb-0 small fw-semibold">
+                    <i className="bi bi-exclamation-triangle me-1"></i>
+                    No subjects found for this selection. Create subjects first.
+                  </p>
+                )}
+              </div>
+              <button
+                className="btn btn-primary px-4"
+                onClick={saveTimetable}
+                disabled={!isAdmin || saving || loading || !isGridComplete}
+              >
                 {saving ? 'Saving...' : 'Save Timetable'}
               </button>
             </div>
 
-            <div className="table-responsive">
-              <table className="table table-bordered align-middle text-center">
-                <thead className="table-light">
-                  <tr>
-                    <th>Day</th>
-                    {slots.map((slot) => (
-                      <th key={slot.key}>{slot.label}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {DAYS.map((day) => (
-                    <tr key={day}>
-                      <th>{day}</th>
-                      {slots.map((slot) => {
-                        if (slot.periodType !== 'class') {
-                          return (
-                            <td key={`${day}-${slot.key}`} className={slot.periodType === 'break' ? 'table-warning' : 'table-info'}>
-                              {slot.label}
-                            </td>
-                          )
-                        }
-
-                        return (
-                          <td key={`${day}-${slot.key}`}>
-                            <select
-                              className="form-select"
-                              value={grid[day]?.[slot.key] || ''}
-                              onChange={(e) => handleCellChange(day, slot.key, e.target.value)}
-                            >
-                              <option value="">Select Subject</option>
-                              {subjects.map((subject) => (
-                                <option key={subject.subject_id} value={subject.subject_id}>
-                                  {(subject.subject_code ? `${subject.subject_code} - ` : '') + subject.subject_name}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-                        )
-                      })}
+            {loading ? (
+              <div className="text-center p-5 text-muted">Loading timetable data...</div>
+            ) : (
+              <div className="table-responsive">
+                <table className="table table-bordered align-middle text-center" style={{ tableLayout: 'fixed' }}>
+                  <thead className="table-light">
+                    <tr>
+                      <th style={{ width: '100px' }}>Period</th>
+                      {DAYS.map(day => (
+                        <th key={day}>{day}</th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {slots.map(slot => {
+                      if (slot.periodType !== 'class') {
+                        return (
+                          <tr key={slot.key}>
+                            <td
+                              colSpan={DAYS.length + 1}
+                              className={slot.periodType === 'break' ? 'table-warning fw-semibold' : 'table-info fw-semibold'}
+                              style={{ textAlign: 'center', padding: '6px' }}
+                            >
+                              {slot.label} ({slot.start} – {slot.end})
+                            </td>
+                          </tr>
+                        )
+                      }
+
+                      return (
+                        <tr key={slot.key}>
+                          <td className="fw-bold text-nowrap">
+                            <div>{slot.label}</div>
+                            <div className="text-muted" style={{ fontSize: '0.7rem' }}>
+                              {slot.start.slice(0, 5)}–{slot.end.slice(0, 5)}
+                            </div>
+                          </td>
+                          {DAYS.map(day => {
+                            const selectedSubjectId = grid[day]?.[slot.key] || ''
+                            const staffName = selectedSubjectId ? getStaffForSubject(selectedSubjectId) : null
+
+                            return (
+                              <td key={`${day}-${slot.key}`} style={{ padding: '4px', verticalAlign: 'top' }}>
+                                <select
+                                  className="form-select form-select-sm mb-1"
+                                  value={selectedSubjectId}
+                                  onChange={e => handleCellChange(day, slot.key, e.target.value)}
+                                  style={{ fontSize: '0.78rem' }}
+                                >
+                                  <option value="">-- Subject --</option>
+                                  {subjects.map(s => (
+                                    <option key={s.subject_id} value={s.subject_id}>
+                                      {s.subject_code ? `${s.subject_code} – ` : ''}{s.subject_name}
+                                    </option>
+                                  ))}
+                                </select>
+                                {staffName && (
+                                  <div className="text-muted" style={{ fontSize: '0.68rem', lineHeight: '1.2' }}>
+                                    <i className="bi bi-person-fill me-1"></i>{staffName}
+                                  </div>
+                                )}
+                                {selectedSubjectId && !staffName && (
+                                  <div className="text-danger" style={{ fontSize: '0.68rem', lineHeight: '1.2' }}>
+                                    <i className="bi bi-exclamation-circle me-1"></i>No staff
+                                  </div>
+                                )}
+                              </td>
+                            )
+                          })}
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         ) : (
-          <div className="card card-soft p-4 text-center text-muted mb-4">
-            Select session, class and section to build timetable.
+          <div className="card card-soft p-5 text-center text-muted mb-4">
+            <div style={{ fontSize: '3rem', marginBottom: '12px' }}>📅</div>
+            <h5 className="fw-semibold">Select all required fields to load the timetable grid</h5>
+            <p className="mb-0">
+              {!selectedAcademicYearId ? 'Start by selecting an Academic Year.'
+                : !selectedSchoolLevel ? 'Select a School Level to continue.'
+                  : !selectedClassId ? 'Select a Class.'
+                    : (showGroupDropdown && !selectedGroupId) ? 'Select a Group for Class 11/12.'
+                      : !selectedSectionId ? 'Select a Section.'
+                        : (showTermDropdown && !selectedTerm) ? 'Select a Term.'
+                          : 'All fields required.'}
+            </p>
           </div>
         )}
       </div>
