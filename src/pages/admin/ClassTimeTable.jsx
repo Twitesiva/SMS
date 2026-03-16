@@ -155,10 +155,16 @@ export default function ClassTimeTable() {
 
     const loadSections = async () => {
       try {
+        // Validate selectedClassId before querying
+        if (!selectedClassId || selectedClassId === 'NaN' || selectedClassId === 'undefined') {
+          setClassSections([])
+          return
+        }
+
         const { data, error } = await supabase
           .from('class_sections')
           .select('id, class_id, section_id, sections(id, section_name, group_id)')
-          .eq('class_id', Number(selectedClassId))
+          .eq('class_id', selectedClassId)
           .order('id')
 
         if (error) throw error
@@ -197,7 +203,7 @@ export default function ClassTimeTable() {
         let subjectsQuery = supabase
           .from('subjects')
           .select('id, subject_title, subject_code, subject_categories!subjects_category_id_fkey(category_name)')
-          .eq('class_id', Number(selectedClassId))
+          .eq('class_id', selectedClassId)
           .eq('term', termString)
 
         if (isHigherSec && selectedGroupId) {
@@ -252,8 +258,8 @@ export default function ClassTimeTable() {
             .from('timetable_session_classes')
             .select('day_of_week, period_number, subject_id, period_type')
             .eq('session_id', sessionId)
-            .eq('class_id', Number(selectedClassId))
-            .eq('section_id', Number(selectedSectionId))
+            .eq('class_id', selectedClassId)
+            .eq('section_id', selectedSectionId)
 
           if (existingError) throw existingError
 
@@ -396,8 +402,8 @@ export default function ClassTimeTable() {
         .from('timetable_session_classes')
         .delete()
         .eq('session_id', sessionId)
-        .eq('class_id', Number(selectedClassId))
-        .eq('section_id', Number(selectedSectionId))
+        .eq('class_id', selectedClassId)
+        .eq('section_id', selectedSectionId)
         .eq('term', termValue)
 
       if (deleteError) throw deleteError
@@ -408,8 +414,8 @@ export default function ClassTimeTable() {
         for (const slot of slots) {
           const row = {
             session_id: sessionId,
-            class_id: Number(selectedClassId),
-            section_id: Number(selectedSectionId),
+            class_id: selectedClassId,
+            section_id: selectedSectionId,
             term: termValue,
             day_of_week: day,
             period_number: slot.periodNumber,
