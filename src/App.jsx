@@ -17,7 +17,6 @@ import ClassTimeTable from "./pages/admin/ClassTimeTable.jsx";
 import ClassTimeTableCreation from "./pages/admin/ClassTimeTableCreation.jsx";
 import MainDashboard from "./pages/admin/MainDashboard.jsx";
 import AdminStaff from "./pages/admin/Staff.jsx";
-import StaffSubjectMapping from "./pages/admin/StaffSubjectMapping.jsx";
 
 import StaffLogin from "./pages/staff/StaffLogin.jsx";
 import StaffDashboard from "./pages/staff/StaffDashboard.jsx";
@@ -117,14 +116,7 @@ export default function App() {
             </GuardedRoute>
           }
         />
-        <Route
-          path="/admin-portal/subject-mapping"
-          element={
-            <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
-              <StaffSubjectMapping />
-            </GuardedRoute>
-          }
-        />
+
 
         <Route path="/staff/login" element={<StaffLogin />} />
         <Route

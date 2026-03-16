@@ -24,7 +24,6 @@ const examPortalNavGroups = [
     title: "Pre-Exam Portal",
     items: [
       { to: "/admin/exam-name-creation", label: "Exam name creation", icon: "bi-pencil-square" },
-      { to: "/admin/subject-mapping", label: "Subject Mapping & Payments", icon: "bi-credit-card" },
       { to: "/admin/create-exam", label: "Create Exam timetable", icon: "bi-journal-check" },
       { to: "/admin/complete-registration", label: "Complete Registration & View Time table", icon: "bi-list-check" },
       { to: "/admin/hall-tickets", label: "Hall Ticket", icon: "bi-ticket-perforated" },

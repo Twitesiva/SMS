@@ -52,17 +52,7 @@ const adminPortalNavGroups = [
             }
         ]
     },
-    {
-        title: 'Subject Allocation to  Staff',
-        static: true,
-        items: [
-            {
-                to: '/admin-portal/subject-mapping',
-                label: 'Subject Mapping for Staff',
-                icon: 'bi-person-lines-fill'
-            }
-        ]
-    },
+
     {
         title: 'Class Time Table',
         static: true,

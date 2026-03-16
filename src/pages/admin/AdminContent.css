@@ -211,17 +211,6 @@
   padding: 0.65rem 1rem;
 }
 
-/* Staff Subject Mapping table header - sidebar gradient */
-.admin-content .staff-subject-mapping-table thead th {
-  background: linear-gradient(180deg, #606c88 0%, #3f4c6b 50%, #606c88 100%) !important;
-  color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  font-weight: 800;
-  font-size: 1.1rem !important;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 1rem !important;
-}
 
 /* No Timetable Section - sidebar gradient */
 .no-timetable-section {
