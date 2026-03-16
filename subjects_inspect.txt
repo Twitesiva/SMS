@@ -1,0 +1,8 @@
+Existing Mathematics subjects: [
+  {
+    "id": "5692da1b-c281-4a7f-a3e7-75ada76402f3",
+    "subject_title": "Mathematics",
+    "class_id": "cb0b7bde-357b-408f-964f-f2a101ccf883",
+    "term": "Term 1"
+  }
+]

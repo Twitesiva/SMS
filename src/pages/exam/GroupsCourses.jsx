@@ -44,14 +44,15 @@ export default function GroupsCoursesSection({
 
   useEffect(() => {
     const fetchOverview = async () => {
-      // Use direct names as listed in schema test (classes, sections)
-      // Joined via class_sections
+      // Fetch junction records with related data
+      // For HS (11/12), we look for groups either in sections table or junction record
       const { data, error } = await supabase
         .from("class_sections")
         .select(`
           id,
-          classes(class_name),
-          sections(section_name, groups(group_name))
+          classes(class_name, class_number),
+          sections(section_name),
+          groups(group_name)
         `);
       if (error) console.error("Overview fetch error:", error);
       if (data) setOverviewData(data);
@@ -62,43 +63,73 @@ export default function GroupsCoursesSection({
   const groupedOverview = useMemo(() => {
     const grouped = {};
     overviewData.forEach(item => {
-      const className = item.classes?.class_name;
-      const sectionName = item.sections?.section_name;
-      if (!className || !sectionName) return;
-      if (!grouped[className]) grouped[className] = [];
-      grouped[className].push(sectionName);
+      const cls = item.classes;
+      const sec = item.sections;
+      const grp = item.groups;
+      if (!cls || !sec) return;
+
+      const isHS = cls.class_number === 11 || cls.class_number === 12;
+      
+      // Hierarchy: Class -> Group -> Section
+      let key = cls.class_name;
+      let displayName = cls.class_name;
+      
+      if (isHS && grp?.group_name) {
+          key = `${cls.class_name}|${grp.group_name}`;
+          displayName = `${cls.class_name} - ${grp.group_name}`;
+      }
+
+      if (!grouped[key]) {
+          grouped[key] = {
+              displayName: displayName,
+              className: cls.class_name,
+              groupName: isHS ? grp?.group_name : null,
+              sections: []
+          };
+      }
+      if (!grouped[key].sections.includes(sec.section_name)) {
+        grouped[key].sections.push(sec.section_name);
+      }
     });
-    // Sort the sections alphabetically
+
     Object.keys(grouped).forEach(key => {
-      grouped[key].sort((a, b) => a.localeCompare(b));
+      grouped[key].sections.sort((a, b) => a.localeCompare(b));
     });
     return grouped;
   }, [overviewData]);
 
   const sortedOverviewKeys = useMemo(() => {
     return Object.keys(groupedOverview).sort((a, b) => {
-      const aNum = Number(a.replace(/\D/g, '')) || 0;
-      const bNum = Number(b.replace(/\D/g, '')) || 0;
-      return aNum - bNum;
+      const aObj = groupedOverview[a];
+      const bObj = groupedOverview[b];
+      const aNum = Number(aObj.className.replace(/\D/g, '')) || 0;
+      const bNum = Number(bObj.className.replace(/\D/g, '')) || 0;
+      if (aNum !== bNum) return aNum - bNum;
+      return aObj.displayName.localeCompare(bObj.displayName);
     });
   }, [groupedOverview]);
 
   const duplicateErrors = useMemo(() => {
     const classCode = String(groupForm?.code || "").trim();
     const sectionName = String(groupForm?.sections || "").trim();
+    const isHS = Number(classCode) === 11 || Number(classCode) === 12;
 
     const comboExists = classCode && sectionName
-      ? courses.some((c) =>
-        String(c.groupCode || "") === classCode &&
-        (String(c.courseCode || "") === sectionName || String(c.courseName || "") === sectionName)
-      )
+      ? courses.some((c) => {
+          const sameClass = String(c.groupCode || "") === classCode;
+          const sameSection = String(c.courseCode || "") === sectionName || String(c.courseName || "") === sectionName;
+          if (!sameClass || !sameSection) return false;
+          // For HS, also must match the selected group to be a true duplicate
+          if (isHS) return c.groupId === selectedGroupId;
+          return true;
+        })
       : false;
 
     return {
       classCode: comboExists,
       sectionCode: false,
     };
-  }, [groupForm?.code, groupForm?.sections, courses]);
+  }, [groupForm?.code, groupForm?.sections, courses, selectedGroupId]);
 
   const sortedGroups = useMemo(() => {
     return [...groups].sort((a, b) => {
@@ -107,6 +138,89 @@ export default function GroupsCoursesSection({
       return aNum - bNum;
     });
   }, [groups]);
+
+  const displayCards = useMemo(() => {
+    const cards = [];
+    
+    // Process Classes 1-10
+    const lowerClasses = groups.filter(g => {
+        const num = Number(g.code || g.class_number);
+        return num >= 1 && num <= 10;
+    });
+    
+    lowerClasses.forEach(cls => {
+        const classNum = cls.code || cls.class_number;
+        const clsSections = courses.filter(c => String(c.groupCode) === String(classNum));
+        
+        cards.push({
+            type: 'class',
+            id: cls.id,
+            uniqueId: `class-${cls.id}`,
+            name: cls.name || cls.class_name,
+            code: classNum,
+            category: cls.category || cls.school_level,
+            data: cls,
+            sections: clsSections.sort((a, b) => a.courseCode.localeCompare(b.courseCode))
+        });
+    });
+    
+    // Process Classes 11-12
+    const higherClasses = groups.filter(g => {
+        const num = Number(g.code || g.class_number);
+        return num === 11 || num === 12;
+    });
+    
+    higherClasses.forEach(cls => {
+        const classNum = cls.code || cls.class_number;
+        // Find all groups for this class
+        const classGroups = allGroups.filter(ag => ag.class_id === cls.id);
+        
+        classGroups.forEach(grp => {
+            const groupSections = courses.filter(c => 
+              String(c.groupCode) === String(classNum) && 
+              c.groupId === grp.id
+            );
+
+            if (groupSections.length > 0) {
+              cards.push({
+                  type: 'group',
+                  id: grp.id,
+                  uniqueId: `group-${grp.id}`,
+                  name: grp.group_name,
+                  className: cls.name || cls.class_name,
+                  classCode: classNum,
+                  category: cls.category || cls.school_level || 'Secondary',
+                  data: grp,
+                  sections: groupSections.sort((a, b) => a.courseCode.localeCompare(b.courseCode))
+              });
+            }
+        });
+
+        // Check for any legacy ungrouped sections for HS classes
+        const ungroupedSections = courses.filter(c => 
+          String(c.groupCode) === String(classNum) && !c.groupId
+        );
+        if (ungroupedSections.length > 0) {
+            cards.push({
+                type: 'class',
+                id: cls.id,
+                uniqueId: `class-HS-ungrouped-${cls.id}`,
+                name: cls.name || cls.class_name,
+                code: classNum,
+                category: cls.category || cls.school_level,
+                data: cls,
+                sections: ungroupedSections.sort((a, b) => a.courseCode.localeCompare(b.courseCode))
+            });
+        }
+    });
+    
+    return cards.sort((a,b) => {
+        const aNum = Number(a.code || a.classCode) || 0;
+        const bNum = Number(b.code || b.classCode) || 0;
+        if (aNum !== bNum) return aNum - bNum;
+        return a.name.localeCompare(b.name);
+    });
+  }, [groups, courses, allGroups]);
 
   useEffect(() => {
     const inferredLevel = getLevelForClass(groupForm?.code);
@@ -150,7 +264,7 @@ export default function GroupsCoursesSection({
       if (!selectedClass) {
         const classPayload = {
           class_number: Number(groupForm.code),
-          class_name: groupForm.name || `Class ${groupForm.code}`,
+          class_name: `Class ${groupForm.code}`,
           school_level: groupForm.category,
         };
         const { data: newCls, error: clsErr } = await supabase
@@ -347,45 +461,45 @@ export default function GroupsCoursesSection({
             )}
           </div>
 
-          {sortedGroups.length > 0 && (
+          {displayCards.length > 0 && (
             <div className="students-section-list mt-4">
               <div className="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
-                {sortedGroups.map((g) => {
-                  const classCourses = courses
-                    .filter(c => String(c.groupCode) === String(g.code || g.class_number))
-                    .sort((a, b) => {
-                      const nameA = a.courseCode || a.courseName || "";
-                      const nameB = b.courseCode || b.courseName || "";
-                      return nameA.localeCompare(nameB);
-                    });
-                    
+                {displayCards.map((card) => {
                   return (
-                  <div className="col" key={g.id}>
+                  <div className="col" key={card.uniqueId}>
                     <div className="card h-100 students-category-card">
                       <div className="card-body d-flex flex-column">
                         <div className="d-flex justify-content-between align-items-start mb-2">
                           <div>
-                            <div className="text-uppercase text-dark fw-bold mb-1">CLASS {g.code || g.class_number || '-'}</div>
-                            <div className="fs-6 text-muted">{g.name || g.class_name || '-'}</div>
+                            <div className="text-uppercase text-dark fw-bold mb-1">
+                                {card.type === 'group' ? `CLASS ${card.classCode} - ${card.name}` : `CLASS ${card.code}`}
+                            </div>
+                            <div className="fs-6 text-muted">
+                                {card.type === 'group' ? card.className : (card.name || '-')}
+                            </div>
                           </div>
-                          {g.category ? (
-                            <span className="students-section-badge students-section-badge-category">{g.category}</span>
+                          {card.category ? (
+                            <span className="students-section-badge students-section-badge-category">{card.category}</span>
                           ) : null}
                         </div>
                         <div className="mt-2 mb-3 d-flex flex-wrap gap-2">
-                          {classCourses.map(c => (
+                          {card.sections.map(c => (
                               <span key={c.id} className="badge bg-light text-dark border px-2 py-1 fs-6 d-inline-flex align-items-center gap-1">
-                                {c.groupCode}{c.courseCode || c.courseName}
+                                {c.courseCode || c.courseName}
                                 <button type="button" className="btn-close btn-close-sm" style={{ fontSize: "0.4rem", filter: "invert(0.5)" }} onClick={(e) => { e.stopPropagation(); handleDeleteCourseClick(c.id); }} aria-label="Delete mapping"></button>
                               </span>
                             ))
                           }
                         </div>
                         <div className="mt-auto d-flex gap-2">
-                          <button type="button" className="btn btn-sm btn-outline-primary students-button students-button-sm flex-fill" onClick={() => editGroup(g)}>
-                            Edit
-                          </button>
-                          <button type="button" className="btn btn-sm btn-outline-danger students-button students-button-sm flex-fill" onClick={() => handleDeleteGroupClick(g.id)}>
+                          {card.type === 'class' ? (
+                            <button type="button" className="btn btn-sm btn-outline-primary students-button students-button-sm flex-fill" onClick={() => editGroup(card.data)}>
+                              Edit
+                            </button>
+                          ) : (
+                            <div className="flex-fill"></div>
+                          )}
+                          <button type="button" className="btn btn-sm btn-outline-danger students-button students-button-sm flex-fill" onClick={() => card.type === 'class' ? handleDeleteGroupClick(card.id) : alert("To delete a group, delete all its sections first or use the Groups table if available.")}>
                             Delete
                           </button>
                         </div>
@@ -414,19 +528,23 @@ export default function GroupsCoursesSection({
 
           <div className="students-section-list mt-2">
             <div className="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
-              {sortedOverviewKeys.map((className) => {
-                const title = className.toUpperCase().includes('CLASS') ? className.toUpperCase() : `CLASS ${className.toUpperCase()}`;
+              {sortedOverviewKeys.map((key) => {
+                const entry = groupedOverview[key];
+                const className = entry.className;  // Always "Class 12" etc.
+                // Title shows Class + Group if HS: "CLASS 12 - MATHS BIOLOGY"
+                const title = entry.displayName.toUpperCase().includes('CLASS') ? entry.displayName.toUpperCase() : `CLASS ${entry.displayName.toUpperCase()}`;
+                // Prefix for section badges: just the class number, e.g. "12"
                 const prefix = className.replace(/class\s*/i, '').trim();
-                const sectionsList = groupedOverview[className];
+                const sectionsList = entry.sections;
                 return (
-                  <div className="col" key={className}>
+                  <div className="col" key={key}>
                     <div className="card h-100 students-category-card">
                       <div className="card-body d-flex flex-column">
                         <div className="text-uppercase text-dark fw-bold mb-1">{title}</div>
                         <div className="text-muted small mb-3 fw-semibold">Sections : {sectionsList.length}</div>
                         <div className="d-flex flex-wrap gap-2">
                           {sectionsList.map((sec) => (
-                            <span key={`${className}-${sec}`} className="badge bg-light text-dark border px-2 py-1 fs-6">
+                            <span key={`${key}-${sec}`} className="badge bg-light text-dark border px-2 py-1 fs-6">
                               {prefix}{sec}
                             </span>
                           ))}

@@ -172,12 +172,12 @@ export default function ClassTimeTable() {
         
         if (isHigherSecondary && selectedGroupId) {
           subjectsQuery = subjectsQuery.eq('group_id', selectedGroupId);
-        } else if (!isHigherSecondary) {
-          subjectsQuery = subjectsQuery.eq('section_id', Number(selectedSectionId));
         } else {
-          // If HS but no groupId, might have issues, but HS sections should have groupIds now
-          subjectsQuery = subjectsQuery.is('section_id', null);
+          subjectsQuery = subjectsQuery.is('group_id', null);
         }
+
+        // Subjects now apply to class/group level (section_id is null in subjects table)
+        subjectsQuery = subjectsQuery.is('section_id', null);
 
         const [{ data: subjectRows, error: subjectError }, { data: mappingRows, error: mappingError }] = await Promise.all([
           subjectsQuery.order('subject_title'),
