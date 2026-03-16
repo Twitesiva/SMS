@@ -11,10 +11,9 @@ const SUBJECT_TYPE_OPTIONS = ['core', 'activity', 'language', 'skill']
 export default function Staff() {
   const [staffRows, setStaffRows] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-
+  const [designationFilter, setDesignationFilter] = useState("");
   const [subjectFilter, setSubjectFilter] = useState('');
   const [loading, setLoading] = useState(false);
-  const [allSubjects, setAllSubjects] = useState([]);
   const [editingStaff, setEditingStaff] = useState(null);
   const [viewingStaff, setViewingStaff] = useState(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState({
@@ -26,12 +25,11 @@ export default function Staff() {
   const [editForm, setEditForm] = useState({
     staff_id: "",
     full_name: "",
-    phone: "",
+    phone_number: "",
     email: "",
     designation: "",
     qualification: "",
     status: "ACTIVE",
-    subject_ids: []
   });
 
   useEffect(() => {
@@ -45,23 +43,16 @@ export default function Staff() {
             staff_subjects (
               subject_id,
               subjects (
-                subject_title,
-                subject_code
+                subject_name,
+                subject_code,
+                subject_type
               )
             )
           `)
           .order("full_name");
 
-        const { data: subs, error: sErr } = await supabase
-          .from("subjects")
-          .select("id, subject_title, subject_code")
-          .order("subject_title");
-
         if (error) throw error;
-        if (sErr) throw sErr;
-
         setStaffRows(data || []);
-        setAllSubjects(subs || []);
       } catch (error) {
         console.error("Error loading staff:", error);
         showToast("Error loading staff details", { type: 'danger' });
@@ -77,44 +68,51 @@ export default function Staff() {
     const names = new Set();
     staffRows.forEach((row) => {
       (row.staff_subjects || []).forEach((item) => {
-        const subjectName = item.subjects?.subject_title;
+        const subjectName = item.subjects?.subject_name;
         if (subjectName) names.add(subjectName);
       });
     });
     return Array.from(names).sort((a, b) => a.localeCompare(b));
   }, [staffRows]);
 
+  const normalizeDesignation = (value) => String(value || '')
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, '_');
+
   const filteredStaff = useMemo(() => {
     const search = searchTerm.toLowerCase().trim();
     return staffRows.filter((row) => {
       const subjectNames = (row.staff_subjects || [])
-        .map((entry) => entry.subjects?.subject_title)
+        .map((entry) => entry.subjects?.subject_name)
         .filter(Boolean);
 
       const matchesSearch = !search || (
         (row.full_name || "").toLowerCase().includes(search) ||
         (row.staff_id || "").toLowerCase().includes(search) ||
-        (row.phone || "").includes(search) ||
+        (row.phone_number || "").includes(search) ||
         (row.designation || "").toLowerCase().replace(/_/g, ' ').includes(search) ||
         subjectNames.some((name) => String(name).toLowerCase().includes(search))
       );
 
+      const matchesDesignation = !designationFilter ||
+        normalizeDesignation(row.designation) === designationFilter;
+
       const matchesSubject = !subjectFilter || subjectNames.includes(subjectFilter);
-      return matchesSearch && matchesSubject;
+      return matchesSearch && matchesDesignation && matchesSubject;
     });
-  }, [staffRows, searchTerm, subjectFilter]);
+  }, [staffRows, searchTerm, designationFilter, subjectFilter]);
 
   const handleEdit = (staff) => {
     setEditingStaff(staff);
     setEditForm({
       staff_id: staff.staff_id || "",
       full_name: staff.full_name || "",
-      phone: staff.phone || "",
+      phone_number: staff.phone_number || "",
       email: staff.email || "",
       designation: staff.designation || "",
       qualification: staff.qualification || "",
       status: staff.status || "ACTIVE",
-      subject_ids: (staff.staff_subjects || []).map(s => s.subject_id)
     });
   };
 
@@ -123,12 +121,11 @@ export default function Staff() {
     setEditForm({
       staff_id: "",
       full_name: "",
-      phone: "",
+      phone_number: "",
       email: "",
       designation: "",
       qualification: "",
       status: "ACTIVE",
-      subject_ids: []
     });
   };
 
@@ -140,48 +137,15 @@ export default function Staff() {
     }
 
     try {
-      const { subject_ids, ...staffData } = editForm;
       const { error } = await supabase
         .from("staff")
-        .update(staffData)
+        .update(editForm)
         .eq("id", editingStaff.id);
 
       if (error) throw error;
 
-      // Update Subjects Mapping
-      await supabase.from('staff_subjects').delete().eq('staff_id', editingStaff.id);
-      
-      if (subject_ids.length > 0) {
-        const mappingRows = subject_ids.map(sid => ({
-          staff_id: editingStaff.id,
-          subject_id: sid
-        }));
-        const { error: mappingError } = await supabase.from('staff_subjects').insert(mappingRows);
-        if (mappingError) throw mappingError;
-      }
-
-      showToast("Staff details and subjects updated successfully", { type: 'success' });
-      
-      // Refresh local state by reloading data
-      const { data: updatedStaff, error: refreshError } = await supabase
-        .from("staff")
-        .select(`
-          *,
-          staff_subjects (
-            subject_id,
-            subjects (
-              subject_title,
-              subject_code
-            )
-          )
-        `)
-        .eq("id", editingStaff.id)
-        .single();
-        
-      if (!refreshError && updatedStaff) {
-        setStaffRows((prev) => prev.map((row) => row.id === editingStaff.id ? updatedStaff : row));
-      }
-      
+      showToast("Staff details updated successfully", { type: 'success' });
+      setStaffRows((prev) => prev.map((row) => row.id === editingStaff.id ? { ...row, ...editForm } : row));
       closeEditModal();
     } catch (error) {
       console.error("Error updating staff:", error);
@@ -238,7 +202,7 @@ export default function Staff() {
     const subjectLabels = (staff.staff_subjects || [])
       .map((entry) => {
         const code = entry.subjects?.subject_code;
-        const name = entry.subjects?.subject_title;
+        const name = entry.subjects?.subject_name;
         return [code, name].filter(Boolean).join(' - ');
       })
       .filter(Boolean);
@@ -273,7 +237,15 @@ export default function Staff() {
                 </div>
               </div>
 
-
+              <div className="staff-filters__field">
+                <label className="staff-filters__label">Designation</label>
+                <input
+                  className="form-control"
+                  value={designationFilter}
+                  onChange={(e) => setDesignationFilter(normalizeDesignation(e.target.value))}
+                  placeholder="Type designation"
+                />
+              </div>
 
               <div className="staff-filters__field">
                 <label className="staff-filters__label">Subject</label>
@@ -328,8 +300,8 @@ export default function Staff() {
                       <td>
                         <div className="d-flex align-items-center justify-content-center rounded-circle bg-white shadow-sm border" style={{ width: "50px", height: "50px", padding: "3px", flexShrink: 0 }}>
                           <div className="w-100 h-100 rounded-circle overflow-hidden bg-light d-flex align-items-center justify-content-center">
-                            {staff.profile_photo ? (
-                              <img src={staff.profile_photo} alt={staff.full_name} className="w-100 h-100" style={{ objectFit: 'cover', objectPosition: 'top center' }} />
+                            {staff.image_url ? (
+                              <img src={staff.image_url} alt={staff.full_name} className="w-100 h-100" style={{ objectFit: 'cover', objectPosition: 'top center' }} />
                             ) : (
                               <span className="text-secondary fw-bold" style={{ fontSize: "0.85em" }}>{getInitials(staff.full_name)}</span>
                             )}
@@ -340,7 +312,7 @@ export default function Staff() {
                       <td>{staff.full_name}</td>
                       <td>{staff.designation?.replace(/_/g, ' ')}</td>
                       <td style={{ maxWidth: 260 }}>{renderSubjectList(staff)}</td>
-                      <td>{staff.phone || '-'}</td>
+                      <td>{staff.phone_number || '-'}</td>
                       <td className="text-end">
                         <div className="d-flex justify-content-end flex-wrap gap-2">
                           <button className="students-action-button students-action-button--edit" onClick={(event) => { event.stopPropagation(); handleEdit(staff); }}>
@@ -388,7 +360,7 @@ export default function Staff() {
                   </div>
                   <div className="col-md-6">
                     <label className="form-label small text-muted text-uppercase fw-bold">Phone</label>
-                    <input type="text" className="form-control" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
+                    <input type="text" className="form-control" value={editForm.phone_number} onChange={(e) => setEditForm({ ...editForm, phone_number: e.target.value })} />
                   </div>
                   <div className="col-md-6">
                     <label className="form-label small text-muted text-uppercase fw-bold">Email</label>
@@ -400,39 +372,6 @@ export default function Staff() {
                       <option value="ACTIVE">ACTIVE</option>
                       <option value="INACTIVE">INACTIVE</option>
                     </select>
-                  </div>
-
-                  <div className="col-12 mt-3">
-                    <label className="form-label small text-muted text-uppercase fw-bold mb-2">Assigned Subjects</label>
-                    <div className="border rounded p-3 bg-light" style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                      <div className="row g-2">
-                        {allSubjects.map(sub => (
-                          <div key={sub.id} className="col-md-6 col-lg-4">
-                            <div className="form-check">
-                              <input 
-                                className="form-check-input" 
-                                type="checkbox" 
-                                id={`sub-${sub.id}`}
-                                checked={editForm.subject_ids.includes(sub.id)}
-                                onChange={(e) => {
-                                  const checked = e.target.checked;
-                                  setEditForm(prev => ({
-                                    ...prev,
-                                    subject_ids: checked 
-                                      ? [...prev.subject_ids, sub.id]
-                                      : prev.subject_ids.filter(id => id !== sub.id)
-                                  }));
-                                }}
-                              />
-                              <label className="form-check-label small" htmlFor={`sub-${sub.id}`}>
-                                {sub.subject_code ? `${sub.subject_code} - ` : ''}{sub.subject_title}
-                              </label>
-                            </div>
-                          </div>
-                        ))}
-                        {allSubjects.length === 0 && <div className="text-muted small p-2 text-center">No subjects available to assign.</div>}
-                      </div>
-                    </div>
                   </div>
                 </form>
               </div>
@@ -455,7 +394,7 @@ export default function Staff() {
                   <h5 className="students-modal-header-title fw-semibold mb-1">{viewingStaff.full_name || "Staff Details"}</h5>
                   <div className="students-modal-header-meta text-white-50 small">
                     <span>{viewingStaff.staff_id || '-'}</span>
-                    <span className="mx-2">ï¿½</span>
+                    <span className="mx-2">•</span>
                     <span>{viewingStaff.designation?.replace(/_/g, ' ') || '-'}</span>
                   </div>
                 </div>
@@ -468,10 +407,10 @@ export default function Staff() {
                   <div className="card shadow-sm border-0 mb-4">
                     <div className="card-body p-4">
                       <div className="row g-3">
-                        <div className="col-md-6"><strong>Phone:</strong> {viewingStaff.phone || '-'}</div>
+                        <div className="col-md-6"><strong>Phone:</strong> {viewingStaff.phone_number || '-'}</div>
                         <div className="col-md-6"><strong>Email:</strong> {viewingStaff.email || '-'}</div>
                         <div className="col-md-6"><strong>Qualification:</strong> {viewingStaff.qualification || '-'}</div>
-                        <div className="col-md-6"><strong>Experience:</strong> {viewingStaff.experience || 0} Years</div>
+                        <div className="col-md-6"><strong>Experience:</strong> {viewingStaff.experience_years || 0} Years</div>
                         <div className="col-md-6"><strong>Joining Date:</strong> {formatDate(viewingStaff.joining_date)}</div>
                         <div className="col-md-6"><strong>Status:</strong> {viewingStaff.status || '-'}</div>
                         <div className="col-12">
@@ -482,7 +421,7 @@ export default function Staff() {
                             ) : (
                               (viewingStaff.staff_subjects || []).map((entry, index) => (
                                 <span key={`${entry.subject_id}-${index}`} className="badge bg-light text-dark border">
-                                  {(entry.subjects?.subject_code ? `${entry.subjects.subject_code} - ` : '') + (entry.subjects?.subject_title || '-')}
+                                  {(entry.subjects?.subject_code ? `${entry.subjects.subject_code} - ` : '') + (entry.subjects?.subject_name || '-')}
                                 </span>
                               ))
                             )}
