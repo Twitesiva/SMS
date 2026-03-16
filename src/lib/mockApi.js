@@ -4,11 +4,9 @@ import { trackPromise } from "../store/ui.js";
 const TABLES = {
   applications: "applications",
   academicYears: "academic_years",
-  groups: "classes",
-  courses: "sections",
-  classSections: "class_sections",
-  subCategories: "subject_category",
-  subjects: "subjects",
+  classes: "classes",
+  groups: "groups",
+  sections: "sections",
   batches: "batches", // Note: 'batches' table not found in passed schema, but keeping for now or mapping null
   students: "students",
   exams: "exam_master",
@@ -46,8 +44,9 @@ const runMaybeSingle = async (query, label) => {
 
 const DUPLICATE_RULES = {
   [TABLES.academicYears]: { cols: ["year_name"], pk: "id" },
-  [TABLES.groups]: { cols: ["class_name", "class_number"], pk: "id" },
-  [TABLES.courses]: { cols: ["section_name"], pk: "id" },
+  [TABLES.classes]: { cols: ["class_name", "class_number"], pk: "id" },
+  [TABLES.groups]: { cols: ["group_name"], pk: "id" },
+  [TABLES.sections]: { cols: ["section_name"], pk: "id" },
   [TABLES.classSections]: {
     composite: ["class_id", "section_id", "academic_year_id"],
     pk: "id",
@@ -779,44 +778,67 @@ export const api = {
     );
   },
 
-  listGroups: async () => {
+  listClasses: async () => {
     const rows = await runQuery(
       supabase
-        .from(TABLES.groups)
+        .from(TABLES.classes)
         .select("id, class_name, class_number, category_id, school_level")
         .order("class_name", { ascending: true }),
-      "Unable to fetch groups"
+      "Unable to fetch classes"
     );
     return rows.map((row) => mapGroup(row));
   },
 
-  addGroup: async (group) => {
-    await ensureNoDuplicate(TABLES.groups, toGroupRow(group));
+  addClass: async (payload) => {
+    await ensureNoDuplicate(TABLES.classes, toGroupRow(payload));
     const row = await runQuery(
       supabase
-        .from(TABLES.groups)
-        .insert(toGroupRow(group))
+        .from(TABLES.classes)
+        .insert(toGroupRow(payload))
         .select("id, class_name, class_number, category_id, school_level")
         .single(),
-      "Unable to add group"
+      "Unable to add class"
     );
     return mapGroup(row);
   },
 
-  updateGroup: async (id, group) => {
-    await ensureNoDuplicate(TABLES.groups, toGroupRow(group), {
+  updateClass: async (id, payload) => {
+    await ensureNoDuplicate(TABLES.classes, toGroupRow(payload), {
       excludeId: id,
     });
     const row = await runQuery(
       supabase
-        .from(TABLES.groups)
-        .update(toGroupRow(group))
+        .from(TABLES.classes)
+        .update(toGroupRow(payload))
         .eq("id", id)
         .select("id, class_name, class_number, category_id, school_level")
         .single(),
-      "Unable to update group"
+      "Unable to update class"
     );
     return mapGroup(row);
+  },
+
+  deleteClass: async (id) => {
+    await runQuery(
+      supabase.from(TABLES.classes).delete().eq("id", id),
+      "Unable to delete class"
+    );
+  },
+
+  // Groups Table Methods
+  listGroups: async (classId) => {
+    let q = supabase.from(TABLES.groups).select("*");
+    if (classId) q = q.eq("class_id", classId);
+    const rows = await runQuery(q.order("group_name"), "Unable to fetch groups");
+    return rows;
+  },
+
+  addGroup: async (payload) => {
+    const row = await runQuery(
+      supabase.from(TABLES.groups).insert(payload).select().single(),
+      "Unable to add group"
+    );
+    return row;
   },
 
   deleteGroup: async (id) => {
@@ -826,28 +848,53 @@ export const api = {
     );
   },
 
-  listCourses: async () => {
+  listSections: async () => {
     const rows = await runQuery(
       supabase
-        .from(TABLES.courses)
-        .select("id, section_name")
+        .from(TABLES.sections)
+        .select("id, section_name, group_id")
         .order("section_name", { ascending: true }),
-      "Unable to fetch courses"
+      "Unable to fetch sections"
     );
     return rows.map(mapCourse);
   },
 
-  addCourse: async (course) => {
-    await ensureNoDuplicate(TABLES.courses, toCourseRow(course));
+  addSection: async (section) => {
     const row = await runQuery(
       supabase
-        .from(TABLES.courses)
-        .insert(toCourseRow(course))
-        .select("id, section_name")
+        .from(TABLES.sections)
+        .insert({
+          section_name: section.name || section.code,
+          group_id: section.group_id || null
+        })
+        .select("id, section_name, group_id")
         .single(),
-      "Unable to add course"
+      "Unable to add section"
     );
     return mapCourse(row);
+  },
+
+  updateSection: async (id, section) => {
+    const row = await runQuery(
+      supabase
+        .from(TABLES.sections)
+        .update({
+          section_name: section.name || section.code,
+          group_id: section.group_id || null
+        })
+        .eq("id", id)
+        .select("id, section_name, group_id")
+        .single(),
+      "Unable to update section"
+    );
+    return mapCourse(row);
+  },
+
+  deleteSection: async (id) => {
+    await runQuery(
+      supabase.from(TABLES.sections).delete().eq("id", id),
+      "Unable to delete section"
+    );
   },
 
   updateCourse: async (id, course) => {
@@ -895,7 +942,7 @@ export const api = {
     }));
   },
 
-  addClassSection: async ({ classId, sectionId, academicYearId }) => {
+  addClassSection: async ({ classId, sectionId, academicYearId, groupId }) => {
     await ensureNoDuplicate(TABLES.classSections, {
       class_id: classId,
       section_id: sectionId,
@@ -907,10 +954,11 @@ export const api = {
         .insert({
           class_id: classId,
           section_id: sectionId,
+          group_id: groupId || null,
           academic_year_id: academicYearId ?? null,
         })
         .select(
-          "id, class_id, section_id, academic_year_id, classes(id, class_name, class_number), sections(id, section_name)"
+          "id, class_id, section_id, group_id, academic_year_id, classes(id, class_name, class_number), sections(id, section_name)"
         )
         .single(),
       "Unable to add class-section mapping"
@@ -919,6 +967,7 @@ export const api = {
       id: row.id,
       classId: row.class_id,
       sectionId: row.section_id,
+      groupId: row.group_id,
       academicYearId: row.academic_year_id ?? null,
       className: row.classes?.class_name || "",
       classNumber: row.classes?.class_number ?? null,

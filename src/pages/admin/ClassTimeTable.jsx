@@ -63,6 +63,7 @@ export default function ClassTimeTable() {
   const [selectedClassName, setSelectedClassName] = useState('')
   const [selectedSectionId, setSelectedSectionId] = useState('')
   const [selectedSectionCode, setSelectedSectionCode] = useState('')
+  const [selectedGroupId, setSelectedGroupId] = useState(null)
 
   const [grid, setGrid] = useState({})
   const [loading, setLoading] = useState(false)
@@ -127,7 +128,7 @@ export default function ClassTimeTable() {
       try {
         const { data, error } = await supabase
           .from('class_sections')
-          .select('id, class_id, section_id, sections(id, section_name)')
+          .select('id, class_id, section_id, sections(id, section_name, group_id)')
           .eq('class_id', Number(selectedClassId))
           .order('id')
         if (error) throw error
@@ -136,6 +137,7 @@ export default function ClassTimeTable() {
           class_id: row.class_id,
           section_id: row.section_id,
           section_name: row.sections?.section_name || '',
+          group_id: row.sections?.group_id || null,
         })))
       } catch (error) {
         console.error('Error loading sections', error)
@@ -159,26 +161,40 @@ export default function ClassTimeTable() {
       try {
         setLoading(true)
         const term = Number(selectedSession.term)
+        const termString = selectedClassNumber >= 10 ? 'Full Year' : `Term ${term}`;
+        const isHigherSecondary = selectedClassNumber === 11 || selectedClassNumber === 12;
+
+        let subjectsQuery = supabase
+          .from('subjects')
+          .select('id, subject_title, subject_code, subject_categories!subjects_category_id_fkey(category_name)')
+          .eq('class_id', Number(selectedClassId))
+          .eq('term', termString);
+        
+        if (isHigherSecondary && selectedGroupId) {
+          subjectsQuery = subjectsQuery.eq('group_id', selectedGroupId);
+        } else if (!isHigherSecondary) {
+          subjectsQuery = subjectsQuery.eq('section_id', Number(selectedSectionId));
+        } else {
+          // If HS but no groupId, might have issues, but HS sections should have groupIds now
+          subjectsQuery = subjectsQuery.is('section_id', null);
+        }
 
         const [{ data: subjectRows, error: subjectError }, { data: mappingRows, error: mappingError }] = await Promise.all([
+          subjectsQuery.order('subject_title'),
           supabase
-            .from('subjects')
-            .select('subject_id, subject_name, subject_code, subject_type')
-            .eq('section_name', selectedSectionCode)
-            .eq('semester_number', term)
-            .order('subject_name'),
-          supabase
-            .from('class_subjects')
+            .from('staff_subjects')
             .select('subject_id, staff_id')
-            .eq('class_id', Number(selectedClassId))
-            .eq('section_id', Number(selectedSectionId))
-            .eq('term', term)
         ])
 
         if (subjectError) throw subjectError
         if (mappingError) throw mappingError
 
-        setSubjects(subjectRows || [])
+        setSubjects((subjectRows || []).map(s => ({
+            subject_id: s.id,
+            subject_name: s.subject_title,
+            subject_code: s.subject_code,
+            subject_type: s.subject_categories?.category_name || ''
+        })))
 
         const nextStaffMap = {}
         ;(mappingRows || []).forEach((row) => {
@@ -502,6 +518,7 @@ export default function ClassTimeTable() {
                   const selected = sections.find((row) => String(row.section_id) === String(e.target.value))
                   setSelectedSectionId(e.target.value)
                   setSelectedSectionCode(selected?.section_name || '')
+                  setSelectedGroupId(selected?.group_id || null)
                 }}
                 disabled={!selectedClassId}
               >

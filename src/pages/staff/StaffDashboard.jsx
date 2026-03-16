@@ -46,28 +46,46 @@ export default function StaffDashboard() {
         }
     }, [staff])
 
-    const fetchAssignments = async (teacherId) => {
+    const fetchAssignments = async (staffId) => {
         setLoading(true)
         const { data, error } = await supabase
-            .from('teacher_subject_mapping')
+            .from('staff_subjects')
             .select(`
-                semester,
                 subjects (
                     subject_code,
-                    subject_name
-                ),
-                sections (
-                    section_name as course_name
-                ),
-                classes (
-                    class_name as group_name
+                    subject_title,
+                    term,
+                    sections (
+                        section_name
+                    ),
+                    classes (
+                        class_name
+                    ),
+                    groups (
+                        group_name
+                    )
                 )
             `)
-            .eq('teacher_id', teacherId)
-            .eq('is_active', true)
+            .eq('staff_id', staffId)
 
-        if (!error) {
-            setAssignments(data || [])
+        if (!error && data) {
+            const normalized = data.map(item => {
+                const s = item.subjects;
+                return {
+                    semester: s?.term || '-',
+                    subjects: {
+                        subject_code: s?.subject_code,
+                        subject_name: s?.subject_title
+                    },
+                    courses: {
+                        course_name: s?.sections?.section_name || (s?.groups ? `Group: ${s.groups.group_name}` : 'All')
+                    },
+                    groups: {
+                        group_name: s?.classes?.class_name || '-'
+                    }
+                }
+            });
+            setAssignments(normalized)
         }
         setLoading(false)
     }

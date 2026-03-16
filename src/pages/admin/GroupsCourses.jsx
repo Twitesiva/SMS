@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import AdShellAdmin from '../../components/AdShellAdmin'
 import GroupsCoursesSection from '../exam/GroupsCourses'
-import { api } from '../../lib/mockApi'
+import { supabase } from '../../../supabaseClient'
 import { showToast } from '../../store/ui'
 import ConfirmationModal from '../../components/ConfirmationModal'
 import '../exam/Dashboard.css'
@@ -13,6 +13,7 @@ export default function GroupsCourses() {
   const [sections, setSections] = useState([])
   const [mappings, setMappings] = useState([])
   const [academicYears, setAcademicYears] = useState([])
+  const [allGroups, setAllGroups] = useState([])
 
   const [groupForm, setGroupForm] = useState({
     id: '',
@@ -43,19 +44,74 @@ export default function GroupsCourses() {
 
   const loadData = async () => {
     try {
-      const [classRows, sectionRows, mappingRows, yearRows] = await Promise.all([
-        api.listGroups?.() || [],
-        api.listCourses?.() || [],
-        api.listClassSections?.() || [],
-        api.listAcademicYears?.() || [],
-      ])
-      setClasses(classRows || [])
-      setSections(sectionRows || [])
-      setMappings(mappingRows || [])
-      setAcademicYears(yearRows || [])
+      // Fetch classes with their sections via class_sections relation
+      // Note: Relation name is usually the table name or specified FK name. 
+      // If "sections" fails, it might be "class_sections". Using junction table format for safety.
+      const { data: classRows, error: classError } = await supabase
+        .from("classes")
+        .select(`
+          id,
+          class_name,
+          class_number,
+          category_id,
+          school_level,
+          class_sections(
+            id,
+            academic_year_id,
+            sections(id, section_name, group_id)
+          )
+        `)
+        .order("class_name");
+
+      if (classError) throw classError;
+
+      const { data: allSecs, error: secError } = await supabase
+        .from("sections")
+        .select("*")
+        .order("section_name");
+      
+      if (secError) throw secError;
+
+      const { data: years, error: yearError } = await supabase
+        .from("academic_years")
+        .select("*")
+        .order("year_name");
+
+      if (yearError) throw yearError;
+
+      const { data: groups, error: groupError } = await supabase
+        .from("groups")
+        .select("*")
+        .order("group_name");
+
+      if (groupError) throw groupError;
+
+      setClasses(classRows || []);
+      setSections(allSecs || []);
+      setAcademicYears(years || []);
+      setAllGroups(groups || []);
+
+      // Flatten mappings for the UI expectation
+      const flattenedMappings = [];
+      classRows.forEach(c => {
+        (c.class_sections || []).forEach(cs => {
+          flattenedMappings.push({
+            id: cs.id,
+            classId: c.id,
+            sectionId: cs.sections?.id,
+            sectionName: cs.sections?.section_name,
+            academicYearId: cs.academic_year_id,
+            groupId: cs.sections?.group_id,
+            classNumber: c.class_number,
+            className: c.class_name
+          });
+        });
+      });
+      setMappings(flattenedMappings);
+
     } catch (error) {
-      console.error('Failed to load classes/sections data:', error)
-      showToast(error?.message || 'Failed to load classes/sections data', { type: 'danger' })
+      console.error('Failed to load data:', error)
+      showToast(error?.message || 'Failed to load data', { type: 'danger' })
     }
   }
 
@@ -103,66 +159,75 @@ export default function GroupsCourses() {
       return
     }
 
-    const payload = {
-      code: String(classNumber),
-      name: groupForm.name || `Class ${classNumber}`,
-      category: groupForm.category || '',
-      category_id: groupForm.categoryId || null,
-    }
-
     try {
+      // 1. Create/Update Class
       let savedClass;
+      const classPayload = {
+        class_number: classNumber,
+        class_name: groupForm.name,
+        school_level: groupForm.category,
+        category_id: groupForm.categoryId || null
+      };
+
       if (editingGroupId) {
-        savedClass = await api.updateGroup(editingGroupId, payload)
-        showToast('Class updated successfully', { type: 'success' })
+        const { data, error } = await supabase
+          .from("classes")
+          .update(classPayload)
+          .eq("id", editingGroupId)
+          .select()
+          .single();
+        if (error) throw error;
+        savedClass = data;
       } else {
-        const existingClass = classes.find(c => String(c.class_number || c.code) === String(classNumber));
+        const existingClass = classes.find(c => Number(c.class_number) === classNumber);
         if (existingClass) {
           savedClass = existingClass;
         } else {
-          savedClass = await api.addGroup(payload)
+          const { data, error } = await supabase
+            .from("classes")
+            .insert([classPayload])
+            .select()
+            .single();
+          if (error) throw error;
+          savedClass = data;
         }
       }
 
-      const selectedSection = groupForm.sections?.trim();
+      // 2. Section handling (1-10 directly, 11-12 usually via group but base section creation is same)
+      const sectionName = groupForm.sections.trim();
+      let savedSection;
+
+      const { data: existingSec, error: secFetchError } = await supabase
+        .from("sections")
+        .select()
+        .eq("section_name", sectionName)
+        .maybeSingle();
       
-      if (selectedSection && savedClass) {
-        const currentYearId = academicYears?.[0]?.id || null;
-        let currentSections = [...sections];
-
-        let secObj = currentSections.find(s => 
-          String(s.section_name).toLowerCase() === selectedSection.toLowerCase() || 
-          String(s.name).toLowerCase() === selectedSection.toLowerCase() || 
-          String(s.courseCode).toLowerCase() === selectedSection.toLowerCase()
-        );
-        
-        let secId = secObj?.id;
-        if (!secId) {
-          try {
-            const newSec = await api.addCourse({ code: selectedSection, name: selectedSection });
-            secId = newSec.id;
-          } catch (e) {
-            console.error('Failed to add section', selectedSection, e);
-          }
-        }
-
-        if (secId) {
-          try {
-            await api.addClassSection({
-              classId: savedClass.id,
-              sectionId: secId,
-              academicYearId: currentYearId ? Number(currentYearId) : null,
-            });
-          } catch (e) {
-            // ignore duplicate mapping errors
-          }
-        }
-        
-        if (!editingGroupId) {
-          showToast('Class and section combination added successfully', { type: 'success' })
-        }
+      if (existingSec) {
+        savedSection = existingSec;
+      } else {
+        const { data, error } = await supabase
+          .from("sections")
+          .insert([{ section_name: sectionName }])
+          .select()
+          .single();
+        if (error) throw error;
+        savedSection = data;
       }
 
+      // 3. Mapping
+      const currentYearId = academicYears?.[0]?.id || null;
+      const { error: mapError } = await supabase
+        .from("class_sections")
+        .upsert([{
+          class_id: savedClass.id,
+          section_id: savedSection.id,
+          academic_year_id: currentYearId
+        }], { onConflict: 'class_id,section_id,academic_year_id' });
+      
+      if (mapError) throw mapError;
+
+      showToast('Class and section combination saved successfully', { type: 'success' })
       setGroupForm({ id: '', category: '', categoryId: '', code: '', name: '', sections: '' })
       setEditingGroupId('')
       await loadData()
@@ -171,6 +236,75 @@ export default function GroupsCourses() {
       showToast(error?.message || 'Failed to save class', { type: 'danger' })
     }
   }
+
+  // Exposed for the section component to handle group-specific saves
+  useEffect(() => {
+    window.handleSaveWithGroup = async (groupId) => {
+      const classNumber = Number(groupForm.code)
+      if (!Number.isInteger(classNumber) || classNumber < 1 || classNumber > 12) {
+        showToast('Class must be between 1 and 12.', { type: 'warning' })
+        return
+      }
+
+      try {
+        // 1. Create Class
+        const classPayload = {
+          class_number: classNumber,
+          class_name: groupForm.name,
+          school_level: groupForm.category,
+        };
+
+        let savedClass;
+        const existingClass = classes.find(c => Number(c.class_number) === classNumber);
+        if (existingClass) {
+          savedClass = existingClass;
+        } else {
+          const { data, error } = await supabase.from("classes").insert([classPayload]).select().single();
+          if (error) throw error;
+          savedClass = data;
+        }
+
+        // 2. Process Group (for HS)
+        if (groupId && (classNumber === 11 || classNumber === 12)) {
+           // Group already exists because it's passed from child
+        }
+
+        // 3. Create Section inside the group
+        const sectionName = groupForm.sections.trim();
+        let savedSection;
+        
+        const { data: existingSec } = await supabase.from("sections").select().eq("section_name", sectionName).eq("group_id", groupId).maybeSingle();
+        if (existingSec) {
+          savedSection = existingSec;
+        } else {
+          const { data, error } = await supabase.from("sections").insert([{ section_name: sectionName, group_id: groupId }]).select().single();
+          if (error) throw error;
+          savedSection = data;
+        }
+
+        // 4. Map it
+        const currentYearId = academicYears?.[0]?.id || null;
+        const { error: mapError } = await supabase.from("class_sections").upsert([{
+          class_id: savedClass.id,
+          section_id: savedSection.id,
+          academic_year_id: currentYearId,
+          group_id: groupId
+        }], { onConflict: 'class_id,section_id,academic_year_id' });
+        
+        if (mapError) throw mapError;
+
+        showToast('Updated successfully with group', { type: 'success' })
+        setGroupForm({ id: '', category: '', categoryId: '', code: '', name: '', sections: '' })
+        setEditingGroupId('')
+        await loadData()
+      } catch (error) {
+        console.error('Failed to save class with group:', error)
+        showToast(error?.message || 'Failed to save class', { type: 'danger' })
+      }
+    };
+    return () => { delete window.handleSaveWithGroup; };
+  }, [groupForm, editingGroupId, classes, sections, academicYears]);
+
 
   const editGroup = (group) => {
     setGroupForm({
@@ -204,14 +338,16 @@ export default function GroupsCourses() {
 
     try {
       if (editingCourseId) {
-        await api.deleteClassSection(editingCourseId)
+        await supabase.from("class_sections").delete().eq("id", editingCourseId);
       }
 
-      await api.addClassSection({
-        classId: selectedClass.id,
-        sectionId: selectedSection.id,
-        academicYearId: courseForm.academicYearId ? Number(courseForm.academicYearId) : null,
-      })
+      const { error } = await supabase.from("class_sections").insert([{
+        class_id: selectedClass.id,
+        section_id: selectedSection.id,
+        academic_year_id: courseForm.academicYearId ? Number(courseForm.academicYearId) : null,
+      }]);
+
+      if (error) throw error;
 
       setCourseForm({
         id: '',
@@ -246,11 +382,13 @@ export default function GroupsCourses() {
     const { type, id } = deleteConfirmation
     try {
       if (type === 'group') {
-        await api.deleteGroup?.(id)
+        const { error } = await supabase.from("classes").delete().eq("id", id);
+        if (error) throw error;
         showToast('Class deleted successfully', { type: 'success' })
       }
       if (type === 'course') {
-        await api.deleteClassSection?.(id)
+        const { error } = await supabase.from("class_sections").delete().eq("id", id);
+        if (error) throw error;
         showToast('Class-section mapping deleted successfully', { type: 'success' })
       }
       await loadData()
@@ -298,6 +436,8 @@ export default function GroupsCourses() {
               editCourse={editCourse}
               deleteCourse={deleteCourse}
               sections={sections}
+              allGroups={allGroups}
+              loadData={loadData}
               academicYears={academicYears}
             />
           </div>

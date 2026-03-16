@@ -1,0 +1,3 @@
+classes -> class_sections: OK
+class_sections -> sections: OK
+class_sections -> section_id: OK

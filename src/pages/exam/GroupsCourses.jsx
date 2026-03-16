@@ -30,21 +30,30 @@ export default function GroupsCoursesSection({
   editCourse,
   deleteCourse,
   sections = [],
+  allGroups = [],
+  loadData,
   academicYears = [],
 }) {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [confirmModalState, setConfirmModalState] = useState({ isOpen: false, type: null, id: null });
   const [overviewData, setOverviewData] = useState([]);
+  
+  const [selectedGroupId, setSelectedGroupId] = useState("");
+  const [newGroupName, setNewGroupName] = useState("");
+  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
 
   useEffect(() => {
     const fetchOverview = async () => {
+      // Use direct names as listed in schema test (classes, sections)
+      // Joined via class_sections
       const { data, error } = await supabase
         .from("class_sections")
         .select(`
           id,
           classes(class_name),
-          sections(section_name)
+          sections(section_name, groups(group_name))
         `);
+      if (error) console.error("Overview fetch error:", error);
       if (data) setOverviewData(data);
     };
     fetchOverview();
@@ -124,6 +133,76 @@ export default function GroupsCoursesSection({
     setConfirmModalState({ isOpen: false, type: null, id: null });
   };
 
+  const isHigherSecondary = useMemo(() => {
+    const num = Number(groupForm.code);
+    return num === 11 || num === 12;
+  }, [groupForm.code]);
+
+  const handleCreateGroup = async () => {
+    if (!newGroupName.trim() || !groupForm.code) {
+      alert("Please provide a group name and a class number.");
+      return;
+    }
+    try {
+      let selectedClass = groups.find(g => String(g.code || g.class_number) === String(groupForm.code));
+      
+      // AUTO-CREATE CLASS IF MISSING
+      if (!selectedClass) {
+        const classPayload = {
+          class_number: Number(groupForm.code),
+          class_name: groupForm.name || `Class ${groupForm.code}`,
+          school_level: groupForm.category,
+        };
+        const { data: newCls, error: clsErr } = await supabase
+          .from("classes")
+          .insert([classPayload])
+          .select()
+          .single();
+        
+        if (clsErr) throw clsErr;
+        selectedClass = newCls;
+        if (loadData) await loadData();
+      }
+
+      const { data, error } = await supabase
+        .from("groups")
+        .insert([{ class_id: selectedClass.id, group_name: newGroupName.trim() }])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      if (data) {
+        setSelectedGroupId(data.id);
+        setNewGroupName("");
+        setIsCreatingGroup(false);
+        if (loadData) await loadData();
+      }
+    } catch (err) {
+      console.error("Group creation failed:", err);
+      alert(err.message || "Failed to create group");
+    }
+  };
+
+  const handleLocalSave = async () => {
+    // Group required only for HS
+    if (isHigherSecondary && !selectedGroupId) {
+      alert("Please select or create a group for Class 11/12.");
+      return;
+    }
+    
+    // Determine which save method to use
+    if (isHigherSecondary && window.handleSaveWithGroup) {
+        await window.handleSaveWithGroup(selectedGroupId);
+    } else {
+        // For Classes 1-10, groupId is null
+        if (window.handleSaveWithGroup) {
+            await window.handleSaveWithGroup(null);
+        } else {
+            await saveGroup();
+        }
+    }
+  };
+
   return (
     <>
       <section className="setup-section mb-4">
@@ -187,7 +266,7 @@ export default function GroupsCoursesSection({
               />
             </div>
 
-            <div className="col-md-3">
+            <div className="col-md-2">
               <label className="form-label fw-bold mb-1">Section</label>
               <select
                 className={`form-select ${duplicateErrors.classCode ? 'is-invalid' : ''}`}
@@ -205,12 +284,52 @@ export default function GroupsCoursesSection({
                 <option value="G">G</option>
               </select>
             </div>
+
+            {isHigherSecondary && (
+              <div className="col-md-4">
+                <label className="form-label fw-bold mb-1">Group (Class 11/12 only)</label>
+                <div className="d-flex gap-2">
+                   {isCreatingGroup ? (
+                      <div className="input-group">
+                        <input 
+                          type="text" 
+                          className="form-control" 
+                          placeholder="New Group Name" 
+                          value={newGroupName}
+                          onChange={(e) => setNewGroupName(e.target.value)}
+                        />
+                        <button className="btn btn-success" onClick={handleCreateGroup}><i className="bi bi-check-lg" /></button>
+                        <button className="btn btn-outline-danger" onClick={() => setIsCreatingGroup(false)}><i className="bi bi-x-lg" /></button>
+                      </div>
+                   ) : (
+                      <div className="input-group">
+                        <select 
+                          className="form-select" 
+                          value={selectedGroupId}
+                          onChange={(e) => setSelectedGroupId(e.target.value)}
+                        >
+                          <option value="">Select Group</option>
+                          {allGroups
+                            .filter(g => {
+                                const cls = groups.find(c => String(c.code || c.class_number) === String(groupForm.code));
+                                return g.class_id === cls?.id;
+                            })
+                            .map(g => <option key={g.id} value={g.id}>{g.group_name}</option>)
+                          }
+                        </select>
+                        <button className="btn btn-outline-primary" onClick={() => setIsCreatingGroup(true)} title="Create New Group"><i className="bi bi-plus-lg" /></button>
+                      </div>
+                   )}
+                </div>
+              </div>
+            )}
           </div>
+
 
           <div className="students-section-actions mt-3 d-flex flex-wrap gap-2">
             <button
               className="btn btn-primary students-button"
-              onClick={saveGroup}
+              onClick={handleLocalSave}
               disabled={duplicateErrors.classCode}
             >
               {editingGroupId ? "Update Class" : "Add Class"}

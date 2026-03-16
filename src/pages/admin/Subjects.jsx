@@ -9,6 +9,7 @@ export default function Subjects() {
   const [academicYears, setAcademicYears] = useState([])
   const [classes, setClasses] = useState([])
   const [allClassSections, setAllClassSections] = useState([])
+  const [allGroups, setAllGroups] = useState([])
 
   const [categories, setCategories] = useState([])
   const [categoryName, setCategoryName] = useState('')
@@ -22,6 +23,7 @@ export default function Subjects() {
     school_level: '',
     class_id: '',
     section_id: '',
+    group_id: '',
     term: '',
     category_id: '',
     subject_title: '',
@@ -35,30 +37,35 @@ export default function Subjects() {
 
   const loadInitialData = async () => {
     try {
-      const [
-        { data: years, error: yErr },
-        { data: cls, error: cErr },
-        { data: cats, error: catErr },
-        { data: clsSec, error: csErr }
-      ] = await Promise.all([
+      const results = await Promise.all([
         supabase.from('academic_years').select('id, year_name'),
         supabase.from('classes').select('id, class_name, category_id'),
         supabase.from('subject_categories').select('id, category_name'),
-        supabase.from('class_sections').select('class_id, section_id, sections(id, section_name)')
+        supabase.from('class_sections').select('class_id, section_id, sections(id, section_name)'),
+        supabase.from('groups').select('*')
       ]);
+ 
+      const [yearsRes, clsRes, catsRes, clsSecRes, groupsRes] = results;
+      const { data: years, error: yErr } = yearsRes;
+      const { data: cls, error: cErr } = clsRes;
+      const { data: cats, error: catErr } = catsRes;
+      const { data: clsSec, error: csErr } = clsSecRes;
+      const { data: grps, error: gErr } = groupsRes;
 
-      if (yErr || cErr || catErr || csErr) {
+      if (yErr || cErr || catErr || csErr || gErr) {
         if (yErr) console.error("Years error:", yErr);
         if (cErr) console.error("Classes error:", cErr);
         if (catErr && catErr.code !== '42P01') console.error("Categories error:", catErr);
         if (csErr && csErr.code !== '42P01') console.error("ClassSections error:", csErr);
+        if (gErr) console.error("Groups error:", gErr);
         setLoadError(true);
       }
 
-      if (years) setAcademicYears(years)
       if (cls) setClasses(cls)
       if (cats) setCategories(cats)
       if (clsSec) setAllClassSections(clsSec)
+      if (grps) setAllGroups(grps)
+      if (years) setAcademicYears(years)
 
       loadSubjects()
     } catch (err) {
@@ -72,10 +79,11 @@ export default function Subjects() {
       let { data: subs, error: subsError } = await supabase
         .from('subjects')
         .select(`
-          id, subject_title, subject_code, term, school_level, academic_year_id, class_id, section_id, category_id,
+          id, subject_title, subject_code, term, school_level, academic_year_id, class_id, section_id, group_id, category_id,
           academic_years!subjects_academic_year_id_fkey(year_name),
           classes!subjects_class_id_fkey(class_name),
           sections!subjects_section_id_fkey(section_name),
+          groups!subjects_group_id_fkey(group_name),
           subject_categories!subjects_category_id_fkey(category_name)
         `)
 
@@ -131,9 +139,15 @@ export default function Subjects() {
     subjects.forEach(s => {
       const yearStr = s.academic_years?.year_name || 'Unknown Year';
       const classStr = s.classes?.class_name || 'Unknown Class';
-      const sectionStr = s.section_id ? (s.sections?.section_name || 'Unknown Section') : 'All';
+      let mappingLabel = 'All';
+      if (s.section_id) {
+          mappingLabel = s.sections?.section_name || 'Unknown Section';
+      } else if (s.group_id) {
+          mappingLabel = `Group: ${s.groups?.group_name || 'Unknown'}`;
+      }
+      
       const termStr = s.term || '-';
-      const key = `${s.academic_year_id}_${s.class_id}_${s.section_id || 'all'}_${s.term}_${s.school_level}`;
+      const key = `${s.academic_year_id}_${s.class_id}_${s.section_id || 'null'}_${s.group_id || 'null'}_${s.term}_${s.school_level}`;
 
       if (!groups[key]) {
         groups[key] = {
@@ -141,7 +155,7 @@ export default function Subjects() {
           academic_year: yearStr,
           school_level: s.school_level || '-',
           class_name: classStr,
-          section_name: sectionStr,
+          mapping_label: mappingLabel,
           term: termStr,
           categories: {},
           subjectIds: []
@@ -228,6 +242,7 @@ export default function Subjects() {
       category_id: first.category_id || '',
       subject_title: first.subject_title || '',
       subject_code: first.subject_code || '',
+      group_id: first.group_id || '',
       extraSubjects: extras
     });
     setIsEditing(true);
@@ -238,7 +253,8 @@ export default function Subjects() {
     if (!subs || subs.length === 0) return;
     const first = subs[0];
 
-    const subtitle = `${group.academic_year} • ${group.class_name}${group.section_name !== 'All' ? ` (${group.section_name})` : ''} • ${group.term}`;
+    const mappingStr = group.mapping_label;
+    const subtitle = `${group.academic_year} • ${group.class_name}${mappingStr !== 'All' ? ` (${mappingStr})` : ''} • ${group.term}`;
     setViewModalData({ isOpen: true, loading: true, categoryName: catName, subtitle, subjects: [] });
 
     let q = supabase.from('subjects').select('id, subject_title, subject_code')
@@ -258,6 +274,12 @@ export default function Subjects() {
       q = q.is('section_id', null);
     }
 
+    if (first.group_id) {
+      q = q.eq('group_id', first.group_id);
+    } else {
+      q = q.is('group_id', null);
+    }
+
     q = q.order('subject_title', { ascending: true });
 
     const { data, error } = await q;
@@ -270,11 +292,32 @@ export default function Subjects() {
     }
   }
 
-  const updateSubjects = async () => {
-    const { academic_year_id, school_level, class_id, section_id, term, category_id, subject_title, subject_code } = subjectForm;
-    const finalSectionId = isLowerClass ? null : section_id;
+  const selectedClassInfo = classes.find(c => String(c.id) === String(subjectForm.class_id));
+  let classNumber = 0;
+  if (selectedClassInfo) {
+    const match = selectedClassInfo.class_name.match(/\d+/);
+    if (match) classNumber = parseInt(match[0], 10);
+  }
 
-    if (!academic_year_id || !school_level || !class_id || (isHigherClass && !finalSectionId) || !term || !category_id || !subject_title || !subject_code) {
+  const isTermBasedClass = subjectForm.class_id && classNumber >= 1 && classNumber <= 9;
+  const isFullYearClass = subjectForm.class_id && classNumber >= 10;
+  const isHigherSecondary = subjectForm.class_id && (classNumber === 11 || classNumber === 12);
+  const isLowerClass = subjectForm.class_id && classNumber >= 1 && classNumber <= 10;
+
+  // Auto-set term for Full Year classes
+  useEffect(() => {
+    if (isFullYearClass) {
+      setSubjectForm(prev => ({ ...prev, term: 'Full Year' }));
+    } else if (isTermBasedClass && subjectForm.term === 'Full Year') {
+      setSubjectForm(prev => ({ ...prev, term: '' }));
+    }
+  }, [isFullYearClass, isTermBasedClass]);
+
+  const updateSubjects = async () => {
+    const finalSectionId = isHigherSecondary ? null : section_id;
+    const finalGroupId = isHigherSecondary ? subjectForm.group_id : null;
+
+    if (!school_level || !class_id || (isSectionRequiredClass && !finalSectionId) || (isHigherSecondary && !finalGroupId) || !term || !category_id || !subject_title || !subject_code) {
       showToast('Please fill out all required fields marked with *', { type: 'warning' })
       return
     }
@@ -300,6 +343,12 @@ export default function Subjects() {
         deleteQuery = deleteQuery.is('section_id', null);
       }
 
+      if (finalGroupId) {
+        deleteQuery = deleteQuery.eq('group_id', finalGroupId);
+      } else {
+        deleteQuery = deleteQuery.is('group_id', null);
+      }
+
       const { error: deleteError } = await deleteQuery;
       if (deleteError) throw deleteError;
 
@@ -308,6 +357,7 @@ export default function Subjects() {
         school_level,
         class_id,
         section_id: finalSectionId,
+        group_id: finalGroupId,
         term,
         category_id,
         subject_title: ns.title,
@@ -328,21 +378,13 @@ export default function Subjects() {
     }
   }
 
-  const selectedClassInfo = classes.find(c => String(c.id) === String(subjectForm.class_id));
-  let classNumber = 0;
-  if (selectedClassInfo) {
-    const match = selectedClassInfo.class_name.match(/\d+/);
-    if (match) classNumber = parseInt(match[0], 10);
-  }
-  const isLowerClass = subjectForm.class_id && classNumber <= 10;
-  const isHigherClass = subjectForm.class_id && classNumber >= 11;
+
 
   const saveSubjects = async () => {
-    const { academic_year_id, school_level, class_id, section_id, term, category_id, subject_title, subject_code } = subjectForm
+    const finalSectionId = isHigherSecondary ? null : section_id;
+    const finalGroupId = isHigherSecondary ? subjectForm.group_id : null;
 
-    const finalSectionId = isLowerClass ? null : section_id;
-
-    if (!academic_year_id || !school_level || !class_id || (isHigherClass && !finalSectionId) || !term || !category_id || !subject_title || !subject_code) {
+    if (!school_level || !class_id || (isSectionRequiredClass && !finalSectionId) || (isHigherSecondary && !finalGroupId) || !term || !category_id || !subject_title || !subject_code) {
       showToast('Please fill out all required fields marked with *', { type: 'warning' })
       return
     }
@@ -357,16 +399,18 @@ export default function Subjects() {
 
     for (const ns of newSubjects) {
       const duplicate = subjects.some(s => {
-        const sameYear = String(s.academic_year_id || '') === String(academic_year_id);
         const sameClass = String(s.class_id || '') === String(class_id);
         const sameTerm = s.term === term;
         const sameTitle = (s.subject_title || '').toLowerCase() === ns.title.toLowerCase();
 
-        if (isLowerClass) {
-          return sameYear && sameClass && sameTerm && sameTitle;
-        } else {
+        if (isSectionRequiredClass) {
           const sameSection = String(s.section_id || '') === String(finalSectionId);
-          return sameYear && sameClass && sameSection && sameTerm && sameTitle;
+          return sameClass && sameSection && sameTerm && sameTitle;
+        } else if (isHigherSecondary) {
+          const sameGroup = String(s.group_id || '') === String(finalGroupId);
+          return sameClass && sameGroup && sameTerm && sameTitle;
+        } else {
+          return sameClass && sameTerm && sameTitle;
         }
       });
       if (duplicate) {
@@ -380,6 +424,7 @@ export default function Subjects() {
       school_level,
       class_id,
       section_id: finalSectionId,
+      group_id: finalGroupId,
       term,
       category_id,
       subject_title: ns.title,
@@ -482,19 +527,9 @@ export default function Subjects() {
 
             <div className="students-section-form">
               <div className="row g-3 mb-4">
-                <div className="col-md-3">
-                  <label className="form-label fw-bold mb-1">Academic Year *</label>
-                  <select
-                    className="form-select"
-                    value={subjectForm.academic_year_id}
-                    onChange={(e) => setSubjectForm({ ...subjectForm, academic_year_id: e.target.value })}
-                  >
-                    <option value="">Select Year</option>
-                    {academicYears.map(y => <option key={y.id} value={y.id}>{y.year_name}</option>)}
-                  </select>
-                </div>
 
-                <div className="col-md-3">
+
+                <div className="col-md-4">
                   <label className="form-label fw-bold mb-1">School Level *</label>
                   <select
                     className="form-select"
@@ -508,7 +543,7 @@ export default function Subjects() {
                   </select>
                 </div>
 
-                <div className="col-md-3">
+                <div className="col-md-4">
                   <label className="form-label fw-bold mb-1">Class *</label>
                   <select
                     className="form-select"
@@ -520,8 +555,26 @@ export default function Subjects() {
                   </select>
                 </div>
 
-                {isHigherClass && (
-                  <div className="col-md-3">
+                {isHigherSecondary && (
+                  <div className="col-md-4">
+                    <label className="form-label fw-bold mb-1">Group *</label>
+                    <select
+                      className="form-select"
+                      value={subjectForm.group_id}
+                      onChange={(e) => setSubjectForm({ ...subjectForm, group_id: e.target.value })}
+                    >
+                      <option value="">Select Group</option>
+                      {allGroups
+                        .filter(g => String(g.class_id) === String(subjectForm.class_id))
+                        .map(g => <option key={g.id} value={g.id}>{g.group_name}</option>)
+                      }
+                    </select>
+                    <div className="text-muted small mt-1 fw-bold">Subjects will apply to all sections in this group.</div>
+                  </div>
+                )}
+
+                {isLowerClass && (
+                  <div className="col-md-4">
                     <label className="form-label fw-bold mb-1">Section *</label>
                     <select
                       className="form-select"
@@ -532,14 +585,6 @@ export default function Subjects() {
                       {filteredSections.map(s => <option key={s.id} value={s.id}>{s.section_name}</option>)}
                     </select>
                     <div className="text-muted small mt-1 fw-bold">Subjects will be created for the selected section.</div>
-                  </div>
-                )}
-
-                {isLowerClass && (
-                  <div className="col-md-3 d-flex align-items-center">
-                    <div className="text-primary small fw-bold mt-4">
-                      Subjects will apply to all sections of this class.
-                    </div>
                   </div>
                 )}
 
@@ -557,16 +602,20 @@ export default function Subjects() {
                 <div className="row g-3 mb-4">
                   <div className="col-md-6">
                     <label className="form-label fw-bold mb-1">Term *</label>
-                    <select
-                      className="form-select"
-                      value={subjectForm.term}
-                      onChange={(e) => setSubjectForm({ ...subjectForm, term: e.target.value })}
-                    >
-                      <option value="">Select Term</option>
-                      <option value="Term 1">Term 1</option>
-                      <option value="Term 2">Term 2</option>
-                      <option value="Term 3">Term 3</option>
-                    </select>
+                    {isFullYearClass ? (
+                      <input className="form-control" value="Full Year" disabled />
+                    ) : (
+                      <select
+                        className="form-select"
+                        value={subjectForm.term}
+                        onChange={(e) => setSubjectForm({ ...subjectForm, term: e.target.value })}
+                      >
+                        <option value="">Select Term</option>
+                        <option value="Term 1">Term 1</option>
+                        <option value="Term 2">Term 2</option>
+                        <option value="Term 3">Term 3</option>
+                      </select>
+                    )}
                   </div>
 
                   <div className="col-md-6">
@@ -704,10 +753,10 @@ export default function Subjects() {
                               <td rowSpan={categoryEntries.length} className="border-end-0">{group.school_level}</td>
                               <td rowSpan={categoryEntries.length} className="fw-bold border-end-0">{group.class_name}</td>
                               <td rowSpan={categoryEntries.length} className="border-end-0">
-                                {group.section_name === 'All' ? (
+                                {group.mapping_label === 'All' ? (
                                   <span className="badge bg-light text-dark px-2 py-1 border">All</span>
                                 ) : (
-                                  group.section_name
+                                  group.mapping_label
                                 )}
                               </td>
                               <td rowSpan={categoryEntries.length} className="border-end-0"><span className="badge bg-light text-dark border px-2 py-1">{group.term}</span></td>

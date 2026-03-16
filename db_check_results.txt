@@ -1,0 +1,4 @@
+classes: id, category_id, class_name, created_at, class_number, school_level
+sections: id, section_name, created_at, group_id
+groups: EMPTY TABLE
+class_sections: id, academic_year_id, class_id, section_id, created_at

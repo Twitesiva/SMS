@@ -14,14 +14,14 @@ const BREAK_LETTERS = ['B', 'R', 'E', 'A', 'K']
 const LUNCH_LETTERS = ['L', 'U', 'N', 'C', 'H']
 
 const TIME_SLOTS = [
-  { key: 'p1', label: 'PERIOD 1', time: '9:00 AM – 10:10 AM', type: 'period', period: 1 },
-  { key: 'b1', label: 'BREAK', time: '10:10 AM – 10:20 AM', type: 'break' },
-  { key: 'p2', label: 'PERIOD 2', time: '10:20 AM – 11:30 AM', type: 'period', period: 2 },
-  { key: 'p3', label: 'PERIOD 3', time: '11:30 AM – 12:40 PM', type: 'period', period: 3 },
-  { key: 'lunch', label: 'LUNCH', time: '12:40 PM – 1:40 PM', type: 'lunch' },
-  { key: 'p4', label: 'PERIOD 4', time: '1:40 PM – 2:50 PM', type: 'period', period: 4 },
-  { key: 'b2', label: 'BREAK', time: '2:50 PM – 3:00 PM', type: 'break' },
-  { key: 'p5', label: 'PERIOD 5', time: '3:00 PM – 4:00 PM', type: 'period', period: 5 }
+  { key: 'p1', label: 'PERIOD 1', time: '9:00 AM – 10:00 AM', type: 'period', period: 1 },
+  { key: 'p2', label: 'PERIOD 2', time: '10:00 AM – 11:00 AM', type: 'period', period: 2 },
+  { key: 'p3', label: 'PERIOD 3', time: '11:00 AM – 12:00 PM', type: 'period', period: 3 },
+  { key: 'p4', label: 'PERIOD 4', time: '12:00 PM – 1:00 PM', type: 'period', period: 4 },
+  { key: 'p5', label: 'PERIOD 5', time: '1:00 PM – 2:00 PM', type: 'period', period: 5 },
+  { key: 'p6', label: 'PERIOD 6', time: '2:00 PM – 3:00 PM', type: 'period', period: 6 },
+  { key: 'p7', label: 'PERIOD 7', time: '3:00 PM – 4:00 PM', type: 'period', period: 7 },
+  { key: 'p8', label: 'PERIOD 8', time: '4:00 PM – 5:00 PM', type: 'period', period: 8 }
 ]
 
 const normalizeDay = (day) =>
@@ -45,95 +45,67 @@ export default function StaffTimetable() {
      DATA LOADING
   ================================ */
   const loadTimetable = async () => {
+    if (!staff?.id) return
     setLoading(true)
-    // 1️⃣ Resolve teacher numeric ID
-    const { data: teacher } = await supabase
-      .from('teachers')
-      .select('id')
-      .eq('staff_id', staff.staff_id)
-      .single()
 
-    if (!teacher) {
-      setLoading(false)
-      return
-    }
+    try {
+      // 1. Get active session
+      const { data: session } = await supabase
+        .from('timetable_sessions')
+        .select('id, term')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
 
-    // 2️⃣ Get teacher subject mappings (THIS IS SOURCE OF TRUTH)
-    const { data: mappings } = await supabase
-      .from('teacher_subject_mapping')
-      .select(`
-        subject_id,
-        course_id,
-        group_id,
-        semester,
-        subjects ( subject_name ),
-        sections ( section_name as course_name ),
-        classes ( class_name as group_name )
-      `)
-      .eq('teacher_id', teacher.id)
-      .eq('is_active', true)
-
-    if (!mappings?.length) {
-      setLoading(false)
-      return
-    }
-
-    // Build subject map
-    const subjectMap = {}
-    mappings.forEach(m => {
-      subjectMap[m.subject_id] = {
-        subject: m.subjects?.subject_name || '',
-        course: m.courses?.course_name || '',
-        group: m.groups?.group_name || '',
-        semester: m.semester
+      if (!session) {
+        setLoading(false)
+        return
       }
-    })
 
+      // 2. Fetch staff slots
+      const { data: slots, error } = await supabase
+        .from('timetable_session_classes')
+        .select(`
+          day_of_week,
+          period_number,
+          subject_id,
+          subjects (
+            subject_title,
+            term,
+            sections ( section_name ),
+            classes ( class_name ),
+            groups ( group_name )
+          )
+        `)
+        .eq('staff_id', staff.id)
+        .eq('session_id', session.id)
 
-    // 3️⃣ Find matching timetables
-    const { data: timetables } = await supabase
-      .from('timetables')
-      .select('id')
-      .in('course_id', mappings.map(m => m.course_id))
-      .in('group_id', mappings.map(m => m.group_id))
-      .in('semester', mappings.map(m => m.semester))
+      if (error || !slots) throw error || new Error('No slots found')
 
-    if (!timetables?.length) {
+      // 3. Build table visibility
+      const table = {}
+      slots.forEach(slot => {
+        const day = normalizeDay(slot.day_of_week)
+        const period = Number(slot.period_number)
+        if (!DAYS.includes(day)) return
+
+        if (!table[day]) table[day] = {}
+        const s = slot.subjects
+        table[day][period] = {
+          subject: s?.subject_title || 'Unknown',
+          course: s?.sections?.section_name || (s?.groups ? `Group: ${s.groups.group_name}` : 'All'),
+          group: s?.classes?.class_name || '-',
+          semester: s?.term || '-'
+        }
+      })
+
+      setTableData(table)
+    } catch (err) {
+      console.error('Error loading staff timetable:', err)
+    } finally {
       setLoading(false)
-      return
     }
-
-    const timetableIds = timetables.map(t => t.id)
-
-    // 4️⃣ Fetch timetable slots
-    const { data: slots } = await supabase
-      .from('timetable_slots')
-      .select('day_of_week, period_number, subject_id')
-      .in('timetable_id', timetableIds)
-      .in('subject_id', Object.keys(subjectMap))
-
-    if (!slots?.length) {
-      setLoading(false)
-      return
-    }
-
-    // 5️⃣ Build table data
-    const table = {}
-
-    slots.forEach(slot => {
-      const day = normalizeDay(slot.day_of_week)
-      const period = Number(slot.period_number)
-
-      if (!DAYS.includes(day)) return
-      if (![1, 2, 3, 4, 5].includes(period)) return
-
-      if (!table[day]) table[day] = {}
-
-      table[day][period] = subjectMap[slot.subject_id]
-    })
-
-    setTableData(table)
-    setLoading(false)
   }
 
   /* ===============================
