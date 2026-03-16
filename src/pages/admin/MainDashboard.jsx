@@ -63,7 +63,7 @@ export default function MainDashboard() {
                     .select('*', { count: 'exact', head: true })
 
                 const { count: staffCount, error: staffError } = await supabase
-                    .from('staff_profiles')
+                    .from('staff')
                     .select('*', { count: 'exact', head: true })
 
                 if (classError) console.error('Class fetch error:', classError)
@@ -131,7 +131,7 @@ export default function MainDashboard() {
 
                 // 2. Staff Distribution
                 const { data: teachersData, error: teachersError } = await supabase
-                    .from('staff_profiles')
+                    .from('staff')
                     .select('designation')
 
                 if (teachersError) console.error('Staff profile fetch error:', teachersError)
