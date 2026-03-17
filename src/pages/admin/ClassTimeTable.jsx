@@ -252,14 +252,12 @@ export default function ClassTimeTable() {
         // Load existing timetable data
         const termValue = isSecondary ? 0 : Number(String(selectedTerm).replace('Term ', ''))
 
-        // Find the timetable_session for this academic year
-        const selectedYear = academicYears.find(y => String(y.id) === String(selectedAcademicYearId))
-        const yearName = selectedYear?.year_name || ''
+        if (!selectedAcademicYearId) return
 
         const { data: sessionRows } = await supabase
           .from('timetable_sessions')
           .select('id')
-          .eq('academic_year', yearName)
+          .eq('academic_year_id', selectedAcademicYearId)
           .eq('term', isSecondary ? 1 : termValue)
           .limit(1)
 
@@ -385,16 +383,11 @@ export default function ClassTimeTable() {
         }
       }
 
-      // Find or create a timetable_session
-      const selectedYear = academicYears.find(y => String(y.id) === String(selectedAcademicYearId))
-      const yearName = selectedYear?.year_name || ''
-      const termValue = isSecondary ? 1 : Number(String(selectedTerm).replace('Term ', ''))
-
       let sessionId
       const { data: existingSessions } = await supabase
         .from('timetable_sessions')
         .select('id')
-        .eq('academic_year', yearName)
+        .eq('academic_year_id', selectedAcademicYearId)
         .eq('term', termValue)
         .limit(1)
 
@@ -402,10 +395,12 @@ export default function ClassTimeTable() {
         sessionId = existingSessions[0].id
       } else {
         // Auto-create a session
+        const selectedYear = academicYears.find(y => String(y.id) === String(selectedAcademicYearId))
+        const yearName = selectedYear?.year_name || ''
         const sessionName = `${yearName} - ${isSecondary ? 'Full Year' : selectedTerm}`
         const { data: newSession, error: createErr } = await supabase
           .from('timetable_sessions')
-          .insert([{ session_name: sessionName, academic_year: yearName, term: termValue, is_active: true }])
+          .insert([{ session_name: sessionName, academic_year_id: selectedAcademicYearId, term: termValue, is_active: true }])
           .select('id')
           .single()
 

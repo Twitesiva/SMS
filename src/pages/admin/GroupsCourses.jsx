@@ -338,20 +338,34 @@ export default function GroupsCourses() {
     try {
       if (type === 'group') {
         const { error } = await supabase.from("classes").delete().eq("id", id);
-        if (error) throw error;
+        if (error) {
+          // Check for foreign key constraint violation (Supabase/Postgres code 23503)
+          if (error.code === '23503') {
+            showToast('This class cannot be deleted because it is already used in subjects or other records. Please delete those mappings first.', { type: 'danger' });
+            return;
+          }
+          throw error;
+        }
         showToast('Class deleted successfully', { type: 'success' })
       }
       if (type === 'course') {
         const { error } = await supabase.from("class_sections").delete().eq("id", id);
-        if (error) throw error;
+        if (error) {
+          if (error.code === '23503') {
+            showToast('This mapping cannot be deleted because it is already referenced in other modules (like Timetable).', { type: 'danger' });
+            return;
+          }
+          throw error;
+        }
         showToast('Class-section mapping deleted successfully', { type: 'success' })
       }
       await loadData()
     } catch (error) {
       console.error('Delete failed:', error)
       showToast(error?.message || 'Delete failed', { type: 'danger' })
+    } finally {
+      setDeleteConfirmation({ show: false, type: null, id: null, message: '' })
     }
-    setDeleteConfirmation({ show: false, type: null, id: null, message: '' })
   }
 
   const deleteGroup = (id) => {

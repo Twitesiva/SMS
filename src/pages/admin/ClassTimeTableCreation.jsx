@@ -9,7 +9,7 @@ import ConfirmationModal from '../../components/ConfirmationModal'
 
 export default function ClassTimeTableCreation() {
   const [sessionName, setSessionName] = useState('')
-  const [academicYear, setAcademicYear] = useState('')
+  const [academicYearId, setAcademicYearId] = useState('')
   const [term, setTerm] = useState('')
   const [sessions, setSessions] = useState([])
   const [academicYears, setAcademicYears] = useState([])
@@ -45,7 +45,13 @@ export default function ClassTimeTableCreation() {
     try {
       const { data, error } = await supabase
         .from('timetable_sessions')
-        .select('*')
+        .select(`
+          *,
+          academic_years (
+            id,
+            year_name
+          )
+        `)
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -58,7 +64,7 @@ export default function ClassTimeTableCreation() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!sessionName.trim() || !academicYear || !term) {
+    if (!sessionName.trim() || !academicYearId || !term) {
       toast.warning('Enter session name, academic year and term')
       return
     }
@@ -70,7 +76,7 @@ export default function ClassTimeTableCreation() {
           .from('timetable_sessions')
           .update({
             session_name: sessionName,
-            academic_year: academicYear,
+            academic_year_id: academicYearId,
             term: Number(term)
           })
           .eq('id', editingId)
@@ -82,7 +88,7 @@ export default function ClassTimeTableCreation() {
           .from('timetable_sessions')
           .insert([{
             session_name: sessionName,
-            academic_year: academicYear,
+            academic_year_id: academicYearId,
             term: Number(term),
             is_active: true
           }])
@@ -92,7 +98,7 @@ export default function ClassTimeTableCreation() {
       }
 
       setSessionName('')
-      setAcademicYear('')
+      setAcademicYearId('')
       setTerm('')
       setEditingId(null)
       fetchSessions()
@@ -106,7 +112,7 @@ export default function ClassTimeTableCreation() {
 
   const handleEdit = (session) => {
     setSessionName(session.session_name || '')
-    setAcademicYear(session.academic_year || '')
+    setAcademicYearId(session.academic_year_id || '')
     setTerm(String(session.term || ''))
     setEditingId(session.id)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -146,7 +152,7 @@ export default function ClassTimeTableCreation() {
 
   const handleReset = () => {
     setSessionName('')
-    setAcademicYear('')
+    setAcademicYearId('')
     setTerm('')
     setEditingId(null)
   }
@@ -185,10 +191,10 @@ export default function ClassTimeTableCreation() {
                 </div>
                 <div className="col-md-4">
                   <label className="form-label">Academic Year <span className="text-danger">*</span></label>
-                  <select className="form-select" value={academicYear} onChange={(e) => setAcademicYear(e.target.value)} required>
+                  <select className="form-select" value={academicYearId} onChange={(e) => setAcademicYearId(e.target.value)} required>
                     <option value="">Select Academic Year</option>
                     {academicYears.map((row) => (
-                      <option key={row.id} value={row.year_name}>{row.year_name}</option>
+                      <option key={row.id} value={row.id}>{row.year_name}</option>
                     ))}
                   </select>
                 </div>
@@ -229,7 +235,7 @@ export default function ClassTimeTableCreation() {
                       {sessions.map((session) => (
                         <tr key={session.id}>
                           <td className="fw-bold">{session.session_name}</td>
-                          <td>{session.academic_year}</td>
+                          <td>{session.academic_years?.year_name || 'N/A'}</td>
                           <td>Term {session.term}</td>
                           <td>{new Date(session.created_at).toLocaleDateString('en-GB')}</td>
                           <td className="text-end">
