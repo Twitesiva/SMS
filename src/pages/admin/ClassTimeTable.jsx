@@ -97,10 +97,6 @@ export default function ClassTimeTable() {
     [allGroups, selectedClassId]
   )
 
-  const filteredSections = useMemo(() => {
-    if (!selectedClassId) return []
-    return classSections.filter(cs => String(cs.class_id) === String(selectedClassId))
-  }, [classSections, selectedClassId])
 
   const slots = useMemo(() => getSlotTemplate(selectedClassNumber), [selectedClassNumber])
   const classSlots = useMemo(() => slots.filter(s => s.periodType === 'class'), [slots])
@@ -145,9 +141,16 @@ export default function ClassTimeTable() {
     loadInitial()
   }, [])
 
-  // ─── Load sections when class changes ─────────────────────────────────
+  // ─── Load sections when class or group changes ──────────────────────────
   useEffect(() => {
     if (!selectedClassId) {
+      setClassSections([])
+      setSelectedSectionId('')
+      return
+    }
+
+    // For Class 11 & 12, wait for group selection to avoid duplicate sections
+    if (isHigherSec && !selectedGroupId) {
       setClassSections([])
       setSelectedSectionId('')
       return
@@ -161,11 +164,19 @@ export default function ClassTimeTable() {
           return
         }
 
-        const { data, error } = await supabase
+        let query = supabase
           .from('class_sections')
           .select('id, class_id, section_id, sections(id, section_name, group_id)')
           .eq('class_id', selectedClassId)
-          .order('id')
+
+        if (isHigherSec) {
+          query = query.eq('group_id', selectedGroupId)
+        } else {
+          // For classes below 11, group_id should be null
+          query = query.is('group_id', null)
+        }
+
+        const { data, error } = await query.order('id')
 
         if (error) throw error
 
@@ -183,7 +194,7 @@ export default function ClassTimeTable() {
     }
 
     loadSections()
-  }, [selectedClassId])
+  }, [selectedClassId, selectedGroupId, isHigherSec])
 
   // ─── Load subjects + staff map + existing grid when selection is complete ──
   useEffect(() => {
@@ -303,6 +314,11 @@ export default function ClassTimeTable() {
   const handleClassChange = (classId) => {
     setSelectedClassId(classId)
     setSelectedGroupId('')
+    setSelectedSectionId('')
+  }
+
+  const handleGroupChange = (groupId) => {
+    setSelectedGroupId(groupId)
     setSelectedSectionId('')
   }
 
@@ -524,7 +540,7 @@ export default function ClassTimeTable() {
                 <select
                   className="form-select"
                   value={selectedGroupId}
-                  onChange={e => setSelectedGroupId(e.target.value)}
+                  onChange={e => handleGroupChange(e.target.value)}
                   disabled={!selectedClassId}
                 >
                   <option value="">Select Group</option>
@@ -545,7 +561,7 @@ export default function ClassTimeTable() {
                 disabled={!selectedClassId || (showGroupDropdown && !selectedGroupId)}
               >
                 <option value="">Select Section</option>
-                {filteredSections.map(s => (
+                {classSections.map(s => (
                   <option key={s.id} value={s.section_id}>{s.section_name}</option>
                 ))}
               </select>
@@ -595,7 +611,7 @@ export default function ClassTimeTable() {
                 </span>
               )}
               <span className="badge bg-warning bg-opacity-10 text-warning px-3 py-2 fs-6">
-                Section {filteredSections.find(s => String(s.section_id) === String(selectedSectionId))?.section_name}
+                Section {classSections.find(s => String(s.section_id) === String(selectedSectionId))?.section_name}
               </span>
               {showTermDropdown && (
                 <span className="badge bg-dark bg-opacity-10 text-dark px-3 py-2 fs-6">
