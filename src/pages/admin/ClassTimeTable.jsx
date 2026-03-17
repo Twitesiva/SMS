@@ -143,6 +143,7 @@ export default function ClassTimeTable() {
 
   // ─── Load sections when class or group changes ──────────────────────────
   useEffect(() => {
+    // Safety check: return early if no class selected
     if (!selectedClassId) {
       setClassSections([])
       setSelectedSectionId('')
@@ -169,7 +170,9 @@ export default function ClassTimeTable() {
           .select('id, class_id, section_id, sections(id, section_name, group_id)')
           .eq('class_id', selectedClassId)
 
-        if (isHigherSec) {
+        // For Class 11/12: filter by group_id if selected
+        // For classes below 11: filter by group_id = null
+        if (isHigherSec && selectedGroupId) {
           query = query.eq('group_id', selectedGroupId)
         } else {
           // For classes below 11, group_id should be null

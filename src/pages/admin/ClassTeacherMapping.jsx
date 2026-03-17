@@ -84,6 +84,7 @@ export default function ClassTeacherMapping() {
 
   // Load sections when class/group changes (EXACT spec)
   useEffect(() => {
+    // Safety check: return early if no class selected
     if (!formData.class_id) {
       setSections([])
       setFormData(prev => ({ ...prev, section_id: '' }))
@@ -104,9 +105,9 @@ export default function ClassTeacherMapping() {
             )
           `)
           .eq('class_id', formData.class_id)
-          .order('sections.section_name')
 
-        // CRITICAL: Exact filtering per spec
+        // For Class 11/12: filter by group_id if selected
+        // For classes below 11: filter by group_id = null
         if (isHigherSec && formData.group_id) {
           query = query.eq('group_id', formData.group_id)
         } else {
@@ -116,7 +117,12 @@ export default function ClassTeacherMapping() {
         const { data, error } = await query
         if (error) throw error
         
-        setSections((data || []).map(row => ({
+        // Sort in frontend after fetching
+        const sortedData = (data || []).sort((a, b) => 
+          (a.sections?.section_name || '').localeCompare(b.sections?.section_name || '')
+        )
+        
+        setSections(sortedData.map(row => ({
           id: row.id,
           section_id: row.section_id,
           section_name: row.sections?.section_name || 'Unknown'
