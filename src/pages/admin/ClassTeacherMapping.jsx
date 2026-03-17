@@ -345,7 +345,7 @@ export default function ClassTeacherMapping() {
                 >
                   <option value="">Select Section</option>
                   {sections.map((sec, index) => (
-                    <option key={sec.id} value={sec.section_id}>{"A" + (index + 1)}</option>
+                    <option key={sec.id} value={sec.id}>{"A" + (index + 1)}</option>
                   ))}
                 </select>
               </div>
