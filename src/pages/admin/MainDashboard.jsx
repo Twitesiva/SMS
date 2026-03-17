@@ -98,7 +98,10 @@ export default function MainDashboard() {
 
                     const groupBySection = classSectionRows.reduce((acc, curr) => {
                         const sectionName = curr.sections?.section_name || 'Unassigned'
-                        acc[sectionName] = (acc[sectionName] || 0) + 1
+                        // Transform section display: A->A1, B->A2, C->A3, etc.
+                        const displayName = sectionName === 'Unassigned' ? 'Unassigned' : 
+                            "A" + (sectionName.charCodeAt(0) - 64)
+                        acc[displayName] = (acc[displayName] || 0) + 1
                         return acc
                     }, {})
 

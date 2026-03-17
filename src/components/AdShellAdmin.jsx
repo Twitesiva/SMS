@@ -52,7 +52,17 @@ const adminPortalNavGroups = [
             }
         ]
     },
-
+    {
+        title: 'Class Teacher Mapping',
+        static: true,
+        items: [
+            {
+                to: '/admin-portal/class-teacher-mapping',
+                label: 'Class Teacher Mapping',
+                icon: 'bi-people-fill'
+            }
+        ]
+    },
     {
         title: 'Class Time Table',
         static: true,
@@ -125,7 +135,6 @@ export default function AdShellAdmin({
         navEl.addEventListener('scroll', handleScroll);
         return () => navEl.removeEventListener('scroll', handleScroll);
     }, []);
-
 
     return (
         <div className={`staff-portal ${collapsed ? 'staff-portal--collapsed' : ''} ${mobileOpen ? 'staff-portal--mobile-open' : ''}`}>
@@ -259,4 +268,3 @@ export default function AdShellAdmin({
         </div>
     )
 }
-

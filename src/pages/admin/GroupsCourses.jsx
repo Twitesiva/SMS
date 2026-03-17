@@ -227,8 +227,25 @@ export default function GroupsCourses() {
         savedSection = data;
       }
 
-      // 3. Mapping in class_sections junction table
+      // Check if this class-section combination already exists in class_sections
       const currentYearId = academicYears?.[0]?.id || null;
+      const { data: existingMapping, error: checkError } = await supabase
+        .from("class_sections")
+        .select("id")
+        .eq("class_id", savedClass.id)
+        .eq("section_id", savedSection.id)
+        .eq("academic_year_id", currentYearId)
+        .maybeSingle();
+      
+      if (checkError) throw checkError;
+      
+      // Only show error if mapping already exists
+      if (existingMapping) {
+        showToast(`Class ${classNumber} section ${sectionName} already exists`, { type: 'warning' })
+        return;
+      }
+
+      // 3. Mapping in class_sections junction table
       const mappingPayload = {
         class_id: savedClass.id,
         section_id: savedSection.id,
@@ -238,11 +255,16 @@ export default function GroupsCourses() {
 
       const { error: mapError } = await supabase
         .from("class_sections")
-        .upsert([mappingPayload], { 
-          onConflict: 'class_id,section_id,academic_year_id' 
-        });
+        .insert([mappingPayload]);
       
-      if (mapError) throw mapError;
+      if (mapError) {
+        // Handle unique constraint violation
+        if (mapError.code === '23505') {
+          showToast(`Class ${classNumber} section ${sectionName} already exists`, { type: 'warning' })
+          return;
+        }
+        throw mapError;
+      }
 
       showToast(`Class ${classNumber} section ${sectionName} saved successfully`, { type: 'success' })
       setGroupForm({ id: '', category: '', categoryId: '', code: '', name: '', sections: '' })

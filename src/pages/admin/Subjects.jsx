@@ -147,16 +147,25 @@ export default function Subjects() {
 
   // ─── Subject grouping for table ────────────────────────────────────────────
 
+  // Convert integer term to display string
+  const getTermDisplay = (termValue) => {
+    if (termValue === 0 || termValue === '0') return 'Full Year';
+    if (termValue === 1) return 'Term 1';
+    if (termValue === 2) return 'Term 2';
+    if (termValue === 3) return 'Term 3';
+    return '-';
+  };
+
   const groupedSubjects = useMemo(() => {
     const map = {}
     subjects.forEach(s => {
       const classStr = s.classes?.class_name || 'Unknown Class'
       const groupStr = s.groups?.group_name  || null
-      const termStr  = s.term || '-'
+      const termStr  = getTermDisplay(s.term)
       const level    = s.school_level || '-'
 
       // Key uniquely identifies a row in the table
-      const key = `${s.class_id}_${s.group_id || 'null'}_${termStr}_${level}`
+      const key = `${s.class_id}_${s.group_id || 'null'}_${s.term}_${level}`
 
       if (!map[key]) {
         map[key] = {
@@ -250,10 +259,25 @@ export default function Subjects() {
 
   // ─── Build subject rows from form ──────────────────────────────────────────
 
+  // Map term string to integer for database
+  const termMap = {
+    "Term 1": 1,
+    "Term 2": 2,
+    "Term 3": 3
+  };
+
   const buildSubjectRows = () => {
     const { school_level, class_id, group_id, term, category_id, subject_title, subject_code, extraSubjects } = subjectForm
     const finalGroupId = isHigherSec ? (group_id || null) : null
-    const finalTerm    = isSecondary ? 'Full Year' : (term || null)
+    
+    // Convert term string to integer for database
+    let finalTerm;
+    if (isSecondary) {
+      finalTerm = 0; // "Full Year" stored as 0
+    } else {
+      // Primary/Middle: "Term 1" -> 1, "Term 2" -> 2, "Term 3" -> 3
+      finalTerm = term ? (termMap[term] || null) : null;
+    }
 
     const all = [
       { title: subject_title.trim(), code: subject_code.trim() },
@@ -264,7 +288,6 @@ export default function Subjects() {
       school_level,
       class_id:    class_id    || null,
       group_id:    finalGroupId,
-      section_id:  null,
       term:        finalTerm,
       category_id: category_id || null,
       subject_title: s.title,
@@ -399,6 +422,15 @@ export default function Subjects() {
 
   // ─── View modal ────────────────────────────────────────────────────────────
 
+  // Convert display term back to integer for database query
+  const getTermValue = (termDisplay) => {
+    if (termDisplay === 'Full Year') return 0;
+    if (termDisplay === 'Term 1') return 1;
+    if (termDisplay === 'Term 2') return 2;
+    if (termDisplay === 'Term 3') return 3;
+    return null;
+  };
+
   const openViewModal = async (catName, catsubs, group) => {
     if (!catsubs?.length) return
     const first = catsubs[0]
@@ -411,6 +443,9 @@ export default function Subjects() {
 
     setViewModalData({ isOpen: true, loading: true, categoryName: catName, subtitle, subjects: [] })
 
+    // Convert term display string back to integer for query
+    const termValue = getTermValue(group.term);
+
     let q = supabase
       .from('subjects')
       .select('id, subject_title, subject_code')
@@ -418,7 +453,7 @@ export default function Subjects() {
       .eq('category_id', first.category_id)
       .order('subject_title')
 
-    if (first.term)     q = q.eq('term', first.term)
+    if (termValue !== null && termValue !== undefined) q = q.eq('term', termValue)
     if (first.group_id) q = q.eq('group_id', first.group_id)
     else                q = q.is('group_id', null)
 

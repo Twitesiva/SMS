@@ -4,6 +4,20 @@ import ConfirmationModal from '../../components/ConfirmationModal.jsx';
 
 const LEVELS = ["Primary", "Middle", "Secondary"];
 
+const SECTION_DISPLAY_MAP = {
+  "A": "A1",
+  "B": "A2",
+  "C": "A3",
+  "D": "A4",
+  "E": "A5",
+  "F": "A6",
+  "G": "A7"
+};
+
+const getSectionDisplay = (sectionName) => {
+  return SECTION_DISPLAY_MAP[sectionName] || sectionName;
+};
+
 const getLevelForClass = (classCode) => {
   const value = Number(classCode);
   if (value >= 1 && value <= 5) return "Primary";
@@ -114,10 +128,13 @@ export default function GroupsCoursesSection({
     const sectionName = String(groupForm?.sections || "").trim();
     const isHS = Number(classCode) === 11 || Number(classCode) === 12;
 
+    // For non-HS classes, check if class + section combination already exists
+    // sectionName is the DB value (A, B, etc.), we need to check class with that section
     const comboExists = classCode && sectionName
       ? courses.some((c) => {
+          // Match by class number and section name
           const sameClass = String(c.groupCode || "") === classCode;
-          const sameSection = String(c.courseCode || "") === sectionName || String(c.courseName || "") === sectionName;
+          const sameSection = String(c.courseCode || "") === sectionName;
           if (!sameClass || !sameSection) return false;
           // For HS, also must match the selected group to be a true duplicate
           if (isHS) return c.groupId === selectedGroupId;
@@ -389,13 +406,13 @@ export default function GroupsCoursesSection({
                 required
               >
                 <option value="">Select Section</option>
-                <option value="A">A</option>
-                <option value="B">B</option>
-                <option value="C">C</option>
-                <option value="D">D</option>
-                <option value="E">E</option>
-                <option value="F">F</option>
-                <option value="G">G</option>
+                <option value="A">A1</option>
+                <option value="B">A2</option>
+                <option value="C">A3</option>
+                <option value="D">A4</option>
+                <option value="E">A5</option>
+                <option value="F">A6</option>
+                <option value="G">A7</option>
               </select>
             </div>
 
@@ -483,9 +500,9 @@ export default function GroupsCoursesSection({
                           ) : null}
                         </div>
                         <div className="mt-2 mb-3 d-flex flex-wrap gap-2">
-                          {card.sections.map(c => (
+                          {card.sections.map((c, idx) => (
                               <span key={c.id} className="badge bg-light text-dark border px-2 py-1 fs-6 d-inline-flex align-items-center gap-1">
-                                {c.courseCode || c.courseName}
+                                {getSectionDisplay(c.courseCode)}
                                 <button type="button" className="btn-close btn-close-sm" style={{ fontSize: "0.4rem", filter: "invert(0.5)" }} onClick={(e) => { e.stopPropagation(); handleDeleteCourseClick(c.id); }} aria-label="Delete mapping"></button>
                               </span>
                             ))
@@ -543,9 +560,9 @@ export default function GroupsCoursesSection({
                         <div className="text-uppercase text-dark fw-bold mb-1">{title}</div>
                         <div className="text-muted small mb-3 fw-semibold">Sections : {sectionsList.length}</div>
                         <div className="d-flex flex-wrap gap-2">
-                          {sectionsList.map((sec) => (
+                          {sectionsList.map((sec, idx) => (
                             <span key={`${key}-${sec}`} className="badge bg-light text-dark border px-2 py-1 fs-6">
-                              {prefix}{sec}
+                              {getSectionDisplay(sec)}
                             </span>
                           ))}
                         </div>

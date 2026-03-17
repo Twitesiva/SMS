@@ -209,21 +209,22 @@ export default function ClassTimeTable() {
       try {
         setLoading(true)
 
-        const termString = isSecondary ? 'Full Year' : selectedTerm
+        // Map term string to integer for database query
+        const termMap = { "Term 1": 1, "Term 2": 2, "Term 3": 3 };
+        // For Secondary: 0 = Full Year, For Primary/Middle: 1/2/3
+        const subjectTermValue = isSecondary ? 0 : (selectedTerm ? termMap[selectedTerm] : null);
 
         let subjectsQuery = supabase
           .from('subjects')
           .select('id, subject_title, subject_code, subject_categories!subjects_category_id_fkey(category_name)')
           .eq('class_id', selectedClassId)
-          .eq('term', termString)
+          .eq('term', subjectTermValue)
 
         if (isHigherSec && selectedGroupId) {
           subjectsQuery = subjectsQuery.eq('group_id', selectedGroupId)
         } else {
           subjectsQuery = subjectsQuery.is('group_id', null)
         }
-
-        subjectsQuery = subjectsQuery.is('section_id', null)
 
         const [{ data: subjectRows, error: subjectError }, { data: mappingRows, error: mappingError }] = await Promise.all([
           subjectsQuery.order('subject_title'),
@@ -556,8 +557,8 @@ export default function ClassTimeTable() {
                 disabled={!selectedClassId || (showGroupDropdown && !selectedGroupId)}
               >
                 <option value="">Select Section</option>
-                {classSections.map(s => (
-                  <option key={s.id} value={s.section_id}>{s.section_name}</option>
+                {classSections.map((s, index) => (
+                  <option key={s.id} value={s.section_id}>{"A" + (index + 1)}</option>
                 ))}
               </select>
             </div>
@@ -606,7 +607,10 @@ export default function ClassTimeTable() {
                 </span>
               )}
               <span className="badge bg-warning bg-opacity-10 text-warning px-3 py-2 fs-6">
-                Section {classSections.find(s => String(s.section_id) === String(selectedSectionId))?.section_name}
+                Section {(() => {
+                  const secIndex = classSections.findIndex(s => String(s.section_id) === String(selectedSectionId))
+                  return "A" + (secIndex + 1)
+                })()}
               </span>
               {showTermDropdown && (
                 <span className="badge bg-dark bg-opacity-10 text-dark px-3 py-2 fs-6">
