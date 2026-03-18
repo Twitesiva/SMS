@@ -370,3 +370,31 @@
   box-shadow: 0 30px 55px rgba(96, 108, 136, 0.35);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
+
+/* Subject chips (Configured Subjects UI) */
+.subject-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #f4f7ff;
+  border: 1px solid #d7e2ff;
+  color: #25345b;
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.subject-chip-muted {
+  background: #f8f9fb;
+  border-color: #e5e7ee;
+  color: #6b7280;
+}
+
+.subject-chip-selected {
+  background: #e8f1ff;
+  border-color: #9fbfff;
+  color: #1f3b79;
+}

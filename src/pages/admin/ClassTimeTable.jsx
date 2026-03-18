@@ -111,7 +111,6 @@ export default function ClassTimeTable() {
     [allGroups, selectedClassId]
   )
 
-
   const slots = useMemo(() => getSlotTemplate(selectedClassNumber), [selectedClassNumber])
   const classSlots = useMemo(() => slots.filter(s => s.periodType === 'class'), [slots])
 
@@ -226,37 +225,41 @@ export default function ClassTimeTable() {
       try {
         setLoading(true)
 
-        // Map term string to integer for database query
-        const termMap = { "Term 1": 1, "Term 2": 2, "Term 3": 3 };
-        // For Secondary: 0 = Full Year, For Primary/Middle: 1/2/3
-        const subjectTermValue = isSecondary ? 0 : (selectedTerm ? termMap[selectedTerm] : null);
-
-        let subjectsQuery = supabase
-          .from('subjects')
-          .select('id, subject_title, subject_code, subject_categories!subjects_category_id_fkey(category_name)')
+        let classSubjectsQuery = supabase
+          .from('class_subjects')
+          .select('subject_id, subjects (id, subject_title, subject_code, subject_categories!subjects_category_id_fkey(category_name))')
           .eq('class_id', selectedClassId)
-          .eq('term', subjectTermValue)
 
-        if (isHigherSec && selectedGroupId) {
-          subjectsQuery = subjectsQuery.eq('group_id', selectedGroupId)
+        if (isHigherSec) {
+          if (selectedGroupId) classSubjectsQuery = classSubjectsQuery.eq('group_id', selectedGroupId)
+          else classSubjectsQuery = classSubjectsQuery.is('group_id', null)
         } else {
-          subjectsQuery = subjectsQuery.is('group_id', null)
+          classSubjectsQuery = classSubjectsQuery.is('group_id', null)
         }
 
-        const [{ data: subjectRows, error: subjectError }, { data: mappingRows, error: mappingError }] = await Promise.all([
-          subjectsQuery.order('subject_title'),
+        const [{ data: classSubjectRows, error: classSubjectError }, { data: mappingRows, error: mappingError }] = await Promise.all([
+          classSubjectsQuery,
           supabase.from('staff_subjects').select('subject_id, staff_id'),
         ])
 
-        if (subjectError) throw subjectError
+        if (classSubjectError) throw classSubjectError
         if (mappingError) throw mappingError
 
-        setSubjects((subjectRows || []).map(s => ({
-          subject_id: s.id,
-          subject_name: s.subject_title,
-          subject_code: s.subject_code,
-          subject_type: s.subject_categories?.category_name || '',
-        })))
+        const nextSubjects = (classSubjectRows || [])
+          .map((row) => {
+            const s = row.subjects
+            if (!s?.id) return null
+            return {
+              subject_id: s.id,
+              subject_name: s.subject_title,
+              subject_code: s.subject_code,
+              subject_type: s.subject_categories?.category_name || '',
+            }
+          })
+          .filter(Boolean)
+          .sort((a, b) => String(a.subject_name || '').localeCompare(String(b.subject_name || '')))
+
+        setSubjects(nextSubjects)
 
         // Build subject → staff mapping
         const nextStaffMap = {}
