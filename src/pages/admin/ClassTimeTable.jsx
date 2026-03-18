@@ -15,32 +15,46 @@ const LEVEL_RANGES = {
   Secondary: { min: 10, max: 12 },
 }
 
-const SLOT_TEMPLATE_8 = [
-  { key: 'p1', label: 'P1', start: '10:00:00', end: '10:40:00', periodNumber: 1, periodType: 'class' },
-  { key: 'p2', label: 'P2', start: '10:40:00', end: '11:20:00', periodNumber: 2, periodType: 'class' },
-  { key: 'b1', label: 'Break', start: '11:20:00', end: '11:25:00', periodNumber: null, periodType: 'break' },
-  { key: 'p3', label: 'P3', start: '11:25:00', end: '12:05:00', periodNumber: 3, periodType: 'class' },
-  { key: 'p4', label: 'P4', start: '12:05:00', end: '12:45:00', periodNumber: 4, periodType: 'class' },
-  { key: 'l1', label: 'Lunch', start: '12:45:00', end: '13:10:00', periodNumber: null, periodType: 'lunch' },
-  { key: 'p5', label: 'P5', start: '13:10:00', end: '13:50:00', periodNumber: 5, periodType: 'class' },
-  { key: 'p6', label: 'P6', start: '13:50:00', end: '14:30:00', periodNumber: 6, periodType: 'class' },
-  { key: 'b2', label: 'Break', start: '14:30:00', end: '14:35:00', periodNumber: null, periodType: 'break' },
-  { key: 'p7', label: 'P7', start: '14:35:00', end: '15:15:00', periodNumber: 7, periodType: 'class' },
-  { key: 'p8', label: 'P8', start: '15:15:00', end: '15:55:00', periodNumber: 8, periodType: 'class' },
-]
-
 const SLOT_TEMPLATE_6 = [
-  { key: 'p1', label: 'P1', start: '10:00:00', end: '10:40:00', periodNumber: 1, periodType: 'class' },
-  { key: 'p2', label: 'P2', start: '10:40:00', end: '11:20:00', periodNumber: 2, periodType: 'class' },
-  { key: 'b1', label: 'Break', start: '11:20:00', end: '11:25:00', periodNumber: null, periodType: 'break' },
-  { key: 'p3', label: 'P3', start: '11:25:00', end: '12:05:00', periodNumber: 3, periodType: 'class' },
-  { key: 'p4', label: 'P4', start: '12:05:00', end: '12:45:00', periodNumber: 4, periodType: 'class' },
-  { key: 'l1', label: 'Lunch', start: '12:45:00', end: '13:10:00', periodNumber: null, periodType: 'lunch' },
-  { key: 'p5', label: 'P5', start: '13:10:00', end: '13:50:00', periodNumber: 5, periodType: 'class' },
-  { key: 'p6', label: 'P6', start: '13:50:00', end: '14:30:00', periodNumber: 6, periodType: 'class' },
+  { key: 'p1', label: 'PERIOD 1', start: '10:00:00', end: '10:40:00', periodNumber: 1, periodType: 'class' },
+  { key: 'p2', label: 'PERIOD 2', start: '10:40:00', end: '11:20:00', periodNumber: 2, periodType: 'class' },
+  { key: 'b1', label: 'BREAK', start: '11:20:00', end: '11:25:00', periodNumber: null, periodType: 'break' },
+  { key: 'p3', label: 'PERIOD 3', start: '11:25:00', end: '12:05:00', periodNumber: 3, periodType: 'class' },
+  { key: 'p4', label: 'PERIOD 4', start: '12:05:00', end: '12:45:00', periodNumber: 4, periodType: 'class' },
+  { key: 'l1', label: 'LUNCH', start: '12:45:00', end: '13:10:00', periodNumber: null, periodType: 'lunch' },
+  { key: 'p5', label: 'PERIOD 5', start: '13:10:00', end: '13:50:00', periodNumber: 5, periodType: 'class' },
+  { key: 'p6', label: 'PERIOD 6', start: '13:50:00', end: '14:30:00', periodNumber: 6, periodType: 'class' },
 ]
 
-const getSlotTemplate = (classNumber) => (classNumber >= 10 ? SLOT_TEMPLATE_6 : SLOT_TEMPLATE_8)
+const SLOT_TEMPLATE_8 = [
+  { key: 'p1', label: 'PERIOD 1', start: '10:00:00', end: '10:40:00', periodNumber: 1, periodType: 'class' },
+  { key: 'p2', label: 'PERIOD 2', start: '10:40:00', end: '11:20:00', periodNumber: 2, periodType: 'class' },
+  { key: 'b1', label: 'BREAK', start: '11:20:00', end: '11:25:00', periodNumber: null, periodType: 'break' },
+  { key: 'p3', label: 'PERIOD 3', start: '11:25:00', end: '12:05:00', periodNumber: 3, periodType: 'class' },
+  { key: 'p4', label: 'PERIOD 4', start: '12:05:00', end: '12:45:00', periodNumber: 4, periodType: 'class' },
+  { key: 'l1', label: 'LUNCH', start: '12:45:00', end: '13:10:00', periodNumber: null, periodType: 'lunch' },
+  { key: 'p5', label: 'PERIOD 5', start: '13:10:00', end: '13:50:00', periodNumber: 5, periodType: 'class' },
+  { key: 'p6', label: 'PERIOD 6', start: '13:50:00', end: '14:30:00', periodNumber: 6, periodType: 'class' },
+  { key: 'b2', label: 'BREAK', start: '14:30:00', end: '14:35:00', periodNumber: null, periodType: 'break' },
+  { key: 'p7', label: 'PERIOD 7', start: '14:35:00', end: '15:15:00', periodNumber: 7, periodType: 'class' },
+  { key: 'p8', label: 'PERIOD 8', start: '15:15:00', end: '15:55:00', periodNumber: 8, periodType: 'class' },
+]
+
+const formatTime = (timeStr) => {
+  if (!timeStr) return ''
+  const parts = timeStr.split(':')
+  let hours = parseInt(parts[0], 10)
+  const minutes = parts[1]
+  const ampm = hours >= 12 ? 'PM' : 'AM'
+  hours = hours % 12
+  hours = hours ? hours : 12
+  return `${hours}:${minutes} ${ampm}`
+}
+
+const getSlotTemplate = (classNumber) => {
+  if (!classNumber) return SLOT_TEMPLATE_8 // Default to 8
+  return classNumber <= 9 ? SLOT_TEMPLATE_8 : SLOT_TEMPLATE_6
+}
 
 export default function ClassTimeTable() {
   const { user } = useAuth()
@@ -303,6 +317,15 @@ export default function ClassTimeTable() {
     loadSubjectsAndGrid()
   }, [selectionComplete, selectedClassId, selectedSectionId, selectedGroupId, selectedTerm, selectedAcademicYearId, isSecondary, isHigherSec])
 
+  // Reset grid when slots change (e.g. switching between 6 and 8 period classes)
+  useEffect(() => {
+    if (selectionComplete) {
+      const emptyGrid = {}
+      DAYS.forEach(day => { emptyGrid[day] = {} })
+      setGrid(emptyGrid)
+    }
+  }, [slots, selectionComplete])
+
   // ─── Handlers ─────────────────────────────────────────────────────────
 
   const handleSchoolLevelChange = (level) => {
@@ -366,6 +389,8 @@ export default function ClassTimeTable() {
 
     setSaving(true)
     try {
+      const termValue = isSecondary ? 0 : Number(String(selectedTerm).replace('Term ', ''))
+
       // Validate all cells
       const subjectById = subjects.reduce((acc, s) => { acc[s.subject_id] = s; return acc }, {})
       const entries = []
@@ -660,45 +685,31 @@ export default function ClassTimeTable() {
               <div className="text-center p-5 text-muted">Loading timetable data...</div>
             ) : (
               <div className="table-responsive">
-                <table className="table table-bordered align-middle text-center" style={{ tableLayout: 'fixed' }}>
-                  <thead className="table-light">
+                <table className="timetable-table">
+                  <thead>
                     <tr>
-                      <th style={{ width: '100px' }}>Period</th>
-                      {DAYS.map(day => (
-                        <th key={day}>{day}</th>
+                      <th style={{ width: '120px' }}>DAY</th>
+                      {slots.map(slot => (
+                        <th key={slot.key}>
+                          <div className="fw-bold">{slot.label}</div>
+                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.7rem' }}>
+                            {formatTime(slot.start)} – {formatTime(slot.end)}
+                          </div>
+                        </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {slots.map(slot => {
-                      if (slot.periodType !== 'class') {
-                        return (
-                          <tr key={slot.key}>
-                            <td
-                              colSpan={DAYS.length + 1}
-                              className={slot.periodType === 'break' ? 'table-warning fw-semibold' : 'table-info fw-semibold'}
-                              style={{ textAlign: 'center', padding: '6px' }}
-                            >
-                              {slot.label} ({slot.start} – {slot.end})
-                            </td>
-                          </tr>
-                        )
-                      }
-
-                      return (
-                        <tr key={slot.key}>
-                          <td className="fw-bold text-nowrap">
-                            <div>{slot.label}</div>
-                            <div className="text-muted" style={{ fontSize: '0.7rem' }}>
-                              {slot.start.slice(0, 5)}–{slot.end.slice(0, 5)}
-                            </div>
-                          </td>
-                          {DAYS.map(day => {
+                    {DAYS.map(day => (
+                      <tr key={day}>
+                        <td className="day-name">{day}</td>
+                        {slots.map(slot => {
+                          if (slot.periodType === 'class') {
                             const selectedSubjectId = grid[day]?.[slot.key] || ''
                             const staffName = selectedSubjectId ? getStaffForSubject(selectedSubjectId) : null
 
                             return (
-                              <td key={`${day}-${slot.key}`} style={{ padding: '4px', verticalAlign: 'top' }}>
+                              <td key={`${day}-${slot.key}`} className="slot-cell">
                                 <select
                                   className="form-select form-select-sm mb-1"
                                   value={selectedSubjectId}
@@ -713,23 +724,77 @@ export default function ClassTimeTable() {
                                   ))}
                                 </select>
                                 {staffName && (
-                                  <div className="text-muted" style={{ fontSize: '0.68rem', lineHeight: '1.2' }}>
+                                  <div className="staff-info">
                                     <i className="bi bi-person-fill me-1"></i>{staffName}
                                   </div>
                                 )}
                                 {selectedSubjectId && !staffName && (
-                                  <div className="text-danger" style={{ fontSize: '0.68rem', lineHeight: '1.2' }}>
+                                  <div className="text-danger small" style={{ fontSize: '0.65rem' }}>
                                     <i className="bi bi-exclamation-circle me-1"></i>No staff
                                   </div>
                                 )}
                               </td>
                             )
-                          })}
-                        </tr>
-                      )
-                    })}
+                          }
+
+                          return (
+                            <td
+                              key={`${day}-${slot.key}`}
+                              className={slot.periodType === 'break' ? 'break-cell' : 'lunch-cell'}
+                            >
+                              {(() => {
+                                const dayIndex = DAYS.indexOf(day)
+                                const word = slot.periodType === 'break' ? 'BREAK' : 'LUNCH'
+                                return word[dayIndex]
+                              })()}
+                            </td>
+                          )
+                        })}
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
+
+                <style dangerouslySetInnerHTML={{ __html: `
+                  .timetable-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    border: 1px solid #ccc;
+                    text-align: center;
+                  }
+                  .timetable-table th, .timetable-table td {
+                    border: 1px solid #ccc;
+                    padding: 8px;
+                    vertical-align: middle;
+                  }
+                  .timetable-table thead th {
+                    background-color: #f2f2f2;
+                    text-transform: uppercase;
+                    font-size: 0.85rem;
+                  }
+                  .day-name {
+                    font-weight: bold;
+                    background-color: #f9f9f9;
+                  }
+                  .slot-cell {
+                    min-width: 140px;
+                  }
+                  .break-cell {
+                    background-color: #fffde7;
+                    font-weight: bold;
+                    color: #f57f17;
+                  }
+                  .lunch-cell {
+                    background-color: #e3f2fd;
+                    font-weight: bold;
+                    color: #1976d2;
+                  }
+                  .staff-info {
+                    font-size: 0.68rem;
+                    color: #555;
+                    line-height: 1.2;
+                  }
+                `}} />
               </div>
             )}
           </div>
