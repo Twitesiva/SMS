@@ -96,6 +96,24 @@ export default function ClassTeacherMapping() {
     groups.filter(g => String(g.class_id) === String(formData.class_id)),
   [groups, formData.class_id])
 
+  const assignedTeacherIdsByYear = useMemo(() => {
+    if (!formData.academic_year_id) return new Set()
+    return new Set(
+      mappings
+        .filter(m => String(m.academic_year_id) === String(formData.academic_year_id))
+        .map(m => String(m.staff_id))
+        .filter(Boolean)
+    )
+  }, [mappings, formData.academic_year_id])
+
+  const availableStaffList = useMemo(() => {
+    return staffList.filter(staff => {
+      if (!assignedTeacherIdsByYear.size) return true
+      if (String(staff.id) === String(formData.staff_id)) return true
+      return !assignedTeacherIdsByYear.has(String(staff.id))
+    })
+  }, [staffList, assignedTeacherIdsByYear, formData.staff_id])
+
   // Load all initial data
   useEffect(() => {
     const loadData = async () => {
@@ -240,6 +258,21 @@ export default function ClassTeacherMapping() {
     return data
   }
 
+  const findTeacherMapping = async () => {
+    const { staff_id, academic_year_id } = formData
+    if (!staff_id || !academic_year_id) return null
+
+    const { data, error } = await supabase
+      .from('class_teacher_mapping')
+      .select('id, class_section_id')
+      .eq('academic_year_id', academic_year_id)
+      .eq('staff_id', staff_id)
+      .maybeSingle()
+
+    if (error) throw error
+    return data
+  }
+
   const handleEditMapping = (mapping) => {
     const classInfo = mapping.class_sections?.classes
     const derivedLevel = classInfo?.school_level || ''
@@ -283,6 +316,18 @@ export default function ClassTeacherMapping() {
       if (duplicate && duplicate.id !== editingId) {
         showToast('Class teacher already assigned for this class-section', { type: 'danger' })
         return
+      }
+
+      const duplicateTeacher = await findTeacherMapping()
+      if (duplicateTeacher) {
+        if (!editingId) {
+          showToast('இந்த teacher ஏற்கனவே ஒரு class க்கு assign பண்ணப்பட்டிருக்கிறார்', { type: 'danger' })
+          return
+        }
+        if (duplicateTeacher.id !== editingId) {
+          showToast('This teacher is already assigned to another class', { type: 'danger' })
+          return
+        }
       }
 
       const payload = {
@@ -471,7 +516,7 @@ export default function ClassTeacherMapping() {
                   disabled={!formData.section_id}
                 >
                   <option value="">Select Class Teacher</option>
-                  {staffList.map(staff => (
+                  {availableStaffList.map(staff => (
                     <option key={staff.id} value={staff.id}>{staff.full_name}</option>
                   ))}
                 </select>
