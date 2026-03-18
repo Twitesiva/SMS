@@ -97,23 +97,7 @@ export default function ClassTeacherMapping() {
     groups.filter(g => String(g.class_id) === String(formData.class_id)),
   [groups, formData.class_id])
 
-  const assignedTeacherIdsByYear = useMemo(() => {
-    if (!formData.academic_year_id) return new Set()
-    return new Set(
-      mappings
-        .filter(m => String(m.academic_year_id) === String(formData.academic_year_id))
-        .map(m => String(m.staff_id))
-        .filter(Boolean)
-    )
-  }, [mappings, formData.academic_year_id])
-
-  const availableStaffList = useMemo(() => {
-    return staffList.filter(staff => {
-      if (!assignedTeacherIdsByYear.size) return true
-      if (String(staff.id) === String(formData.staff_id)) return true
-      return !assignedTeacherIdsByYear.has(String(staff.id))
-    })
-  }, [staffList, assignedTeacherIdsByYear, formData.staff_id])
+  const availableStaffList = useMemo(() => staffList, [staffList])
 
   // Load all initial data
   useEffect(() => {
@@ -274,43 +258,41 @@ export default function ClassTeacherMapping() {
     setEditingId(null)
   }
 
-  const findExistingMapping = async () => {
-    const { academic_year_id, section_id } = formData
-    if (!academic_year_id || !section_id) return null
-
-    const { data, error } = await supabase
-      .from('class_teacher_mapping')
-      .select('id')
-      .eq('academic_year_id', academic_year_id)
-      .eq('class_section_id', section_id)
-      .maybeSingle()
-
-    if (error) throw error
-    return data
-  }
-
   const findTeacherMapping = async () => {
     const { staff_id, academic_year_id, section_id } = formData
-    if (!staff_id || !academic_year_id || !section_id) return null
+    if (!staff_id || !academic_year_id || !section_id) return []
+    if (isTermBased && !formData.term) return []
 
-    const { data, error } = await supabase
+    const termValue = isSecondary ? null : formData.term
+    let query = supabase
       .from('class_teacher_mapping')
       .select('id')
       .eq('academic_year_id', academic_year_id)
       .eq('class_section_id', section_id)
       .eq('staff_id', staff_id)
 
+    query = termValue === null ? query.is('term', null) : query.eq('term', termValue)
+
+    const { data, error } = await query
+
     if (error) throw error
-    return data?.[0] || null
+    return data || []
   }
 
   const getTeacherCountForSection = async () => {
     if (!formData.academic_year_id || !formData.section_id) return 0
-    const { data, error } = await supabase
+    if (isTermBased && !formData.term) return 0
+
+    const termValue = isSecondary ? null : formData.term
+    let query = supabase
       .from('class_teacher_mapping')
       .select('id')
       .eq('academic_year_id', formData.academic_year_id)
       .eq('class_section_id', formData.section_id)
+
+    query = termValue === null ? query.is('term', null) : query.eq('term', termValue)
+
+    const { data, error } = await query
     if (error) throw error
     return (data || []).length
   }
@@ -356,19 +338,13 @@ export default function ClassTeacherMapping() {
     try {
       const currentCount = await getTeacherCountForSection()
       if (!editingId && currentCount >= 2) {
-        showToast('Maximum 2 class teachers allowed', { type: 'danger' })
-        return
-      }
-
-      const duplicate = await findExistingMapping()
-      if (duplicate && duplicate.id !== editingId) {
-        showToast('Class teacher already assigned for this class-section', { type: 'danger' })
+        showToast('Maximum 2 class teachers allowed for this class in this term', { type: 'danger' })
         return
       }
 
       const duplicateTeacher = await findTeacherMapping()
-      if (duplicateTeacher && duplicateTeacher.id !== editingId) {
-        showToast('Teacher already assigned to this class', { type: 'danger' })
+      if (duplicateTeacher.length && (!editingId || duplicateTeacher[0].id !== editingId)) {
+        showToast('Teacher already assigned for this class in this term', { type: 'danger' })
         return
       }
 
@@ -610,7 +586,7 @@ export default function ClassTeacherMapping() {
                   type="button" 
                   className="btn btn-primary students-button px-5 fw-bold" 
                   onClick={handleSubmit}
-                  disabled={saving || !formData.staff_id || (!editingId && classTeachers.length >= 2)}
+                  disabled={saving || !formData.staff_id}
                 >
                   {saving ? (
                     <>
@@ -630,11 +606,6 @@ export default function ClassTeacherMapping() {
                   >
                     Cancel Edit
                   </button>
-                )}
-                {!editingId && classTeachers.length >= 2 && (
-                  <div className="text-warning small mt-2">
-                    2 class teachers already assigned for this class-section.
-                  </div>
                 )}
               </div>
             </form>
@@ -660,6 +631,7 @@ export default function ClassTeacherMapping() {
                 <thead>
                   <tr className="text-uppercase text-secondary" style={{ fontSize: '0.75rem' }}>
                     <th>Academic Year</th>
+                    <th>Term</th>
                     <th>Class</th>
                     <th>Section</th>
                     <th>Class Teacher</th>
@@ -680,9 +652,14 @@ export default function ClassTeacherMapping() {
                       const yearName = mapping.academic_years?.year_name || 'N/A'
                       const staffName = mapping.staff?.full_name || 'Staff'
 
-                      return (
+                        return (
                         <tr key={mapping.id}>
                           <td>{yearName}</td>
+                          <td>
+                            <span className="term-badge">
+                              {mapping.term || 'Full Year'}
+                            </span>
+                          </td>
                           <td>{className}</td>
                           <td>{sectionName}</td>
                           <td>{staffName}</td>

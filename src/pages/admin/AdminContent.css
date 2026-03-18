@@ -398,3 +398,14 @@
   border-color: #9fbfff;
   color: #1f3b79;
 }
+
+.term-badge {
+  background: #e3f2fd;
+  color: #1565c0;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
