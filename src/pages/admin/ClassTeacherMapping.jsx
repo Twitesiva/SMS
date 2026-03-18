@@ -32,6 +32,46 @@ export default function ClassTeacherMapping() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState(EMPTY_FORM)
+  const [mappings, setMappings] = useState([])
+  const [editingId, setEditingId] = useState(null)
+
+  const loadMappings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('class_teacher_mapping')
+        .select(`
+          id,
+          academic_year_id,
+          class_section_id,
+          staff_id,
+          group_id,
+          term,
+          academic_years (year_name),
+          class_sections (
+            id,
+            class_id,
+            section_id,
+            sections (
+              section_name
+            ),
+            classes (
+              class_name,
+              school_level
+            )
+          ),
+          staff (
+            id,
+            full_name
+          )
+        `)
+        .order('id', { ascending: false })
+
+      if (error) throw error
+      setMappings(data || [])
+    } catch (err) {
+      console.error('Mappings load error:', err)
+    }
+  }
 
   // Derived state
   const selectedClass = useMemo(() => 
@@ -72,6 +112,7 @@ export default function ClassTeacherMapping() {
         setClasses(clsRes.data || [])
         setGroups(grpRes.data || [])
         setStaffList(staffRes.data || [])
+        await loadMappings()
       } catch (err) {
         console.error('Load error:', err)
         showToast('Failed to load data', { type: 'danger' })
@@ -122,12 +163,16 @@ export default function ClassTeacherMapping() {
           (a.sections?.section_name || '').localeCompare(b.sections?.section_name || '')
         )
         
-        setSections(sortedData.map(row => ({
+        const normalizedSections = sortedData.map(row => ({
           id: row.id,
           section_id: row.section_id,
           section_name: row.sections?.section_name || 'Unknown'
-        })))
-        setFormData(prev => ({ ...prev, section_id: '' }))
+        }))
+        setSections(normalizedSections)
+        setFormData(prev => {
+          const keepSection = normalizedSections.some(s => s.id === prev.section_id || s.section_id === prev.section_id)
+          return { ...prev, section_id: keepSection ? prev.section_id : '' }
+        })
       } catch (err) {
         console.error('Sections load error:', err)
         showToast('Failed to load sections', { type: 'warning' })
@@ -175,22 +220,53 @@ export default function ClassTeacherMapping() {
     return null
   }
 
-  // Check for duplicates BEFORE insert
-  const checkDuplicate = async () => {
-    const { academic_year_id, section_id, term } = formData
-    const query = supabase
+  const resetForm = () => {
+    setFormData(EMPTY_FORM)
+    setEditingId(null)
+  }
+
+  const findExistingMapping = async () => {
+    const { academic_year_id, section_id } = formData
+    if (!academic_year_id || !section_id) return null
+
+    const { data, error } = await supabase
       .from('class_teacher_mapping')
-      .select('id', { count: 'exact', head: true })
+      .select('id')
       .eq('academic_year_id', academic_year_id)
       .eq('class_section_id', section_id)
-    
-    if (term && term !== 'Full Year') {
-      query.eq('term', term)
-    }
+      .maybeSingle()
 
-    const { count, error } = await query
     if (error) throw error
-    return (count || 0) === 0
+    return data
+  }
+
+  const handleEditMapping = (mapping) => {
+    const classInfo = mapping.class_sections?.classes
+    const derivedLevel = classInfo?.school_level || ''
+    setEditingId(mapping.id)
+    setFormData({
+      academic_year_id: mapping.academic_year_id || '',
+      school_level: derivedLevel,
+      class_id: mapping.class_sections?.class_id || '',
+      group_id: mapping.group_id || '',
+      section_id: mapping.class_section_id || '',
+      term: mapping.term || '',
+      staff_id: mapping.staff_id || ''
+    })
+  }
+
+  const handleDeleteMapping = async (id) => {
+    if (!id) return
+    try {
+      const { error } = await supabase.from('class_teacher_mapping').delete().eq('id', id)
+      if (error) throw error
+      showToast('Assignment deleted', { type: 'success' })
+      await loadMappings()
+      if (editingId === id) resetForm()
+    } catch (err) {
+      console.error('Delete mapping error:', err)
+      showToast('Failed to delete mapping', { type: 'danger' })
+    }
   }
 
   // Save handler
@@ -203,14 +279,12 @@ export default function ClassTeacherMapping() {
 
     setSaving(true)
     try {
-      // 1. Check duplicate
-      const isUnique = await checkDuplicate()
-      if (!isUnique) {
-        showToast('Class teacher already assigned for this section', { type: 'danger' })
+      const duplicate = await findExistingMapping()
+      if (duplicate && duplicate.id !== editingId) {
+        showToast('Class teacher already assigned for this class-section', { type: 'danger' })
         return
       }
 
-      // 2. Prepare payload (exact spec)
       const payload = {
         academic_year_id: formData.academic_year_id,
         class_section_id: formData.section_id,
@@ -219,25 +293,37 @@ export default function ClassTeacherMapping() {
         staff_id: formData.staff_id
       }
 
-      const { error } = await supabase
-        .from('class_teacher_mapping')
-        .insert([payload])
+      let resultError = null
+      if (editingId) {
+        const { error } = await supabase
+          .from('class_teacher_mapping')
+          .update(payload)
+          .eq('id', editingId)
+        resultError = error
+      } else {
+        const { error } = await supabase
+          .from('class_teacher_mapping')
+          .insert([payload])
+        resultError = error
+      }
 
-      if (error) {
-        // Handle unique constraint
-        if (error.code === '23505') {
+      if (resultError) {
+        if (resultError.code === '23505') {
           showToast('Duplicate mapping exists', { type: 'danger' })
         } else {
-          console.error('Insert error:', error)
-          showToast(error.message || 'Failed to save', { type: 'danger' })
+          console.error('Save error:', resultError)
+          showToast(resultError.message || 'Failed to save', { type: 'danger' })
         }
         return
       }
 
-      showToast('Class teacher mapping saved successfully!', { type: 'success' })
-      
-      // Reset form
-      setFormData(EMPTY_FORM)
+      const successMessage = editingId
+        ? 'Class teacher mapping updated successfully!'
+        : 'Class teacher mapping saved successfully!'
+      showToast(successMessage, { type: 'success' })
+
+      resetForm()
+      await loadMappings()
     } catch (err) {
       console.error('Submit error:', err)
       showToast('An error occurred', { type: 'danger' })
@@ -445,11 +531,91 @@ export default function ClassTeacherMapping() {
                       Saving...
                     </>
                   ) : (
-                    'Assign Class Teacher'
+                    editingId ? 'Update Class Teacher' : 'Assign Class Teacher'
                   )}
                 </button>
+                {editingId && (
+                  <button
+                    type="button"
+                    className="btn btn-link text-decoration-none ms-3"
+                    onClick={resetForm}
+                    disabled={saving}
+                  >
+                    Cancel Edit
+                  </button>
+                )}
               </div>
             </form>
+          </div>
+        )}
+
+        {!loading && (
+          <div className="card card-soft p-4 mt-4">
+            <div className="students-section-shell-header mb-4">
+              <h5 className="section-title mb-1" style={{ fontSize: '1.1rem' }}>
+                Assigned Class Teachers
+              </h5>
+              <p className="students-section-copy mb-0">
+                Review existing mappings. Edit to update or delete obsolete assignments.
+              </p>
+            </div>
+
+            <div className="table-responsive">
+              <table className="table table-hover align-middle mb-0">
+                <thead>
+                  <tr className="text-uppercase text-secondary" style={{ fontSize: '0.75rem' }}>
+                    <th>Academic Year</th>
+                    <th>Class</th>
+                    <th>Section</th>
+                    <th>Class Teacher</th>
+                    <th className="text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {mappings.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="text-center text-muted py-4">
+                        No class teacher assignments yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    mappings.map(mapping => {
+                      const className = mapping.class_sections?.classes?.class_name || 'Unknown Class'
+                      const sectionName = mapping.class_sections?.sections?.section_name || 'Unknown'
+                      const yearName = mapping.academic_years?.year_name || 'N/A'
+                      const staffName = mapping.staff?.full_name || 'Staff'
+
+                      return (
+                        <tr key={mapping.id}>
+                          <td>{yearName}</td>
+                          <td>{className}</td>
+                          <td>{sectionName}</td>
+                          <td>{staffName}</td>
+                          <td className="text-end">
+                            <div className="d-flex justify-content-end gap-2">
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-primary rounded-pill px-3"
+                                onClick={() => handleEditMapping(mapping)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-danger rounded-pill px-3"
+                                onClick={() => handleDeleteMapping(mapping.id)}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
