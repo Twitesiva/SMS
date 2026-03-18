@@ -1,1 +1,0 @@
-staff_subjects cols: id, staff_id, subject_id, created_at

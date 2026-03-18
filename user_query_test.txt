@@ -1,1 +1,0 @@
-ERROR: Could not find a relationship between 'classes' and 'sections' in the schema cache
