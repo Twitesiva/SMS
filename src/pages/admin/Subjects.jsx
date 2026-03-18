@@ -34,6 +34,9 @@ export default function Subjects() {
   const [categories, setCategories] = useState([])
   const [mappings, setMappings] = useState([]) // class_subjects with joins
   const [loadError, setLoadError] = useState(false)
+  const [masterSubjects, setMasterSubjects] = useState([])
+  const [masterModalOpen, setMasterModalOpen] = useState(false)
+  const [masterModalLoading, setMasterModalLoading] = useState(false)
 
   const [categoryName, setCategoryName] = useState('')
   const [subjectForm, setSubjectForm] = useState(EMPTY_FORM)
@@ -91,6 +94,35 @@ export default function Subjects() {
     setMappings(data || [])
   }
 
+  const loadMasterSubjects = async () => {
+    try {
+      setMasterModalLoading(true)
+      const { data, error } = await supabase
+        .from('subjects')
+        .select(`
+          id,
+          subject_title,
+          subject_code,
+          school_level,
+          class_subjects (id),
+          staff_subjects (id)
+        `)
+        .order('subject_title')
+
+      if (error) throw error
+      const processed = (data || []).map((subject) => ({
+        ...subject,
+        classCount: (subject.class_subjects || []).length,
+        staffCount: (subject.staff_subjects || []).length,
+      }))
+      setMasterSubjects(processed)
+    } catch (err) {
+      console.error('Failed to load master subjects', err)
+    } finally {
+      setMasterModalLoading(false)
+    }
+  }
+
   const loadInitialData = async () => {
     try {
       const [clsRes, catsRes, grpRes] = await Promise.all([
@@ -110,6 +142,7 @@ export default function Subjects() {
       if (grpRes.data) setAllGroups(grpRes.data)
 
       await loadMappings()
+      await loadMasterSubjects()
     } catch (err) {
       console.error('Error loading initial data', err)
       setLoadError(true)
@@ -294,10 +327,20 @@ export default function Subjects() {
       showToast(showGroupDropdown ? 'Subjects saved and assigned to group.' : 'Subjects saved and assigned to class.', { type: 'success' })
       setSubjectForm((prev) => ({ ...prev, category_id: '', subject_title: '', subject_code: '', extraSubjects: [] }))
       await loadMappings()
+      await loadMasterSubjects()
     } catch (err) {
       console.error('Error saving subjects', err)
       showToast(err.message || 'Failed to save subjects.', { type: 'danger' })
     }
+  }
+
+  const openMasterSubjectModal = () => {
+    setMasterModalOpen(true)
+    loadMasterSubjects()
+  }
+
+  const closeMasterSubjectModal = () => {
+    setMasterModalOpen(false)
   }
 
   const groupedRows = useMemo(() => {
@@ -426,13 +469,26 @@ export default function Subjects() {
     })
   }
 
-  const handleConfirmDeleteCategory = async () => {
-    const { payload } = confirmModal
+  const handleConfirmDelete = async () => {
+    const { type, payload } = confirmModal
+    if (!type || !payload) {
+      setConfirmModal({ isOpen: false, type: null, payload: null })
+      return
+    }
+
     try {
-      const { error } = await supabase.from('subject_categories').delete().eq('id', payload)
-      if (error) throw error
-      setCategories((prev) => prev.filter((c) => c.id !== payload))
-      showToast('Category deleted', { type: 'success' })
+      if (type === 'CATEGORY') {
+        const { error } = await supabase.from('subject_categories').delete().eq('id', payload)
+        if (error) throw error
+        setCategories((prev) => prev.filter((c) => c.id !== payload))
+        showToast('Category deleted', { type: 'success' })
+      } else if (type === 'MASTER_SUBJECT') {
+        const { error } = await supabase.from('subjects').delete().eq('id', payload.id)
+        if (error) throw error
+        showToast('Subject deleted from master list', { type: 'success' })
+        await loadMappings()
+        await loadMasterSubjects()
+      }
     } catch (err) {
       console.error(err)
       showToast(err.message || 'Delete failed', { type: 'danger' })
@@ -582,6 +638,12 @@ export default function Subjects() {
             )}
           </div>
         </section>
+
+        <div className="mb-4 text-end">
+          <button type="button" className="btn btn-outline-secondary fw-bold rounded-pill px-4" onClick={openMasterSubjectModal}>
+            View All Subjects
+          </button>
+        </div>
 
         {/* CREATE SUBJECTS (CLASS-WISE) */}
         <section className="setup-section mb-4">
@@ -847,9 +909,13 @@ export default function Subjects() {
       <ConfirmationModal
         isOpen={confirmModal.isOpen}
         onClose={() => setConfirmModal({ isOpen: false, type: null, payload: null })}
-        onConfirm={handleConfirmDeleteCategory}
-        title="Delete Category"
-        message="Are you sure you want to delete this category? This action cannot be undone."
+        onConfirm={handleConfirmDelete}
+        title={confirmModal.type === 'MASTER_SUBJECT' ? 'Delete Subject' : 'Delete Category'}
+        message={
+          confirmModal.type === 'MASTER_SUBJECT'
+            ? `This will delete ${confirmModal.payload?.subject_title || 'this subject'} from ${confirmModal.payload?.classCount || 0} classes and ${confirmModal.payload?.staffCount || 0} staff.`
+            : 'Are you sure you want to delete this category? This action cannot be undone.'
+        }
         confirmText="Confirm Delete"
       />
 
@@ -938,6 +1004,99 @@ export default function Subjects() {
                           </div>
                         </div>
                       ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {masterModalOpen && (
+        <div
+          className="modal fade show d-block"
+          tabIndex="-1"
+          style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeMasterSubjectModal()
+          }}
+        >
+          <div className="modal-dialog modal-dialog-centered modal-xl">
+            <div className="modal-content shadow-lg" style={{ borderRadius: '16px', border: 'none', overflow: 'hidden' }}>
+              <div
+                className="modal-header border-0 pb-0 text-white"
+                style={{ background: 'linear-gradient(135deg, #4c6496, #2d3b59)', padding: '24px 32px' }}
+              >
+                <div className="flex-grow-1">
+                  <p className="mb-0 fw-semibold" style={{ fontSize: '0.75rem', letterSpacing: '1px', opacity: 0.8 }}>
+                    MASTER SUBJECTS
+                  </p>
+                  <h4 className="mb-1 fw-bold text-white">View All Subjects</h4>
+                  <p className="mb-0" style={{ fontSize: '0.85rem', opacity: 0.9 }}>
+                    Shows usage count across classes and staff.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-sm ms-3 align-self-start mt-1"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', borderRadius: '8px', padding: '4px 12px' }}
+                  onClick={closeMasterSubjectModal}
+                >
+                  <i className="bi bi-x-lg"></i>
+                </button>
+              </div>
+              <div className="modal-body bg-white p-0" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                {masterModalLoading ? (
+                  <div className="p-5 text-center text-muted fw-bold">Loading subjects...</div>
+                ) : masterSubjects.length === 0 ? (
+                  <div className="p-5 text-center text-muted fw-bold">No subjects available.</div>
+                ) : (
+                  <div className="table-responsive">
+                    <table className="table mb-0">
+                      <thead>
+                        <tr className="text-uppercase text-secondary" style={{ fontSize: '0.75rem' }}>
+                          <th>Subject</th>
+                          <th>Code</th>
+                          <th>Level</th>
+                          <th>Usage</th>
+                          <th className="text-end">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {masterSubjects.map((subject) => (
+                          <tr key={subject.id}>
+                            <td className="fw-semibold">{subject.subject_title}</td>
+                            <td>{subject.subject_code || '-'}</td>
+                            <td>{subject.school_level || '-'}</td>
+                            <td>
+                              <div className="text-muted small">
+                                {subject.classCount} Classes / {subject.staffCount} Staff
+                              </div>
+                            </td>
+                            <td className="text-end">
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-danger rounded-pill px-3"
+                                onClick={() =>
+                                  setConfirmModal({
+                                    isOpen: true,
+                                    type: 'MASTER_SUBJECT',
+                                    payload: {
+                                      id: subject.id,
+                                      subject_title: subject.subject_title,
+                                      classCount: subject.classCount,
+                                      staffCount: subject.staffCount,
+                                    },
+                                  })
+                                }
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </div>
