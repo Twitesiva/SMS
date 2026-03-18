@@ -56,6 +56,22 @@ const getSlotTemplate = (classNumber) => {
   return classNumber <= 9 ? SLOT_TEMPLATE_8 : SLOT_TEMPLATE_6
 }
 
+const applyClassTeacherSubjectToGrid = (baseGrid, defaultEntry) => {
+  const nextGrid = {}
+  DAYS.forEach(day => {
+    const currentDay = { ...(baseGrid[day] || {}) }
+    if (defaultEntry && defaultEntry.staff_id) {
+      if (!currentDay.p1?.subject_id) {
+        currentDay.p1 = { ...defaultEntry }
+      }
+    } else if (!defaultEntry && currentDay.p1) {
+      delete currentDay.p1
+    }
+    nextGrid[day] = currentDay
+  })
+  return nextGrid
+}
+
 export default function ClassTimeTable() {
   const { user } = useAuth()
   const isAdmin = String(user?.role || '').toUpperCase() === 'ADMIN'
@@ -68,6 +84,8 @@ export default function ClassTimeTable() {
   const [subjects, setSubjects] = useState([])
   const [subjectStaffMap, setSubjectStaffMap] = useState({})
   const [staffList, setStaffList] = useState([])
+  const [classTeachers, setClassTeachers] = useState([])
+  const [classTeacherSubjectMap, setClassTeacherSubjectMap] = useState({})
 
   // ─── Selection state ──────────────────────────────────────────────────
   const [selectedAcademicYearId, setSelectedAcademicYearId] = useState('')
@@ -121,6 +139,7 @@ export default function ClassTimeTable() {
     if (showTermDropdown && !selectedTerm) return false
     return true
   }, [selectedAcademicYearId, selectedSchoolLevel, selectedClassId, selectedSectionId, selectedGroupId, selectedTerm, isHigherSec, showTermDropdown])
+
 
   // ─── Load initial data ────────────────────────────────────────────────
   useEffect(() => {
@@ -218,6 +237,8 @@ export default function ClassTimeTable() {
       setSubjects([])
       setSubjectStaffMap({})
       setGrid({})
+      setClassTeachers([])
+      setClassTeacherSubjectMap({})
       return
     }
 
@@ -270,6 +291,59 @@ export default function ClassTimeTable() {
           })
         setSubjectStaffMap(nextStaffMap)
 
+        const { data: classTeacherRows, error: classTeacherError } = await supabase
+          .from('class_teacher_mapping')
+          .select('staff_id, staff (full_name)')
+          .eq('class_section_id', selectedSectionId)
+          .eq('academic_year_id', selectedAcademicYearId)
+
+        if (classTeacherError) throw classTeacherError
+
+        const normalizedTeachers = (classTeacherRows || []).map(row => ({
+          staff_id: row.staff_id,
+          staff_name: row.staff?.full_name || `Teacher ${row.staff_id}`
+        }))
+
+        setClassTeachers(normalizedTeachers)
+
+        const teacherIds = normalizedTeachers.map(t => t.staff_id).filter(Boolean)
+
+        let teacherSubjectsData = []
+        if (teacherIds.length) {
+          const { data: teacherSubjects, error: teacherSubjectsError } = await supabase
+            .from('staff_subjects')
+            .select('staff_id, subject_id, subjects (subject_title, subject_code)')
+            .in('staff_id', teacherIds)
+
+          if (teacherSubjectsError) throw teacherSubjectsError
+          teacherSubjectsData = teacherSubjects || []
+        }
+
+        const nextTeacherMap = {}
+        teacherSubjectsData.forEach(item => {
+          const key = String(item.staff_id)
+          const list = nextTeacherMap[key] || []
+          list.push({
+            subject_id: item.subject_id,
+            subject_title: item.subjects?.subject_title || '',
+            subject_code: item.subjects?.subject_code || ''
+          })
+          nextTeacherMap[key] = list
+        })
+
+        normalizedTeachers.forEach(row => {
+          const key = String(row.staff_id)
+          if (!nextTeacherMap[key]) nextTeacherMap[key] = []
+        })
+
+        setClassTeacherSubjectMap(nextTeacherMap)
+
+        const defaultTeacher = normalizedTeachers[0]
+        const defaultEntry = defaultTeacher ? {
+          staff_id: defaultTeacher.staff_id,
+          subject_id: nextTeacherMap[String(defaultTeacher.staff_id)]?.[0]?.subject_id || ''
+        } : null
+
         // Load existing timetable data
         const termValue = isSecondary ? 0 : Number(String(selectedTerm).replace('Term ', ''))
 
@@ -300,14 +374,26 @@ export default function ClassTimeTable() {
               if (String(row.period_type || '').toLowerCase() !== 'class') return
               const key = `p${row.period_number}`
               if (!nextGrid[row.day_of_week]) nextGrid[row.day_of_week] = {}
-              nextGrid[row.day_of_week][key] = row.subject_id
+              if (key === 'p1') {
+                const matchingTeacher = normalizedTeachers.find(t => {
+                  const subjectsForTeacher = nextTeacherMap[String(t.staff_id)] || []
+                  return subjectsForTeacher.some(s => String(s.subject_id) === String(row.subject_id))
+                })
+                const fallbackTeacher = normalizedTeachers[0]
+                nextGrid[row.day_of_week][key] = {
+                  staff_id: matchingTeacher?.staff_id || fallbackTeacher?.staff_id || '',
+                  subject_id: row.subject_id
+                }
+              } else {
+                nextGrid[row.day_of_week][key] = row.subject_id
+              }
             })
 
-          setGrid(nextGrid)
+          setGrid(applyClassTeacherSubjectToGrid(nextGrid, defaultEntry))
         } else {
           const emptyGrid = {}
           DAYS.forEach(day => { emptyGrid[day] = {} })
-          setGrid(emptyGrid)
+          setGrid(applyClassTeacherSubjectToGrid(emptyGrid, defaultEntry))
         }
       } catch (error) {
         console.error('Error loading subjects and grid:', error)
@@ -351,11 +437,42 @@ export default function ClassTimeTable() {
   }
 
   const handleCellChange = (day, key, subjectId) => {
+    if (key === 'p1') return
     setGrid(prev => ({
       ...prev,
       [day]: {
         ...(prev[day] || {}),
         [key]: subjectId,
+      }
+    }))
+  }
+
+  const handlePeriod1TeacherChange = (day, teacherId) => {
+    setGrid(prev => {
+      const dayGrid = { ...(prev[day] || {}) }
+      if (!teacherId) {
+        dayGrid.p1 = {}
+      } else {
+        const subjects = classTeacherSubjectMap[String(teacherId)] || []
+        dayGrid.p1 = {
+          staff_id: teacherId,
+          subject_id: subjects?.[0]?.subject_id || ''
+        }
+      }
+      return { ...prev, [day]: dayGrid }
+    })
+  }
+
+  const handlePeriod1SubjectChange = (day, teacherId, subjectId) => {
+    if (!teacherId) return
+    setGrid(prev => ({
+      ...prev,
+      [day]: {
+        ...(prev[day] || {}),
+        p1: {
+          staff_id: teacherId,
+          subject_id: subjectId
+        }
       }
     }))
   }
@@ -372,7 +489,12 @@ export default function ClassTimeTable() {
     if (!selectionComplete) return false
     for (const day of DAYS) {
       for (const slot of classSlots) {
-        if (!grid[day]?.[slot.key]) return false
+        if (slot.key === 'p1') {
+          const entry = grid[day]?.p1
+          if (!entry?.staff_id || !entry?.subject_id) return false
+        } else if (!grid[day]?.[slot.key]) {
+          return false
+        }
       }
     }
     return true
@@ -400,15 +522,36 @@ export default function ClassTimeTable() {
 
       for (const day of DAYS) {
         for (const slot of classSlots) {
-          const subjectId = grid[day]?.[slot.key]
-          if (!subjectId) {
-            throw new Error('All class periods must have a subject assigned before saving.')
-          }
-
-          const staffId = subjectStaffMap[subjectId]
-          if (!staffId) {
-            const subjectName = subjectById[subjectId]?.subject_name || 'Selected subject'
-            throw new Error(`${subjectName} has no staff mapping. Please assign staff in Subject Mapping for Staff.`)
+          let subjectId = ''
+          let staffId = ''
+          if (slot.key === 'p1') {
+            const entry = grid[day]?.p1
+            if (!entry?.staff_id || !entry?.subject_id) {
+              toast.error('Period 1 must be handled by assigned class teacher only')
+              return
+            }
+            const teacherKey = String(entry.staff_id)
+            if (!classTeachers.some(t => String(t.staff_id) === teacherKey)) {
+              toast.error('Period 1 must be handled by assigned class teacher only')
+              return
+            }
+            const subjectsForTeacher = classTeacherSubjectMap[teacherKey] || []
+            if (!subjectsForTeacher.some(s => String(s.subject_id) === String(entry.subject_id))) {
+              toast.error('Period 1 must be handled by assigned class teacher only')
+              return
+            }
+            subjectId = entry.subject_id
+            staffId = entry.staff_id
+          } else {
+            subjectId = grid[day]?.[slot.key]
+            if (!subjectId) {
+              throw new Error('All class periods must have a subject assigned before saving.')
+            }
+            staffId = subjectStaffMap[subjectId]
+            if (!staffId) {
+              const subjectName = subjectById[subjectId]?.subject_name || 'Selected subject'
+              throw new Error(`${subjectName} has no staff mapping. Please assign staff in Subject Mapping for Staff.`)
+            }
           }
 
           entries.push({ day, periodNumber: slot.periodNumber, subjectId, staffId })
@@ -708,32 +851,76 @@ export default function ClassTimeTable() {
                         <td className="day-name">{day}</td>
                         {slots.map(slot => {
                           if (slot.periodType === 'class') {
-                            const selectedSubjectId = grid[day]?.[slot.key] || ''
-                            const staffName = selectedSubjectId ? getStaffForSubject(selectedSubjectId) : null
-
+                            const isPeriodOne = slot.key === 'p1'
+                            const period1Entry = grid[day]?.p1 || {}
+                            const selectedTeacherId = period1Entry.staff_id || (classTeachers[0]?.staff_id || '')
+                            const selectedSubjectId = isPeriodOne ? (period1Entry.subject_id || '') : (grid[day]?.[slot.key] || '')
+                            const teacherSubjects = selectedTeacherId ? classTeacherSubjectMap[String(selectedTeacherId)] || [] : []
+                            const selectedTeacher = classTeachers.find(t => String(t.staff_id) === String(selectedTeacherId))
+                            const staffName = isPeriodOne ? selectedTeacher?.staff_name : (selectedSubjectId ? getStaffForSubject(selectedSubjectId) : null)
                             return (
                               <td key={`${day}-${slot.key}`} className="slot-cell">
-                                <select
-                                  className="form-select form-select-sm mb-1"
-                                  value={selectedSubjectId}
-                                  onChange={e => handleCellChange(day, slot.key, e.target.value)}
-                                  style={{ fontSize: '0.78rem' }}
-                                >
-                                  <option value="">-- Subject --</option>
-                                  {subjects.map(s => (
-                                    <option key={s.subject_id} value={s.subject_id}>
-                                      {s.subject_code ? `${s.subject_code} – ` : ''}{s.subject_name}
-                                    </option>
-                                  ))}
-                                </select>
+                                {isPeriodOne ? (
+                                  <>
+                                    <select
+                                      className="form-select form-select-sm mb-1"
+                                      value={selectedTeacherId}
+                                      onChange={e => handlePeriod1TeacherChange(day, e.target.value)}
+                                      style={{ fontSize: '0.78rem' }}
+                                      disabled={!classTeachers.length}
+                                    >
+                                      <option value="">{classTeachers.length ? '-- Select Teacher --' : 'No class teacher assigned'}</option>
+                                      {classTeachers.map(teacher => (
+                                        <option key={teacher.staff_id} value={teacher.staff_id}>
+                                          {teacher.staff_name}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <select
+                                      className="form-select form-select-sm mb-1"
+                                      value={selectedSubjectId}
+                                      onChange={e => handlePeriod1SubjectChange(day, selectedTeacherId, e.target.value)}
+                                      style={{ fontSize: '0.78rem' }}
+                                      disabled={!selectedTeacherId || !teacherSubjects.length}
+                                    >
+                                      <option value="">
+                                        {teacherSubjects.length ? '-- Select Subject --' : 'No subjects mapped yet'}
+                                      </option>
+                                      {teacherSubjects.map(sub => (
+                                        <option key={`${selectedTeacherId}-${sub.subject_id}`} value={sub.subject_id}>
+                                          {sub.subject_code ? `${sub.subject_code} – ` : ''}{sub.subject_title}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <div className="text-warning small">
+                                      🔒 Period 1 reserved for class teachers
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <select
+                                      className="form-select form-select-sm mb-1"
+                                      value={selectedSubjectId}
+                                      onChange={e => handleCellChange(day, slot.key, e.target.value)}
+                                      style={{ fontSize: '0.78rem' }}
+                                    >
+                                      <option value="">-- Subject --</option>
+                                      {subjects.map(s => (
+                                        <option key={s.subject_id} value={s.subject_id}>
+                                          {s.subject_code ? `${s.subject_code} – ` : ''}{s.subject_name}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </>
+                                )}
                                 {staffName && (
                                   <div className="staff-info">
                                     <i className="bi bi-person-fill me-1"></i>{staffName}
                                   </div>
                                 )}
-                                {selectedSubjectId && !staffName && (
+                                {isPeriodOne && !teacherSubjects.length && selectedTeacherId && (
                                   <div className="text-danger small" style={{ fontSize: '0.65rem' }}>
-                                    <i className="bi bi-exclamation-circle me-1"></i>No staff
+                                    <i className="bi bi-exclamation-circle me-1"></i>Assign a subject to this teacher first
                                   </div>
                                 )}
                               </td>

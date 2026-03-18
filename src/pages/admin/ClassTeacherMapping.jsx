@@ -29,6 +29,7 @@ export default function ClassTeacherMapping() {
   const [groups, setGroups] = useState([])
   const [sections, setSections] = useState([])
   const [staffList, setStaffList] = useState([])
+  const [classTeachers, setClassTeachers] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState(EMPTY_FORM)
@@ -139,6 +140,36 @@ export default function ClassTeacherMapping() {
       }
     }
     loadData()
+  }, [])
+
+  const fetchClassTeachers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('class_teacher_mapping')
+        .select(`
+          id,
+          staff_id,
+          class_section_id,
+          academic_year_id,
+          staff (full_name),
+          class_sections (
+            id,
+            class_id,
+            section_id,
+            sections (section_name),
+            classes (class_name)
+          )
+        `)
+      if (error) throw error
+      setClassTeachers(data || [])
+      console.log('classTeachers:', data || [])
+    } catch (err) {
+      console.error('Failed to fetch class teachers', err)
+    }
+  }
+
+  useEffect(() => {
+    fetchClassTeachers()
   }, [])
 
   // Load sections when class/group changes (EXACT spec)
@@ -259,18 +290,29 @@ export default function ClassTeacherMapping() {
   }
 
   const findTeacherMapping = async () => {
-    const { staff_id, academic_year_id } = formData
-    if (!staff_id || !academic_year_id) return null
+    const { staff_id, academic_year_id, section_id } = formData
+    if (!staff_id || !academic_year_id || !section_id) return null
 
     const { data, error } = await supabase
       .from('class_teacher_mapping')
-      .select('id, class_section_id')
+      .select('id')
       .eq('academic_year_id', academic_year_id)
+      .eq('class_section_id', section_id)
       .eq('staff_id', staff_id)
-      .maybeSingle()
 
     if (error) throw error
-    return data
+    return data?.[0] || null
+  }
+
+  const getTeacherCountForSection = async () => {
+    if (!formData.academic_year_id || !formData.section_id) return 0
+    const { data, error } = await supabase
+      .from('class_teacher_mapping')
+      .select('id')
+      .eq('academic_year_id', formData.academic_year_id)
+      .eq('class_section_id', formData.section_id)
+    if (error) throw error
+    return (data || []).length
   }
 
   const handleEditMapping = (mapping) => {
@@ -312,6 +354,12 @@ export default function ClassTeacherMapping() {
 
     setSaving(true)
     try {
+      const currentCount = await getTeacherCountForSection()
+      if (!editingId && currentCount >= 2) {
+        showToast('Maximum 2 class teachers allowed', { type: 'danger' })
+        return
+      }
+
       const duplicate = await findExistingMapping()
       if (duplicate && duplicate.id !== editingId) {
         showToast('Class teacher already assigned for this class-section', { type: 'danger' })
@@ -319,15 +367,9 @@ export default function ClassTeacherMapping() {
       }
 
       const duplicateTeacher = await findTeacherMapping()
-      if (duplicateTeacher) {
-        if (!editingId) {
-          showToast('இந்த teacher ஏற்கனவே ஒரு class க்கு assign பண்ணப்பட்டிருக்கிறார்', { type: 'danger' })
-          return
-        }
-        if (duplicateTeacher.id !== editingId) {
-          showToast('This teacher is already assigned to another class', { type: 'danger' })
-          return
-        }
+      if (duplicateTeacher && duplicateTeacher.id !== editingId) {
+        showToast('Teacher already assigned to this class', { type: 'danger' })
+        return
       }
 
       const payload = {
@@ -568,7 +610,7 @@ export default function ClassTeacherMapping() {
                   type="button" 
                   className="btn btn-primary students-button px-5 fw-bold" 
                   onClick={handleSubmit}
-                  disabled={saving || !formData.staff_id}
+                  disabled={saving || !formData.staff_id || (!editingId && classTeachers.length >= 2)}
                 >
                   {saving ? (
                     <>
@@ -589,6 +631,11 @@ export default function ClassTeacherMapping() {
                     Cancel Edit
                   </button>
                 )}
+                {!editingId && classTeachers.length >= 2 && (
+                  <div className="text-warning small mt-2">
+                    2 class teachers already assigned for this class-section.
+                  </div>
+                )}
               </div>
             </form>
           </div>
@@ -604,6 +651,9 @@ export default function ClassTeacherMapping() {
                 Review existing mappings. Edit to update or delete obsolete assignments.
               </p>
             </div>
+            {classTeachers.length === 0 && (
+              <p className="text-muted small mb-3">No class teachers assigned yet.</p>
+            )}
 
             <div className="table-responsive">
               <table className="table table-hover align-middle mb-0">
