@@ -409,3 +409,18 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+
+.global-confirmation-wrapper {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.35);
+}
+
+.global-confirmation-wrapper .modal-dialog {
+  max-width: 420px;
+  width: 100%;
+}

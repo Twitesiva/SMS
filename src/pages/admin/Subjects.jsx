@@ -906,18 +906,22 @@ export default function Subjects() {
         </section>
       </div>
 
-      <ConfirmationModal
-        isOpen={confirmModal.isOpen}
-        onClose={() => setConfirmModal({ isOpen: false, type: null, payload: null })}
-        onConfirm={handleConfirmDelete}
-        title={confirmModal.type === 'MASTER_SUBJECT' ? 'Delete Subject' : 'Delete Category'}
-        message={
-          confirmModal.type === 'MASTER_SUBJECT'
-            ? `This will delete ${confirmModal.payload?.subject_title || 'this subject'} from ${confirmModal.payload?.classCount || 0} classes and ${confirmModal.payload?.staffCount || 0} staff.`
-            : 'Are you sure you want to delete this category? This action cannot be undone.'
-        }
-        confirmText="Confirm Delete"
-      />
+      {confirmModal.isOpen && (
+        <div className="global-confirmation-wrapper">
+          <ConfirmationModal
+            isOpen={confirmModal.isOpen}
+            onClose={() => setConfirmModal({ isOpen: false, type: null, payload: null })}
+            onConfirm={handleConfirmDelete}
+            title={confirmModal.type === 'MASTER_SUBJECT' ? 'Delete Subject' : 'Delete Category'}
+            message={
+              confirmModal.type === 'MASTER_SUBJECT'
+                ? `This will delete ${confirmModal.payload?.subject_title || 'this subject'} from ${confirmModal.payload?.classCount || 0} classes and ${confirmModal.payload?.staffCount || 0} staff.`
+                : 'Are you sure you want to delete this category? This action cannot be undone.'
+            }
+            confirmText="Confirm Delete"
+          />
+        </div>
+      )}
 
       {viewModal.isOpen && (
         <div
