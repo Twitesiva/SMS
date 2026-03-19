@@ -90,6 +90,17 @@ const createGridEntry = (subjectId, staffId) => ({
   staff_id: nullIfEmpty(staffId),
 })
 
+/**
+ * Format term display based on class number
+ */
+const formatTerm = (classNumber, term) => {
+  const num = Number(classNumber || 0)
+  if (num >= 10 || term === 0) {
+    return 'Full Year'
+  }
+  return `Term ${term}`
+}
+
 // ============================================
 // MAIN COMPONENT
 // ============================================
@@ -123,6 +134,15 @@ export default function ClassTimeTable() {
   const [grid, setGrid] = useState({})
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+
+  // ---------- Saved Timetables State ----------
+  const [savedTimetables, setSavedTimetables] = useState([])
+  const [savedLoading, setSavedLoading] = useState(true)
+  const [viewModalOpen, setViewModalOpen] = useState(false)
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [selectedTimetable, setSelectedTimetable] = useState(null)
+  const [viewData, setViewData] = useState(null)
+  const [editingTimetable, setEditingTimetable] = useState(null)
 
   // ---------- Derived values ----------
   const selectedClassObj = useMemo(
@@ -219,6 +239,228 @@ export default function ClassTimeTable() {
 
     loadInitial()
   }, [])
+
+  // ============================================
+  // LOAD SAVED TIMETABLES
+  // ============================================
+  useEffect(() => {
+    const fetchSavedTimetables = async () => {
+      try {
+        setSavedLoading(true)
+
+        const { data: sessions, error } = await supabase
+          .from('timetable_sessions')
+          .select(`
+            academic_year_id,
+            class_section_id,
+            term,
+            academic_years!inner(id, year_name),
+            class_sections!inner(id, class_id, section_id, sections!inner(section_name), classes!inner(class_name, class_number))
+          `)
+          .order('academic_year_id', { ascending: false })
+
+        if (error) throw error
+
+        // Group by academic_year_id, class_section_id, term
+        const grouped = {}
+        
+        ;(sessions || []).forEach(session => {
+          const key = `${session.academic_year_id}-${session.class_section_id}-${session.term}`
+          
+          if (!grouped[key]) {
+            grouped[key] = {
+              academic_year_id: session.academic_year_id,
+              class_section_id: session.class_section_id,
+              term: session.term,
+              year_name: session.academic_years?.year_name || 'N/A',
+              class_name: session.class_sections?.classes?.class_name || 'N/A',
+              class_number: session.class_sections?.classes?.class_number || 0,
+              section_name: session.class_sections?.sections?.section_name || 'N/A'
+            }
+          }
+        })
+
+        const timetableList = Object.values(grouped).map(t => ({
+          id: `${t.academic_year_id}-${t.class_section_id}-${t.term}`,
+          academic_year_id: t.academic_year_id,
+          class_section_id: t.class_section_id,
+          term: t.term,
+          year_name: t.year_name,
+          class_name: t.class_name,
+          class_number: t.class_number,
+          section_name: t.section_name,
+          term_display: formatTerm(t.class_number, t.term)
+        }))
+
+        setSavedTimetables(timetableList)
+      } catch (error) {
+        console.error('Error fetching saved timetables:', error)
+      } finally {
+        setSavedLoading(false)
+      }
+    }
+
+    fetchSavedTimetables()
+  }, [])
+
+  // ============================================
+  // VIEW/EDIT/DELETE HANDLERS
+  // ============================================
+  const handleViewTimetable = async (timetable) => {
+    try {
+      setSelectedTimetable(timetable)
+      setViewModalOpen(true)
+
+      const { data: sessions, error } = await supabase
+        .from('timetable_sessions')
+        .select(`
+          day_of_week,
+          period_id,
+          subject_id,
+          subjects!inner(subject_title),
+          periods!inner(period_number)
+        `)
+        .eq('academic_year_id', timetable.academic_year_id)
+        .eq('class_section_id', timetable.class_section_id)
+        .eq('term', timetable.term)
+
+      if (error) throw error
+
+      const periodCount = timetable.class_number >= 10 ? 6 : 8
+      const grid = {}
+      FIXED_DAYS.forEach(day => { grid[day] = {} })
+
+      ;(sessions || []).forEach(session => {
+        if (!session.day_of_week || !session.periods?.period_number) return
+        const slotKey = `p${session.periods.period_number}`
+        grid[session.day_of_week][slotKey] = {
+          subject_id: session.subject_id,
+          subject_title: session.subjects?.subject_title || 'N/A'
+        }
+      })
+
+      setViewData({
+        academicYear: timetable.year_name,
+        className: timetable.class_name,
+        sectionName: timetable.section_name,
+        term: timetable.term,
+        classNumber: timetable.class_number,
+        grid,
+        periodCount
+      })
+    } catch (error) {
+      console.error('Error viewing timetable:', error)
+      toast.error('Failed to load timetable')
+    }
+  }
+
+  const handleEditTimetable = async (timetable) => {
+    try {
+      // First get the class_section to find class_id
+      const { data: sectionData, error: sectionError } = await supabase
+        .from('class_sections')
+        .select('class_id, sections(section_name)')
+        .eq('id', timetable.class_section_id)
+        .single()
+
+      if (sectionError) throw sectionError
+
+      // Determine school level from class_number
+      const classNum = Number(timetable.class_number || 0)
+      let schoolLevel = ''
+      if (classNum >= 1 && classNum <= 5) schoolLevel = 'Primary'
+      else if (classNum >= 6 && classNum <= 9) schoolLevel = 'Middle'
+      else if (classNum >= 10) schoolLevel = 'Secondary'
+
+      // Set all the selection states
+      setSelectedAcademicYearId(timetable.academic_year_id)
+      setSelectedSchoolLevel(schoolLevel)
+      setSelectedClassId(sectionData.class_id)
+      setClassSectionId(timetable.class_section_id)
+      
+      // Set term based on class
+      if (classNum >= 10) {
+        setSelectedTerm('') // Full year
+      } else {
+        setSelectedTerm(timetable.term === 0 ? '' : `Term ${timetable.term}`)
+      }
+      
+      // Set editing mode
+      setEditingTimetable(timetable)
+      toast.info('Timetable loaded for editing')
+    } catch (error) {
+      console.error('Error loading timetable for edit:', error)
+      toast.error('Failed to load timetable for editing')
+    }
+  }
+
+  const handleDeleteClick = (timetable) => {
+    setSelectedTimetable(timetable)
+    setDeleteModalOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!selectedTimetable) return
+
+    try {
+      const { error } = await supabase
+        .from('timetable_sessions')
+        .delete()
+        .eq('academic_year_id', selectedTimetable.academic_year_id)
+        .eq('class_section_id', selectedTimetable.class_section_id)
+        .eq('term', selectedTimetable.term)
+
+      if (error) throw error
+
+      toast.success('Timetable deleted successfully')
+      setDeleteModalOpen(false)
+      
+      // Refresh saved timetables
+      const { data: sessions } = await supabase
+        .from('timetable_sessions')
+        .select(`
+          academic_year_id,
+          class_section_id,
+          term,
+          academic_years!inner(id, year_name),
+          class_sections!inner(id, class_id, section_id, sections!inner(section_name), classes!inner(class_name, class_number))
+        `)
+        .order('academic_year_id', { ascending: false })
+
+      const grouped = {}
+      ;(sessions || []).forEach(session => {
+        const key = `${session.academic_year_id}-${session.class_section_id}-${session.term}`
+        if (!grouped[key]) {
+          grouped[key] = {
+            academic_year_id: session.academic_year_id,
+            class_section_id: session.class_section_id,
+            term: session.term,
+            year_name: session.academic_years?.year_name || 'N/A',
+            class_name: session.class_sections?.classes?.class_name || 'N/A',
+            class_number: session.class_sections?.classes?.class_number || 0,
+            section_name: session.class_sections?.sections?.section_name || 'N/A'
+          }
+        }
+      })
+
+      const timetableList = Object.values(grouped).map(t => ({
+        id: `${t.academic_year_id}-${t.class_section_id}-${t.term}`,
+        academic_year_id: t.academic_year_id,
+        class_section_id: t.class_section_id,
+        term: t.term,
+        year_name: t.year_name,
+        class_name: t.class_name,
+        class_number: t.class_number,
+        section_name: t.section_name,
+        term_display: formatTerm(t.class_number, t.term)
+      }))
+
+      setSavedTimetables(timetableList)
+    } catch (error) {
+      console.error('Error deleting timetable:', error)
+      toast.error('Failed to delete timetable')
+    }
+  }
 
   // ============================================
   // LOAD SECTIONS
@@ -761,7 +1003,13 @@ export default function ClassTimeTable() {
       }
 
       console.log('Timetable saved successfully', inserted)
-      toast.success('Timetable saved successfully')
+      const message = editingTimetable ? 'Timetable updated successfully' : 'Timetable saved successfully'
+      toast.success(message)
+      
+      // Clear editing state after successful save
+      if (editingTimetable) {
+        setEditingTimetable(null)
+      }
     } catch (error) {
       console.error('Error saving timetable:', error)
       toast.error(error.message || 'Failed to save timetable')
@@ -785,6 +1033,69 @@ export default function ClassTimeTable() {
         {!isAdmin && (
           <div className="alert alert-danger mb-3">Only Admin users can create and modify timetables.</div>
         )}
+
+        {/* ---------- SAVED TIMETABLES CARD ---------- */}
+        <div className="card card-soft p-4 mb-4">
+          <h5 className="mb-3 fw-semibold">Saved Timetables</h5>
+          
+          {savedLoading ? (
+            <div className="text-center p-3">
+              <div className="spinner-border spinner-border-sm" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
+            </div>
+          ) : savedTimetables.length === 0 ? (
+            <p className="text-muted mb-0">No saved timetables found. Create a new timetable below.</p>
+          ) : (
+            <div className="table-responsive">
+              <table className="table table-sm table-hover">
+                <thead>
+                  <tr>
+                    <th>Academic Year</th>
+                    <th>Class</th>
+                    <th>Section</th>
+                    <th>Term</th>
+                    <th style={{ width: '180px' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {savedTimetables.map(timetable => (
+                    <tr key={timetable.id}>
+                      <td>{timetable.year_name}</td>
+                      <td>{timetable.class_name}</td>
+                      <td>{timetable.section_name}</td>
+                      <td>
+                        <span className={`badge ${timetable.term === 0 || timetable.class_number >= 10 ? 'bg-success' : 'bg-primary'}`}>
+                          {timetable.term_display}
+                        </span>
+                      </td>
+                      <td>
+                        <button
+                          className="btn btn-sm btn-outline-primary me-1"
+                          onClick={() => handleViewTimetable(timetable)}
+                        >
+                          View
+                        </button>
+                        <button
+                          className="btn btn-sm btn-outline-secondary me-1"
+                          onClick={() => handleEditTimetable(timetable)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={() => handleDeleteClick(timetable)}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
 
         {/* ---------- SELECTION PANEL ---------- */}
         <div className="card card-soft p-4 mb-4">
@@ -952,13 +1263,30 @@ export default function ClassTimeTable() {
                   </p>
                 )}
               </div>
-              <button
-                className="btn btn-primary px-4"
-                onClick={saveTimetable}
-                disabled={!isAdmin || saving || loading || !isGridComplete}
-              >
-                {saving ? 'Saving...' : 'Save Timetable'}
-              </button>
+              <div className="d-flex gap-2">
+                {editingTimetable && (
+                  <button
+                    className="btn btn-secondary px-4"
+                    onClick={() => {
+                      setEditingTimetable(null)
+                      setSelectedAcademicYearId(null)
+                      setSelectedSchoolLevel('')
+                      setSelectedClassId(null)
+                      setClassSectionId(null)
+                      setSelectedTerm('')
+                    }}
+                  >
+                    Clear
+                  </button>
+                )}
+                <button
+                  className="btn btn-primary px-4"
+                  onClick={saveTimetable}
+                  disabled={!isAdmin || saving || loading || !isGridComplete}
+                >
+                  {saving ? 'Saving...' : (editingTimetable ? 'Update Timetable' : 'Save Timetable')}
+                </button>
+              </div>
             </div>
 
             {loading ? (
@@ -1177,6 +1505,176 @@ export default function ClassTimeTable() {
           </div>
         )}
       </div>
+
+      {/* ---------- VIEW TIMETABLE MODAL ---------- */}
+      {viewModalOpen && (
+        <div className="modal-overlay" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div className="modal-content" style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '20px',
+            maxWidth: '95vw',
+            maxHeight: '95vh',
+            overflow: 'auto'
+          }}>
+            <div className="modal-header" style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '20px',
+              borderBottom: '1px solid #eee',
+              paddingBottom: '10px'
+            }}>
+              <h4 style={{ margin: 0 }}>
+                {viewData?.className} - {viewData?.sectionName}
+                <span className="text-muted ms-2" style={{ fontSize: '0.9rem' }}>
+                  ({viewData?.academicYear} - {formatTerm(viewData?.classNumber, viewData?.term)})
+                </span>
+              </h4>
+              <div>
+                <button className="btn btn-primary btn-sm me-2" onClick={() => {
+                  // Trigger browser print for PDF
+                  window.print()
+                }}>
+                  Download PDF
+                </button>
+                <button className="btn btn-secondary btn-sm" onClick={() => {
+                  setViewModalOpen(false)
+                  setViewData(null)
+                  setSelectedTimetable(null)
+                }}>
+                  Close
+                </button>
+              </div>
+            </div>
+            <div id="timetable-view-grid">
+              {/* Use the same slots as the edit view */}
+              <table className="timetable-table" style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                border: '1px solid #ccc'
+              }}>
+                <thead>
+                  <tr>
+                    <th style={{ width: '100px', padding: '8px', backgroundColor: '#f2f2f2' }}>DAY</th>
+                    {viewData?.periodCount <= 6 ? (
+                      <>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 1</th>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 2</th>
+                        <th style={{ padding: '8px', backgroundColor: '#fffde7', color: '#f57f17' }}>BREAK</th>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 3</th>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 4</th>
+                        <th style={{ padding: '8px', backgroundColor: '#e3f2fd', color: '#1976d2' }}>LUNCH</th>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 5</th>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 6</th>
+                      </>
+                    ) : (
+                      <>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 1</th>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 2</th>
+                        <th style={{ padding: '8px', backgroundColor: '#fffde7', color: '#f57f17' }}>BREAK</th>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 3</th>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 4</th>
+                        <th style={{ padding: '8px', backgroundColor: '#e3f2fd', color: '#1976d2' }}>LUNCH</th>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 5</th>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 6</th>
+                        <th style={{ padding: '8px', backgroundColor: '#fffde7', color: '#f57f17' }}>BREAK</th>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 7</th>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 8</th>
+                      </>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {FIXED_DAYS.map(day => (
+                    <tr key={day}>
+                      <td style={{ padding: '8px', fontWeight: 'bold', backgroundColor: '#f9f9f9' }}>{day}</td>
+                      {viewData?.periodCount <= 6 ? (
+                        // 6 periods
+                        <>
+                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p1?.subject_title || '-'}</td>
+                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p2?.subject_title || '-'}</td>
+                          <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>BREAK</td>
+                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p3?.subject_title || '-'}</td>
+                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p4?.subject_title || '-'}</td>
+                          <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold' }}>LUNCH</td>
+                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p5?.subject_title || '-'}</td>
+                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p6?.subject_title || '-'}</td>
+                        </>
+                      ) : (
+                        // 8 periods
+                        <>
+                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p1?.subject_title || '-'}</td>
+                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p2?.subject_title || '-'}</td>
+                          <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>BREAK</td>
+                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p3?.subject_title || '-'}</td>
+                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p4?.subject_title || '-'}</td>
+                          <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold' }}>LUNCH</td>
+                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p5?.subject_title || '-'}</td>
+                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p6?.subject_title || '-'}</td>
+                          <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>BREAK</td>
+                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p7?.subject_title || '-'}</td>
+                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p8?.subject_title || '-'}</td>
+                        </>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---------- DELETE CONFIRMATION MODAL ---------- */}
+      {deleteModalOpen && (
+        <div className="modal-overlay" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div className="modal-content" style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '20px',
+            maxWidth: '400px'
+          }}>
+            <h5>Confirm Delete</h5>
+            <p>Are you sure you want to delete the timetable for <strong>{selectedTimetable?.class_name} - {selectedTimetable?.section_name}</strong>?</p>
+            <p className="text-muted">This action cannot be undone.</p>
+            <div className="d-flex justify-content-end gap-2">
+              <button className="btn btn-secondary" onClick={() => {
+                setDeleteModalOpen(false)
+                setSelectedTimetable(null)
+              }}>
+                Cancel
+              </button>
+              <button className="btn btn-danger" onClick={confirmDelete}>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ToastContainer position="top-right" autoClose={3000} />
     </AdShellAdmin>
   )
