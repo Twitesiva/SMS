@@ -71,6 +71,11 @@ const adminPortalNavGroups = [
                 to: '/admin-portal/class-time-table',
                 label: 'Class Time Table',
                 icon: 'bi-calendar-date'
+            },
+            {
+                to: '/admin-portal/staff-workload-report',
+                label: 'Staff Workload Report',
+                icon: 'bi-people'
             }
         ]
     },
