@@ -120,6 +120,7 @@ export default function ClassTimeTable() {
   const [classTeachers, setClassTeachers] = useState([])
   const [classTeacherSubjectMap, setClassTeacherSubjectMap] = useState({})
   const [periodIdBySlot, setPeriodIdBySlot] = useState({})
+  const [busyStaffSlots, setBusyStaffSlots] = useState({})
 
   // ---------- Selection state ----------
   // Use null instead of empty string for UUID fields
@@ -698,6 +699,41 @@ export default function ClassTimeTable() {
           .eq('term', termForDb)
 
         if (existingError) throw existingError
+
+        // ========== STEP 1: FETCH BUSY STAFF DATA ==========
+        const { data: busyRows, error: busyError } = await supabase
+          .from('timetable_sessions')
+          .select('staff_id, day_of_week, period_id, class_section_id')
+          .eq('academic_year_id', selectedAcademicYearId)
+          .eq('term', termForDb)
+
+        if (busyError) throw busyError
+        console.log("Busy Rows:", busyRows)
+
+        // ========== STEP 2: BUILD BUSY MAP ==========
+        // Skip same class (important for edit mode)
+        const busyMap = {}
+        ;(busyRows || []).forEach(row => {
+          if (!row.staff_id || !row.day_of_week || !row.period_id) return
+
+          // Skip same class_section_id (editing case)
+          if (String(row.class_section_id) === String(classSectionId)) return
+
+          // Map period_id back to slot key
+          const slotKey = periodIdToSlot[String(row.period_id)]
+          if (!slotKey) return
+
+          const key = `${row.day_of_week}-${slotKey}`
+
+          if (!busyMap[key]) {
+            busyMap[key] = new Set()
+          }
+
+          busyMap[key].add(String(row.staff_id))
+        })
+
+        console.log("Busy Map:", busyMap)
+        setBusyStaffSlots(busyMap)
 
         // Build grid with null values instead of empty strings
         const nextGrid = {}
@@ -1394,9 +1430,18 @@ export default function ClassTimeTable() {
                                       {(subjectStaffMap[selectedSubjectId] || []).map(staffId => {
                                         const staff = staffList.find(s => String(s.id) === String(staffId))
                                         const label = staff ? staff.full_name : `Staff ${staffId}`
+                                        // ========== CHECK IF STAFF IS BUSY ==========
+                                        const slotBusyKey = `${day}-${slot.key}`
+                                        const slotBusySet = busyStaffSlots[slotBusyKey] || new Set()
+                                        const isBusy = slotBusySet.has(String(staffId))
                                         return (
-                                          <option key={`${slot.key}-${staffId}`} value={staffId}>
-                                            {label}
+                                          <option 
+                                            key={`${slot.key}-${staffId}`} 
+                                            value={staffId}
+                                            disabled={isBusy}
+                                            style={isBusy ? { color: '#dc3545', fontStyle: 'italic' } : {}}
+                                          >
+                                            {label} {isBusy ? "(Busy)" : ""}
                                           </option>
                                         )
                                       })}
