@@ -86,6 +86,7 @@ export default function ClassTimeTable() {
   const [staffList, setStaffList] = useState([])
   const [classTeachers, setClassTeachers] = useState([])
   const [classTeacherSubjectMap, setClassTeacherSubjectMap] = useState({})
+  const [busyStaffSlots, setBusyStaffSlots] = useState({})
 
   // ─── Selection state ──────────────────────────────────────────────────
   const [selectedAcademicYearId, setSelectedAcademicYearId] = useState('')
@@ -296,7 +297,9 @@ export default function ClassTimeTable() {
         const nextStaffMap = {}
           ; (mappingRows || []).forEach(row => {
             if (row.subject_id && row.staff_id) {
-              nextStaffMap[row.subject_id] = row.staff_id
+              const list = nextStaffMap[row.subject_id] || []
+              list.push(row.staff_id)
+              nextStaffMap[row.subject_id] = list
             }
           })
         setSubjectStaffMap(nextStaffMap)
@@ -471,13 +474,27 @@ export default function ClassTimeTable() {
 
   const handleCellChange = (day, key, subjectId) => {
     if (key === 'p1') return
-    setGrid(prev => ({
-      ...prev,
-      [day]: {
-        ...(prev[day] || {}),
-        [key]: subjectId,
+    setGrid(prev => {
+      const dayGrid = { ...(prev[day] || {}) }
+      dayGrid[key] = {
+        subject_id: subjectId,
+        staff_id: ''
       }
-    }))
+      return { ...prev, [day]: dayGrid }
+    })
+  }
+
+  const handleCellStaffChange = (day, key, staffId) => {
+    setGrid(prev => {
+      const dayGrid = { ...(prev[day] || {}) }
+      const current = dayGrid[key] || {}
+      if (!current.subject_id) return prev
+      dayGrid[key] = {
+        ...current,
+        staff_id: staffId
+      }
+      return { ...prev, [day]: dayGrid }
+    })
   }
 
   const handlePeriod1TeacherChange = (day, teacherId) => {
@@ -510,8 +527,7 @@ export default function ClassTimeTable() {
     }))
   }
 
-  const getStaffForSubject = (subjectId) => {
-    const staffId = subjectStaffMap[subjectId]
+  const getStaffName = (staffId) => {
     if (!staffId) return null
     const staff = staffList.find(s => String(s.id) === String(staffId))
     return staff ? staff.full_name : `Staff ${staffId}`
@@ -522,12 +538,8 @@ export default function ClassTimeTable() {
     if (!selectionComplete) return false
     for (const day of DAYS) {
       for (const slot of classSlots) {
-        if (slot.key === 'p1') {
-          const entry = grid[day]?.p1
-          if (!entry?.staff_id || !entry?.subject_id) return false
-        } else if (!grid[day]?.[slot.key]) {
-          return false
-        }
+        const entry = grid[day]?.[slot.key]
+        if (!entry?.subject_id || !entry?.staff_id) return false
       }
     }
     return true
@@ -576,14 +588,15 @@ export default function ClassTimeTable() {
             subjectId = entry.subject_id
             staffId = entry.staff_id
           } else {
-            subjectId = grid[day]?.[slot.key]
+            const entry = grid[day]?.[slot.key] || {}
+            subjectId = entry.subject_id
+            staffId = entry.staff_id
             if (!subjectId) {
               throw new Error('All class periods must have a subject assigned before saving.')
             }
-            staffId = subjectStaffMap[subjectId]
             if (!staffId) {
               const subjectName = subjectById[subjectId]?.subject_name || 'Selected subject'
-              throw new Error(`${subjectName} has no staff mapping. Please assign staff in Subject Mapping for Staff.`)
+              throw new Error(`${subjectName} must have a staff member selected.`)
             }
           }
 
@@ -616,6 +629,39 @@ export default function ClassTimeTable() {
         sessionId = newSession.id
       }
 
+      const { data: existingAssignments, error: assignmentError } = await supabase
+        .from('timetable_session_classes')
+        .select('staff_id, day_of_week, period_number, class_id, section_id')
+        .eq('session_id', sessionId)
+
+      if (assignmentError) throw assignmentError
+
+      const newAssignments = entries.map(entry => ({
+        staff_id: entry.staffId,
+        day_of_week: entry.day,
+        period_number: entry.periodNumber,
+      }))
+
+      const clashList = []
+      const conflictFound = newAssignments.some(newEntry => {
+        return (existingAssignments || []).some(existing => {
+          if (String(existing.staff_id) !== String(newEntry.staff_id)) return false
+          if ((existing.day_of_week || '') !== newEntry.day_of_week) return false
+          if (Number(existing.period_number) !== newEntry.period_number) return false
+          const isCurrentSection = String(existing.class_id) === String(selectedClassId)
+            && String(existing.section_id) === String(selectedSectionRefId)
+          if (isCurrentSection) return false
+          clashList.push({ existing, newEntry })
+          return true
+        })
+      })
+
+      if (conflictFound) {
+        console.log('Clash check result:', clashList)
+        toast.error('Staff is already assigned to another class for this period in this term')
+        return
+      }
+
       // Delete existing entries for this class/section
       const { error: deleteError } = await supabase
         .from('timetable_session_classes')
@@ -646,9 +692,9 @@ export default function ClassTimeTable() {
           }
 
           if (slot.periodType === 'class') {
-            const subjectId = grid[day]?.[slot.key]
-            row.subject_id = subjectId
-            row.staff_id = subjectStaffMap[subjectId] || null
+            const entry = grid[day]?.[slot.key] || {}
+            row.subject_id = entry.subject_id || null
+            row.staff_id = entry.staff_id || null
           }
 
           rows.push(row)
@@ -882,14 +928,23 @@ export default function ClassTimeTable() {
                       <tr key={day}>
                         <td className="day-name">{day}</td>
                         {slots.map(slot => {
+                          const slotBusyKey = `${day}-${slot.periodNumber}`
+                          const slotBusySet = busyStaffSlots[slotBusyKey] || new Set()
                           if (slot.periodType === 'class') {
                             const isPeriodOne = slot.key === 'p1'
                             const period1Entry = grid[day]?.p1 || {}
+                            const cellEntry = slot.key === 'p1'
+                              ? period1Entry
+                              : (grid[day]?.[slot.key] || {})
                             const selectedTeacherId = period1Entry.staff_id || (classTeachers[0]?.staff_id || '')
-                            const selectedSubjectId = isPeriodOne ? (period1Entry.subject_id || '') : (grid[day]?.[slot.key] || '')
+                            const selectedSubjectId = cellEntry.subject_id || ''
+                            const selectedStaffId = cellEntry.staff_id || ''
                             const teacherSubjects = selectedTeacherId ? classTeacherSubjectMap[String(selectedTeacherId)] || [] : []
                             const selectedTeacher = classTeachers.find(t => String(t.staff_id) === String(selectedTeacherId))
-                            const staffName = isPeriodOne ? selectedTeacher?.staff_name : (selectedSubjectId ? getStaffForSubject(selectedSubjectId) : null)
+                            const selectedSubjectBusy = selectedStaffId && slotBusySet.has(String(selectedStaffId))
+                            const staffName = isPeriodOne
+                              ? selectedTeacher?.staff_name
+                              : (selectedStaffId ? getStaffName(selectedStaffId) : null)
                             return (
                               <td key={`${day}-${slot.key}`} className="slot-cell">
                                 {isPeriodOne ? (
@@ -943,6 +998,41 @@ export default function ClassTimeTable() {
                                         </option>
                                       ))}
                                     </select>
+                                    <select
+                                      className="form-select form-select-sm mb-1"
+                                      value={selectedStaffId}
+                                      onChange={e => handleCellStaffChange(day, slot.key, e.target.value)}
+                                      style={{ fontSize: '0.78rem' }}
+                                      disabled={!selectedSubjectId}
+                                    >
+                                      <option value="">-- Staff --</option>
+                                      {(subjectStaffMap[selectedSubjectId] || []).map(staffId => {
+                                        const staff = staffList.find(s => String(s.id) === String(staffId))
+                                        const label = staff ? staff.full_name : `Staff ${staffId}`
+                                        const busy = slotBusySet.has(String(staffId))
+                                        return (
+                                          <option key={`${slot.key}-${staffId}`} value={staffId}>
+                                            {label}{busy ? ' (Busy)' : ''}
+                                          </option>
+                                        )
+                                      })}
+                                    </select>
+                                    {!selectedSubjectId && (
+                                      <div className="text-muted small" style={{ fontSize: '0.65rem' }}>
+                                        Select a subject to pick a staff member
+                                      </div>
+                                    )}
+                                    {selectedSubjectId && !(subjectStaffMap[selectedSubjectId] || []).length && (
+                                      <div className="text-danger small mt-1">
+                                        No staff available for this subject
+                                      </div>
+                                    )}
+                                    {selectedSubjectBusy && (
+                                      <div className="text-danger small mt-1">
+                                        <i className="bi bi-exclamation-circle me-1"></i>
+                                        Assigned staff is already teaching another class during this slot.
+                                      </div>
+                                    )}
                                   </>
                                 )}
                                 {staffName && (

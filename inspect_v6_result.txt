@@ -1,1 +1,0 @@
-RPC Error: Could not find the function public.execute_sql(sql_query) in the schema cache. This is expected if execute_sql is not defined.
