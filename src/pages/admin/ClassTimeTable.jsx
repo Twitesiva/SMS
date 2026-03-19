@@ -92,7 +92,7 @@ export default function ClassTimeTable() {
   const [selectedSchoolLevel, setSelectedSchoolLevel] = useState('')
   const [selectedClassId, setSelectedClassId] = useState('')
   const [selectedGroupId, setSelectedGroupId] = useState('')
-  const [selectedSectionId, setSelectedSectionId] = useState('')
+  const [classSectionId, setClassSectionId] = useState('')
   const [selectedTerm, setSelectedTerm] = useState('')
 
   // ─── Grid & UI state ──────────────────────────────────────────────────
@@ -129,16 +129,29 @@ export default function ClassTimeTable() {
     [allGroups, selectedClassId]
   )
 
+  const sectionOptions = useMemo(() => {
+    return classSections.map((section, index) => ({
+      label: `A${index + 1}`,
+      value: section.id
+    }))
+  }, [classSections])
+
+  const selectedClassSection = useMemo(
+    () => classSections.find(s => String(s.id) === String(classSectionId)),
+    [classSections, classSectionId]
+  )
+  const selectedSectionRefId = selectedClassSection?.section_id || ''
+
   const slots = useMemo(() => getSlotTemplate(selectedClassNumber), [selectedClassNumber])
   const classSlots = useMemo(() => slots.filter(s => s.periodType === 'class'), [slots])
 
   // Determine if all required fields are selected
   const selectionComplete = useMemo(() => {
-    if (!selectedAcademicYearId || !selectedSchoolLevel || !selectedClassId || !selectedSectionId) return false
+    if (!selectedAcademicYearId || !selectedSchoolLevel || !selectedClassId || !classSectionId) return false
     if (isHigherSec && !selectedGroupId) return false
     if (showTermDropdown && !selectedTerm) return false
     return true
-  }, [selectedAcademicYearId, selectedSchoolLevel, selectedClassId, selectedSectionId, selectedGroupId, selectedTerm, isHigherSec, showTermDropdown])
+  }, [selectedAcademicYearId, selectedSchoolLevel, selectedClassId, classSectionId, selectedGroupId, selectedTerm, isHigherSec, showTermDropdown])
 
 
   // ─── Load initial data ────────────────────────────────────────────────
@@ -175,17 +188,13 @@ export default function ClassTimeTable() {
 
   // ─── Load sections when class or group changes ──────────────────────────
   useEffect(() => {
-    // Safety check: return early if no class selected
-    if (!selectedClassId) {
+    if (!selectedClassId || !selectedAcademicYearId) {
       setClassSections([])
-      setSelectedSectionId('')
       return
     }
 
-    // For Class 11 & 12, wait for group selection to avoid duplicate sections
     if (isHigherSec && !selectedGroupId) {
       setClassSections([])
-      setSelectedSectionId('')
       return
     }
 
@@ -201,6 +210,7 @@ export default function ClassTimeTable() {
           .from('class_sections')
           .select('id, class_id, section_id, sections(id, section_name, group_id)')
           .eq('class_id', selectedClassId)
+          .eq('academic_year_id', selectedAcademicYearId)
 
         // For Class 11/12: filter by group_id if selected
         // For classes below 11: filter by group_id = null
@@ -211,7 +221,7 @@ export default function ClassTimeTable() {
           query = query.is('group_id', null)
         }
 
-        const { data, error } = await query.order('id')
+        const { data, error } = await query.order('created_at')
 
         if (error) throw error
 
@@ -229,7 +239,7 @@ export default function ClassTimeTable() {
     }
 
     loadSections()
-  }, [selectedClassId, selectedGroupId, isHigherSec])
+  }, [selectedClassId, selectedGroupId, selectedAcademicYearId, isHigherSec])
 
   // ─── Load subjects + staff map + existing grid when selection is complete ──
   useEffect(() => {
@@ -291,18 +301,24 @@ export default function ClassTimeTable() {
           })
         setSubjectStaffMap(nextStaffMap)
 
-        const { data: classTeacherRows, error: classTeacherError } = await supabase
-          .from('class_teacher_mapping')
-          .select('staff_id, staff (full_name)')
-          .eq('class_section_id', selectedSectionId)
-          .eq('academic_year_id', selectedAcademicYearId)
+        let normalizedTeachers = []
+        if (classSectionId) {
+          console.log('Selected class_section_id:', classSectionId)
+          const { data: classTeacherRows, error: classTeacherError } = await supabase
+            .from('class_teacher_mapping')
+            .select('staff_id, staff (full_name)')
+            .eq('class_section_id', classSectionId)
+            .eq('academic_year_id', selectedAcademicYearId)
 
-        if (classTeacherError) throw classTeacherError
+          if (classTeacherError) throw classTeacherError
 
-        const normalizedTeachers = (classTeacherRows || []).map(row => ({
-          staff_id: row.staff_id,
-          staff_name: row.staff?.full_name || `Teacher ${row.staff_id}`
-        }))
+          normalizedTeachers = (classTeacherRows || []).map(row => ({
+            staff_id: row.staff_id,
+            staff_name: row.staff?.full_name || `Teacher ${row.staff_id}`
+          }))
+        } else {
+          console.log('Skipping class teacher fetch until class_section_id is selected')
+        }
 
         setClassTeachers(normalizedTeachers)
 
@@ -363,7 +379,7 @@ export default function ClassTimeTable() {
             .select('day_of_week, period_number, subject_id, period_type')
             .eq('session_id', sessionId)
             .eq('class_id', selectedClassId)
-            .eq('section_id', selectedSectionId)
+            .eq('section_id', selectedSectionRefId)
 
           if (existingError) throw existingError
 
@@ -404,7 +420,7 @@ export default function ClassTimeTable() {
     }
 
     loadSubjectsAndGrid()
-  }, [selectionComplete, selectedClassId, selectedSectionId, selectedGroupId, selectedTerm, selectedAcademicYearId, isSecondary, isHigherSec])
+  }, [selectionComplete, selectedClassId, classSectionId, selectedGroupId, selectedTerm, selectedAcademicYearId, isSecondary, isHigherSec])
 
   // Reset grid when slots change (e.g. switching between 6 and 8 period classes)
   useEffect(() => {
@@ -417,23 +433,40 @@ export default function ClassTimeTable() {
 
   // ─── Handlers ─────────────────────────────────────────────────────────
 
+  const handleAcademicYearChange = (yearId) => {
+    console.log('Year:', yearId)
+    setSelectedAcademicYearId(yearId)
+    setClassSectionId('')
+  }
+
   const handleSchoolLevelChange = (level) => {
     setSelectedSchoolLevel(level)
     setSelectedClassId('')
     setSelectedGroupId('')
-    setSelectedSectionId('')
     setSelectedTerm('')
+    setClassSectionId('')
   }
 
   const handleClassChange = (classId) => {
+    console.log('Class:', classId)
+    setClassSectionId('')
     setSelectedClassId(classId)
     setSelectedGroupId('')
-    setSelectedSectionId('')
   }
 
   const handleGroupChange = (groupId) => {
     setSelectedGroupId(groupId)
-    setSelectedSectionId('')
+    setClassSectionId('')
+  }
+
+  const handleSectionChange = (event) => {
+    const label = event.target.selectedOptions?.[0]?.text || ''
+    const value = event.target.value
+    console.log('Section:', value)
+    console.log('Selected Section Label:', label)
+    console.log('Selected class_section_id:', value)
+    console.log('Year:', selectedAcademicYearId)
+    setClassSectionId(value)
   }
 
   const handleCellChange = (day, key, subjectId) => {
@@ -589,7 +622,7 @@ export default function ClassTimeTable() {
         .delete()
         .eq('session_id', sessionId)
         .eq('class_id', selectedClassId)
-        .eq('section_id', selectedSectionId)
+        .eq('section_id', selectedSectionRefId)
         .eq('term', termValue)
 
       if (deleteError) throw deleteError
@@ -601,7 +634,7 @@ export default function ClassTimeTable() {
           const row = {
             session_id: sessionId,
             class_id: selectedClassId,
-            section_id: selectedSectionId,
+            section_id: selectedSectionRefId,
             term: termValue,
             day_of_week: day,
             period_number: slot.periodNumber,
@@ -662,7 +695,7 @@ export default function ClassTimeTable() {
               <select
                 className="form-select"
                 value={selectedAcademicYearId}
-                onChange={e => setSelectedAcademicYearId(e.target.value)}
+                onChange={e => handleAcademicYearChange(e.target.value)}
               >
                 <option value="">Select Academic Year</option>
                 {academicYears.map(y => (
@@ -726,13 +759,15 @@ export default function ClassTimeTable() {
               <label className="form-label fw-semibold">Section <span className="text-danger">*</span></label>
               <select
                 className="form-select"
-                value={selectedSectionId}
-                onChange={e => setSelectedSectionId(e.target.value)}
+                value={classSectionId}
+                onChange={handleSectionChange}
                 disabled={!selectedClassId || (showGroupDropdown && !selectedGroupId)}
               >
                 <option value="">Select Section</option>
-                {classSections.map((s, index) => (
-                  <option key={s.id} value={s.section_id}>{"A" + (index + 1)}</option>
+                {sectionOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -781,10 +816,7 @@ export default function ClassTimeTable() {
                 </span>
               )}
               <span className="badge bg-warning bg-opacity-10 text-warning px-3 py-2 fs-6">
-                Section {(() => {
-                  const secIndex = classSections.findIndex(s => String(s.section_id) === String(selectedSectionId))
-                  return "A" + (secIndex + 1)
-                })()}
+                Section {sectionOptions.find(opt => String(opt.value) === String(classSectionId))?.label || 'Unknown'}
               </span>
               {showTermDropdown && (
                 <span className="badge bg-dark bg-opacity-10 text-dark px-3 py-2 fs-6">
@@ -997,7 +1029,7 @@ export default function ClassTimeTable() {
                 : !selectedSchoolLevel ? 'Select a School Level to continue.'
                   : !selectedClassId ? 'Select a Class.'
                     : (showGroupDropdown && !selectedGroupId) ? 'Select a Group for Class 11/12.'
-                      : !selectedSectionId ? 'Select a Section.'
+                      : !classSectionId ? 'Select a Section.'
                         : (showTermDropdown && !selectedTerm) ? 'Select a Term.'
                           : 'All fields required.'}
             </p>
