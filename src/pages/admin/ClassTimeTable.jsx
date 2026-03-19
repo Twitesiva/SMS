@@ -1528,20 +1528,32 @@ export default function ClassTimeTable() {
             maxHeight: '95vh',
             overflow: 'auto'
           }}>
+            {/* HEADER: Class & Section */}
+            <div style={{ 
+              textAlign: 'center', 
+              padding: '15px', 
+              backgroundColor: '#f8f9fa', 
+              borderRadius: '8px',
+              marginBottom: '15px',
+              border: '1px solid #dee2e6'
+            }}>
+              <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#333' }}>
+                CLASS: {viewData?.className} &nbsp;|&nbsp; SECTION: {viewData?.sectionName}
+              </div>
+            </div>
+            
             <div className="modal-header" style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginBottom: '20px',
+              marginBottom: '10px',
               borderBottom: '1px solid #eee',
               paddingBottom: '10px'
             }}>
-              <h4 style={{ margin: 0 }}>
-                {viewData?.className} - {viewData?.sectionName}
-                <span className="text-muted ms-2" style={{ fontSize: '0.9rem' }}>
-                  ({viewData?.academicYear} - {formatTerm(viewData?.classNumber, viewData?.term)})
-                </span>
-              </h4>
+              <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                <strong>Academic Year:</strong> {viewData?.academicYear} &nbsp;|&nbsp; 
+                <strong>Term:</strong> {formatTerm(viewData?.classNumber, viewData?.term)}
+              </div>
               <div>
                 <button className="btn btn-primary btn-sm me-2" onClick={() => {
                   // Trigger browser print for PDF
@@ -1570,28 +1582,80 @@ export default function ClassTimeTable() {
                     <th style={{ width: '100px', padding: '8px', backgroundColor: '#f2f2f2' }}>DAY</th>
                     {viewData?.periodCount <= 6 ? (
                       <>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 1</th>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 2</th>
-                        <th style={{ padding: '8px', backgroundColor: '#fffde7', color: '#f57f17' }}>BREAK</th>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 3</th>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 4</th>
-                        <th style={{ padding: '8px', backgroundColor: '#e3f2fd', color: '#1976d2' }}>LUNCH</th>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 5</th>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 6</th>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                          <div>PERIOD 1</div>
+                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('10:00:00')} – {formatTime('10:40:00')}</div>
+                        </th>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                          <div>PERIOD 2</div>
+                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('10:40:00')} – {formatTime('11:20:00')}</div>
+                        </th>
+                        <th style={{ padding: '4px', backgroundColor: '#fffde7', color: '#f57f17', fontSize: '0.65rem', lineHeight: '1.2', verticalAlign: 'middle', height: '60px' }}>
+                          <div>B</div><div>R</div><div>E</div><div>A</div><div>K</div>
+                        </th>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                          <div>PERIOD 3</div>
+                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('11:25:00')} – {formatTime('12:05:00')}</div>
+                        </th>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                          <div>PERIOD 4</div>
+                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('12:05:00')} – {formatTime('12:45:00')}</div>
+                        </th>
+                        <th style={{ padding: '4px', backgroundColor: '#e3f2fd', color: '#1976d2', fontSize: '0.65rem', lineHeight: '1.2', verticalAlign: 'middle', height: '60px' }}>
+                          <div>L</div><div>U</div><div>N</div><div>C</div><div>H</div>
+                        </th>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                          <div>PERIOD 5</div>
+                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('13:10:00')} – {formatTime('13:50:00')}</div>
+                        </th>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                          <div>PERIOD 6</div>
+                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('13:50:00')} – {formatTime('14:30:00')}</div>
+                        </th>
                       </>
                     ) : (
                       <>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 1</th>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 2</th>
-                        <th style={{ padding: '8px', backgroundColor: '#fffde7', color: '#f57f17' }}>BREAK</th>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 3</th>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 4</th>
-                        <th style={{ padding: '8px', backgroundColor: '#e3f2fd', color: '#1976d2' }}>LUNCH</th>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 5</th>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 6</th>
-                        <th style={{ padding: '8px', backgroundColor: '#fffde7', color: '#f57f17' }}>BREAK</th>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 7</th>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>PERIOD 8</th>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                          <div>PERIOD 1</div>
+                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('10:00:00')} – {formatTime('10:40:00')}</div>
+                        </th>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                          <div>PERIOD 2</div>
+                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('10:40:00')} – {formatTime('11:20:00')}</div>
+                        </th>
+                        <th style={{ padding: '4px', backgroundColor: '#fffde7', color: '#f57f17', fontSize: '0.65rem', lineHeight: '1.2', verticalAlign: 'middle', height: '60px' }}>
+                          <div>B</div><div>R</div><div>E</div><div>A</div><div>K</div>
+                        </th>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                          <div>PERIOD 3</div>
+                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('11:25:00')} – {formatTime('12:05:00')}</div>
+                        </th>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                          <div>PERIOD 4</div>
+                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('12:05:00')} – {formatTime('12:45:00')}</div>
+                        </th>
+                        <th style={{ padding: '4px', backgroundColor: '#e3f2fd', color: '#1976d2', fontSize: '0.65rem', lineHeight: '1.2', verticalAlign: 'middle', height: '60px' }}>
+                          <div>L</div><div>U</div><div>N</div><div>C</div><div>H</div>
+                        </th>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                          <div>PERIOD 5</div>
+                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('13:10:00')} – {formatTime('13:50:00')}</div>
+                        </th>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                          <div>PERIOD 6</div>
+                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('13:50:00')} – {formatTime('14:30:00')}</div>
+                        </th>
+                        <th style={{ padding: '4px', backgroundColor: '#fffde7', color: '#f57f17', fontSize: '0.65rem', lineHeight: '1.2', verticalAlign: 'middle', height: '60px' }}>
+                          <div>B</div><div>R</div><div>E</div><div>A</div><div>K</div>
+                        </th>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                          <div>PERIOD 7</div>
+                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('14:35:00')} – {formatTime('15:15:00')}</div>
+                        </th>
+                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                          <div>PERIOD 8</div>
+                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('15:15:00')} – {formatTime('15:55:00')}</div>
+                        </th>
                       </>
                     )}
                   </tr>
@@ -1605,10 +1669,14 @@ export default function ClassTimeTable() {
                         <>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p1?.subject_title || '-'}</td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p2?.subject_title || '-'}</td>
-                          <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>BREAK</td>
+                          <td style={{ padding: '4px', textAlign: 'center', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold', fontSize: '0.65rem', lineHeight: '1.2', verticalAlign: 'middle', height: '60px' }}>
+                            <div>B</div><div>R</div><div>E</div><div>A</div><div>K</div>
+                          </td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p3?.subject_title || '-'}</td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p4?.subject_title || '-'}</td>
-                          <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold' }}>LUNCH</td>
+                          <td style={{ padding: '4px', textAlign: 'center', backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold', fontSize: '0.65rem', lineHeight: '1.2', verticalAlign: 'middle', height: '60px' }}>
+                            <div>L</div><div>U</div><div>N</div><div>C</div><div>H</div>
+                          </td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p5?.subject_title || '-'}</td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p6?.subject_title || '-'}</td>
                         </>
@@ -1617,13 +1685,19 @@ export default function ClassTimeTable() {
                         <>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p1?.subject_title || '-'}</td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p2?.subject_title || '-'}</td>
-                          <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>BREAK</td>
+                          <td style={{ padding: '4px', textAlign: 'center', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold', fontSize: '0.65rem', lineHeight: '1.2', verticalAlign: 'middle', height: '60px' }}>
+                            <div>B</div><div>R</div><div>E</div><div>A</div><div>K</div>
+                          </td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p3?.subject_title || '-'}</td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p4?.subject_title || '-'}</td>
-                          <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold' }}>LUNCH</td>
+                          <td style={{ padding: '4px', textAlign: 'center', backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold', fontSize: '0.65rem', lineHeight: '1.2', verticalAlign: 'middle', height: '60px' }}>
+                            <div>L</div><div>U</div><div>N</div><div>C</div><div>H</div>
+                          </td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p5?.subject_title || '-'}</td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p6?.subject_title || '-'}</td>
-                          <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>BREAK</td>
+                          <td style={{ padding: '4px', textAlign: 'center', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold', fontSize: '0.65rem', lineHeight: '1.2', verticalAlign: 'middle', height: '60px' }}>
+                            <div>B</div><div>R</div><div>E</div><div>A</div><div>K</div>
+                          </td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p7?.subject_title || '-'}</td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p8?.subject_title || '-'}</td>
                         </>
@@ -1632,6 +1706,22 @@ export default function ClassTimeTable() {
                   ))}
                 </tbody>
               </table>
+            </div>
+            
+            {/* FOOTER: Academic Year, Class, Section */}
+            <div style={{ 
+              textAlign: 'center', 
+              padding: '15px', 
+              backgroundColor: '#f8f9fa', 
+              borderRadius: '8px',
+              marginTop: '15px',
+              border: '1px solid #dee2e6'
+            }}>
+              <div style={{ fontSize: '0.95rem', color: '#333' }}>
+                <strong>Academic Year:</strong> {viewData?.academicYear} &nbsp;|&nbsp; 
+                <strong>Class:</strong> {viewData?.className} &nbsp;|&nbsp; 
+                <strong>Section:</strong> {viewData?.sectionName}
+              </div>
             </div>
           </div>
         </div>
