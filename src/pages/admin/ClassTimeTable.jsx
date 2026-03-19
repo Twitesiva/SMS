@@ -1542,7 +1542,7 @@ export default function ClassTimeTable() {
               </div>
             </div>
             
-            <div className="modal-header" style={{
+            <div className="modal-header no-print" style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
@@ -1555,9 +1555,159 @@ export default function ClassTimeTable() {
                 <strong>Term:</strong> {formatTerm(viewData?.classNumber, viewData?.term)}
               </div>
               <div>
-                <button className="btn btn-primary btn-sm me-2" onClick={() => {
-                  // Trigger browser print for PDF
-                  window.print()
+                <button className="btn btn-primary btn-sm me-2" onClick={async () => {
+                  // Import jsPDF and html2canvas
+                  const { default: jsPDF } = await import('jspdf')
+                  const html2canvas = (await import('html2canvas')).default
+                  
+                  // Create a container for PDF generation
+                  const pdfContainer = document.createElement('div')
+                  pdfContainer.style.position = 'absolute'
+                  pdfContainer.style.left = '-9999px'
+                  pdfContainer.style.top = '0'
+                  pdfContainer.style.width = '1100px'
+                  pdfContainer.style.padding = '20px'
+                  pdfContainer.style.backgroundColor = 'white'
+                  pdfContainer.style.fontFamily = 'Arial, sans-serif'
+                  
+                  // Build the PDF content HTML
+                  const periodCount = viewData?.periodCount || 6
+                  const is6Periods = periodCount <= 6
+                  
+                  // Generate header cells
+                  let headerCells = `
+                    <th style="background-color: #f2f2f2; border: 1px solid #333; padding: 8px; font-size: 10px;">DAY</th>
+                  `
+                  let bodyRows = ''
+                  
+                  // Period headers and body for 6 periods
+                  if (is6Periods) {
+                    headerCells += `
+                      <th style="background-color: #f2f2f2; border: 1px solid #333; padding: 6px; font-size: 9px;">PERIOD 1<br/>10:00-10:40</th>
+                      <th style="background-color: #f2f2f2; border: 1px solid #333; padding: 6px; font-size: 9px;">PERIOD 2<br/>10:40-11:20</th>
+                      <th style="background-color: #fffde7; border: 1px solid #333; padding: 6px; font-size: 9px; color: #f57f17;">BREAK</th>
+                      <th style="background-color: #f2f2f2; border: 1px solid #333; padding: 6px; font-size: 9px;">PERIOD 3<br/>11:25-12:05</th>
+                      <th style="background-color: #f2f2f2; border: 1px solid #333; padding: 6px; font-size: 9px;">PERIOD 4<br/>12:05-12:45</th>
+                      <th style="background-color: #e3f2fd; border: 1px solid #333; padding: 6px; font-size: 9px; color: #1976d2;">LUNCH</th>
+                      <th style="background-color: #f2f2f2; border: 1px solid #333; padding: 6px; font-size: 9px;">PERIOD 5<br/>13:10-13:50</th>
+                      <th style="background-color: #f2f2f2; border: 1px solid #333; padding: 6px; font-size: 9px;">PERIOD 6<br/>13:50-14:30</th>
+                    `
+                  } else {
+                    headerCells += `
+                      <th style="background-color: #f2f2f2; border: 1px solid #333; padding: 6px; font-size: 9px;">PERIOD 1<br/>10:00-10:40</th>
+                      <th style="background-color: #f2f2f2; border: 1px solid #333; padding: 6px; font-size: 9px;">PERIOD 2<br/>10:40-11:20</th>
+                      <th style="background-color: #fffde7; border: 1px solid #333; padding: 6px; font-size: 9px; color: #f57f17;">BREAK</th>
+                      <th style="background-color: #f2f2f2; border: 1px solid #333; padding: 6px; font-size: 9px;">PERIOD 3<br/>11:25-12:05</th>
+                      <th style="background-color: #f2f2f2; border: 1px solid #333; padding: 6px; font-size: 9px;">PERIOD 4<br/>12:05-12:45</th>
+                      <th style="background-color: #e3f2fd; border: 1px solid #333; padding: 6px; font-size: 9px; color: #1976d2;">LUNCH</th>
+                      <th style="background-color: #f2f2f2; border: 1px solid #333; padding: 6px; font-size: 9px;">PERIOD 5<br/>13:10-13:50</th>
+                      <th style="background-color: #f2f2f2; border: 1px solid #333; padding: 6px; font-size: 9px;">PERIOD 6<br/>13:50-14:30</th>
+                      <th style="background-color: #fffde7; border: 1px solid #333; padding: 6px; font-size: 9px; color: #f57f17;">BREAK</th>
+                      <th style="background-color: #f2f2f2; border: 1px solid #333; padding: 6px; font-size: 9px;">PERIOD 7<br/>14:35-15:15</th>
+                      <th style="background-color: #f2f2f2; border: 1px solid #333; padding: 6px; font-size: 9px;">PERIOD 8<br/>15:15-15:55</th>
+                    `
+                  }
+                  
+                  // Generate body rows
+                  FIXED_DAYS.forEach(day => {
+                    const dayIndex = FIXED_DAYS.indexOf(day)
+                    
+                    if (is6Periods) {
+                      bodyRows += `
+                        <tr>
+                          <td style="background-color: #f9f9f9; border: 1px solid #333; padding: 6px; font-weight: bold; font-size: 9px;">${day}</td>
+                          <td style="border: 1px solid #333; padding: 6px; font-size: 8px;">${viewData?.grid?.[day]?.p1?.subject_title || '-'}</td>
+                          <td style="background-color: #fffde7; border: 1px solid #333; padding: 6px; font-weight: bold; color: #f57f17; font-size: 9px;">${'BREAK'[dayIndex]}</td>
+                          <td style="border: 1px solid #333; padding: 6px; font-size: 8px;">${viewData?.grid?.[day]?.p2?.subject_title || '-'}</td>
+                          <td style="border: 1px solid #333; padding: 6px; font-size: 8px;">${viewData?.grid?.[day]?.p3?.subject_title || '-'}</td>
+                          <td style="background-color: #e3f2fd; border: 1px solid #333; padding: 6px; font-weight: bold; color: #1976d2; font-size: 9px;">${'LUNCH'[dayIndex]}</td>
+                          <td style="border: 1px solid #333; padding: 6px; font-size: 8px;">${viewData?.grid?.[day]?.p4?.subject_title || '-'}</td>
+                          <td style="border: 1px solid #333; padding: 6px; font-size: 8px;">${viewData?.grid?.[day]?.p5?.subject_title || '-'}</td>
+                        </tr>
+                      `
+                    } else {
+                      bodyRows += `
+                        <tr>
+                          <td style="background-color: #f9f9f9; border: 1px solid #333; padding: 6px; font-weight: bold; font-size: 9px;">${day}</td>
+                          <td style="border: 1px solid #333; padding: 6px; font-size: 8px;">${viewData?.grid?.[day]?.p1?.subject_title || '-'}</td>
+                          <td style="border: 1px solid #333; padding: 6px; font-size: 8px;">${viewData?.grid?.[day]?.p2?.subject_title || '-'}</td>
+                          <td style="background-color: #fffde7; border: 1px solid #333; padding: 6px; font-weight: bold; color: #f57f17; font-size: 9px;">${'BREAK'[dayIndex]}</td>
+                          <td style="border: 1px solid #333; padding: 6px; font-size: 8px;">${viewData?.grid?.[day]?.p3?.subject_title || '-'}</td>
+                          <td style="border: 1px solid #333; padding: 6px; font-size: 8px;">${viewData?.grid?.[day]?.p4?.subject_title || '-'}</td>
+                          <td style="background-color: #e3f2fd; border: 1px solid #333; padding: 6px; font-weight: bold; color: #1976d2; font-size: 9px;">${'LUNCH'[dayIndex]}</td>
+                          <td style="border: 1px solid #333; padding: 6px; font-size: 8px;">${viewData?.grid?.[day]?.p5?.subject_title || '-'}</td>
+                          <td style="border: 1px solid #333; padding: 6px; font-size: 8px;">${viewData?.grid?.[day]?.p6?.subject_title || '-'}</td>
+                          <td style="background-color: #fffde7; border: 1px solid #333; padding: 6px; font-weight: bold; color: #f57f17; font-size: 9px;">${'BREAK'[dayIndex]}</td>
+                          <td style="border: 1px solid #333; padding: 6px; font-size: 8px;">${viewData?.grid?.[day]?.p7?.subject_title || '-'}</td>
+                          <td style="border: 1px solid #333; padding: 6px; font-size: 8px;">${viewData?.grid?.[day]?.p8?.subject_title || '-'}</td>
+                        </tr>
+                      `
+                    }
+                  })
+                  
+                  pdfContainer.innerHTML = `
+                    <div style="text-align: center; padding: 15px; background-color: #f8f9fa; border: 1px solid #dee2e6; margin-bottom: 15px; border-radius: 5px;">
+                      <h2 style="font-size: 18px; margin-bottom: 5px; color: #333;">CLASS: ${viewData?.className} | SECTION: ${viewData?.sectionName}</h2>
+                      <p style="font-size: 12px; color: #666;">Academic Year: ${viewData?.academicYear} | Term: ${formatTerm(viewData?.classNumber, viewData?.term)}</p>
+                    </div>
+                    <table style="width: 100%; border-collapse: collapse; border: 1px solid #333;">
+                      <thead>
+                        <tr>${headerCells}</tr>
+                      </thead>
+                      <tbody>${bodyRows}</tbody>
+                    </table>
+                    <div style="text-align: center; padding: 15px; background-color: #f8f9fa; border: 1px solid #dee2e6; margin-top: 15px; border-radius: 5px;">
+                      <p style="font-size: 12px;">Academic Year: ${viewData?.academicYear} | Class: ${viewData?.className} | Section: ${viewData?.sectionName}</p>
+                    </div>
+                  `
+                  
+                  document.body.appendChild(pdfContainer)
+                  
+                  try {
+                    // Convert to canvas
+                    const canvas = await html2canvas(pdfContainer, {
+                      scale: 2,
+                      useCORS: true,
+                      logging: false,
+                      backgroundColor: '#ffffff'
+                    })
+                    
+                    // Calculate dimensions for A4 landscape
+                    const imgWidth = 297 // A4 landscape width in mm
+                    const pageHeight = 210 // A4 landscape height in mm
+                    const imgHeight = (canvas.height * imgWidth) / canvas.width
+                    
+                    // Create PDF in landscape mode
+                    const pdf = new jsPDF('l', 'mm', 'a4')
+                    let heightLeft = imgHeight
+                    let position = 0
+                    
+                    // Add image to PDF
+                    const imgData = canvas.toDataURL('image/png')
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+                    heightLeft -= pageHeight
+                    
+                    // Add more pages if needed
+                    while (heightLeft > 0) {
+                      position = heightLeft - imgHeight
+                      pdf.addPage()
+                      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+                      heightLeft -= pageHeight
+                    }
+                    
+                    // Generate filename
+                    const fileName = `Class_${viewData?.className}_${viewData?.sectionName}_Timetable_${viewData?.academicYear}.pdf`.replace(/\s+/g, '_')
+                    
+                    // Download directly
+                    pdf.save(fileName)
+                    
+                  } catch (error) {
+                    console.error('PDF generation error:', error)
+                    alert('Error generating PDF. Please try again.')
+                  } finally {
+                    // Clean up
+                    document.body.removeChild(pdfContainer)
+                  }
                 }}>
                   Download PDF
                 </button>
@@ -1579,7 +1729,7 @@ export default function ClassTimeTable() {
               }}>
                 <thead>
                   <tr>
-                    <th style={{ width: '100px', padding: '8px', backgroundColor: '#f2f2f2' }}>DAY</th>
+                    <th className="day-name" style={{ width: '100px', padding: '8px', backgroundColor: '#f2f2f2' }}>DAY</th>
                     {viewData?.periodCount <= 6 ? (
                       <>
                         <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
@@ -1590,8 +1740,8 @@ export default function ClassTimeTable() {
                           <div>PERIOD 2</div>
                           <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('10:40:00')} – {formatTime('11:20:00')}</div>
                         </th>
-                        <th style={{ padding: '4px', backgroundColor: '#fffde7', color: '#f57f17', fontSize: '0.65rem', lineHeight: '1.2', verticalAlign: 'middle', height: '60px' }}>
-                          <div>B</div><div>R</div><div>E</div><div>A</div><div>K</div>
+                        <th className="break-cell" style={{ padding: '8px', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>
+                          <div>BREAK</div>
                         </th>
                         <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
                           <div>PERIOD 3</div>
@@ -1601,8 +1751,8 @@ export default function ClassTimeTable() {
                           <div>PERIOD 4</div>
                           <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('12:05:00')} – {formatTime('12:45:00')}</div>
                         </th>
-                        <th style={{ padding: '4px', backgroundColor: '#e3f2fd', color: '#1976d2', fontSize: '0.65rem', lineHeight: '1.2', verticalAlign: 'middle', height: '60px' }}>
-                          <div>L</div><div>U</div><div>N</div><div>C</div><div>H</div>
+                        <th className="lunch-cell" style={{ padding: '8px', backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold' }}>
+                          <div>LUNCH</div>
                         </th>
                         <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
                           <div>PERIOD 5</div>
@@ -1623,8 +1773,8 @@ export default function ClassTimeTable() {
                           <div>PERIOD 2</div>
                           <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('10:40:00')} – {formatTime('11:20:00')}</div>
                         </th>
-                        <th style={{ padding: '4px', backgroundColor: '#fffde7', color: '#f57f17', fontSize: '0.65rem', lineHeight: '1.2', verticalAlign: 'middle', height: '60px' }}>
-                          <div>B</div><div>R</div><div>E</div><div>A</div><div>K</div>
+                        <th className="break-cell" style={{ padding: '8px', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>
+                          <div>BREAK</div>
                         </th>
                         <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
                           <div>PERIOD 3</div>
@@ -1634,8 +1784,8 @@ export default function ClassTimeTable() {
                           <div>PERIOD 4</div>
                           <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('12:05:00')} – {formatTime('12:45:00')}</div>
                         </th>
-                        <th style={{ padding: '4px', backgroundColor: '#e3f2fd', color: '#1976d2', fontSize: '0.65rem', lineHeight: '1.2', verticalAlign: 'middle', height: '60px' }}>
-                          <div>L</div><div>U</div><div>N</div><div>C</div><div>H</div>
+                        <th className="lunch-cell" style={{ padding: '8px', backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold' }}>
+                          <div>LUNCH</div>
                         </th>
                         <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
                           <div>PERIOD 5</div>
@@ -1645,8 +1795,8 @@ export default function ClassTimeTable() {
                           <div>PERIOD 6</div>
                           <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('13:50:00')} – {formatTime('14:30:00')}</div>
                         </th>
-                        <th style={{ padding: '4px', backgroundColor: '#fffde7', color: '#f57f17', fontSize: '0.65rem', lineHeight: '1.2', verticalAlign: 'middle', height: '60px' }}>
-                          <div>B</div><div>R</div><div>E</div><div>A</div><div>K</div>
+                        <th className="break-cell" style={{ padding: '8px', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>
+                          <div>BREAK</div>
                         </th>
                         <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
                           <div>PERIOD 7</div>
@@ -1663,19 +1813,25 @@ export default function ClassTimeTable() {
                 <tbody>
                   {FIXED_DAYS.map(day => (
                     <tr key={day}>
-                      <td style={{ padding: '8px', fontWeight: 'bold', backgroundColor: '#f9f9f9' }}>{day}</td>
+                      <td className="day-name" style={{ padding: '8px', fontWeight: 'bold', backgroundColor: '#f9f9f9' }}>{day}</td>
                       {viewData?.periodCount <= 6 ? (
                         // 6 periods
                         <>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p1?.subject_title || '-'}</td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p2?.subject_title || '-'}</td>
-                          <td style={{ padding: '4px', textAlign: 'center', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold', fontSize: '0.65rem', lineHeight: '1.2', verticalAlign: 'middle', height: '60px' }}>
-                            <div>B</div><div>R</div><div>E</div><div>A</div><div>K</div>
+                          <td className="break-cell" style={{ padding: '8px', textAlign: 'center', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>
+                            {(() => {
+                              const dayIndex = FIXED_DAYS.indexOf(day)
+                              return 'BREAK'[dayIndex]
+                            })()}
                           </td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p3?.subject_title || '-'}</td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p4?.subject_title || '-'}</td>
-                          <td style={{ padding: '4px', textAlign: 'center', backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold', fontSize: '0.65rem', lineHeight: '1.2', verticalAlign: 'middle', height: '60px' }}>
-                            <div>L</div><div>U</div><div>N</div><div>C</div><div>H</div>
+                          <td className="lunch-cell" style={{ padding: '8px', textAlign: 'center', backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold' }}>
+                            {(() => {
+                              const dayIndex = FIXED_DAYS.indexOf(day)
+                              return 'LUNCH'[dayIndex]
+                            })()}
                           </td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p5?.subject_title || '-'}</td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p6?.subject_title || '-'}</td>
@@ -1685,18 +1841,27 @@ export default function ClassTimeTable() {
                         <>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p1?.subject_title || '-'}</td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p2?.subject_title || '-'}</td>
-                          <td style={{ padding: '4px', textAlign: 'center', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold', fontSize: '0.65rem', lineHeight: '1.2', verticalAlign: 'middle', height: '60px' }}>
-                            <div>B</div><div>R</div><div>E</div><div>A</div><div>K</div>
+                          <td className="break-cell" style={{ padding: '8px', textAlign: 'center', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>
+                            {(() => {
+                              const dayIndex = FIXED_DAYS.indexOf(day)
+                              return 'BREAK'[dayIndex]
+                            })()}
                           </td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p3?.subject_title || '-'}</td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p4?.subject_title || '-'}</td>
-                          <td style={{ padding: '4px', textAlign: 'center', backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold', fontSize: '0.65rem', lineHeight: '1.2', verticalAlign: 'middle', height: '60px' }}>
-                            <div>L</div><div>U</div><div>N</div><div>C</div><div>H</div>
+                          <td className="lunch-cell" style={{ padding: '8px', textAlign: 'center', backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold' }}>
+                            {(() => {
+                              const dayIndex = FIXED_DAYS.indexOf(day)
+                              return 'LUNCH'[dayIndex]
+                            })()}
                           </td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p5?.subject_title || '-'}</td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p6?.subject_title || '-'}</td>
-                          <td style={{ padding: '4px', textAlign: 'center', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold', fontSize: '0.65rem', lineHeight: '1.2', verticalAlign: 'middle', height: '60px' }}>
-                            <div>B</div><div>R</div><div>E</div><div>A</div><div>K</div>
+                          <td className="break-cell" style={{ padding: '8px', textAlign: 'center', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>
+                            {(() => {
+                              const dayIndex = FIXED_DAYS.indexOf(day)
+                              return 'BREAK'[dayIndex]
+                            })()}
                           </td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p7?.subject_title || '-'}</td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p8?.subject_title || '-'}</td>
