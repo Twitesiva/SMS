@@ -27,7 +27,7 @@ export default function ClassTeacherMapping() {
   const [academicYears, setAcademicYears] = useState([])
   const [classes, setClasses] = useState([])
   const [groups, setGroups] = useState([])
-  const [sections, setSections] = useState([])
+  const [classSections, setClassSections] = useState([])
   const [staffList, setStaffList] = useState([])
   const [classTeachers, setClassTeachers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -35,6 +35,7 @@ export default function ClassTeacherMapping() {
   const [formData, setFormData] = useState(EMPTY_FORM)
   const [mappings, setMappings] = useState([])
   const [editingId, setEditingId] = useState(null)
+  const [sectionLabelMap, setSectionLabelMap] = useState({})
 
   const loadMappings = async () => {
     try {
@@ -52,6 +53,7 @@ export default function ClassTeacherMapping() {
             id,
             class_id,
             section_id,
+            created_at,
             sections (
               section_name
             ),
@@ -69,6 +71,24 @@ export default function ClassTeacherMapping() {
 
       if (error) throw error
       setMappings(data || [])
+      const labelGroups = {}
+      const computedLabels = {}
+      ;(data || []).forEach(mapping => {
+        const section = mapping.class_sections
+        if (!section?.id) return
+        const key = `${mapping.academic_year_id}-${section.class_id}`
+        if (!labelGroups[key]) labelGroups[key] = []
+        if (!labelGroups[key].some(item => item.id === section.id)) {
+          labelGroups[key].push({ id: section.id, created_at: section.created_at })
+        }
+      })
+      Object.values(labelGroups).forEach(group => {
+        group.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0))
+        group.forEach((sec, index) => {
+          computedLabels[sec.id] = `A${index + 1}`
+        })
+      })
+      setSectionLabelMap(computedLabels)
     } catch (err) {
       console.error('Mappings load error:', err)
     }
@@ -160,7 +180,7 @@ export default function ClassTeacherMapping() {
   useEffect(() => {
     // Safety check: return early if no class selected
     if (!formData.class_id) {
-      setSections([])
+      setClassSections([])
       setFormData(prev => ({ ...prev, section_id: '' }))
       return
     }
@@ -173,12 +193,10 @@ export default function ClassTeacherMapping() {
             id,
             class_id,
             section_id,
-            sections!class_sections_section_id_fkey (
-              id,
-              section_name
-            )
+            created_at
           `)
           .eq('class_id', formData.class_id)
+          .eq('academic_year_id', formData.academic_year_id)
 
         // For Class 11/12: filter by group_id if selected
         // For classes below 11: filter by group_id = null
@@ -188,33 +206,27 @@ export default function ClassTeacherMapping() {
           query = query.is('group_id', null)
         }
 
-        const { data, error } = await query
+        const { data, error } = await query.order('created_at')
         if (error) throw error
         
-        // Sort in frontend after fetching
-        const sortedData = (data || []).sort((a, b) => 
-          (a.sections?.section_name || '').localeCompare(b.sections?.section_name || '')
-        )
-        
-        const normalizedSections = sortedData.map(row => ({
+        const normalizedSections = (data || []).map(row => ({
           id: row.id,
-          section_id: row.section_id,
-          section_name: row.sections?.section_name || 'Unknown'
+          section_id: row.section_id
         }))
-        setSections(normalizedSections)
+        setClassSections(normalizedSections)
         setFormData(prev => {
-          const keepSection = normalizedSections.some(s => s.id === prev.section_id || s.section_id === prev.section_id)
+          const keepSection = normalizedSections.some(s => s.id === prev.section_id)
           return { ...prev, section_id: keepSection ? prev.section_id : '' }
         })
       } catch (err) {
         console.error('Sections load error:', err)
         showToast('Failed to load sections', { type: 'warning' })
-        setSections([])
+      setClassSections([])
       }
     }
 
     loadSections()
-  }, [formData.class_id, formData.group_id, isHigherSec])
+  }, [formData.class_id, formData.group_id, formData.academic_year_id, isHigherSec])
 
   // Reset dependent fields
   const handleSchoolLevelChange = (level) => {
@@ -226,6 +238,7 @@ export default function ClassTeacherMapping() {
       section_id: '',
       term: ''
     })
+    setClassSections([])
   }
 
   const handleClassChange = (classId) => {
@@ -236,6 +249,22 @@ export default function ClassTeacherMapping() {
       section_id: '',
       term: ''
     })
+    setClassSections([])
+  }
+
+  const handleGroupChange = (groupId) => {
+    setFormData(prev => ({
+      ...prev,
+      group_id: groupId,
+      section_id: ''
+    }))
+    setClassSections([])
+  }
+
+  const handleSectionChange = (value) => {
+    const idx = classSections.findIndex(sec => sec.id === value)
+    console.log('Selected section label', `A${idx + 1}`, 'class_section_id', value)
+    setFormData(prev => ({ ...prev, section_id: value }))
   }
 
   // Form validation
@@ -471,7 +500,7 @@ export default function ClassTeacherMapping() {
                   <select 
                     className="form-select"
                     value={formData.group_id}
-                    onChange={e => setFormData({...formData, group_id: e.target.value})}
+                    onChange={e => handleGroupChange(e.target.value)}
                     disabled={!formData.class_id}
                   >
                     <option value="">Select Group</option>
@@ -489,12 +518,12 @@ export default function ClassTeacherMapping() {
                 <select 
                   className="form-select"
                   value={formData.section_id}
-                  onChange={e => setFormData({...formData, section_id: e.target.value})}
+                  onChange={e => handleSectionChange(e.target.value)}
                   disabled={!formData.class_id || (isHigherSec && !formData.group_id)}
                 >
                   <option value="">Select Section</option>
-                  {sections.map((sec, index) => (
-                    <option key={sec.id} value={sec.id}>{"A" + (index + 1)}</option>
+                  {classSections.map((sec, index) => (
+                    <option key={sec.id} value={sec.id}>{`A${index + 1}`}</option>
                   ))}
                 </select>
               </div>
@@ -565,10 +594,9 @@ export default function ClassTeacherMapping() {
                       }</span>
                     )}
                     {(() => {
-                      const selectedSec = sections.find(s => s.section_id === formData.section_id)
-                      const secIndex = sections.findIndex(s => s.section_id === formData.section_id)
-                      return selectedSec && (
-                        <span className="badge bg-warning bg-opacity-20 text-warning px-3 py-2">{"A" + (secIndex + 1)}</span>
+                      const secIndex = classSections.findIndex(s => s.id === formData.section_id)
+                      return secIndex >= 0 && (
+                        <span className="badge bg-warning bg-opacity-20 text-warning px-3 py-2">{`A${secIndex + 1}`}</span>
                       )
                     })()}
                     {formData.term && (
@@ -661,7 +689,7 @@ export default function ClassTeacherMapping() {
                             </span>
                           </td>
                           <td>{className}</td>
-                          <td>{sectionName}</td>
+                          <td>{sectionLabelMap[mapping.class_section_id] || sectionName}</td>
                           <td>{staffName}</td>
                           <td className="text-end">
                             <div className="d-flex justify-content-end gap-2">
