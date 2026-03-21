@@ -58,6 +58,94 @@ export default function Subjects() {
   const [pendingMappingDeleteId, setPendingMappingDeleteId] = useState(null)
   const [pendingRowDeleteKey, setPendingRowDeleteKey] = useState(null)
 
+  // Usage modal state - only shows staff
+  const [usageModal, setUsageModal] = useState({
+    isOpen: false,
+    loading: false,
+    subjectId: null,
+    subjectTitle: '',
+    classes: [],
+    staff: [],
+  })
+
+  // Handler to fetch classes and staff - uses same sources as counts
+  const handleUsageClick = async (subjectId) => {
+    const subject = masterSubjects.find(s => s.id === subjectId)
+    if (!subject) return
+
+    setUsageModal({
+      isOpen: true,
+      loading: true,
+      subjectId,
+      subjectTitle: subject.subject_title,
+      classes: [],
+      staff: [],
+    })
+
+    try {
+      // Fetch classes from class_subjects - same source as classCount
+      // Uses same pattern as loadMappings: class_subjects -> classes (direct relationship)
+      const { data: classData, error: classError } = await supabase
+        .from('class_subjects')
+        .select(`
+          id,
+          class_id,
+          classes(id, class_name, class_number)
+        `)
+        .eq('subject_id', subjectId)
+
+      // Fetch staff from staff_subjects - same source as staffCount
+      const { data: staffData, error: staffError } = await supabase
+        .from('staff_subjects')
+        .select(`
+          staff_id,
+          staff(id, full_name)
+        `)
+        .eq('subject_id', subjectId)
+
+      if (staffError) throw staffError
+
+      const staffSet = new Map()
+      const classSet = new Map()
+
+      // Process staff data - unique staff
+      ;(staffData || []).forEach(row => {
+        if (row.staff) {
+          staffSet.set(row.staff.id, row.staff.full_name)
+        }
+      })
+
+      // Process class data - unique CLASS names only (direct from classes table)
+      // Only add if we successfully got class data (avoid showing wrong/partial data)
+      if (!classError && classData) {
+        ;(classData || []).forEach(row => {
+          const cls = row.classes?.class_name
+          const classId = row.classes?.id
+          if (cls && classId) {
+            classSet.set(classId, cls)
+          }
+        })
+      }
+
+      const uniqueClasses = Array.from(classSet.values()).sort()
+      const uniqueStaff = Array.from(staffSet.values()).sort()
+
+      setUsageModal(prev => ({
+        ...prev,
+        loading: false,
+        classes: uniqueClasses,
+        staff: uniqueStaff,
+      }))
+    } catch (err) {
+      console.error('Error fetching usage:', err)
+      setUsageModal(prev => ({ ...prev, loading: false }))
+    }
+  }
+
+  const closeUsageModal = () => {
+    setUsageModal(prev => ({ ...prev, isOpen: false }))
+  }
+
   // __LOADERS__
   const loadMappings = async () => {
     const { data, error } = await supabase
@@ -1073,9 +1161,14 @@ export default function Subjects() {
                             <td>{subject.subject_code || '-'}</td>
                             <td>{subject.school_level || '-'}</td>
                             <td>
-                              <div className="text-muted small">
+                              <span
+                                className="badge bg-secondary bg-opacity-10 text-secondary border border-secondary"
+                                style={{ cursor: 'pointer', fontSize: '0.8rem', padding: '6px 12px' }}
+                                onClick={() => handleUsageClick(subject.id)}
+                                title="Click to see staff details"
+                              >
                                 {subject.classCount} Classes / {subject.staffCount} Staff
-                              </div>
+                              </span>
                             </td>
                             <td className="text-end">
                               <button
@@ -1103,6 +1196,95 @@ export default function Subjects() {
                     </table>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Usage Details Modal - Shows classes and staff */}
+      {usageModal.isOpen && (
+        <div
+          className="modal fade show d-block"
+          tabIndex="-1"
+          style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeUsageModal()
+          }}
+        >
+          <div className="modal-dialog modal-dialog-centered modal-md">
+            <div className="modal-content shadow-lg" style={{ borderRadius: '16px', border: 'none', overflow: 'hidden' }}>
+              <div
+                className="modal-header border-0 pb-0 text-white"
+                style={{ background: 'linear-gradient(135deg, #4c6496, #2d3b59)', padding: '24px 32px' }}
+              >
+                <div className="flex-grow-1">
+                  <p className="mb-0 fw-bold" style={{ fontSize: '0.72rem', letterSpacing: '1.5px', opacity: 0.7 }}>
+                    SUBJECT USAGE
+                  </p>
+                  <h4 className="mb-1 fw-bold text-white text-uppercase" style={{ letterSpacing: '2px' }}>
+                    {usageModal.subjectTitle}
+                  </h4>
+                  <p className="mb-0 fw-semibold" style={{ fontSize: '0.9rem', color: '#e0e7ff' }}>
+                    {usageModal.staff.length} Staff Member{usageModal.staff.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-sm ms-3 align-self-start mt-1"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', borderRadius: '8px', padding: '4px 12px' }}
+                  onClick={closeUsageModal}
+                >
+                  <i className="bi bi-x-lg"></i>
+                </button>
+              </div>
+
+              <div className="modal-body bg-white p-0" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                {usageModal.loading ? (
+                  <div className="p-5 text-center text-muted fw-bold">Loading data...</div>
+                ) : usageModal.staff.length === 0 && usageModal.classes.length === 0 ? (
+                  <div className="p-5 text-center text-muted fw-bold">No usage found</div>
+                ) : (
+                  <div className="p-4">
+                    {/* Classes Section - Only show if we have class data */}
+                    {usageModal.classes.length > 0 && (
+                      <div className="mb-4">
+                        <h6 className="fw-bold text-dark mb-3">
+                          <i className="bi bi-collection me-2"></i>Classes ({usageModal.classes.length})
+                        </h6>
+                        <div className="d-flex flex-wrap gap-2">
+                          {usageModal.classes.map((cls, idx) => (
+                            <span key={idx} className="badge bg-primary-subtle text-primary border border-primary px-3 py-2">
+                              {cls}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Staff Section - Always show */}
+                    {usageModal.staff.length > 0 && (
+                      <div>
+                        <h6 className="fw-bold text-dark mb-3">
+                          <i className="bi bi-person-badge me-2"></i>Staff ({usageModal.staff.length})
+                        </h6>
+                        <div className="d-flex flex-wrap gap-2">
+                          {usageModal.staff.map((st, idx) => (
+                            <span key={idx} className="badge bg-success-subtle text-success border border-success px-3 py-2">
+                              {st}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="modal-footer border-0">
+                <button type="button" className="btn btn-secondary" onClick={closeUsageModal}>
+                  Close
+                </button>
               </div>
             </div>
           </div>
