@@ -487,13 +487,8 @@ export default function GroupsCoursesSection({
                     <div className="card h-100 students-category-card">
                       <div className="card-body d-flex flex-column">
                         <div className="d-flex justify-content-between align-items-start mb-2">
-                          <div>
-                            <div className="text-uppercase text-dark fw-bold mb-1">
+                          <div className="text-uppercase text-dark fw-bold">
                                 {card.type === 'group' ? `CLASS ${card.classCode} - ${card.name}` : `CLASS ${card.code}`}
-                            </div>
-                            <div className="fs-6 text-muted">
-                                {card.type === 'group' ? card.className : (card.name || '-')}
-                            </div>
                           </div>
                           {card.category ? (
                             <span className="students-section-badge students-section-badge-category">{card.category}</span>
