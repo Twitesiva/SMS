@@ -26,21 +26,25 @@ export default function StaffLogin() {
         .from('staff')
         .select('*')
         .eq('staff_id', cleanStaffId)
-        .eq('phone_number', cleanMobile)
-        .single()
+        .eq('phone', cleanMobile)
 
-      if (fetchError) throw fetchError
-      if (!data) {
-        setError('Invalid Staff ID or mobile number')
+      if (fetchError) {
+        setError('Unable to sign in. Please try again.')
         setLoading(false)
         return
       }
 
-      setStaff(data)
+      if (!data || data.length === 0) {
+        setError('Invalid Staff ID or Password')
+        setLoading(false)
+        return
+      }
+
+      setStaff(data[0])
       nav('/staff/dashboard')
     } catch (err) {
       console.error(err)
-      setError(err?.message || 'Unable to sign in')
+      setError('Unable to sign in. Please try again.')
     } finally {
       setLoading(false)
     }
