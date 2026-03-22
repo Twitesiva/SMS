@@ -9,9 +9,9 @@ const buildProfileRows = (staff) => [
     { label: 'Staff ID', value: staff?.staff_id },
     { label: 'Designation', value: staff?.designation ? staff.designation.replace(/_/g, ' ') : '' },
     { label: 'Qualification', value: staff?.qualification },
-    { label: 'Mobile Number', value: staff?.phone_number },
+    { label: 'Mobile Number', value: staff?.phone },
     { label: 'Email', value: staff?.email },
-    { label: 'Experience (Years)', value: staff?.experience_years },
+    { label: 'Experience (Years)', value: staff?.experience },
     { label: 'Joining Date', value: staff?.joining_date ? staff.joining_date.split('-').reverse().join('-') : '-' },
     { label: 'Address', value: staff?.address },
 ]
@@ -48,44 +48,87 @@ export default function StaffDashboard() {
 
     const fetchAssignments = async (staffId) => {
         setLoading(true)
-        const { data, error } = await supabase
-            .from('staff_subjects')
-            .select(`
-                subjects (
-                    subject_code,
-                    subject_title,
-                    term,
-                    sections (
-                        section_name
-                    ),
-                    classes (
-                        class_name
-                    ),
-                    groups (
-                        group_name
-                    )
-                )
-            `)
-            .eq('staff_id', staffId)
+        
+        try {
+            // STEP 1: Get staff subjects to get subject_id list
+            const { data: staffSubjects, error: ssError } = await supabase
+                .from('staff_subjects')
+                .select('subject_id')
+                .eq('staff_id', staffId)
 
-        if (!error && data) {
-            const normalized = data.map(item => {
-                const s = item.subjects;
-                return {
-                    semester: s?.term || '-',
-                    subjects: {
-                        subject_code: s?.subject_code,
-                        subject_name: s?.subject_title
-                    },
-                    courses: {
-                        course_name: s?.sections?.section_name || (s?.groups ? `Group: ${s.groups.group_name}` : 'All')
-                    },
-                    groups: {
-                        group_name: s?.classes?.class_name || '-'
-                    }
+            if (ssError) throw ssError
+            
+            // Get subject IDs array
+            const subjectIds = (staffSubjects || []).map(s => s.subject_id)
+            
+            if (subjectIds.length === 0) {
+                setAssignments([])
+                setLoading(false)
+                return
+            }
+
+            // STEP 2: Get timetable_sessions data filtered by staff_id AND subject_id
+            const { data: timetableData, error: ttError } = await supabase
+                .from('timetable_sessions')
+                .select('subject_id, class_section_id')
+                .eq('staff_id', staffId)
+                .in('subject_id', subjectIds)
+
+            if (ttError) throw ttError
+
+            if (!timetableData || timetableData.length === 0) {
+                setAssignments([])
+                setLoading(false)
+                return
+            }
+
+            // Get unique class_section_ids and subject_ids for fetching names
+            const sectionIds = [...new Set(timetableData.map(t => t.class_section_id).filter(Boolean))]
+            const allSubjectIds = [...new Set(timetableData.map(t => t.subject_id).filter(Boolean))]
+
+            // STEP 3: Fetch class_sections, classes, and subjects data
+            // Use subjects.id (not subject_id) to match timetable_sessions.subject_id
+            const [{ data: sectionsData }, { data: subjectsData }, { data: classesData }] = await Promise.all([
+                supabase.from('class_sections').select('id, class_id').in('id', sectionIds),
+                supabase.from('subjects').select('id, subject_title, school_level').in('id', allSubjectIds),
+                supabase.from('classes').select('id, class_name')
+            ])
+
+            // Create lookup maps
+            const sectionMap = new Map((sectionsData || []).map(s => [s.id, s]))
+            const subjectMap = new Map((subjectsData || []).map(s => [s.id, s]))
+            const classMap = new Map((classesData || []).map(c => [c.id, c]))
+
+            // STEP 4: Build final data and remove duplicates
+            const seen = new Set()
+            const normalized = []
+            
+            timetableData.forEach(item => {
+                const section = sectionMap.get(item.class_section_id)
+                const subject = subjectMap.get(item.subject_id)
+                const cls = classMap.get(section?.class_id)
+                
+                const className = cls?.class_name || ''
+                const subjectName = subject?.subject_title || ''
+                const schoolLevel = subject?.school_level || ''
+                
+                // Create unique key to remove duplicates (class + subject)
+                const uniqueKey = `${className}-${subjectName}`
+                
+                if (!seen.has(uniqueKey)) {
+                    seen.add(uniqueKey)
+                    normalized.push({
+                        schoolLevel: schoolLevel || '-',
+                        className: className || '-',
+                        subjectName: subjectName || '-'
+                    })
                 }
-            });
+            })
+            
             setAssignments(normalized)
+        } catch (err) {
+            console.error('Error fetching assignments:', err)
+            setAssignments([])
         }
         setLoading(false)
     }
@@ -177,11 +220,11 @@ export default function StaffDashboard() {
                         </div>
 
                         {/* ===============================
-                           CONSOLIDATED TEACHING DETAILS
+                            CONSOLIDATED TEACHING DETAILS
                         ================================ */}
                         <div className="student-card mt-4 mb-4">
                             <div className="student-card__header">
-                                Course and Group Details
+                                Assigned Classes
                             </div>
 
                             <div className="student-card__body records-page p-0">
@@ -189,34 +232,29 @@ export default function StaffDashboard() {
                                     <table className="table mb-0">
                                         <thead>
                                             <tr>
-                                                <th className="text-center" style={{ width: '60px' }}>S.NO</th>
-                                                <th>COURSE</th>
-                                                <th>GROUP</th>
-                                                <th>SUBJECT</th>
-                                                <th>SEMESTER</th>
+                                                <th className="text-center" style={{ width: '60px' }}>S.No</th>
+                                                <th>School Level</th>
+                                                <th>Class</th>
+                                                <th>Subject</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {assignments.length === 0 ? (
                                                 <tr>
                                                     <td
-                                                        colSpan="5"
+                                                        colSpan="4"
                                                         className="text-center text-muted py-4"
                                                     >
-                                                        No course and group details found
+                                                        No assigned classes found
                                                     </td>
                                                 </tr>
                                             ) : (
                                                 assignments.map((row, index) => (
                                                     <tr key={index}>
                                                         <td className="text-center">{index + 1}</td>
-                                                        <td>{row.courses?.course_name}</td>
-                                                        <td>{row.groups?.group_name}</td>
-                                                        <td>
-                                                            {row.subjects?.subject_code} –{' '}
-                                                            {row.subjects?.subject_name}
-                                                        </td>
-                                                        <td>Semester {row.semester}</td>
+                                                        <td>{row.schoolLevel}</td>
+                                                        <td>{row.className}</td>
+                                                        <td>{row.subjectName}</td>
                                                     </tr>
                                                 ))
                                             )}
