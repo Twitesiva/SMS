@@ -49,60 +49,75 @@ export default function StaffTimetable() {
     setLoading(true)
 
     try {
-      // 1. Get active session
-      const { data: session } = await supabase
+      // 1. Fetch staff slots from timetable_sessions
+      const { data: slots, error } = await supabase
         .from('timetable_sessions')
-        .select('id, term')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
+        .select('day_of_week, period_id, subject_id, class_section_id')
+        .eq('staff_id', staff.id)
 
-      if (!session) {
+      if (error || !slots || slots.length === 0) {
+        console.log('No slots found or error:', error)
+        setTableData({ empty: true })
         setLoading(false)
         return
       }
 
-      // 2. Fetch staff slots
-      const { data: slots, error } = await supabase
-        .from('timetable_session_classes')
-        .select(`
-          day_of_week,
-          period_number,
-          subject_id,
-          subjects (
-            subject_title,
-            term,
-            sections ( section_name ),
-            classes ( class_name ),
-            groups ( group_name )
-          )
-        `)
-        .eq('staff_id', staff.id)
-        .eq('session_id', session.id)
+      // 2. Get unique IDs for lookup
+      const periodIds = [...new Set(slots.map(s => s.period_id).filter(Boolean))]
+      const subjectIds = [...new Set(slots.map(s => s.subject_id).filter(Boolean))]
+      const sectionIds = [...new Set(slots.map(s => s.class_section_id).filter(Boolean))]
 
-      if (error || !slots) throw error || new Error('No slots found')
+      // 3. Fetch periods, subjects, class_sections, and sections data
+      const [{ data: periodsData }, { data: subjectsData }, { data: sectionsData }, { data: sectionNamesData }] = await Promise.all([
+        periodIds.length > 0 ? supabase.from('periods').select('id, period_number, start_time, end_time').in('id', periodIds) : Promise.resolve({ data: [] }),
+        subjectIds.length > 0 ? supabase.from('subjects').select('id, subject_title').in('id', subjectIds) : Promise.resolve({ data: [] }),
+        sectionIds.length > 0 ? supabase.from('class_sections').select('id, class_id, section_id').in('id', sectionIds) : Promise.resolve({ data: [] }),
+        Promise.resolve({ data: [] })
+      ])
 
-      // 3. Build table visibility
+      // 4. Get unique class_ids and section_ids
+      const classIds = [...new Set((sectionsData || []).map(s => s.class_id).filter(Boolean))]
+      const sectionNameIds = [...new Set((sectionsData || []).map(s => s.section_id).filter(Boolean))]
+
+      // 5. Fetch classes and sections
+      const [{ data: classesData }, { data: sectionsListData }] = await Promise.all([
+        classIds.length > 0 ? supabase.from('classes').select('id, class_name').in('id', classIds) : Promise.resolve({ data: [] }),
+        sectionNameIds.length > 0 ? supabase.from('sections').select('id, section_name').in('id', sectionNameIds) : Promise.resolve({ data: [] })
+      ])
+
+      // 6. Create lookup maps
+      const periodMap = new Map((periodsData || []).map(p => [p.id, p]))
+      const subjectMap = new Map((subjectsData || []).map(s => [s.id, s]))
+      const sectionMap = new Map((sectionsData || []).map(s => [s.id, s]))
+      const classMap = new Map((classesData || []).map(c => [c.id, c]))
+      const sectionNameMap = new Map((sectionsListData || []).map(s => [s.id, s]))
+
+      // 7. Build table using periodMap to get period_number
       const table = {}
       slots.forEach(slot => {
         const day = normalizeDay(slot.day_of_week)
-        const period = Number(slot.period_number)
-        if (!DAYS.includes(day)) return
+        const periodInfo = periodMap.get(slot.period_id)
+        const period = Number(periodInfo?.period_number)
+        if (!DAYS.includes(day) || !period) return
 
         if (!table[day]) table[day] = {}
-        const s = slot.subjects
+
+        const subject = subjectMap.get(slot.subject_id)
+        const section = sectionMap.get(slot.class_section_id)
+        const cls = classMap.get(section?.class_id)
+        const sectionName = sectionNameMap.get(section?.section_id)
+
         table[day][period] = {
-          subject: s?.subject_title || 'Unknown',
-          course: s?.sections?.section_name || (s?.groups ? `Group: ${s.groups.group_name}` : 'All'),
-          group: s?.classes?.class_name || '-',
-          semester: s?.term || '-'
+          subject: subject?.subject_title || 'Unknown',
+          className: cls?.class_name || '-',
+          sectionName: sectionName?.section_name || ''
         }
       })
 
       setTableData(table)
     } catch (err) {
       console.error('Error loading staff timetable:', err)
+      setTableData({ empty: true })
     } finally {
       setLoading(false)
     }
@@ -250,7 +265,9 @@ export default function StaffTimetable() {
 
                         return (
                           <td key={slot.key} className="tt-period">
-                            {tableData?.[day]?.[slot.period] ? (
+                            {tableData?.empty ? (
+                              <span className="text-muted">No timetable assigned</span>
+                            ) : tableData?.[day]?.[slot.period] ? (
                               <>
                                 <div style={{ fontWeight: 700 }}>
                                   {tableData[day][slot.period].subject}
@@ -262,11 +279,7 @@ export default function StaffTimetable() {
                                     color: '#374151'
                                   }}
                                 >
-                                  (
-                                  {tableData[day][slot.period].course} –{' '}
-                                  {tableData[day][slot.period].group} – Sem{' '}
-                                  {tableData[day][slot.period].semester}
-                                  )
+                                  ({tableData[day][slot.period].className} - {tableData[day][slot.period].sectionName})
                                 </div>
                               </>
                             ) : (
