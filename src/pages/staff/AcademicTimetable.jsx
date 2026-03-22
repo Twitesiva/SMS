@@ -7,32 +7,28 @@ import './StaffPortal.css'
 
 /* ===============================
    CONSTANTS
-================================ */
+ ================================ */
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 
-const BREAK_LETTERS = ['B', 'R', 'E', 'A', 'K']
-const LUNCH_LETTERS = ['L', 'U', 'N', 'C', 'H']
-
-const TIME_SLOTS = [
-  { key: 'p1', label: 'PERIOD 1', time: '9:00 AM – 10:00 AM', type: 'period', period: 1 },
-  { key: 'p2', label: 'PERIOD 2', time: '10:00 AM – 11:00 AM', type: 'period', period: 2 },
-  { key: 'p3', label: 'PERIOD 3', time: '11:00 AM – 12:00 PM', type: 'period', period: 3 },
-  { key: 'p4', label: 'PERIOD 4', time: '12:00 PM – 1:00 PM', type: 'period', period: 4 },
-  { key: 'p5', label: 'PERIOD 5', time: '1:00 PM – 2:00 PM', type: 'period', period: 5 },
-  { key: 'p6', label: 'PERIOD 6', time: '2:00 PM – 3:00 PM', type: 'period', period: 6 },
-  { key: 'p7', label: 'PERIOD 7', time: '3:00 PM – 4:00 PM', type: 'period', period: 7 },
-  { key: 'p8', label: 'PERIOD 8', time: '4:00 PM – 5:00 PM', type: 'period', period: 8 }
-]
+// Helper to format time
+const formatTime = (timeStr) => {
+  if (!timeStr) return ''
+  const [hours, minutes] = timeStr.split(':')
+  const h = parseInt(hours, 10)
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  const h12 = h % 12 || 12
+  return `${h12}:${minutes} ${ampm}`
+}
 
 const normalizeDay = (day) =>
   day.charAt(0).toUpperCase() + day.slice(1).toLowerCase()
 
 /* ===============================
    PAGE
-================================ */
+ ================================ */
 export default function StaffTimetable() {
   const { staff } = useStaffAuth()
-  const [tableData, setTableData] = useState({})
+  const [timetables, setTimetables] = useState({ primary: null, secondary: null })
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -49,174 +45,276 @@ export default function StaffTimetable() {
     setLoading(true)
 
     try {
-      // STEP 1: Initialize full timetable grid structure
-      const timetable = {}
-      DAYS.forEach(day => {
-        timetable[day] = {}
-        for (let p = 1; p <= 8; p++) {
-          timetable[day][p] = null
-        }
-      })
-
-      // 2. Fetch staff slots from timetable_sessions
+      // Use single join query to fetch timetable data
       const { data: slots, error } = await supabase
         .from('timetable_sessions')
-        .select('day_of_week, period_id, subject_id, class_section_id')
+        .select(`
+          day_of_week,
+          period_id,
+          periods ( period_number, start_time, end_time ),
+          subject_id,
+          subjects ( subject_title ),
+          class_section_id,
+          class_sections ( 
+            class_id,
+            section_id,
+            classes ( class_name, class_number ),
+            sections ( section_name )
+          )
+        `)
         .eq('staff_id', staff.id)
+
+      console.log('Fetched timetable data:', slots)
 
       if (error) {
         console.log('Error fetching timetable:', error)
-        setTableData({ empty: true })
+        setTimetables({ primary: null, secondary: null })
         setLoading(false)
         return
       }
 
       if (!slots || slots.length === 0) {
         console.log('No slots found')
-        setTableData({ empty: true })
+        setTimetables({ primary: null, secondary: null })
         setLoading(false)
         return
       }
 
-      // 3. Get unique IDs for lookup
-      const periodIds = [...new Set(slots.map(s => s.period_id).filter(Boolean))]
-      const subjectIds = [...new Set(slots.map(s => s.subject_id).filter(Boolean))]
-      const sectionIds = [...new Set(slots.map(s => s.class_section_id).filter(Boolean))]
+      // Initialize timetables for Primary/Middle (8 periods) and Secondary (6 periods)
+      // Use lowercase day keys to match data
+      const primaryTimetable = {}
+      const secondaryTimetable = {}
 
-      // 4. Fetch periods, subjects, class_sections data
-      const [{ data: periodsData }, { data: subjectsData }, { data: sectionsData }] = await Promise.all([
-        periodIds.length > 0 ? supabase.from('periods').select('id, period_number, start_time, end_time').in('id', periodIds) : Promise.resolve({ data: [] }),
-        subjectIds.length > 0 ? supabase.from('subjects').select('id, subject_code, subject_title').in('id', subjectIds) : Promise.resolve({ data: [] }),
-        sectionIds.length > 0 ? supabase.from('class_sections').select('id, class_id, section_id').in('id', sectionIds) : Promise.resolve({ data: [] })
-      ])
+      DAYS.forEach(day => {
+        const dayKey = day.toLowerCase()
+        primaryTimetable[dayKey] = { p1: null, p2: null, p3: null, p4: null, p5: null, p6: null, p7: null, p8: null }
+        secondaryTimetable[dayKey] = { p1: null, p2: null, p3: null, p4: null, p5: null, p6: null, p7: null, p8: null }
+      })
 
-      // 5. Get unique class_ids and section_ids
-      const classIds = [...new Set((sectionsData || []).map(s => s.class_id).filter(Boolean))]
-      const sectionNameIds = [...new Set((sectionsData || []).map(s => s.section_id).filter(Boolean))]
-
-      // 6. Fetch classes and sections
-      const [{ data: classesData }, { data: sectionsListData }] = await Promise.all([
-        classIds.length > 0 ? supabase.from('classes').select('id, class_name, school_level').in('id', classIds) : Promise.resolve({ data: [] }),
-        sectionNameIds.length > 0 ? supabase.from('sections').select('id, section_name').in('id', sectionNameIds) : Promise.resolve({ data: [] })
-      ])
-
-      // 7. Create lookup maps
-      const periodMap = new Map((periodsData || []).map(p => [p.id, p]))
-      const subjectMap = new Map((subjectsData || []).map(s => [s.id, s]))
-      const sectionMap = new Map((sectionsData || []).map(s => [s.id, s]))
-      const classMap = new Map((classesData || []).map(c => [c.id, c]))
-      const sectionNameMap = new Map((sectionsListData || []).map(s => [s.id, s]))
-
-      // 8. Fill grid with timetable data
-      slots.forEach(slot => {
-        const day = normalizeDay(slot.day_of_week)
+      // Fill timetables - group by class level
+      slots.forEach(item => {
+        // Extract period number from nested periods object
+        const periodNumber = item.periods?.period_number
+        // Use lowercase day key
+        const dayKey = item.day_of_week?.toLowerCase()
         
-        // Validate day
-        if (!timetable[day]) return
+        console.log('Mapping:', dayKey, periodNumber, item.subjects?.subject_title)
         
-        const periodInfo = periodMap.get(slot.period_id)
-        const period = Number(periodInfo?.period_number)
-        
-        // Validate period
-        if (!period || period < 1 || period > 8) return
+        if (!dayKey || !periodNumber || periodNumber < 1 || periodNumber > 8) return
 
-        const subject = subjectMap.get(slot.subject_id)
-        const section = sectionMap.get(slot.class_section_id)
-        const cls = classMap.get(section?.class_id)
-        const sectionName = sectionNameMap.get(section?.section_id)
+        const subject = item.subjects
+        const section = item.class_sections
+        const cls = section?.classes
+        const sectionNameObj = section?.sections
 
-        timetable[day][period] = {
-          subjectCode: subject?.subject_code || '',
+        // Format section as A1, A2, A3... from A, B, C... in database
+        const sectionMap = { A: 'A1', B: 'A2', C: 'A3', D: 'A4', E: 'A5', F: 'A6' }
+        const sectionDisplay = sectionNameObj?.section_name ? (sectionMap[sectionNameObj.section_name] || sectionNameObj.section_name + '1') : ''
+
+        const cellData = {
           subjectTitle: subject?.subject_title || 'Unknown',
           className: cls?.class_name || '-',
-          sectionName: sectionName?.section_name || '',
-          level: cls?.school_level || ''
+          sectionDisplay: sectionDisplay
+        }
+
+        // Check if class_number >= 10 (Secondary) - use 6 periods
+        // Otherwise Primary/Middle - use 8 periods
+        const classNumber = cls?.class_number || 0
+        const isSecondary = classNumber >= 10
+
+        // Use p1, p2, p3... format for grid keys
+        const periodKey = `p${periodNumber}`
+
+        if (isSecondary) {
+          // Secondary: only periods 1-6
+          if (periodNumber <= 6 && secondaryTimetable[dayKey]) {
+            secondaryTimetable[dayKey][periodKey] = cellData
+          }
+        } else {
+          // Primary/Middle: all 8 periods
+          if (primaryTimetable[dayKey]) {
+            primaryTimetable[dayKey][periodKey] = cellData
+          }
         }
       })
 
-      setTableData(timetable)
+      // Check if we have any data for each timetable
+      const hasPrimary = Object.values(primaryTimetable).some(day => 
+        Object.values(day).some(cell => cell !== null)
+      )
+      const hasSecondary = Object.values(secondaryTimetable).some(day => 
+        Object.values(day).some(cell => cell !== null)
+      )
+
+      console.log('Primary timetable:', primaryTimetable)
+      console.log('Secondary timetable:', secondaryTimetable)
+
+      setTimetables({
+        primary: hasPrimary ? primaryTimetable : null,
+        secondary: hasSecondary ? secondaryTimetable : null
+      })
     } catch (err) {
       console.error('Error loading staff timetable:', err)
-      setTableData({ empty: true })
+      setTimetables({ primary: null, secondary: null })
     } finally {
       setLoading(false)
     }
   }
 
   /* ===============================
-     RENDER
+     RENDER - 8 PERIODS TABLE (Primary/Middle)
   ================================ */
+  const render8PeriodTable = (timetable, title) => (
+    <div className="card mb-4">
+      <div className="card-header bg-light">
+        <h5 className="mb-0">{title}</h5>
+      </div>
+      <div className="card-body p-0">
+        <div className="table-responsive">
+          <table className="table table-bordered mb-0" style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <th style={{ width: '100px', padding: '8px', backgroundColor: '#f2f2f2' }}>DAY</th>
+                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                  <div>PERIOD 1</div>
+                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('10:00:00')} – {formatTime('10:40:00')}</div>
+                </th>
+                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                  <div>PERIOD 2</div>
+                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('10:40:00')} – {formatTime('11:20:00')}</div>
+                </th>
+                <th style={{ padding: '8px', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>
+                  <div>BREAK</div>
+                </th>
+                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                  <div>PERIOD 3</div>
+                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('11:25:00')} – {formatTime('12:05:00')}</div>
+                </th>
+                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                  <div>PERIOD 4</div>
+                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('12:05:00')} – {formatTime('12:45:00')}</div>
+                </th>
+                <th style={{ padding: '8px', backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold' }}>
+                  <div>LUNCH</div>
+                </th>
+                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                  <div>PERIOD 5</div>
+                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('13:10:00')} – {formatTime('13:50:00')}</div>
+                </th>
+                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                  <div>PERIOD 6</div>
+                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('13:50:00')} – {formatTime('14:30:00')}</div>
+                </th>
+                <th style={{ padding: '8px', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>
+                  <div>BREAK</div>
+                </th>
+                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                  <div>PERIOD 7</div>
+                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('14:35:00')} – {formatTime('15:15:00')}</div>
+                </th>
+                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                  <div>PERIOD 8</div>
+                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('15:15:00')} – {formatTime('15:55:00')}</div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {DAYS.map((day, dayIndex) => {
+                const dayKey = day.toLowerCase()
+                return (
+                <tr key={day}>
+                  <td style={{ padding: '8px', fontWeight: 'bold', backgroundColor: '#f9f9f9' }}>{day}</td>
+                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p1 ? <>{timetable[dayKey].p1.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p1.className} - {timetable[dayKey].p1.sectionDisplay})</small></> : '-'}</td>
+                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p2 ? <>{timetable[dayKey].p2.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p2.className} - {timetable[dayKey].p2.sectionDisplay})</small></> : '-'}</td>
+                  <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>{'BREAK'[dayIndex]}</td>
+                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p3 ? <>{timetable[dayKey].p3.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p3.className} - {timetable[dayKey].p3.sectionDisplay})</small></> : '-'}</td>
+                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p4 ? <>{timetable[dayKey].p4.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p4.className} - {timetable[dayKey].p4.sectionDisplay})</small></> : '-'}</td>
+                  <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold' }}>{'LUNCH'[dayIndex]}</td>
+                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p5 ? <>{timetable[dayKey].p5.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p5.className} - {timetable[dayKey].p5.sectionDisplay})</small></> : '-'}</td>
+                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p6 ? <>{timetable[dayKey].p6.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p6.className} - {timetable[dayKey].p6.sectionDisplay})</small></> : '-'}</td>
+                  <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>{'BREAK'[dayIndex]}</td>
+                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p7 ? <>{timetable[dayKey].p7.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p7.className} - {timetable[dayKey].p7.sectionDisplay})</small></> : '-'}</td>
+                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p8 ? <>{timetable[dayKey].p8.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p8.className} - {timetable[dayKey].p8.sectionDisplay})</small></> : '-'}</td>
+                </tr>
+              )})}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+
+  /* ===============================
+     RENDER - 6 PERIODS TABLE (Secondary)
+  ================================ */
+  const render6PeriodTable = (timetable, title) => (
+    <div className="card mb-4">
+      <div className="card-header bg-light">
+        <h5 className="mb-0">{title}</h5>
+      </div>
+      <div className="card-body p-0">
+        <div className="table-responsive">
+          <table className="table table-bordered mb-0" style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <th style={{ width: '100px', padding: '8px', backgroundColor: '#f2f2f2' }}>DAY</th>
+                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                  <div>PERIOD 1</div>
+                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('10:00:00')} – {formatTime('10:40:00')}</div>
+                </th>
+                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                  <div>PERIOD 2</div>
+                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('10:40:00')} – {formatTime('11:20:00')}</div>
+                </th>
+                <th style={{ padding: '8px', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>
+                  <div>BREAK</div>
+                </th>
+                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                  <div>PERIOD 3</div>
+                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('11:25:00')} – {formatTime('12:05:00')}</div>
+                </th>
+                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                  <div>PERIOD 4</div>
+                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('12:05:00')} – {formatTime('12:45:00')}</div>
+                </th>
+                <th style={{ padding: '8px', backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold' }}>
+                  <div>LUNCH</div>
+                </th>
+                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                  <div>PERIOD 5</div>
+                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('13:10:00')} – {formatTime('13:50:00')}</div>
+                </th>
+                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
+                  <div>PERIOD 6</div>
+                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('13:50:00')} – {formatTime('14:30:00')}</div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {DAYS.map((day, dayIndex) => {
+                const dayKey = day.toLowerCase()
+                return (
+                <tr key={day}>
+                  <td style={{ padding: '8px', fontWeight: 'bold', backgroundColor: '#f9f9f9' }}>{day}</td>
+                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p1 ? <>{timetable[dayKey].p1.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p1.className} - {timetable[dayKey].p1.sectionDisplay})</small></> : '-'}</td>
+                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p2 ? <>{timetable[dayKey].p2.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p2.className} - {timetable[dayKey].p2.sectionDisplay})</small></> : '-'}</td>
+                  <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>{'BREAK'[dayIndex]}</td>
+                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p3 ? <>{timetable[dayKey].p3.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p3.className} - {timetable[dayKey].p3.sectionDisplay})</small></> : '-'}</td>
+                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p4 ? <>{timetable[dayKey].p4.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p4.className} - {timetable[dayKey].p4.sectionDisplay})</small></> : '-'}</td>
+                  <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold' }}>{'LUNCH'[dayIndex]}</td>
+                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p5 ? <>{timetable[dayKey].p5.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p5.className} - {timetable[dayKey].p5.sectionDisplay})</small></> : '-'}</td>
+                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p6 ? <>{timetable[dayKey].p6.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p6.className} - {timetable[dayKey].p6.sectionDisplay})</small></> : '-'}</td>
+                </tr>
+              )})}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+
   return (
     <StaffShell>
-      <style>{`
-        .tt-wrapper {
-          border: 2px solid #1f2937;
-          background: #fff;
-          border-radius: 14px;
-          padding: 20px;
-          max-width: 1200px;
-          margin: 0 auto;
-        }
-
-        .table-responsive {
-          overflow-x: auto;
-          -webkit-overflow-scrolling: touch;
-          width: 100%;
-        }
-
-        table.tt-table {
-          width: 100%;
-          border-collapse: collapse;
-          table-layout: fixed;
-          min-width: 1000px; /* Ensure scrolling on mobile */
-        }
-
-        .tt-table th,
-        .tt-table td {
-          border: 1px solid #1f2937;
-          padding: 10px;
-          text-align: center;
-          vertical-align: middle;
-        }
-
-        .tt-head-title {
-          display: block;
-          font-size: 0.85rem;
-          font-weight: 600;
-        }
-
-        .tt-head-time {
-          display: block;
-          font-size: 0.7rem;
-          color: #6b7280;
-          margin-top: 4px;
-        }
-
-        .tt-day {
-          background: #f8fafc;
-          font-weight: 600;
-          width: 140px;
-        }
-
-        .tt-period {
-          font-size: 0.9rem;
-        }
-
-        .tt-break {
-          background: #fff3cd;
-          color: #92400e;
-          font-weight: 800;
-          width: 36px;
-        }
-
-        .tt-lunch {
-          background: #dbeafe;
-          color: #1e3a8a;
-          font-weight: 800;
-          width: 36px;
-        }
-      `}</style>
-
       <div className="students-section-shell">
         <div className="student-card mb-4">
           <div className="student-card__header">Academic Timetable</div>
@@ -234,19 +332,12 @@ export default function StaffTimetable() {
                 <div className="student-loader__subtitle">Preparing your weekly schedule and periods.</div>
               </div>
             </div>
-            <div className="student-details__loading-grid" aria-hidden="true">
-              <div className="student-loader-card">
-                <div className="student-loader-card__header student-loader__shimmer"></div>
-                <div className="student-loader-card__line student-loader__shimmer"></div>
-                <div className="student-loader-card__line student-loader__shimmer"></div>
-              </div>
-            </div>
             <span className="sr-only">Loading timetable...</span>
           </div>
         )}
 
-        {!loading && tableData?.empty && (
-          <div className="card card-soft tt-wrapper overflow-hidden p-0">
+        {!loading && !timetables.primary && !timetables.secondary && (
+          <div className="card">
             <div className="text-center py-5">
               <i className="bi bi-calendar-x" style={{ fontSize: '3rem', color: '#9ca3af' }}></i>
               <h5 className="mt-3 text-muted">No timetable assigned yet</h5>
@@ -255,84 +346,11 @@ export default function StaffTimetable() {
           </div>
         )}
 
-        {!loading && !tableData?.empty && (
-          <div className="card card-soft tt-wrapper overflow-hidden p-0">
-            <div className="table-responsive p-3">
-              <table className="tt-table">
-                <thead>
-                  <tr>
-                    <th>DAY</th>
-                    {TIME_SLOTS.map(slot => (
-                      <th key={slot.key}>
-                        <span className="tt-head-title">{slot.label}</span>
-                        <span className="tt-head-time">{slot.time}</span>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {DAYS.map((day, i) => (
-                    <tr key={day}>
-                      <th className="tt-day">{day}</th>
-
-                      {TIME_SLOTS.map(slot => {
-                        if (slot.type === 'break') {
-                          return (
-                            <td key={slot.key} className="tt-break">
-                              {BREAK_LETTERS[i]}
-                            </td>
-                          )
-                        }
-
-                        if (slot.type === 'lunch') {
-                          return (
-                            <td key={slot.key} className="tt-lunch">
-                              {LUNCH_LETTERS[i]}
-                            </td>
-                          )
-                        }
-
-                        return (
-                          <td key={slot.key} className="tt-period">
-                            {tableData?.empty ? (
-                              <span style={{ color: '#111827', fontWeight: 800, fontSize: '1rem' }}>
-                                –
-                              </span>
-                            ) : tableData?.[day] && tableData[day][slot.period] ? (
-                              <>
-                                <div style={{ fontWeight: 700 }}>
-                                  {tableData[day][slot.period].subjectCode} - {tableData[day][slot.period].subjectTitle}
-                                </div>
-                                <div
-                                  style={{
-                                    fontSize: '0.75rem',
-                                    fontWeight: 700,
-                                    color: '#374151'
-                                  }}
-                                >
-                                  ({tableData[day][slot.period].className} - {tableData[day][slot.period].sectionName})
-                                </div>
-                              </>
-                            ) : (
-                              <span style={{ color: '#111827', fontWeight: 800, fontSize: '1rem' }}>
-                                –
-                              </span>
-                            )}
-                          </td>
-
-
-
-
-
-                        )
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+        {!loading && (timetables.primary || timetables.secondary) && (
+          <>
+            {timetables.primary && render8PeriodTable(timetables.primary, 'Primary / Middle School Timetable (8 Periods)')}
+            {timetables.secondary && render6PeriodTable(timetables.secondary, 'Secondary School Timetable (6 Periods)')}
+          </>
         )}
       </div>
     </StaffShell>
