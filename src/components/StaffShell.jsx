@@ -10,8 +10,12 @@ export default function StaffShell({ children }) {
     const { staff, signOut } = useStaffAuth()
     const [collapsed, setCollapsed] = useState(false)
     const [mobileOpen, setMobileOpen] = useState(false)
+    const [showLockedMessage, setShowLockedMessage] = useState(false)
     const navRef = useRef(null)
     const SIDEBAR_SCROLL_KEY = 'staff-shell-sidebar-scroll'
+
+    // Allowed routes for demo
+    const allowedRoutes = ['/staff/dashboard', '/staff/timetable']
 
     const isHOD = staff?.designation === 'HOD'
 
@@ -35,6 +39,18 @@ export default function StaffShell({ children }) {
         }
         return items
     }, [isHOD])
+
+    const handleNavClick = (e, item) => {
+        // Check if route is allowed
+        const routeBase = item.to.split('?')[0]
+        if (!allowedRoutes.includes(routeBase)) {
+            e.preventDefault()
+            setShowLockedMessage(true)
+            setMobileOpen(false)
+            return
+        }
+        setMobileOpen(false)
+    }
 
     const isRouteActive = (pathname, search, to) => {
         if (to.includes('?')) {
@@ -74,10 +90,6 @@ export default function StaffShell({ children }) {
         setMobileOpen(false)
     }, [pathname])
 
-    const handleNavClick = () => {
-        setMobileOpen(false)
-    }
-
     return (
         <div className={`staff-portal ${collapsed ? 'staff-portal--collapsed' : ''} ${mobileOpen ? 'staff-portal--mobile-open' : ''}`}>
             {/* Mobile Backdrop */}
@@ -111,7 +123,7 @@ export default function StaffShell({ children }) {
                             key={item.to}
                             to={item.to}
                             className={`staff-sidebar__link ${isRouteActive(pathname, search, item.to) ? 'active' : ''}`}
-                            onClick={handleNavClick}
+                            onClick={(e) => handleNavClick(e, item)}
                         >
                             <i className={`bi ${item.icon}`}></i>
                             <span>{item.label}</span>
@@ -127,6 +139,32 @@ export default function StaffShell({ children }) {
             </aside>
 
             <div className="staff-main-wrapper">
+                {/* Locked Message Modal */}
+                {showLockedMessage && (
+                    <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                        <div className="modal-dialog modal-dialog-centered">
+                            <div className="modal-content">
+                                <div className="modal-header border-0">
+                                    <h5 className="modal-title text-danger">
+                                        <i className="bi bi-lock-fill me-2"></i>Access Locked
+                                    </h5>
+                                    <button type="button" className="btn-close" onClick={() => setShowLockedMessage(false)}></button>
+                                </div>
+                                <div className="modal-body text-center py-4">
+                                    <p className="mb-0" style={{ fontSize: '1.1rem' }}>
+                                        This page is locked. Please contact Twite AI Technologies to unlock it.
+                                    </p>
+                                </div>
+                                <div className="modal-footer border-0 justify-content-center">
+                                    <button type="button" className="btn btn-primary" onClick={() => setShowLockedMessage(false)}>
+                                        OK
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <header className="staff-header staff-header--global">
                     <div className="staff-header__brand">
                         <button
