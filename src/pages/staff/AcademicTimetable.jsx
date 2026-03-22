@@ -166,55 +166,49 @@ export default function StaffTimetable() {
   ================================ */
   const render8PeriodTable = (timetable, title) => (
     <div className="card mb-4">
-      <div className="card-header bg-light">
-        <h5 className="mb-0">{title}</h5>
+      <div className="card-header bg-light py-3">
+        <h5 className="mb-0 fw-bold">{title}</h5>
       </div>
       <div className="card-body p-0">
         <div className="table-responsive">
-          <table className="table table-bordered mb-0" style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table className="table table-bordered table-sm mb-0" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
             <thead>
               <tr>
-                <th style={{ width: '100px', padding: '8px', backgroundColor: '#f2f2f2' }}>DAY</th>
-                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                  <div>PERIOD 1</div>
-                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('10:00:00')} – {formatTime('10:40:00')}</div>
+                <th style={{ width: '90px', padding: '10px 6px', backgroundColor: '#f8f9fa', textAlign: 'center', verticalAlign: 'middle' }}>DAY</th>
+                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                  <div className="fw-bold">PERIOD 1</div>
+                  <div className="text-muted small mb-0">{formatTime('10:00')} - {formatTime('10:40')}</div>
                 </th>
-                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                  <div>PERIOD 2</div>
-                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('10:40:00')} – {formatTime('11:20:00')}</div>
+                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                  <div className="fw-bold">PERIOD 2</div>
+                  <div className="text-muted small mb-0">{formatTime('10:40')} - {formatTime('11:20')}</div>
                 </th>
-                <th style={{ padding: '8px', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>
-                  <div>BREAK</div>
+                <th style={{ width: '50px', padding: '8px 4px', backgroundColor: '#fff8e1', color: '#f57f17', fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' }}>BREAK</th>
+                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                  <div className="fw-bold">PERIOD 3</div>
+                  <div className="text-muted small mb-0">{formatTime('11:25')} - {formatTime('12:05')}</div>
                 </th>
-                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                  <div>PERIOD 3</div>
-                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('11:25:00')} – {formatTime('12:05:00')}</div>
+                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                  <div className="fw-bold">PERIOD 4</div>
+                  <div className="text-muted small mb-0">{formatTime('12:05')} - {formatTime('12:45')}</div>
                 </th>
-                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                  <div>PERIOD 4</div>
-                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('12:05:00')} – {formatTime('12:45:00')}</div>
+                <th style={{ width: '50px', padding: '8px 4px', backgroundColor: '#e3f2fd', color: '#1565c0', fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' }}>LUNCH</th>
+                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                  <div className="fw-bold">PERIOD 5</div>
+                  <div className="text-muted small mb-0">{formatTime('13:10')} - {formatTime('13:50')}</div>
                 </th>
-                <th style={{ padding: '8px', backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold' }}>
-                  <div>LUNCH</div>
+                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                  <div className="fw-bold">PERIOD 6</div>
+                  <div className="text-muted small mb-0">{formatTime('13:50')} - {formatTime('14:30')}</div>
                 </th>
-                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                  <div>PERIOD 5</div>
-                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('13:10:00')} – {formatTime('13:50:00')}</div>
+                <th style={{ width: '50px', padding: '8px 4px', backgroundColor: '#fff8e1', color: '#f57f17', fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' }}>BREAK</th>
+                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                  <div className="fw-bold">PERIOD 7</div>
+                  <div className="text-muted small mb-0">{formatTime('14:35')} - {formatTime('15:15')}</div>
                 </th>
-                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                  <div>PERIOD 6</div>
-                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('13:50:00')} – {formatTime('14:30:00')}</div>
-                </th>
-                <th style={{ padding: '8px', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>
-                  <div>BREAK</div>
-                </th>
-                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                  <div>PERIOD 7</div>
-                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('14:35:00')} – {formatTime('15:15:00')}</div>
-                </th>
-                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                  <div>PERIOD 8</div>
-                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('15:15:00')} – {formatTime('15:55:00')}</div>
+                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                  <div className="fw-bold">PERIOD 8</div>
+                  <div className="text-muted small mb-0">{formatTime('15:15')} - {formatTime('15:55')}</div>
                 </th>
               </tr>
             </thead>
@@ -223,18 +217,74 @@ export default function StaffTimetable() {
                 const dayKey = day.toLowerCase()
                 return (
                 <tr key={day}>
-                  <td style={{ padding: '8px', fontWeight: 'bold', backgroundColor: '#f9f9f9' }}>{day}</td>
-                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p1 ? <>{timetable[dayKey].p1.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p1.className} - {timetable[dayKey].p1.sectionDisplay})</small></> : '-'}</td>
-                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p2 ? <>{timetable[dayKey].p2.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p2.className} - {timetable[dayKey].p2.sectionDisplay})</small></> : '-'}</td>
-                  <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>{'BREAK'[dayIndex]}</td>
-                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p3 ? <>{timetable[dayKey].p3.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p3.className} - {timetable[dayKey].p3.sectionDisplay})</small></> : '-'}</td>
-                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p4 ? <>{timetable[dayKey].p4.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p4.className} - {timetable[dayKey].p4.sectionDisplay})</small></> : '-'}</td>
-                  <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold' }}>{'LUNCH'[dayIndex]}</td>
-                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p5 ? <>{timetable[dayKey].p5.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p5.className} - {timetable[dayKey].p5.sectionDisplay})</small></> : '-'}</td>
-                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p6 ? <>{timetable[dayKey].p6.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p6.className} - {timetable[dayKey].p6.sectionDisplay})</small></> : '-'}</td>
-                  <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>{'BREAK'[dayIndex]}</td>
-                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p7 ? <>{timetable[dayKey].p7.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p7.className} - {timetable[dayKey].p7.sectionDisplay})</small></> : '-'}</td>
-                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p8 ? <>{timetable[dayKey].p8.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p8.className} - {timetable[dayKey].p8.sectionDisplay})</small></> : '-'}</td>
+                  <td style={{ padding: '10px 6px', fontWeight: 'bold', backgroundColor: '#f8f9fa', textAlign: 'center', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>{day}</td>
+                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                    {timetable?.[dayKey]?.p1 ? (
+                      <div>
+                        <div className="fw-bold text-primary">{timetable[dayKey].p1.subjectTitle}</div>
+                        <small className="text-muted">{timetable[dayKey].p1.className} - {timetable[dayKey].p1.sectionDisplay}</small>
+                      </div>
+                    ) : <span className="text-muted">-</span>}
+                  </td>
+                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                    {timetable?.[dayKey]?.p2 ? (
+                      <div>
+                        <div className="fw-bold text-primary">{timetable[dayKey].p2.subjectTitle}</div>
+                        <small className="text-muted">{timetable[dayKey].p2.className} - {timetable[dayKey].p2.sectionDisplay}</small>
+                      </div>
+                    ) : <span className="text-muted">-</span>}
+                  </td>
+                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle', backgroundColor: '#fff8e1', fontWeight: 'bold', color: '#f57f17', fontSize: '1.1rem' }}>{'BREAK'[dayIndex]}</td>
+                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                    {timetable?.[dayKey]?.p3 ? (
+                      <div>
+                        <div className="fw-bold text-primary">{timetable[dayKey].p3.subjectTitle}</div>
+                        <small className="text-muted">{timetable[dayKey].p3.className} - {timetable[dayKey].p3.sectionDisplay}</small>
+                      </div>
+                    ) : <span className="text-muted">-</span>}
+                  </td>
+                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                    {timetable?.[dayKey]?.p4 ? (
+                      <div>
+                        <div className="fw-bold text-primary">{timetable[dayKey].p4.subjectTitle}</div>
+                        <small className="text-muted">{timetable[dayKey].p4.className} - {timetable[dayKey].p4.sectionDisplay}</small>
+                      </div>
+                    ) : <span className="text-muted">-</span>}
+                  </td>
+                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle', backgroundColor: '#e3f2fd', fontWeight: 'bold', color: '#1565c0', fontSize: '1.1rem' }}>{'LUNCH'[dayIndex]}</td>
+                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                    {timetable?.[dayKey]?.p5 ? (
+                      <div>
+                        <div className="fw-bold text-primary">{timetable[dayKey].p5.subjectTitle}</div>
+                        <small className="text-muted">{timetable[dayKey].p5.className} - {timetable[dayKey].p5.sectionDisplay}</small>
+                      </div>
+                    ) : <span className="text-muted">-</span>}
+                  </td>
+                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                    {timetable?.[dayKey]?.p6 ? (
+                      <div>
+                        <div className="fw-bold text-primary">{timetable[dayKey].p6.subjectTitle}</div>
+                        <small className="text-muted">{timetable[dayKey].p6.className} - {timetable[dayKey].p6.sectionDisplay}</small>
+                      </div>
+                    ) : <span className="text-muted">-</span>}
+                  </td>
+                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle', backgroundColor: '#fff8e1', fontWeight: 'bold', color: '#f57f17', fontSize: '1.1rem' }}>{'BREAK'[dayIndex]}</td>
+                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                    {timetable?.[dayKey]?.p7 ? (
+                      <div>
+                        <div className="fw-bold text-primary">{timetable[dayKey].p7.subjectTitle}</div>
+                        <small className="text-muted">{timetable[dayKey].p7.className} - {timetable[dayKey].p7.sectionDisplay}</small>
+                      </div>
+                    ) : <span className="text-muted">-</span>}
+                  </td>
+                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                    {timetable?.[dayKey]?.p8 ? (
+                      <div>
+                        <div className="fw-bold text-primary">{timetable[dayKey].p8.subjectTitle}</div>
+                        <small className="text-muted">{timetable[dayKey].p8.className} - {timetable[dayKey].p8.sectionDisplay}</small>
+                      </div>
+                    ) : <span className="text-muted">-</span>}
+                  </td>
                 </tr>
               )})}
             </tbody>
@@ -249,44 +299,40 @@ export default function StaffTimetable() {
   ================================ */
   const render6PeriodTable = (timetable, title) => (
     <div className="card mb-4">
-      <div className="card-header bg-light">
-        <h5 className="mb-0">{title}</h5>
+      <div className="card-header bg-light py-3">
+        <h5 className="mb-0 fw-bold">{title}</h5>
       </div>
       <div className="card-body p-0">
         <div className="table-responsive">
-          <table className="table table-bordered mb-0" style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table className="table table-bordered table-sm mb-0" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
             <thead>
               <tr>
-                <th style={{ width: '100px', padding: '8px', backgroundColor: '#f2f2f2' }}>DAY</th>
-                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                  <div>PERIOD 1</div>
-                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('10:00:00')} – {formatTime('10:40:00')}</div>
+                <th style={{ width: '90px', padding: '10px 6px', backgroundColor: '#f8f9fa', textAlign: 'center', verticalAlign: 'middle' }}>DAY</th>
+                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                  <div className="fw-bold">PERIOD 1</div>
+                  <div className="text-muted small mb-0">{formatTime('08:00')} - {formatTime('09:00')}</div>
                 </th>
-                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                  <div>PERIOD 2</div>
-                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('10:40:00')} – {formatTime('11:20:00')}</div>
+                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                  <div className="fw-bold">PERIOD 2</div>
+                  <div className="text-muted small mb-0">{formatTime('09:00')} - {formatTime('10:00')}</div>
                 </th>
-                <th style={{ padding: '8px', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>
-                  <div>BREAK</div>
+                <th style={{ width: '50px', padding: '8px 4px', backgroundColor: '#fff8e1', color: '#f57f17', fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' }}>BREAK</th>
+                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                  <div className="fw-bold">PERIOD 3</div>
+                  <div className="text-muted small mb-0">{formatTime('10:15')} - {formatTime('11:15')}</div>
                 </th>
-                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                  <div>PERIOD 3</div>
-                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('11:25:00')} – {formatTime('12:05:00')}</div>
+                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                  <div className="fw-bold">PERIOD 4</div>
+                  <div className="text-muted small mb-0">{formatTime('11:15')} - {formatTime('12:15')}</div>
                 </th>
-                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                  <div>PERIOD 4</div>
-                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('12:05:00')} – {formatTime('12:45:00')}</div>
+                <th style={{ width: '50px', padding: '8px 4px', backgroundColor: '#e3f2fd', color: '#1565c0', fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' }}>LUNCH</th>
+                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                  <div className="fw-bold">PERIOD 5</div>
+                  <div className="text-muted small mb-0">{formatTime('13:00')} - {formatTime('14:00')}</div>
                 </th>
-                <th style={{ padding: '8px', backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold' }}>
-                  <div>LUNCH</div>
-                </th>
-                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                  <div>PERIOD 5</div>
-                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('13:10:00')} – {formatTime('13:50:00')}</div>
-                </th>
-                <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                  <div>PERIOD 6</div>
-                  <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('13:50:00')} – {formatTime('14:30:00')}</div>
+                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                  <div className="fw-bold">PERIOD 6</div>
+                  <div className="text-muted small mb-0">{formatTime('14:00')} - {formatTime('15:00')}</div>
                 </th>
               </tr>
             </thead>
@@ -295,15 +341,57 @@ export default function StaffTimetable() {
                 const dayKey = day.toLowerCase()
                 return (
                 <tr key={day}>
-                  <td style={{ padding: '8px', fontWeight: 'bold', backgroundColor: '#f9f9f9' }}>{day}</td>
-                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p1 ? <>{timetable[dayKey].p1.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p1.className} - {timetable[dayKey].p1.sectionDisplay})</small></> : '-'}</td>
-                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p2 ? <>{timetable[dayKey].p2.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p2.className} - {timetable[dayKey].p2.sectionDisplay})</small></> : '-'}</td>
-                  <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>{'BREAK'[dayIndex]}</td>
-                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p3 ? <>{timetable[dayKey].p3.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p3.className} - {timetable[dayKey].p3.sectionDisplay})</small></> : '-'}</td>
-                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p4 ? <>{timetable[dayKey].p4.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p4.className} - {timetable[dayKey].p4.sectionDisplay})</small></> : '-'}</td>
-                  <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold' }}>{'LUNCH'[dayIndex]}</td>
-                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p5 ? <>{timetable[dayKey].p5.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p5.className} - {timetable[dayKey].p5.sectionDisplay})</small></> : '-'}</td>
-                  <td style={{ padding: '8px', textAlign: 'center' }}>{timetable?.[dayKey]?.p6 ? <>{timetable[dayKey].p6.subjectTitle}<br/><small className="text-muted">({timetable[dayKey].p6.className} - {timetable[dayKey].p6.sectionDisplay})</small></> : '-'}</td>
+                  <td style={{ padding: '10px 6px', fontWeight: 'bold', backgroundColor: '#f8f9fa', textAlign: 'center', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>{day}</td>
+                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                    {timetable?.[dayKey]?.p1 ? (
+                      <div>
+                        <div className="fw-bold text-primary">{timetable[dayKey].p1.subjectTitle}</div>
+                        <small className="text-muted">{timetable[dayKey].p1.className} - {timetable[dayKey].p1.sectionDisplay}</small>
+                      </div>
+                    ) : <span className="text-muted">-</span>}
+                  </td>
+                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                    {timetable?.[dayKey]?.p2 ? (
+                      <div>
+                        <div className="fw-bold text-primary">{timetable[dayKey].p2.subjectTitle}</div>
+                        <small className="text-muted">{timetable[dayKey].p2.className} - {timetable[dayKey].p2.sectionDisplay}</small>
+                      </div>
+                    ) : <span className="text-muted">-</span>}
+                  </td>
+                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle', backgroundColor: '#fff8e1', fontWeight: 'bold', color: '#f57f17', fontSize: '1.1rem' }}>{'BREAK'[dayIndex]}</td>
+                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                    {timetable?.[dayKey]?.p3 ? (
+                      <div>
+                        <div className="fw-bold text-primary">{timetable[dayKey].p3.subjectTitle}</div>
+                        <small className="text-muted">{timetable[dayKey].p3.className} - {timetable[dayKey].p3.sectionDisplay}</small>
+                      </div>
+                    ) : <span className="text-muted">-</span>}
+                  </td>
+                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                    {timetable?.[dayKey]?.p4 ? (
+                      <div>
+                        <div className="fw-bold text-primary">{timetable[dayKey].p4.subjectTitle}</div>
+                        <small className="text-muted">{timetable[dayKey].p4.className} - {timetable[dayKey].p4.sectionDisplay}</small>
+                      </div>
+                    ) : <span className="text-muted">-</span>}
+                  </td>
+                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle', backgroundColor: '#e3f2fd', fontWeight: 'bold', color: '#1565c0', fontSize: '1.1rem' }}>{'LUNCH'[dayIndex]}</td>
+                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                    {timetable?.[dayKey]?.p5 ? (
+                      <div>
+                        <div className="fw-bold text-primary">{timetable[dayKey].p5.subjectTitle}</div>
+                        <small className="text-muted">{timetable[dayKey].p5.className} - {timetable[dayKey].p5.sectionDisplay}</small>
+                      </div>
+                    ) : <span className="text-muted">-</span>}
+                  </td>
+                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                    {timetable?.[dayKey]?.p6 ? (
+                      <div>
+                        <div className="fw-bold text-primary">{timetable[dayKey].p6.subjectTitle}</div>
+                        <small className="text-muted">{timetable[dayKey].p6.className} - {timetable[dayKey].p6.sectionDisplay}</small>
+                      </div>
+                    ) : <span className="text-muted">-</span>}
+                  </td>
                 </tr>
               )})}
             </tbody>
