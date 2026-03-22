@@ -171,42 +171,42 @@ export default function StaffTimetable() {
       </div>
       <div className="card-body p-0">
         <div className="table-responsive">
-          <table className="table table-bordered table-sm mb-0" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+          <table className="table table-bordered table-sm mb-0" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden' }}>
             <thead>
               <tr>
-                <th style={{ width: '90px', padding: '10px 6px', backgroundColor: '#f8f9fa', textAlign: 'center', verticalAlign: 'middle' }}>DAY</th>
-                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                <th style={{ width: '90px', padding: '10px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #d1d5db' }}>DAY</th>
+                <th style={{ padding: '10px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', border: '1px solid #d1d5db' }}>
                   <div className="fw-bold">PERIOD 1</div>
                   <div className="text-muted small mb-0">{formatTime('10:00')} - {formatTime('10:40')}</div>
                 </th>
-                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                <th style={{ padding: '10px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', border: '1px solid #d1d5db' }}>
                   <div className="fw-bold">PERIOD 2</div>
                   <div className="text-muted small mb-0">{formatTime('10:40')} - {formatTime('11:20')}</div>
                 </th>
-                <th style={{ width: '50px', padding: '8px 4px', backgroundColor: '#fff8e1', color: '#f57f17', fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' }}>BREAK</th>
-                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                <th style={{ width: '50px', padding: '10px', backgroundColor: '#f3f4f6', fontWeight: '600', color: '#f57f17', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #d1d5db' }}>BREAK</th>
+                <th style={{ padding: '10px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', border: '1px solid #d1d5db' }}>
                   <div className="fw-bold">PERIOD 3</div>
                   <div className="text-muted small mb-0">{formatTime('11:25')} - {formatTime('12:05')}</div>
                 </th>
-                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                <th style={{ padding: '10px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', border: '1px solid #d1d5db' }}>
                   <div className="fw-bold">PERIOD 4</div>
                   <div className="text-muted small mb-0">{formatTime('12:05')} - {formatTime('12:45')}</div>
                 </th>
-                <th style={{ width: '50px', padding: '8px 4px', backgroundColor: '#e3f2fd', color: '#1565c0', fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' }}>LUNCH</th>
-                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                <th style={{ width: '50px', padding: '10px', backgroundColor: '#f3f4f6', fontWeight: '600', color: '#1565c0', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #d1d5db' }}>LUNCH</th>
+                <th style={{ padding: '10px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', border: '1px solid #d1d5db' }}>
                   <div className="fw-bold">PERIOD 5</div>
                   <div className="text-muted small mb-0">{formatTime('13:10')} - {formatTime('13:50')}</div>
                 </th>
-                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                <th style={{ padding: '10px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', border: '1px solid #d1d5db' }}>
                   <div className="fw-bold">PERIOD 6</div>
                   <div className="text-muted small mb-0">{formatTime('13:50')} - {formatTime('14:30')}</div>
                 </th>
-                <th style={{ width: '50px', padding: '8px 4px', backgroundColor: '#fff8e1', color: '#f57f17', fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' }}>BREAK</th>
-                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                <th style={{ width: '50px', padding: '10px', backgroundColor: '#f3f4f6', fontWeight: '600', color: '#f57f17', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #d1d5db' }}>BREAK</th>
+                <th style={{ padding: '10px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', border: '1px solid #d1d5db' }}>
                   <div className="fw-bold">PERIOD 7</div>
                   <div className="text-muted small mb-0">{formatTime('14:35')} - {formatTime('15:15')}</div>
                 </th>
-                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                <th style={{ padding: '10px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', border: '1px solid #d1d5db' }}>
                   <div className="fw-bold">PERIOD 8</div>
                   <div className="text-muted small mb-0">{formatTime('15:15')} - {formatTime('15:55')}</div>
                 </th>
@@ -217,8 +217,8 @@ export default function StaffTimetable() {
                 const dayKey = day.toLowerCase()
                 return (
                 <tr key={day}>
-                  <td style={{ padding: '10px 6px', fontWeight: 'bold', backgroundColor: '#f8f9fa', textAlign: 'center', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>{day}</td>
-                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                  <td style={{ padding: '10px', fontWeight: 'bold', backgroundColor: '#f3f4f6', textAlign: 'center', verticalAlign: 'middle', whiteSpace: 'nowrap', border: '1px solid #d1d5db' }}>{day}</td>
+                  <td style={{ padding: '10px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #d1d5db' }}>
                     {timetable?.[dayKey]?.p1 ? (
                       <div>
                         <div className="fw-bold text-primary">{timetable[dayKey].p1.subjectTitle}</div>
@@ -226,7 +226,7 @@ export default function StaffTimetable() {
                       </div>
                     ) : <span className="text-muted">-</span>}
                   </td>
-                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                  <td style={{ padding: '10px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #d1d5db' }}>
                     {timetable?.[dayKey]?.p2 ? (
                       <div>
                         <div className="fw-bold text-primary">{timetable[dayKey].p2.subjectTitle}</div>
@@ -234,8 +234,8 @@ export default function StaffTimetable() {
                       </div>
                     ) : <span className="text-muted">-</span>}
                   </td>
-                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle', backgroundColor: '#fff8e1', fontWeight: 'bold', color: '#f57f17', fontSize: '1.1rem' }}>{'BREAK'[dayIndex]}</td>
-                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                  <td style={{ padding: '10px', textAlign: 'center', verticalAlign: 'middle', backgroundColor: '#fff8e1', fontWeight: 'bold', color: '#f57f17', fontSize: '1.1rem', border: '1px solid #d1d5db' }}>{'BREAK'[dayIndex]}</td>
+                  <td style={{ padding: '10px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #d1d5db' }}>
                     {timetable?.[dayKey]?.p3 ? (
                       <div>
                         <div className="fw-bold text-primary">{timetable[dayKey].p3.subjectTitle}</div>
@@ -243,7 +243,7 @@ export default function StaffTimetable() {
                       </div>
                     ) : <span className="text-muted">-</span>}
                   </td>
-                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                  <td style={{ padding: '10px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #d1d5db' }}>
                     {timetable?.[dayKey]?.p4 ? (
                       <div>
                         <div className="fw-bold text-primary">{timetable[dayKey].p4.subjectTitle}</div>
@@ -251,8 +251,8 @@ export default function StaffTimetable() {
                       </div>
                     ) : <span className="text-muted">-</span>}
                   </td>
-                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle', backgroundColor: '#e3f2fd', fontWeight: 'bold', color: '#1565c0', fontSize: '1.1rem' }}>{'LUNCH'[dayIndex]}</td>
-                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                  <td style={{ padding: '10px', textAlign: 'center', verticalAlign: 'middle', backgroundColor: '#e3f2fd', fontWeight: 'bold', color: '#1565c0', fontSize: '1.1rem', border: '1px solid #d1d5db' }}>{'LUNCH'[dayIndex]}</td>
+                  <td style={{ padding: '10px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #d1d5db' }}>
                     {timetable?.[dayKey]?.p5 ? (
                       <div>
                         <div className="fw-bold text-primary">{timetable[dayKey].p5.subjectTitle}</div>
@@ -260,7 +260,7 @@ export default function StaffTimetable() {
                       </div>
                     ) : <span className="text-muted">-</span>}
                   </td>
-                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                  <td style={{ padding: '10px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #d1d5db' }}>
                     {timetable?.[dayKey]?.p6 ? (
                       <div>
                         <div className="fw-bold text-primary">{timetable[dayKey].p6.subjectTitle}</div>
@@ -268,8 +268,8 @@ export default function StaffTimetable() {
                       </div>
                     ) : <span className="text-muted">-</span>}
                   </td>
-                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle', backgroundColor: '#fff8e1', fontWeight: 'bold', color: '#f57f17', fontSize: '1.1rem' }}>{'BREAK'[dayIndex]}</td>
-                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                  <td style={{ padding: '10px', textAlign: 'center', verticalAlign: 'middle', backgroundColor: '#fff8e1', fontWeight: 'bold', color: '#f57f17', fontSize: '1.1rem', border: '1px solid #d1d5db' }}>{'BREAK'[dayIndex]}</td>
+                  <td style={{ padding: '10px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #d1d5db' }}>
                     {timetable?.[dayKey]?.p7 ? (
                       <div>
                         <div className="fw-bold text-primary">{timetable[dayKey].p7.subjectTitle}</div>
@@ -277,7 +277,7 @@ export default function StaffTimetable() {
                       </div>
                     ) : <span className="text-muted">-</span>}
                   </td>
-                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                  <td style={{ padding: '10px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #d1d5db' }}>
                     {timetable?.[dayKey]?.p8 ? (
                       <div>
                         <div className="fw-bold text-primary">{timetable[dayKey].p8.subjectTitle}</div>
@@ -304,33 +304,33 @@ export default function StaffTimetable() {
       </div>
       <div className="card-body p-0">
         <div className="table-responsive">
-          <table className="table table-bordered table-sm mb-0" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+          <table className="table table-bordered table-sm mb-0" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden' }}>
             <thead>
               <tr>
-                <th style={{ width: '90px', padding: '10px 6px', backgroundColor: '#f8f9fa', textAlign: 'center', verticalAlign: 'middle' }}>DAY</th>
-                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                <th style={{ width: '90px', padding: '10px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #d1d5db' }}>DAY</th>
+                <th style={{ padding: '10px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', border: '1px solid #d1d5db' }}>
                   <div className="fw-bold">PERIOD 1</div>
                   <div className="text-muted small mb-0">{formatTime('08:00')} - {formatTime('09:00')}</div>
                 </th>
-                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                <th style={{ padding: '10px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', border: '1px solid #d1d5db' }}>
                   <div className="fw-bold">PERIOD 2</div>
                   <div className="text-muted small mb-0">{formatTime('09:00')} - {formatTime('10:00')}</div>
                 </th>
-                <th style={{ width: '50px', padding: '8px 4px', backgroundColor: '#fff8e1', color: '#f57f17', fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' }}>BREAK</th>
-                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                <th style={{ width: '50px', padding: '10px', backgroundColor: '#f3f4f6', fontWeight: '600', color: '#f57f17', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #d1d5db' }}>BREAK</th>
+                <th style={{ padding: '10px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', border: '1px solid #d1d5db' }}>
                   <div className="fw-bold">PERIOD 3</div>
                   <div className="text-muted small mb-0">{formatTime('10:15')} - {formatTime('11:15')}</div>
                 </th>
-                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                <th style={{ padding: '10px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', border: '1px solid #d1d5db' }}>
                   <div className="fw-bold">PERIOD 4</div>
                   <div className="text-muted small mb-0">{formatTime('11:15')} - {formatTime('12:15')}</div>
                 </th>
-                <th style={{ width: '50px', padding: '8px 4px', backgroundColor: '#e3f2fd', color: '#1565c0', fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' }}>LUNCH</th>
-                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                <th style={{ width: '50px', padding: '10px', backgroundColor: '#f3f4f6', fontWeight: '600', color: '#1565c0', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #d1d5db' }}>LUNCH</th>
+                <th style={{ padding: '10px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', border: '1px solid #d1d5db' }}>
                   <div className="fw-bold">PERIOD 5</div>
                   <div className="text-muted small mb-0">{formatTime('13:00')} - {formatTime('14:00')}</div>
                 </th>
-                <th style={{ padding: '8px 4px', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
+                <th style={{ padding: '10px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', border: '1px solid #d1d5db' }}>
                   <div className="fw-bold">PERIOD 6</div>
                   <div className="text-muted small mb-0">{formatTime('14:00')} - {formatTime('15:00')}</div>
                 </th>
@@ -341,8 +341,8 @@ export default function StaffTimetable() {
                 const dayKey = day.toLowerCase()
                 return (
                 <tr key={day}>
-                  <td style={{ padding: '10px 6px', fontWeight: 'bold', backgroundColor: '#f8f9fa', textAlign: 'center', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>{day}</td>
-                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                  <td style={{ padding: '10px', fontWeight: 'bold', backgroundColor: '#f3f4f6', textAlign: 'center', verticalAlign: 'middle', whiteSpace: 'nowrap', border: '1px solid #d1d5db' }}>{day}</td>
+                  <td style={{ padding: '10px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #d1d5db' }}>
                     {timetable?.[dayKey]?.p1 ? (
                       <div>
                         <div className="fw-bold text-primary">{timetable[dayKey].p1.subjectTitle}</div>
@@ -350,7 +350,7 @@ export default function StaffTimetable() {
                       </div>
                     ) : <span className="text-muted">-</span>}
                   </td>
-                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                  <td style={{ padding: '10px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #d1d5db' }}>
                     {timetable?.[dayKey]?.p2 ? (
                       <div>
                         <div className="fw-bold text-primary">{timetable[dayKey].p2.subjectTitle}</div>
@@ -358,8 +358,8 @@ export default function StaffTimetable() {
                       </div>
                     ) : <span className="text-muted">-</span>}
                   </td>
-                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle', backgroundColor: '#fff8e1', fontWeight: 'bold', color: '#f57f17', fontSize: '1.1rem' }}>{'BREAK'[dayIndex]}</td>
-                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                  <td style={{ padding: '10px', textAlign: 'center', verticalAlign: 'middle', backgroundColor: '#fff8e1', fontWeight: 'bold', color: '#f57f17', fontSize: '1.1rem', border: '1px solid #d1d5db' }}>{'BREAK'[dayIndex]}</td>
+                  <td style={{ padding: '10px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #d1d5db' }}>
                     {timetable?.[dayKey]?.p3 ? (
                       <div>
                         <div className="fw-bold text-primary">{timetable[dayKey].p3.subjectTitle}</div>
@@ -367,7 +367,7 @@ export default function StaffTimetable() {
                       </div>
                     ) : <span className="text-muted">-</span>}
                   </td>
-                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                  <td style={{ padding: '10px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #d1d5db' }}>
                     {timetable?.[dayKey]?.p4 ? (
                       <div>
                         <div className="fw-bold text-primary">{timetable[dayKey].p4.subjectTitle}</div>
@@ -375,8 +375,8 @@ export default function StaffTimetable() {
                       </div>
                     ) : <span className="text-muted">-</span>}
                   </td>
-                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle', backgroundColor: '#e3f2fd', fontWeight: 'bold', color: '#1565c0', fontSize: '1.1rem' }}>{'LUNCH'[dayIndex]}</td>
-                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                  <td style={{ padding: '10px', textAlign: 'center', verticalAlign: 'middle', backgroundColor: '#e3f2fd', fontWeight: 'bold', color: '#1565c0', fontSize: '1.1rem', border: '1px solid #d1d5db' }}>{'LUNCH'[dayIndex]}</td>
+                  <td style={{ padding: '10px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #d1d5db' }}>
                     {timetable?.[dayKey]?.p5 ? (
                       <div>
                         <div className="fw-bold text-primary">{timetable[dayKey].p5.subjectTitle}</div>
@@ -384,7 +384,7 @@ export default function StaffTimetable() {
                       </div>
                     ) : <span className="text-muted">-</span>}
                   </td>
-                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                  <td style={{ padding: '10px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #d1d5db' }}>
                     {timetable?.[dayKey]?.p6 ? (
                       <div>
                         <div className="fw-bold text-primary">{timetable[dayKey].p6.subjectTitle}</div>
