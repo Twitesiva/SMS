@@ -137,6 +137,53 @@ export default function StaffClassMapping() {
     toast.success(newValue ? 'Smart Staff Filtering enabled' : 'Smart Staff Filtering disabled')
   }
 
+  const handleSelectAll = (level, checked) => {
+    const levelClasses = groupedClasses[level] || []
+    
+    if (checked) {
+      setSelectedClasses(prev => {
+        const newSelected = [...prev]
+        levelClasses.forEach(c => {
+          if (!newSelected.includes(c.id)) newSelected.push(c.id)
+        })
+        return newSelected
+      })
+    } else {
+      setSelectedClasses(prev =>
+        prev.filter(id => !levelClasses.some(c => c.id === id))
+      )
+    }
+  }
+
+  const handleEditMapping = (staffId, classIds) => {
+    setSelectedStaff(staffId)
+    setSelectedClasses(classIds)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleRemoveSingleMapping = async (staffId, classId) => {
+    try {
+      const { error } = await supabase
+        .from('staff_class_permissions')
+        .delete()
+        .eq('staff_id', staffId)
+        .eq('class_id', classId)
+
+      if (error) throw error
+      
+      toast.success('Class removed successfully')
+      
+      setAllMappings(prev => prev.filter(m => !(m.staff_id === staffId && m.class_id === classId)))
+      
+      if (selectedStaff === staffId) {
+        setSelectedClasses(prev => prev.filter(id => id !== classId))
+      }
+    } catch (err) {
+      console.error('Error removing class:', err)
+      toast.error('Failed to remove class')
+    }
+  }
+
   // Group classes by school level
   const groupedClasses = classes.reduce((acc, cls) => {
     const level = cls.school_level || 'Other'
@@ -223,9 +270,9 @@ export default function StaffClassMapping() {
                 <button
                   className="btn btn-primary w-100"
                   onClick={handleSave}
-                  disabled={saving}
+                  disabled={saving || selectedClasses.length === 0}
                 >
-                  {saving ? 'Saving...' : 'Save Permissions'}
+                  {saving ? 'Saving...' : 'Save / Update Permissions'}
                 </button>
               </div>
             )}
@@ -251,10 +298,29 @@ export default function StaffClassMapping() {
                     No classes found
                   </p>
                 ) : (
-                  Object.entries(groupedClasses).map(([level, levelClasses]) => (
+                  Object.entries(groupedClasses).map(([level, levelClasses]) => {
+                    const selectedCount = levelClasses.filter(c => selectedClasses.includes(c.id)).length;
+                    const isAllSelected = selectedCount === levelClasses.length && levelClasses.length > 0;
+                    
+                    return (
                     <div key={level} className="mb-4">
-                      <h6 className="border-bottom pb-2 mb-2">
-                        <span className="badge bg-secondary me-2">{level}</span>
+                      <h6 className="border-bottom pb-2 mb-2 d-flex justify-content-between align-items-center">
+                        <div>
+                          <span className="badge bg-secondary me-2">{level}</span>
+                          {selectedCount > 0 && <span className="text-muted small">({selectedCount} selected)</span>}
+                        </div>
+                        <div className="form-check m-0">
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            checked={isAllSelected}
+                            onChange={(e) => handleSelectAll(level, e.target.checked)}
+                            id={`selectAll-${level}`}
+                          />
+                          <label className="form-check-label small" htmlFor={`selectAll-${level}`} style={{cursor: 'pointer'}}>
+                            Select All
+                          </label>
+                        </div>
                       </h6>
                       <div className="row g-2">
                         {levelClasses.map(cls => (
@@ -278,7 +344,7 @@ export default function StaffClassMapping() {
                         ))}
                       </div>
                     </div>
-                  ))
+                  )})
                 )}
 
                 {/* FEATURE 1: SHOW SELECTED CLASSES */}
@@ -320,16 +386,31 @@ export default function StaffClassMapping() {
                   
                   return (
                     <div key={staffId} className="col-md-4">
-                      <div className="p-3 border rounded shadow-sm bg-white h-100">
-                        <h6 className="fw-bold text-dark mb-3 pb-2 border-bottom">
-                          {staff.full_name} <span className="text-muted small fw-normal">({staff.staff_id || 'N/A'})</span>
-                        </h6>
+                      <div className="p-3 border rounded shadow-sm bg-white h-100 position-relative">
+                        <div className="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                          <h6 className="fw-bold text-dark mb-0">
+                            {staff.full_name} <span className="text-muted small fw-normal">({staff.staff_id || 'N/A'})</span>
+                          </h6>
+                          <button 
+                            className="btn btn-sm btn-outline-primary py-0 px-2" 
+                            style={{ fontSize: '0.8rem' }}
+                            onClick={() => handleEditMapping(staffId, classIds)}
+                          >
+                            <i className="bi bi-pencil-fill me-1"></i>Edit
+                          </button>
+                        </div>
                         <div className="d-flex flex-wrap gap-2">
                           {classIds.map(cid => {
                             const cls = classes.find(c => String(c.id) === String(cid))
                             return (
-                              <span key={cid} className="badge bg-secondary">
+                              <span key={cid} className="badge bg-secondary d-flex align-items-center gap-1 pe-2">
                                 {cls ? cls.class_name : cid}
+                                <i 
+                                  className="bi bi-x-circle-fill ms-1" 
+                                  style={{cursor: 'pointer', fontSize: '0.9rem'}} 
+                                  onClick={() => handleRemoveSingleMapping(staffId, cid)}
+                                  title="Remove mapping"
+                                ></i>
                               </span>
                             )
                           })}

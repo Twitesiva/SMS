@@ -53,6 +53,17 @@ const adminPortalNavGroups = [
         ]
     },
     {
+        title: 'Staff Class Mapping',
+        static: true,
+        items: [
+            {
+                to: '/admin-portal/staff-class-mapping',
+                label: 'Staff Class Mapping',
+                icon: 'bi-person-lines-fill'
+            }
+        ]
+    },
+    {
         title: 'Class Teacher Mapping',
         static: true,
         items: [
@@ -81,11 +92,6 @@ const adminPortalNavGroups = [
                 to: '/admin-portal/staff-workload-report',
                 label: 'Staff Workload Report',
                 icon: 'bi-bar-chart-fill'
-            },
-            {
-                to: '/admin-portal/staff-class-mapping',
-                label: 'Staff Class Mapping',
-                icon: 'bi-person-lines-fill'
             }
         ]
     },
