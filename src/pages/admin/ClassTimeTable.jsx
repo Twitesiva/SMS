@@ -129,6 +129,8 @@ export default function ClassTimeTable() {
   const [classTeacherSubjectMap, setClassTeacherSubjectMap] = useState({})
   const [periodIdBySlot, setPeriodIdBySlot] = useState({})
   const [busyStaffSlots, setBusyStaffSlots] = useState({})
+  const [classMappedStaffIds, setClassMappedStaffIds] = useState([])
+  const [restrictedStaffIds, setRestrictedStaffIds] = useState([])
 
   // ---------- Selection state ----------
   // Use null instead of empty string for UUID fields
@@ -536,6 +538,8 @@ export default function ClassTimeTable() {
       setClassTeachers([])
       setClassTeacherSubjectMap({})
       setPeriodIdBySlot({})
+      setClassMappedStaffIds([])
+      setRestrictedStaffIds([])
       return
     }
 
@@ -561,13 +565,25 @@ export default function ClassTimeTable() {
           classSubjectsQuery = classSubjectsQuery.is('group_id', null)
         }
 
-        const [{ data: classSubjectRows, error: classSubjectError }, { data: mappingRows, error: mappingError }] = await Promise.all([
+        const [{ data: classSubjectRows, error: classSubjectError }, { data: mappingRows, error: mappingError }, { data: classMappedRows, error: classMappedError }] = await Promise.all([
           classSubjectsQuery,
           supabase.from('staff_subjects').select('subject_id, staff_id'),
+          supabase.from('staff_class_permissions').select('staff_id, class_id')
         ])
 
         if (classSubjectError) throw classSubjectError
         if (mappingError) throw mappingError
+        if (classMappedError) throw classMappedError
+
+        const mappedRows = classMappedRows || []
+        const localRestrictedStaffIds = [...new Set(mappedRows.map(row => row.staff_id))]
+        const localAllowedStaffIds = [...new Set(mappedRows.filter(row => String(row.class_id) === String(selectedClassId)).map(row => row.staff_id))]
+        
+        console.log('Restricted Staff IDs:', localRestrictedStaffIds)
+        console.log('Class Mapped Staff IDs:', localAllowedStaffIds)
+        
+        setClassMappedStaffIds(localAllowedStaffIds)
+        setRestrictedStaffIds(localRestrictedStaffIds)
 
         const nextSubjects = (classSubjectRows || [])
           .map((row) => {
@@ -1440,7 +1456,15 @@ export default function ClassTimeTable() {
                                       disabled={!selectedSubjectId}
                                     >
                                       <option value="">-- Staff --</option>
-                                      {(subjectStaffMap[selectedSubjectId] || []).map(staffId => {
+                                      {(subjectStaffMap[selectedSubjectId] || [])
+                                        .filter(id => {
+                                          if (restrictedStaffIds.includes(id)) {
+                                            return classMappedStaffIds.includes(id);
+                                          } else {
+                                            return true;
+                                          }
+                                        })
+                                        .map(staffId => {
                                         const staff = staffList.find(s => String(s.id) === String(staffId))
                                         const label = staff ? staff.full_name : `Staff ${staffId}`
                                         // ========== CHECK IF STAFF IS BUSY ==========
