@@ -34,13 +34,15 @@ export default function StaffLogin() {
         return
       }
 
-      if (!data || data.length === 0) {
+      const staffRecord = data && data.length > 0 ? data[0] : null;
+
+      if (!staffRecord) {
         setError('Invalid Staff ID or Mobile Number')
         setLoading(false)
         return
       }
 
-      setStaff(data[0])
+      setStaff(staffRecord)
       nav('/staff/dashboard')
     } catch (err) {
       console.error(err)
