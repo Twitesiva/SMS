@@ -1761,6 +1761,72 @@ export default function ClassTimeTable() {
                 }}>
                   Download PDF
                 </button>
+                <button className="btn btn-success btn-sm me-2" onClick={() => {
+                  // Convert timetable grid to CSV
+                  const periodCount = viewData?.periodCount || 6
+                  const is6Periods = periodCount <= 6
+                  
+                  // Define headers based on period count
+                  let headers
+                  if (is6Periods) {
+                    headers = ['Day', 'Period 1', 'Period 2', 'Break', 'Period 3', 'Period 4', 'Lunch', 'Period 5', 'Period 6']
+                  } else {
+                    headers = ['Day', 'Period 1', 'Period 2', 'Break', 'Period 3', 'Period 4', 'Lunch', 'Period 5', 'Period 6', 'Break', 'Period 7', 'Period 8']
+                  }
+                  
+                  // Build rows from viewData.grid
+                  const rows = FIXED_DAYS.map(day => {
+                    const dayIndex = FIXED_DAYS.indexOf(day)
+                    const grid = viewData?.grid?.[day]
+                    
+                    if (is6Periods) {
+                      return [
+                        day,
+                        grid?.p1?.subject_title || '-',
+                        grid?.p2?.subject_title || '-',
+                        'BREAK'[dayIndex],
+                        grid?.p3?.subject_title || '-',
+                        grid?.p4?.subject_title || '-',
+                        'LUNCH'[dayIndex],
+                        grid?.p5?.subject_title || '-',
+                        grid?.p6?.subject_title || '-'
+                      ]
+                    } else {
+                      return [
+                        day,
+                        grid?.p1?.subject_title || '-',
+                        grid?.p2?.subject_title || '-',
+                        'BREAK'[dayIndex],
+                        grid?.p3?.subject_title || '-',
+                        grid?.p4?.subject_title || '-',
+                        'LUNCH'[dayIndex],
+                        grid?.p5?.subject_title || '-',
+                        grid?.p6?.subject_title || '-',
+                        'BREAK'[dayIndex],
+                        grid?.p7?.subject_title || '-',
+                        grid?.p8?.subject_title || '-'
+                      ]
+                    }
+                  })
+                  
+                  // Create CSV content
+                  const csvContent = [
+                    headers.join(','),
+                    ...rows.map(row => row.join(','))
+                  ].join('\n')
+                  
+                  // Create and trigger download
+                  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+                  const link = document.createElement('a')
+                  const fileName = `Class_${viewData?.className}_${viewData?.sectionName}_Timetable_${viewData?.academicYear}.csv`.replace(/\s+/g, '_')
+                  link.href = URL.createObjectURL(blob)
+                  link.setAttribute('download', fileName)
+                  document.body.appendChild(link)
+                  link.click()
+                  document.body.removeChild(link)
+                }}>
+                  Download CSV
+                </button>
                 <button className="btn btn-secondary btn-sm" onClick={() => {
                   setViewModalOpen(false)
                   setViewData(null)
