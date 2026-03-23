@@ -20,6 +20,14 @@ const LEVEL_RANGES = {
   Secondary: { min: 10, max: 12 },
 }
 
+const SECTION_MAP = {
+  A: 'A1',
+  B: 'A2',
+  C: 'A3',
+  D: 'A4',
+  E: 'A5'
+}
+
 const SLOT_TEMPLATE_6 = [
   { key: 'p1', label: 'PERIOD 1', start: '10:00:00', end: '10:40:00', periodNumber: 1 },
   { key: 'p2', label: 'PERIOD 2', start: '10:40:00', end: '11:20:00', periodNumber: 2 },
@@ -1099,7 +1107,7 @@ export default function ClassTimeTable() {
                     <tr key={timetable.id}>
                       <td>{timetable.year_name}</td>
                       <td>{timetable.class_name}</td>
-                      <td>{timetable.section_name}</td>
+                      <td>{SECTION_MAP[timetable.section_name?.toUpperCase()] || timetable.section_name}</td>
                       <td>
                         <span className={`badge ${timetable.term === 0 || timetable.class_number >= 10 ? 'bg-success' : 'bg-primary'}`}>
                           {timetable.term_display}
