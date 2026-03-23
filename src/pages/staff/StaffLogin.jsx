@@ -35,7 +35,7 @@ export default function StaffLogin() {
       }
 
       if (!data || data.length === 0) {
-        setError('Invalid Staff ID or Password')
+        setError('Invalid Staff ID or Mobile Number')
         setLoading(false)
         return
       }
