@@ -28,7 +28,12 @@ ChartJS.register(
 
 export default function MainDashboard() {
     // State for dashboard metrics
-    const [counts, setCounts] = useState({ classes: 0, sections: 0, staff: 0 })
+    const [counts, setCounts] = useState({ classes: 0, sections: 0, staff: 0, schoolLevels: 0 })
+    
+    // School levels modal state
+    const [showLevelsModal, setShowLevelsModal] = useState(false)
+    const [levelsData, setLevelsData] = useState([])
+    const [levelsLoading, setLevelsLoading] = useState(false)
 
     // Chart States
     const [studentView, setStudentView] = useState('group') // 'group' or 'course'
@@ -162,6 +167,9 @@ export default function MainDashboard() {
             } catch (err) {
                 console.error('Error fetching dashboard data', err)
             }
+            
+            // Fetch school levels count
+            await fetchSchoolLevelsCount()
         }
         fetchData()
     }, [])
@@ -192,6 +200,80 @@ export default function MainDashboard() {
         },
         maintainAspectRatio: false
     }
+    
+    // Fetch school levels count from classes table
+    const fetchSchoolLevelsCount = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('classes')
+                .select('school_level')
+                .not('school_level', 'is', null)
+            
+            if (error) throw error
+            
+            console.log('Classes Data for count:', data)
+            
+            // Get unique school levels
+            const uniqueLevels = new Set((data || []).map(item => item.school_level?.trim()).filter(Boolean))
+            setCounts(prev => ({ ...prev, schoolLevels: uniqueLevels.size }))
+        } catch (err) {
+            console.error('Error fetching school levels count:', err)
+        }
+    }
+    
+    // Fetch school levels and classes for modal
+    const fetchSchoolLevelsData = async () => {
+        setLevelsLoading(true)
+        try {
+            // Fetch from classes table
+            const { data: classesData, error: classesError } = await supabase
+                .from('classes')
+                .select('id, class_name, class_number, school_level')
+                .order('class_number')
+            
+            if (classesError) throw classesError
+            
+            console.log('Classes Data:', classesData)
+            
+            // Group by school level
+            const grouped = {}
+            ;(classesData || []).forEach(item => {
+                const level = item.school_level?.trim()
+                if (!level) return
+                
+                if (!grouped[level]) {
+                    grouped[level] = []
+                }
+                grouped[level].push({
+                    id: item.id,
+                    className: item.class_name || `Class ${item.class_number}`,
+                    classNumber: item.class_number
+                })
+            })
+            
+            console.log('Grouped levels:', grouped)
+            
+            // Convert to array
+            const levelsArray = Object.keys(grouped).map((levelName) => ({
+                levelName,
+                classes: grouped[levelName].sort((a, b) => (a.classNumber || 0) - (b.classNumber || 0))
+            }))
+            
+            console.log('Levels Data:', levelsArray)
+            
+            setLevelsData(levelsArray)
+        } catch (err) {
+            console.error('Error fetching school levels data:', err)
+        } finally {
+            setLevelsLoading(false)
+        }
+    }
+    
+    // Handle card click
+    const handleSchoolLevelsClick = () => {
+        setShowLevelsModal(true)
+        fetchSchoolLevelsData()
+    }
 
     const metrics = [
         {
@@ -203,12 +285,13 @@ export default function MainDashboard() {
             path: "/admin-portal/groups-courses"
         },
         {
-            id: 'metrics-sections',
-            label: "Total Sections",
-            value: counts.sections,
-            detail: "Section records",
-            icon: "bi-book-half",
-            path: "/admin-portal/groups-courses"
+            id: 'metrics-school-levels',
+            label: "Total School Levels",
+            value: counts.schoolLevels,
+            detail: "Configured levels",
+            icon: "bi-layers",
+            path: null,
+            onClick: handleSchoolLevelsClick
         },
         {
             id: 'metrics-staff',
@@ -228,21 +311,39 @@ export default function MainDashboard() {
                 <section className="px-4 mb-5">
                     <div className="dashboard-cards">
                         {metrics.map((metric) => (
-                            <Link
-                                key={metric.id}
-                                to={metric.path}
-                                className="dashboard-card card-shadow dashboard-card-link"
-                                style={{ textDecoration: 'none' }}
-                            >
-                                <div className="dashboard-card-icon">
-                                    <i className={`bi ${metric.icon}`}></i>
+                            metric.path ? (
+                                <Link
+                                    key={metric.id}
+                                    to={metric.path}
+                                    className="dashboard-card card-shadow dashboard-card-link"
+                                    style={{ textDecoration: 'none' }}
+                                >
+                                    <div className="dashboard-card-icon">
+                                        <i className={`bi ${metric.icon}`}></i>
+                                    </div>
+                                    <div>
+                                        <div className="dashboard-card-value">{metric.value}</div>
+                                        <div className="dashboard-card-label">{metric.label}</div>
+                                        <p className="mb-0 fw-bold">{metric.detail}</p>
+                                    </div>
+                                </Link>
+                            ) : metric.onClick ? (
+                                <div
+                                    key={metric.id}
+                                    className="dashboard-card card-shadow dashboard-card-link"
+                                    style={{ textDecoration: 'none', cursor: 'pointer' }}
+                                    onClick={metric.onClick}
+                                >
+                                    <div className="dashboard-card-icon">
+                                        <i className={`bi ${metric.icon}`}></i>
+                                    </div>
+                                    <div>
+                                        <div className="dashboard-card-value">{metric.value}</div>
+                                        <div className="dashboard-card-label">{metric.label}</div>
+                                        <p className="mb-0 fw-bold">{metric.detail}</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <div className="dashboard-card-value">{metric.value}</div>
-                                    <div className="dashboard-card-label">{metric.label}</div>
-                                    <p className="mb-0 fw-bold">{metric.detail}</p>
-                                </div>
-                            </Link>
+                            ) : null
                         ))}
                     </div>
                 </section>
@@ -308,6 +409,62 @@ export default function MainDashboard() {
                         </div>
                     </div>
                 </section>
+                
+                {/* School Levels Modal */}
+                {showLevelsModal && (
+                    <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                        <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h5 className="modal-title">School Levels & Classes</h5>
+                                    <button type="button" className="btn-close" onClick={() => setShowLevelsModal(false)}></button>
+                                </div>
+                                <div className="modal-body">
+                                    {levelsLoading ? (
+                                        <div className="text-center py-5">
+                                            <div className="spinner-border text-primary" role="status">
+                                                <span className="visually-hidden">Loading...</span>
+                                            </div>
+                                        </div>
+                                    ) : !levelsData || levelsData.length === 0 ? (
+                                        <div className="text-center py-5 text-muted">
+                                            <p>No school levels configured</p>
+                                        </div>
+                                    ) : (
+                                        <div className="row g-4">
+                                            {levelsData.map((level) => (
+                                                <div key={level.levelName} className="col-12">
+                                                    <div className="card border-0 shadow-sm">
+                                                        <div className="card-header bg-light">
+                                                            <h6 className="mb-0 fw-bold">
+                                                                <i className="bi bi-layers me-2"></i>
+                                                                {level.levelName}
+                                                            </h6>
+                                                        </div>
+                                                        <div className="card-body">
+                                                            <div className="d-flex flex-wrap gap-2">
+                                                                {level.classes.map((cls) => (
+                                                                    <span key={cls.id} className="badge bg-primary-subtle text-primary fs-6">
+                                                                        {cls.className}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="modal-footer">
+                                    <button type="button" className="btn btn-secondary" onClick={() => setShowLevelsModal(false)}>
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </AdShellAdmin>
     )
