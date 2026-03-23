@@ -19,6 +19,7 @@ import MainDashboard from "./pages/admin/MainDashboard.jsx";
 import AdminStaff from "./pages/admin/Staff.jsx";
 import ClassTeacherMapping from "./pages/admin/ClassTeacherMapping.jsx";
 import StaffWorkloadReport from "./pages/admin/StaffWorkloadReport.jsx";
+import StaffClassMapping from "./pages/admin/StaffClassMapping.jsx";
 
 import StaffLogin from "./pages/staff/StaffLogin.jsx";
 import StaffDashboard from "./pages/staff/StaffDashboard.jsx";
@@ -131,6 +132,14 @@ export default function App() {
           element={
             <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
               <StaffWorkloadReport />
+            </GuardedRoute>
+          }
+        />
+        <Route
+          path="/admin-portal/staff-class-mapping"
+          element={
+            <GuardedRoute isAuthed={isAuthed} redirectTo="/admin-portal/login">
+              <StaffClassMapping />
             </GuardedRoute>
           }
         />

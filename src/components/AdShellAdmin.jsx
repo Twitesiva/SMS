@@ -81,6 +81,11 @@ const adminPortalNavGroups = [
                 to: '/admin-portal/staff-workload-report',
                 label: 'Staff Workload Report',
                 icon: 'bi-bar-chart-fill'
+            },
+            {
+                to: '/admin-portal/staff-class-mapping',
+                label: 'Staff Class Mapping',
+                icon: 'bi-person-lines-fill'
             }
         ]
     },
