@@ -1458,6 +1458,10 @@ export default function ClassTimeTable() {
                                       <option value="">-- Staff --</option>
                                       {(subjectStaffMap[selectedSubjectId] || [])
                                         .filter(id => {
+                                          const isSmartFilterEnabled = localStorage.getItem('smartStaffFilterEnabled') === 'true';
+                                          if (!isSmartFilterEnabled) {
+                                            return true;
+                                          }
                                           if (restrictedStaffIds.includes(id)) {
                                             return classMappedStaffIds.includes(id);
                                           } else {

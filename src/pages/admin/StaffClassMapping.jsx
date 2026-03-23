@@ -12,6 +12,7 @@ export default function StaffClassMapping() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [smartFilterEnabled, setSmartFilterEnabled] = useState(false)
+  const [allMappings, setAllMappings] = useState([])
 
   // Load initial data
   useEffect(() => {
@@ -35,6 +36,12 @@ export default function StaffClassMapping() {
         // Check if smart filter is enabled (stored in localStorage for now)
         const stored = localStorage.getItem('smartStaffFilterEnabled')
         setSmartFilterEnabled(stored === 'true')
+
+        // Fetch all permissions for grouping
+        const { data: mappingsData } = await supabase
+          .from('staff_class_permissions')
+          .select('staff_id, class_id')
+        setAllMappings(mappingsData || [])
       } catch (err) {
         console.error('Error loading data:', err)
       } finally {
@@ -108,6 +115,12 @@ export default function StaffClassMapping() {
       }
 
       toast.success('Staff class permissions saved successfully')
+
+      // Refresh all mappings
+      const { data: updatedMappings } = await supabase
+        .from('staff_class_permissions')
+        .select('staff_id, class_id')
+      setAllMappings(updatedMappings || [])
     } catch (err) {
       console.error('Error saving permissions:', err)
       toast.error('Failed to save permissions')
@@ -131,6 +144,23 @@ export default function StaffClassMapping() {
     acc[level].push(cls)
     return acc
   }, {})
+
+  // Group mappings for UI display
+  const groupedMappings = Object.entries(
+    allMappings.reduce((acc, mapping) => {
+      if (!acc[mapping.staff_id]) acc[mapping.staff_id] = []
+      acc[mapping.staff_id].push(mapping.class_id)
+      return acc
+    }, {})
+  )
+
+  // Debug Logs
+  useEffect(() => {
+    console.log("Selected Classes:", selectedClasses);
+    console.log("All Mappings:", allMappings);
+    console.log("Grouped Mappings:", groupedMappings);
+    console.log("Smart Filter Enabled:", smartFilterEnabled);
+  }, [selectedClasses, allMappings, groupedMappings, smartFilterEnabled]);
 
   if (loading) {
     return (
@@ -250,8 +280,66 @@ export default function StaffClassMapping() {
                     </div>
                   ))
                 )}
+
+                {/* FEATURE 1: SHOW SELECTED CLASSES */}
+                <div className="mt-4 border-top pt-3">
+                  <h6 className="fw-bold mb-3">Selected Classes</h6>
+                  {selectedClasses.length === 0 ? (
+                    <p className="text-muted small">No classes selected</p>
+                  ) : (
+                    <div className="d-flex flex-wrap gap-2">
+                      {selectedClasses.map(id => {
+                        const cls = classes.find(c => String(c.id) === String(id))
+                        return (
+                          <span key={id} className="badge bg-primary px-3 py-2">
+                            {cls ? cls.class_name : id}
+                          </span>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* FEATURE 2: ASSIGNED STAFF CLASS MAPPINGS */}
+        <div className="card mt-4">
+          <div className="card-header bg-white">
+            <h5 className="mb-0 fw-bold">Assigned Staff Class Mappings</h5>
+          </div>
+          <div className="card-body bg-light">
+            {groupedMappings.length === 0 ? (
+              <p className="text-muted mb-0 text-center py-3">No mappings created yet</p>
+            ) : (
+              <div className="row g-3">
+                {groupedMappings.map(([staffId, classIds]) => {
+                  const staff = staffList.find(s => String(s.id) === String(staffId))
+                  if (!staff) return null;
+                  
+                  return (
+                    <div key={staffId} className="col-md-4">
+                      <div className="p-3 border rounded shadow-sm bg-white h-100">
+                        <h6 className="fw-bold text-dark mb-3 pb-2 border-bottom">
+                          {staff.full_name} <span className="text-muted small fw-normal">({staff.staff_id || 'N/A'})</span>
+                        </h6>
+                        <div className="d-flex flex-wrap gap-2">
+                          {classIds.map(cid => {
+                            const cls = classes.find(c => String(c.id) === String(cid))
+                            return (
+                              <span key={cid} className="badge bg-secondary">
+                                {cls ? cls.class_name : cid}
+                              </span>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
 
