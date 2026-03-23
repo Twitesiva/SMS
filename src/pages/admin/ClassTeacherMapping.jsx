@@ -36,6 +36,7 @@ export default function ClassTeacherMapping() {
   const [mappings, setMappings] = useState([])
   const [editingId, setEditingId] = useState(null)
   const [sectionLabelMap, setSectionLabelMap] = useState({})
+  const [selectedStaffFilter, setSelectedStaffFilter] = useState('all')
 
   const loadMappings = async () => {
     try {
@@ -59,12 +60,14 @@ export default function ClassTeacherMapping() {
             ),
             classes (
               class_name,
+              class_number,
               school_level
             )
           ),
           staff (
             id,
-            full_name
+            full_name,
+            staff_id
           )
         `)
         .order('id', { ascending: false })
@@ -93,6 +96,29 @@ export default function ClassTeacherMapping() {
       console.error('Mappings load error:', err)
     }
   }
+
+  // Filter and sort mappings
+  const processedMappings = useMemo(() => {
+    let result = [...mappings]
+    
+    // Filter by staff
+    if (selectedStaffFilter !== 'all') {
+      result = result.filter(m => m.staff?.id === selectedStaffFilter)
+    }
+    
+    // Sort by class number then section
+    result.sort((a, b) => {
+      const classNumA = a.class_sections?.classes?.class_number || 0
+      const classNumB = b.class_sections?.classes?.class_number || 0
+      if (classNumA !== classNumB) return classNumA - classNumB
+      
+      const sectionA = a.class_sections?.sections?.section_name || ''
+      const sectionB = b.class_sections?.sections?.section_name || ''
+      return sectionA.localeCompare(sectionB)
+    })
+    
+    return result
+  }, [mappings, selectedStaffFilter])
 
   // Derived state
   const selectedClass = useMemo(() => 
@@ -658,6 +684,26 @@ export default function ClassTeacherMapping() {
               <p className="text-muted small mb-3">No class teachers assigned yet.</p>
             )}
 
+            {/* Filter by Staff */}
+            <div className="mb-3">
+              <label className="form-label fw-semibold small">Filter by Staff</label>
+              <select
+                className="form-select form-select-sm"
+                style={{ maxWidth: '300px' }}
+                value={selectedStaffFilter}
+                onChange={(e) => setSelectedStaffFilter(e.target.value)}
+              >
+                <option value="all">All Staff</option>
+                {staffList
+                  .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''))
+                  .map(staff => (
+                    <option key={staff.id} value={staff.id}>
+                      {staff.full_name} ({staff.staff_id || 'N/A'})
+                    </option>
+                  ))}
+              </select>
+            </div>
+
             <div className="table-responsive">
               <table className="table table-hover align-middle mb-0">
                 <thead>
@@ -671,18 +717,20 @@ export default function ClassTeacherMapping() {
                   </tr>
                 </thead>
                 <tbody>
-                  {mappings.length === 0 ? (
+                  {processedMappings.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="text-center text-muted py-4">
                         No class teacher assignments yet.
                       </td>
                     </tr>
                   ) : (
-                    mappings.map(mapping => {
+                    processedMappings.map(mapping => {
                       const className = mapping.class_sections?.classes?.class_name || 'Unknown Class'
+                      const classNumber = mapping.class_sections?.classes?.class_number || 0
                       const sectionName = mapping.class_sections?.sections?.section_name || 'Unknown'
                       const yearName = mapping.academic_years?.year_name || 'N/A'
                       const staffName = mapping.staff?.full_name || 'Staff'
+                      const staffId = mapping.staff?.staff_id || 'N/A'
 
                         return (
                         <tr key={mapping.id}>
@@ -692,9 +740,15 @@ export default function ClassTeacherMapping() {
                               {mapping.term || 'Full Year'}
                             </span>
                           </td>
-                          <td>{className}</td>
+                          <td>
+                            <span className="fw-semibold">Class {classNumber}</span>
+                            <div className="text-muted small">{className}</div>
+                          </td>
                           <td>{sectionLabelMap[mapping.class_section_id] || sectionName}</td>
-                          <td>{staffName}</td>
+                          <td>
+                            <span className="fw-semibold">{staffName}</span>
+                            <span className="text-muted small ms-1">({staffId})</span>
+                          </td>
                           <td className="text-end">
                             <div className="d-flex justify-content-end gap-2">
                               <button
