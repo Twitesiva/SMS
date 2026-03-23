@@ -1329,14 +1329,19 @@ export default function ClassTimeTable() {
               <div className="text-center p-5 text-muted">Loading timetable data...</div>
             ) : (
               <div className="table-responsive">
-                <table className="timetable-table">
+                <table className="timetable-table" style={{
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                  tableLayout: 'fixed',
+                  border: '2px solid #6b7280'
+                }}>
                   <thead>
                     <tr>
-                      <th style={{ width: '120px' }}>DAY</th>
+                      <th style={{ width: '120px', padding: '10px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af' }}>DAY</th>
                       {slots.map(slot => (
-                        <th key={slot.key}>
+                        <th key={slot.key} style={{ padding: '10px 6px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af' }}>
                           <div className="fw-bold">{slot.label}</div>
-                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.7rem' }}>
+                          <div className="text-muted small mb-0">
                             {formatTime(slot.start)} – {formatTime(slot.end)}
                           </div>
                         </th>
@@ -1346,7 +1351,7 @@ export default function ClassTimeTable() {
                   <tbody>
                     {FIXED_DAYS.map(day => (
                       <tr key={day}>
-                        <td className="day-name">{day}</td>
+                        <td className="day-name" style={{ padding: '10px', fontWeight: '600', backgroundColor: '#f3f4f6', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af' }}>{day}</td>
                         {slots.map(slot => {
                           const isPeriodOne = slot.key === 'p1'
                           const isClassSlot = slot.periodNumber !== null
@@ -1367,7 +1372,7 @@ export default function ClassTimeTable() {
                               : (selectedStaffId ? getStaffName(selectedStaffId) : null)
                             
                             return (
-                              <td key={`${day}-${slot.key}`} className="slot-cell">
+                              <td key={`${day}-${slot.key}`} className="slot-cell" style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af' }}>
                                 {isPeriodOne ? (
                                   <>
                                     <select
@@ -1770,86 +1775,87 @@ export default function ClassTimeTable() {
               <table className="timetable-table" style={{
                 width: '100%',
                 borderCollapse: 'collapse',
-                border: '1px solid #ccc'
+                tableLayout: 'fixed',
+                border: '2px solid #6b7280'
               }}>
                 <thead>
                   <tr>
-                    <th className="day-name" style={{ width: '100px', padding: '8px', backgroundColor: '#f2f2f2' }}>DAY</th>
+                    <th className="day-name" style={{ width: '120px', padding: '10px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af' }}>DAY</th>
                     {viewData?.periodCount <= 6 ? (
                       <>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                          <div>PERIOD 1</div>
-                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('10:00:00')} – {formatTime('10:40:00')}</div>
+                        <th style={{ padding: '10px 6px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af' }}>
+                          <div className="fw-bold">PERIOD 1</div>
+                          <div className="text-muted small mb-0">{formatTime('10:00')} - {formatTime('10:40')}</div>
                         </th>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                          <div>PERIOD 2</div>
-                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('10:40:00')} – {formatTime('11:20:00')}</div>
+                        <th style={{ padding: '10px 6px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af' }}>
+                          <div className="fw-bold">PERIOD 2</div>
+                          <div className="text-muted small mb-0">{formatTime('10:40')} - {formatTime('11:20')}</div>
                         </th>
-                        <th className="break-cell" style={{ padding: '8px', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>
+                        <th className="break-cell" style={{ padding: '10px 6px', backgroundColor: '#fef3c7', color: '#d97706', fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af' }}>
                           <div>BREAK</div>
                         </th>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                          <div>PERIOD 3</div>
-                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('11:25:00')} – {formatTime('12:05:00')}</div>
+                        <th style={{ padding: '10px 6px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af' }}>
+                          <div className="fw-bold">PERIOD 3</div>
+                          <div className="text-muted small mb-0">{formatTime('11:25')} - {formatTime('12:05')}</div>
                         </th>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                          <div>PERIOD 4</div>
-                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('12:05:00')} – {formatTime('12:45:00')}</div>
+                        <th style={{ padding: '10px 6px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af' }}>
+                          <div className="fw-bold">PERIOD 4</div>
+                          <div className="text-muted small mb-0">{formatTime('12:05')} - {formatTime('12:45')}</div>
                         </th>
-                        <th className="lunch-cell" style={{ padding: '8px', backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold' }}>
+                        <th className="lunch-cell" style={{ padding: '10px 6px', backgroundColor: '#dbeafe', color: '#2563eb', fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af' }}>
                           <div>LUNCH</div>
                         </th>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                          <div>PERIOD 5</div>
-                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('13:10:00')} – {formatTime('13:50:00')}</div>
+                        <th style={{ padding: '10px 6px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af' }}>
+                          <div className="fw-bold">PERIOD 5</div>
+                          <div className="text-muted small mb-0">{formatTime('13:10')} - {formatTime('13:50')}</div>
                         </th>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                          <div>PERIOD 6</div>
-                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('13:50:00')} – {formatTime('14:30:00')}</div>
+                        <th style={{ padding: '10px 6px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af' }}>
+                          <div className="fw-bold">PERIOD 6</div>
+                          <div className="text-muted small mb-0">{formatTime('13:50')} - {formatTime('14:30')}</div>
                         </th>
                       </>
                     ) : (
                       <>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                          <div>PERIOD 1</div>
-                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('10:00:00')} – {formatTime('10:40:00')}</div>
+                        <th style={{ padding: '10px 6px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af' }}>
+                          <div className="fw-bold">PERIOD 1</div>
+                          <div className="text-muted small mb-0">{formatTime('10:00')} - {formatTime('10:40')}</div>
                         </th>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                          <div>PERIOD 2</div>
-                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('10:40:00')} – {formatTime('11:20:00')}</div>
+                        <th style={{ padding: '10px 6px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af' }}>
+                          <div className="fw-bold">PERIOD 2</div>
+                          <div className="text-muted small mb-0">{formatTime('10:40')} - {formatTime('11:20')}</div>
                         </th>
-                        <th className="break-cell" style={{ padding: '8px', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>
+                        <th className="break-cell" style={{ padding: '10px 6px', backgroundColor: '#fef3c7', color: '#d97706', fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af' }}>
                           <div>BREAK</div>
                         </th>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                          <div>PERIOD 3</div>
-                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('11:25:00')} – {formatTime('12:05:00')}</div>
+                        <th style={{ padding: '10px 6px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af' }}>
+                          <div className="fw-bold">PERIOD 3</div>
+                          <div className="text-muted small mb-0">{formatTime('11:25')} - {formatTime('12:05')}</div>
                         </th>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                          <div>PERIOD 4</div>
-                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('12:05:00')} – {formatTime('12:45:00')}</div>
+                        <th style={{ padding: '10px 6px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af' }}>
+                          <div className="fw-bold">PERIOD 4</div>
+                          <div className="text-muted small mb-0">{formatTime('12:05')} - {formatTime('12:45')}</div>
                         </th>
-                        <th className="lunch-cell" style={{ padding: '8px', backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold' }}>
+                        <th className="lunch-cell" style={{ padding: '10px 6px', backgroundColor: '#dbeafe', color: '#2563eb', fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af' }}>
                           <div>LUNCH</div>
                         </th>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                          <div>PERIOD 5</div>
-                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('13:10:00')} – {formatTime('13:50:00')}</div>
+                        <th style={{ padding: '10px 6px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af' }}>
+                          <div className="fw-bold">PERIOD 5</div>
+                          <div className="text-muted small mb-0">{formatTime('13:10')} - {formatTime('13:50')}</div>
                         </th>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                          <div>PERIOD 6</div>
-                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('13:50:00')} – {formatTime('14:30:00')}</div>
+                        <th style={{ padding: '10px 6px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af' }}>
+                          <div className="fw-bold">PERIOD 6</div>
+                          <div className="text-muted small mb-0">{formatTime('13:50')} - {formatTime('14:30')}</div>
                         </th>
-                        <th className="break-cell" style={{ padding: '8px', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>
+                        <th className="break-cell" style={{ padding: '10px 6px', backgroundColor: '#fef3c7', color: '#d97706', fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af' }}>
                           <div>BREAK</div>
                         </th>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                          <div>PERIOD 7</div>
-                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('14:35:00')} – {formatTime('15:15:00')}</div>
+                        <th style={{ padding: '10px 6px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af' }}>
+                          <div className="fw-bold">PERIOD 7</div>
+                          <div className="text-muted small mb-0">{formatTime('14:35')} - {formatTime('15:15')}</div>
                         </th>
-                        <th style={{ padding: '8px', backgroundColor: '#f2f2f2' }}>
-                          <div>PERIOD 8</div>
-                          <div className="text-muted small" style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>{formatTime('15:15:00')} – {formatTime('15:55:00')}</div>
+                        <th style={{ padding: '10px 6px', backgroundColor: '#f3f4f6', fontWeight: '600', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af' }}>
+                          <div className="fw-bold">PERIOD 8</div>
+                          <div className="text-muted small mb-0">{formatTime('15:15')} - {formatTime('15:55')}</div>
                         </th>
                       </>
                     )}
@@ -1858,58 +1864,114 @@ export default function ClassTimeTable() {
                 <tbody>
                   {FIXED_DAYS.map(day => (
                     <tr key={day}>
-                      <td className="day-name" style={{ padding: '8px', fontWeight: 'bold', backgroundColor: '#f9f9f9' }}>{day}</td>
+                      <td className="day-name" style={{ padding: '10px', fontWeight: '600', backgroundColor: '#f3f4f6', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af' }}>{day}</td>
                       {viewData?.periodCount <= 6 ? (
                         // 6 periods
                         <>
-                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p1?.subject_title || '-'}</td>
-                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p2?.subject_title || '-'}</td>
-                          <td className="break-cell" style={{ padding: '8px', textAlign: 'center', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>
+                          <td style={{ padding: '10px 6px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af', whiteSpace: 'normal' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                              <span className="fw-bold">{viewData?.grid?.[day]?.p1?.subject_title || '-'}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '10px 6px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af', whiteSpace: 'normal' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                              <span className="fw-bold">{viewData?.grid?.[day]?.p2?.subject_title || '-'}</span>
+                            </div>
+                          </td>
+                          <td className="break-cell" style={{ padding: '10px 6px', textAlign: 'center', verticalAlign: 'middle', backgroundColor: '#fef3c7', color: '#d97706', fontWeight: 'bold', border: '1px solid #9ca3af' }}>
                             {(() => {
                               const dayIndex = FIXED_DAYS.indexOf(day)
                               return 'BREAK'[dayIndex]
                             })()}
                           </td>
-                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p3?.subject_title || '-'}</td>
-                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p4?.subject_title || '-'}</td>
-                          <td className="lunch-cell" style={{ padding: '8px', textAlign: 'center', backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold' }}>
+                          <td style={{ padding: '10px 6px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af', whiteSpace: 'normal' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                              <span className="fw-bold">{viewData?.grid?.[day]?.p3?.subject_title || '-'}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '10px 6px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af', whiteSpace: 'normal' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                              <span className="fw-bold">{viewData?.grid?.[day]?.p4?.subject_title || '-'}</span>
+                            </div>
+                          </td>
+                          <td className="lunch-cell" style={{ padding: '10px 6px', textAlign: 'center', verticalAlign: 'middle', backgroundColor: '#dbeafe', color: '#2563eb', fontWeight: 'bold', border: '1px solid #9ca3af' }}>
                             {(() => {
                               const dayIndex = FIXED_DAYS.indexOf(day)
                               return 'LUNCH'[dayIndex]
                             })()}
                           </td>
-                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p5?.subject_title || '-'}</td>
-                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p6?.subject_title || '-'}</td>
+                          <td style={{ padding: '10px 6px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af', whiteSpace: 'normal' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                              <span className="fw-bold">{viewData?.grid?.[day]?.p5?.subject_title || '-'}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '10px 6px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af', whiteSpace: 'normal' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                              <span className="fw-bold">{viewData?.grid?.[day]?.p6?.subject_title || '-'}</span>
+                            </div>
+                          </td>
                         </>
                       ) : (
                         // 8 periods
                         <>
-                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p1?.subject_title || '-'}</td>
-                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p2?.subject_title || '-'}</td>
-                          <td className="break-cell" style={{ padding: '8px', textAlign: 'center', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>
+                          <td style={{ padding: '10px 6px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af', whiteSpace: 'normal' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                              <span className="fw-bold">{viewData?.grid?.[day]?.p1?.subject_title || '-'}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '10px 6px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af', whiteSpace: 'normal' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                              <span className="fw-bold">{viewData?.grid?.[day]?.p2?.subject_title || '-'}</span>
+                            </div>
+                          </td>
+                          <td className="break-cell" style={{ padding: '10px 6px', textAlign: 'center', verticalAlign: 'middle', backgroundColor: '#fef3c7', color: '#d97706', fontWeight: 'bold', border: '1px solid #9ca3af' }}>
                             {(() => {
                               const dayIndex = FIXED_DAYS.indexOf(day)
                               return 'BREAK'[dayIndex]
                             })()}
                           </td>
-                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p3?.subject_title || '-'}</td>
-                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p4?.subject_title || '-'}</td>
-                          <td className="lunch-cell" style={{ padding: '8px', textAlign: 'center', backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold' }}>
+                          <td style={{ padding: '10px 6px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af', whiteSpace: 'normal' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                              <span className="fw-bold">{viewData?.grid?.[day]?.p3?.subject_title || '-'}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '10px 6px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af', whiteSpace: 'normal' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                              <span className="fw-bold">{viewData?.grid?.[day]?.p4?.subject_title || '-'}</span>
+                            </div>
+                          </td>
+                          <td className="lunch-cell" style={{ padding: '10px 6px', textAlign: 'center', verticalAlign: 'middle', backgroundColor: '#dbeafe', color: '#2563eb', fontWeight: 'bold', border: '1px solid #9ca3af' }}>
                             {(() => {
                               const dayIndex = FIXED_DAYS.indexOf(day)
                               return 'LUNCH'[dayIndex]
                             })()}
                           </td>
-                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p5?.subject_title || '-'}</td>
-                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p6?.subject_title || '-'}</td>
-                          <td className="break-cell" style={{ padding: '8px', textAlign: 'center', backgroundColor: '#fffde7', color: '#f57f17', fontWeight: 'bold' }}>
+                          <td style={{ padding: '10px 6px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af', whiteSpace: 'normal' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                              <span className="fw-bold">{viewData?.grid?.[day]?.p5?.subject_title || '-'}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '10px 6px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af', whiteSpace: 'normal' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                              <span className="fw-bold">{viewData?.grid?.[day]?.p6?.subject_title || '-'}</span>
+                            </div>
+                          </td>
+                          <td className="break-cell" style={{ padding: '10px 6px', textAlign: 'center', verticalAlign: 'middle', backgroundColor: '#fef3c7', color: '#d97706', fontWeight: 'bold', border: '1px solid #9ca3af' }}>
                             {(() => {
                               const dayIndex = FIXED_DAYS.indexOf(day)
                               return 'BREAK'[dayIndex]
                             })()}
                           </td>
-                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p7?.subject_title || '-'}</td>
-                          <td style={{ padding: '8px', textAlign: 'center' }}>{viewData?.grid?.[day]?.p8?.subject_title || '-'}</td>
+                          <td style={{ padding: '10px 6px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af', whiteSpace: 'normal' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                              <span className="fw-bold">{viewData?.grid?.[day]?.p7?.subject_title || '-'}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '10px 6px', textAlign: 'center', verticalAlign: 'middle', border: '1px solid #9ca3af', whiteSpace: 'normal' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                              <span className="fw-bold">{viewData?.grid?.[day]?.p8?.subject_title || '-'}</span>
+                            </div>
+                          </td>
                         </>
                       )}
                     </tr>
