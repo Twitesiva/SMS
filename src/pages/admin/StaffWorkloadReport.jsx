@@ -46,6 +46,17 @@ export default function StaffWorkloadReport() {
   const [reportData, setReportData] = useState([])
   const [loading, setLoading] = useState(false)
   const [filterStatus, setFilterStatus] = useState('all')
+  
+  // New filter states
+  const [selectedLevel, setSelectedLevel] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
+  
+  // Clear all filters
+  const clearFilters = () => {
+    setSelectedLevel('')
+    setSearchTerm('')
+    setFilterStatus('all')
+  }
 
   // ---------- Load Academic Years ----------
   useEffect(() => {
@@ -81,20 +92,41 @@ export default function StaffWorkloadReport() {
       try {
         const termNumber = selectedTerm === 'full' ? 0 : Number(selectedTerm)
 
-        // Step 1: Fetch all timetable sessions for selected year and term
+        // Step 1: Fetch all timetable sessions for selected year and term with class info
         const { data: sessionData, error: sessionError } = await supabase
           .from('timetable_sessions')
-          .select('staff_id, day_of_week, period_id')
+          .select(`
+            staff_id, 
+            day_of_week, 
+            period_id,
+            class_sections(
+              classes(
+                class_name,
+                class_number,
+                school_level
+              )
+            )
+          `)
           .eq('academic_year_id', selectedYear)
           .eq('term', termNumber)
 
         if (sessionError) throw sessionError
 
-        // Step 2: Count periods per staff
+        // Step 2: Count periods per staff and track school levels
         const countMap = {}
+        const levelMap = {}
         ;(sessionData || []).forEach(row => {
           if (!row.staff_id) return
           countMap[row.staff_id] = (countMap[row.staff_id] || 0) + 1
+          
+          // Extract school level from the join
+          const level = row.class_sections?.classes?.school_level
+          if (level) {
+            if (!levelMap[row.staff_id]) {
+              levelMap[row.staff_id] = new Set()
+            }
+            levelMap[row.staff_id].add(level)
+          }
         })
 
         // Step 3: Fetch all staff
@@ -128,7 +160,8 @@ export default function StaffWorkloadReport() {
           id: staff.id,
           name: staff.full_name,
           subjects: subjectMap[staff.id] || [],
-          totalPeriods: countMap[staff.id] || 0
+          totalPeriods: countMap[staff.id] || 0,
+          levels: levelMap[staff.id] ? Array.from(levelMap[staff.id]) : []
         }))
 
         // Add status to each staff
@@ -155,9 +188,30 @@ export default function StaffWorkloadReport() {
 
   // ---------- Filtered Data ----------
   const filteredData = useMemo(() => {
-    if (filterStatus === 'all') return reportData
-    return reportData.filter(staff => staff.status === filterStatus.toUpperCase())
-  }, [reportData, filterStatus])
+    let filtered = reportData
+    
+    // Filter by status
+    if (filterStatus !== 'all') {
+      filtered = filtered.filter(staff => staff.status === filterStatus.toUpperCase())
+    }
+    
+    // Filter by school level
+    if (selectedLevel) {
+      filtered = filtered.filter(staff => 
+        staff.levels && staff.levels.includes(selectedLevel)
+      )
+    }
+    
+    // Filter by search term (staff name)
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase()
+      filtered = filtered.filter(staff => 
+        staff.name.toLowerCase().includes(term)
+      )
+    }
+    
+    return filtered
+  }, [reportData, filterStatus, selectedLevel, searchTerm])
 
   // ---------- Stats ----------
   const stats = useMemo(() => {
@@ -184,7 +238,7 @@ export default function StaffWorkloadReport() {
 
         {/* Filters */}
         <div className="row g-3 mb-4">
-          <div className="col-md-4">
+          <div className="col-md-3">
             <label className="form-label fw-semibold">Academic Year</label>
             <select
               className="form-select"
@@ -200,7 +254,7 @@ export default function StaffWorkloadReport() {
             </select>
           </div>
 
-          <div className="col-md-4">
+          <div className="col-md-2">
             <label className="form-label fw-semibold">Term</label>
             <select
               className="form-select"
@@ -215,18 +269,53 @@ export default function StaffWorkloadReport() {
             </select>
           </div>
 
-          <div className="col-md-4">
-            <label className="form-label fw-semibold">Filter by Status</label>
+          <div className="col-md-2">
+            <label className="form-label fw-semibold">School Level</label>
+            <select
+              className="form-select"
+              value={selectedLevel}
+              onChange={(e) => setSelectedLevel(e.target.value)}
+            >
+              <option value="">All Levels</option>
+              <option value="Primary">Primary</option>
+              <option value="Middle">Middle</option>
+              <option value="Secondary">Secondary</option>
+            </select>
+          </div>
+
+          <div className="col-md-3">
+            <label className="form-label fw-semibold">Search Staff</label>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Search by name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          <div className="col-md-2">
+            <label className="form-label fw-semibold">Status</label>
             <select
               className="form-select"
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
             >
-              <option value="all">All Staff</option>
+              <option value="all">All</option>
               <option value="low">LOW</option>
               <option value="normal">NORMAL</option>
               <option value="overload">OVERLOAD</option>
             </select>
+          </div>
+
+          <div className="col-md-12">
+            <button 
+              className="btn btn-outline-secondary btn-sm"
+              onClick={clearFilters}
+            >
+              <i className="bi bi-x-circle me-1"></i>
+              Clear Filters
+            </button>
           </div>
         </div>
 
@@ -348,6 +437,14 @@ export default function StaffWorkloadReport() {
                           : 'N/A'
                         }
                       </p>
+
+                      {/* School Levels */}
+                      {staff.levels && staff.levels.length > 0 && (
+                        <p className="card-text small mb-2">
+                          <strong>Levels:</strong>{' '}
+                          {staff.levels.join(', ')}
+                        </p>
+                      )}
 
                       {/* Total Periods */}
                       <div className="d-flex justify-content-between align-items-center">
