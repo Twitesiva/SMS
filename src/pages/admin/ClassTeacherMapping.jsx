@@ -128,7 +128,7 @@ export default function ClassTeacherMapping() {
           supabase.from('academic_years').select('id, year_name').order('year_name'),
           supabase.from('classes').select('id, class_name, class_number, school_level').order('class_number'),
           supabase.from('groups').select('id, group_name, class_id').order('group_name'),
-          supabase.from('staff').select('id, full_name').order('full_name')
+          supabase.from('staff').select('id, full_name, staff_id').order('full_name')
         ])
 
         setAcademicYears(ayRes.data || [])
@@ -563,9 +563,13 @@ export default function ClassTeacherMapping() {
                   disabled={!formData.section_id}
                 >
                   <option value="">Select Class Teacher</option>
-                  {availableStaffList.map(staff => (
-                    <option key={staff.id} value={staff.id}>{staff.full_name}</option>
-                  ))}
+                  {availableStaffList
+                      .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''))
+                      .map(staff => (
+                        <option key={staff.id} value={staff.id}>
+                          {staff.full_name} ({staff.staff_id || 'N/A'})
+                        </option>
+                      ))}
                 </select>
               </div>
 
