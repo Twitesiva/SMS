@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../store/auth'
 import '../common/LoginLayout.css'
 
-const ADMIN_EMAIL = 'admin@vijayam.in'
+const ADMIN_EMAIL = 'admin@jazz.in'
 const ADMIN_PASSWORD = 'admin123'
 
 export default function AdminLogin() {
@@ -105,7 +105,7 @@ export default function AdminLogin() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@vijayam.in"
+                placeholder="admin@jazz.in"
                 required
                 style={{
                   width: '100%',
