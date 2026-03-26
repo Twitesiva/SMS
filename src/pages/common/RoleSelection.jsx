@@ -1,34 +1,103 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { showToast } from '../../store/ui.js';
 import './RoleSelection.css';
 import bgImage from '../../assets/media/EMS.jpg';
+
+const allowedPortals = ['admin', 'staff'];
+const portalRoutes = {
+  admin: '/admin-portal/login',
+  staff: '/staff/login'
+};
+const lockedMessage =
+  'This page is locked. Please contact Twite AI Technologies to unlock it.';
+const portals = [
+  {
+    id: 'admission',
+    label: 'ADMISSION PORTAL',
+    icon: 'bi-journal-richtext',
+    desc: 'Admissions, Applications & Enquiries',
+    className: 'admission'
+  },
+  {
+    id: 'admin',
+    label: 'ADMIN',
+    icon: 'bi-person-gear',
+    desc: 'User management & configuration',
+    className: 'admin'
+  },
+  {
+    id: 'staff',
+    label: 'STAFF',
+    icon: 'bi-person-workspace',
+    desc: 'Access staff portal, manage students',
+    className: 'staff'
+  },
+  {
+    id: 'exam',
+    label: 'EXAM PORTAL',
+    icon: 'bi-laptop',
+    desc: 'Controller of Examinations login',
+    className: 'exam'
+  },
+  {
+    id: 'student',
+    label: 'STUDENT',
+    icon: 'bi-mortarboard',
+    desc: 'Access student portal, results & timetables',
+    className: 'student'
+  },
+  {
+    id: 'library',
+    label: 'LIBRARY',
+    icon: 'bi-book',
+    desc: 'Library catalog & issue desk',
+    className: 'library'
+  },
+  {
+    id: 'parent',
+    label: 'PARENT',
+    icon: 'bi-people',
+    desc: 'Access parent portal, monitor student progress',
+    className: 'parent'
+  },
+  {
+    id: 'hostel',
+    label: 'HOSTEL',
+    icon: 'bi-house',
+    desc: 'Hostel management & allocation',
+    className: 'hostel'
+  },
+  {
+    id: 'transport',
+    label: 'TRANSPORT',
+    icon: 'bi-bus-front',
+    desc: 'Transport routes & passes',
+    className: 'transport'
+  }
+];
+
+const showLockedMessage = () => {
+  showToast(lockedMessage, { type: 'warning', duration: 7000 });
+};
 
 export default function RoleSelection() {
   const navigate = useNavigate();
 
-  const roles = [
-    {
-      id: 'admin',
-      label: 'ADMIN',
-      icon: 'bi-person-gear',
-      desc: 'Manage admin portal operations',
-      className: 'admin'
-    },
-    {
-      id: 'staff',
-      label: 'STAFF',
-      icon: 'bi-person-workspace',
-      desc: 'Access staff portal and tools',
-      className: 'staff'
-    }
-  ];
+  const handlePortalClick = (portalId) => {
+    console.log(`Portal clicked: ${portalId}`);
 
-  const handleNavigation = (role) => {
-    if (role === 'admin') {
-      navigate('/admin-portal/login');
+    if (allowedPortals.includes(portalId)) {
+      console.log(`Portal access: allowed for ${portalId}`);
+      const route = portalRoutes[portalId];
+      if (route) {
+        navigate(route);
+      }
       return;
     }
-    navigate('/staff/login');
+
+    console.log(`Portal access: blocked for ${portalId}`);
+    showLockedMessage();
   };
 
   return (
@@ -43,17 +112,17 @@ export default function RoleSelection() {
         <h1 className="role-title">SELECT YOUR PORTAL</h1>
 
         <div className="role-grid">
-          {roles.map((role) => (
+          {portals.map((portal) => (
             <div
-              key={role.id}
-              className={`role-card ${role.className}`}
-              onClick={() => handleNavigation(role.id)}
+              key={portal.id}
+              className={`role-card ${portal.className}`}
+              onClick={() => handlePortalClick(portal.id)}
             >
               <div className="role-icon-wrapper">
-                <i className={`bi ${role.icon}`}></i>
+                <i className={`bi ${portal.icon}`}></i>
               </div>
-              <div className="role-name">{role.label}</div>
-              <div className="role-description">{role.desc}</div>
+              <div className="role-name">{portal.label}</div>
+              <div className="role-description">{portal.desc}</div>
             </div>
           ))}
         </div>

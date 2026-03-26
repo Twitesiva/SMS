@@ -54,9 +54,10 @@
 .role-content {
     position: relative;
     z-index: 10;
-    max-width: 760px;
+    max-width: 1100px;
     width: 100%;
     text-align: center;
+    margin: 0 auto;
 }
 
 .role-title {
@@ -72,10 +73,12 @@
 .role-grid {
     display: grid;
     gap: 1.5rem;
-    justify-content: center;
+    justify-items: center;
     align-items: stretch;
     padding: 1rem;
-    grid-template-columns: repeat(2, minmax(250px, 300px));
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    max-width: 1100px;
+    margin: 0 auto;
 }
 
 .role-card {
@@ -240,6 +243,41 @@
 .role-card.staff .role-icon-wrapper {
     color: #2f855a;
     background: #f0fff4;
+}
+
+.role-card.admission .role-icon-wrapper {
+    color: #1d4ed8;
+    background: #e0e7ff;
+}
+
+.role-card.exam .role-icon-wrapper {
+    color: #0f172a;
+    background: #f8fafc;
+}
+
+.role-card.student .role-icon-wrapper {
+    color: #2563eb;
+    background: #e0f2fe;
+}
+
+.role-card.library .role-icon-wrapper {
+    color: #6b21a8;
+    background: #f5f3ff;
+}
+
+.role-card.parent .role-icon-wrapper {
+    color: #a855f7;
+    background: #f3e8ff;
+}
+
+.role-card.hostel .role-icon-wrapper {
+    color: #dd6b20;
+    background: #fff7ed;
+}
+
+.role-card.transport .role-icon-wrapper {
+    color: #0ea5e9;
+    background: #ecfeff;
 }
 
 @keyframes fadeInDown {
