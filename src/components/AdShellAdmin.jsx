@@ -26,7 +26,7 @@ const adminPortalNavGroups = [
             },
             {
                 to: '/admin-portal/groups-courses',
-                label: 'Groups & Courses',
+                label: 'Classes & Sections',
                 icon: 'bi-diagram-3'
             },
             {
