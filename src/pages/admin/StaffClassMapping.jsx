@@ -306,7 +306,7 @@ export default function StaffClassMapping() {
                     <div key={level} className="mb-4">
                       <h6 className="border-bottom pb-2 mb-2 d-flex justify-content-between align-items-center">
                         <div>
-                          <span className="badge bg-secondary me-2">{level}</span>
+                          <span className="badge bg-secondary badge-text-white me-2">{level}</span>
                           {selectedCount > 0 && <span className="text-muted small">({selectedCount} selected)</span>}
                         </div>
                         <div className="form-check m-0">
@@ -357,7 +357,7 @@ export default function StaffClassMapping() {
                       {selectedClasses.map(id => {
                         const cls = classes.find(c => String(c.id) === String(id))
                         return (
-                          <span key={id} className="badge bg-primary px-3 py-2">
+                      <span key={id} className="badge bg-primary badge-text-white px-3 py-2">
                             {cls ? cls.class_name : id}
                           </span>
                         )
@@ -403,7 +403,7 @@ export default function StaffClassMapping() {
                           {classIds.map(cid => {
                             const cls = classes.find(c => String(c.id) === String(cid))
                             return (
-                              <span key={cid} className="badge bg-secondary d-flex align-items-center gap-1 pe-2">
+                              <span key={cid} className="badge bg-secondary badge-text-white d-flex align-items-center gap-1 pe-2">
                                 {cls ? cls.class_name : cid}
                                 <i 
                                   className="bi bi-x-circle-fill ms-1" 

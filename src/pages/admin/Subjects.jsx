@@ -919,9 +919,9 @@ export default function Subjects() {
                     </tr>
                   ) : (
                     groupedRows.map((row) => (
-                      <tr key={row.key} className="align-middle border-bottom">
+                        <tr key={row.key} className="align-middle border-bottom">
                         <td className="ps-3 fw-semibold">
-                          <span className="badge bg-secondary bg-opacity-10 text-secondary px-2 py-1">{row.school_level}</span>
+                          <span className="badge bg-secondary bg-opacity-10 text-dark fw-semibold px-2 py-1">{row.school_level}</span>
                         </td>
                         <td className="fw-bold">Class {row.class_name}</td>
                         <td>
@@ -1162,7 +1162,7 @@ export default function Subjects() {
                             <td>{subject.school_level || '-'}</td>
                             <td>
                               <span
-                                className="badge bg-secondary bg-opacity-10 text-secondary border border-secondary"
+                                className="badge bg-secondary bg-opacity-10 text-dark fw-semibold border border-secondary"
                                 style={{ cursor: 'pointer', fontSize: '0.8rem', padding: '6px 12px' }}
                                 onClick={() => handleUsageClick(subject.id)}
                                 title="Click to see staff details"

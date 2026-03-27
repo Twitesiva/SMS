@@ -103,15 +103,11 @@
 
 .home-hero__tagline {
   margin: 0.6rem 0 0;
-  padding: 0.55rem 1rem;
-  border-radius: 999px;
-  background: rgba(0, 9, 26, 0.58);
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  padding: 0;
 }
 
 .home-hero__tagline-text {
-  color: #fff;
+  color: rgba(58, 33, 17, 0.85);
   font-weight: 500;
 }
 

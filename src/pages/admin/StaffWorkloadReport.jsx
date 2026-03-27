@@ -21,9 +21,9 @@ const getLoadStatus = (count) => {
  * Get status color for UI
  */
 const getStatusColor = (status) => {
-  if (status === "OVERLOAD") return { bg: '#ffebee', border: '#5c0000', text: '#c62828' }
-  if (status === "NORMAL") return { bg: '#fff8e1', border: '#ff6f00', text: '#f57c00' }
-  return { bg: '#e8f5e9', border: '#1b5e20', text: '#2e7d32' }
+  if (status === "OVERLOAD") return { bg: '#fff6f6', border: '#be123c', text: '#b91c1c', badge: '#fee2e2' }
+  if (status === "NORMAL") return { bg: '#fff9f3', border: '#d97706', text: '#b45309', badge: '#fff4e6' }
+  return { bg: '#f5fbf6', border: '#2f7a3b', text: '#1f7a3a', badge: '#e0f2ff' }
 }
 
 /**
@@ -221,7 +221,7 @@ export default function StaffWorkloadReport() {
     const overload = reportData.filter(s => s.status === 'OVERLOAD').length
     const totalPeriods = reportData.reduce((sum, s) => sum + s.totalPeriods, 0)
     const avgPeriods = total > 0 ? Math.round(totalPeriods / total) : 0
-    return { total, low, normal, overload, avgPeriods }
+    return { total, low, normal, overload, avgPeriods, totalPeriods }
   }, [reportData])
 
   // ============================================
@@ -405,10 +405,10 @@ export default function StaffWorkloadReport() {
               return (
                 <div key={staff.id} className="col-md-6 col-lg-4">
                   <div 
-                    className="card h-100"
+                    className="card h-100 workload-card"
                     style={{ 
                       backgroundColor: colors.bg,
-                      borderLeft: `5px solid ${colors.border}`
+                      borderLeft: `3px solid ${colors.border}`
                     }}
                   >
                     <div className="card-body">
@@ -418,11 +418,11 @@ export default function StaffWorkloadReport() {
                           {staff.name}
                         </h5>
                         <span 
-                          className="badge"
+                          className="badge status-pill"
                           style={{ 
-                            backgroundColor: colors.border,
-                            color: 'white',
-                            fontSize: '0.7rem'
+                            backgroundColor: colors.badge,
+                            color: colors.text,
+                            fontSize: '0.75rem'
                           }}
                         >
                           {staff.status}

@@ -604,33 +604,33 @@ export default function ClassTeacherMapping() {
                 <div className="col-12">
                   <div className="d-flex flex-wrap gap-2 mb-3">
                     {formData.academic_year_id && (
-                      <span className="badge bg-primary bg-opacity-20 text-primary px-3 py-2">{
-                        academicYears.find(y => y.id === formData.academic_year_id)?.year_name
-                      }</span>
+                      <span className="summary-pill summary-pill--primary">
+                        {academicYears.find(y => y.id === formData.academic_year_id)?.year_name}
+                      </span>
                     )}
                     {formData.school_level && (
-                      <span className="badge bg-secondary bg-opacity-20 text-secondary px-3 py-2">
+                      <span className="summary-pill summary-pill--secondary">
                         {formData.school_level}
                       </span>
                     )}
                     {selectedClass && (
-                      <span className="badge bg-success bg-opacity-20 text-success px-3 py-2">
+                      <span className="summary-pill summary-pill--success">
                         {selectedClass.class_name}
                       </span>
                     )}
                     {formData.group_id && (
-                      <span className="badge bg-info bg-opacity-20 text-info px-3 py-2">{
-                        groups.find(g => g.id === formData.group_id)?.group_name
-                      }</span>
+                      <span className="summary-pill summary-pill--info">
+                        {groups.find(g => g.id === formData.group_id)?.group_name}
+                      </span>
                     )}
                     {(() => {
                       const secIndex = classSections.findIndex(s => s.id === formData.section_id)
                       return secIndex >= 0 && (
-                        <span className="badge bg-warning bg-opacity-20 text-warning px-3 py-2">{`A${secIndex + 1}`}</span>
+                        <span className="summary-pill summary-pill--warning">{`A${secIndex + 1}`}</span>
                       )
                     })()}
                     {formData.term && (
-                      <span className="badge bg-dark bg-opacity-20 text-light px-3 py-2">
+                      <span className="summary-pill summary-pill--term">
                         {formData.term}
                       </span>
                     )}
@@ -742,7 +742,9 @@ export default function ClassTeacherMapping() {
                           </td>
                           <td>
                             <span className="fw-semibold">Class {classNumber}</span>
-                            <div className="text-muted small">{className}</div>
+                            {className && className !== `Class ${classNumber}` && (
+                              <div className="text-muted small">{className}</div>
+                            )}
                           </td>
                           <td>{sectionLabelMap[mapping.class_section_id] || sectionName}</td>
                           <td>
