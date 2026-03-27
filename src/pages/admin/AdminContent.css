@@ -337,6 +337,11 @@
   font-weight: 700 !important;
 }
 
+.admin-content .badge.bg-secondary,
+.admin-content .badge.bg-primary {
+  color: #ffffff !important;
+}
+
 /* Force white for activity-table-header elements */
 .admin-content .activity-table-header,
 .admin-content .activity-table-header *,
